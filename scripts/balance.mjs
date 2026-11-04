@@ -12,6 +12,7 @@ if (!isMainThread) {
     let games = 0,
       forfeits = 0;
     while (state.phase !== 'ended') {
+      if (state.careerEvent) state = e.answerCareerEvent(state, state.careerEvent.choices.find(c=>c.id === "routine")?.id ?? state.careerEvent.choices[0].id);
       const beforeDate = state.date;
       const p = e.getPlayer(state);
       const started = performance.now();
@@ -84,7 +85,7 @@ if (!isMainThread) {
   const total = e.emptyRecord();
   for (const r of results) e.mergeRecord(total, r.totals);
   const summary = {
-    balanceVersion: '0.3.0-provisional',
+    balanceVersion: require('../baseball_balance_v0_4.json').balanceVersion,
     environment: {
       node: process.version,
       platform: process.platform,
@@ -114,7 +115,7 @@ if (!isMainThread) {
     hrRate: total.batting.HR / total.batting.PA,
     runsPerTeamGame: total.batting.R / results.reduce((a, r) => a + 2 * r.games, 0),
     playerDraftRate: mean(results.map(r => Number(r.drafted))),
-    notice: 'Fictional development fixtures; these measurements do not establish final balance.'
+    notice: '2026 reference windows with fictional entrants/brackets; these measurements do not establish final balance.'
   };
   mkdirSync('test-results', {
     recursive: true

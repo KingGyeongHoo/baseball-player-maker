@@ -69,6 +69,30 @@ try {
   assert.ok(result.result.report.processingMs >= 0);
   delete result.result.report.processingMs;
   assert.deepEqual(result.result, expected);
+  const recoveryPolicy = e.policyForMode(p.trainingPolicy, 'rest');
+  const recovered = await request({ requestId: 43, state, policy: recoveryPolicy, stance: p.stance });
+  assert.ok(recovered.result, recovered.error);
+  delete recovered.result.report.processingMs;
+  assert.deepEqual(recovered.result, e.advanceWeek(state, recoveryPolicy, p.stance));
+  assert.deepEqual(e.getPlayer(recovered.result).trainingPolicy, recoveryPolicy);
+  assert.deepEqual(e.policyForMode(e.getPlayer(recovered.result).trainingPolicy, p.trainingPolicy.mode), p.trainingPolicy);
+  assert.equal(recovered.result.report.fatigue.training, 0);
+  let eventInput, eventExpected;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const candidate = e.createGame(`production-event-${attempt}`, '이벤트검증', 'SS');
+    candidate.week = 6;
+    const player = e.getPlayer(candidate);
+    const next = e.advanceWeek(candidate, player.trainingPolicy, player.stance);
+    if (next.careerEvent) { eventInput = candidate; eventExpected = next; break; }
+  }
+  assert.ok(eventInput, 'deterministic event fixture');
+  const eventPlayer = e.getPlayer(eventInput);
+  const eventResponse = await request({ requestId: 44, state: eventInput, policy: eventPlayer.trainingPolicy, stance: eventPlayer.stance });
+  assert.ok(eventResponse.result, eventResponse.error);
+  delete eventResponse.result.report.processingMs;
+  assert.deepEqual(eventResponse.result, eventExpected);
+  const blocked = await request({ requestId: 45, state: eventExpected, policy: eventPlayer.trainingPolicy, stance: eventPlayer.stance });
+  assert.match(blocked.error, /イベント|이벤트/);
   const bad = structuredClone(p.trainingPolicy);
   bad.tickets.contact = 99;
   const failed = await request({

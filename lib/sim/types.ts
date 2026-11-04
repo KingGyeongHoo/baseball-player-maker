@@ -9,6 +9,10 @@ export type Position = "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF" | "D
 export type Policy = {
   mode: Mode;
   tickets: Record<Ticket, number>;
+  previousTraining?: {
+    mode: Exclude<Mode, "rest">;
+    tickets: Record<Ticket, number>;
+  };
 };
 export type Stance = {
   batting: "down" | "level" | "up";
@@ -83,6 +87,8 @@ export type Player = {
   }[];
   recentAppearances: RecordLine[];
   reputation: number | null;
+  performanceReputation?: number | null;
+  reputationBonus?: number;
   recentZ: number;
   lastPitched: string | null;
   roleOffer: Role | null;
@@ -111,11 +117,29 @@ export type Game = {
   lineup: string[][];
   boxScore: Record<string, RecordLine>;
   forfeitTeamId?: number;
+  round?: number;
+  advancingTeamId?: number;
+};
+export type Competition = {
+  id: string;
+  name: string;
+  kind: "league" | "tournament";
+  startDate: string;
+  endDate: string;
+  entryRule: string;
+  participantTeamIds: number[];
+  initialized: boolean;
+  round: number;
+  roundDates: string[];
+  byes: number[];
+  championTeamId: number | null;
 };
 export type Calendar = {
   seasonYear: number;
-  sourceKind: "fictional";
-  sourceUrl: null;
+  sourceKind: "reference";
+  sourceUrl: string;
+  referenceYear: number;
+  competitions: Competition[];
   trainingDays: string[];
   events: Game[];
   draftDate: string;
@@ -129,6 +153,12 @@ export type DraftPick = {
   overall: number;
   role: Role;
   score: number;
+  ability: number;
+  abilityRank: number;
+  reputation: number;
+  talent: number;
+  fit: number;
+  components: { reputation: number; talent: number; fit: number };
 };
 export type FatigueDay = {
   date: string;
@@ -160,11 +190,23 @@ export type Report = {
   reputationAfter: number | null;
   processingMs?: number;
 };
+export type CareerEvent = {
+  id: string;
+  kind: "coach" | "condition" | "scout";
+  date: string;
+  title: string;
+  description: string;
+  choices: { id: string; label: string; description: string; stats: Partial<Stats>; reputation: number; fatigue: number }[];
+};
+export type CareerEventOutcome = {
+  id: string; kind: CareerEvent["kind"]; title: string; date: string; choice: string;
+  stats: Partial<Stats>; reputation: number; fatigue: number;
+};
 export type GameState = {
   schemaVersion: number;
   balanceVersion: string;
   seed: string;
-  rngStates: Record<"generation" | "training" | "match" | "injury" | "draft", number>;
+  rngStates: Record<"generation" | "training" | "match" | "injury" | "draft" | "events", number>;
   date: string;
   phase: "weekStart" | "ended";
   playerId: string;
@@ -186,4 +228,7 @@ export type GameState = {
   }[];
   draft: DraftPick[];
   injuryDays: number;
+  careerEvent?: CareerEvent | null;
+  careerEventHistory?: CareerEventOutcome[];
+  lastCareerEventWeek?: number;
 };

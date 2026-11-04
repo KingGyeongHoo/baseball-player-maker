@@ -1,0 +1,1406 @@
+{
+  "schemaVersion": 1,
+  "balanceVersion": "0.5.1-provisional",
+  "date": "2026-11-04",
+  "scope": "high-school-3-seasons-to-draft",
+  "notice": "2026-11-04 사용자 요청에 따른 훈련 피로·회복 재조정. v0.3 JSON/XLSX는 원본으로 보존. 현재 구현은 v0.4 JSON 사용. 실측 통계에 맞춘 최종 밸런스가 아님.",
+  "parameters": [
+    {
+      "key": "stat.min",
+      "label": "능력치 하한",
+      "value": 1,
+      "unit": "점",
+      "status": "채택 방향",
+      "note": "대화에서 채택한 설계 방향"
+    },
+    {
+      "key": "stat.max",
+      "label": "기본 능력치 상한",
+      "value": 100,
+      "unit": "점",
+      "status": "채택 방향",
+      "note": "대화에서 채택한 설계 방향"
+    },
+    {
+      "key": "world.teams",
+      "label": "고교 팀 수",
+      "value": 100,
+      "unit": "팀",
+      "status": "규모 가정",
+      "note": "대화의 개발 규모 가정; 실측 팀·선수 수 아님"
+    },
+    {
+      "key": "world.grade_size",
+      "label": "팀당 학년 정원",
+      "value": 10,
+      "unit": "명",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "world.clubs",
+      "label": "지명 구단 수",
+      "value": 10,
+      "unit": "구단",
+      "status": "규모 가정",
+      "note": "대화의 개발 규모 가정; 실측 팀·선수 수 아님"
+    },
+    {
+      "key": "generation.mean",
+      "label": "신입생 중심값",
+      "value": 40,
+      "unit": "점",
+      "status": "채택 방향",
+      "note": "대화에서 채택한 설계 방향"
+    },
+    {
+      "key": "generation.player_sd",
+      "label": "선수 공통 실력 표준편차",
+      "value": 7,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "generation.stat_sd",
+      "label": "개별 능력치 편차",
+      "value": 7,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "talent.min",
+      "label": "재능 최솟값",
+      "value": 1,
+      "unit": "점",
+      "status": "채택 방향",
+      "note": "대화에서 채택한 설계 방향"
+    },
+    {
+      "key": "talent.max",
+      "label": "재능 최댓값",
+      "value": 10,
+      "unit": "점",
+      "status": "채택 방향",
+      "note": "대화에서 채택한 설계 방향"
+    },
+    {
+      "key": "talent.min_mult",
+      "label": "재능 1 성장 배율",
+      "value": 1,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "talent.max_mult",
+      "label": "재능 10 성장 배율",
+      "value": 2,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "talent.hint",
+      "label": "재능 평가 문구 공개",
+      "value": 10,
+      "unit": "유효 훈련주",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "talent.reveal",
+      "label": "재능 수치 공개",
+      "value": 30,
+      "unit": "유효 훈련주",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "training.light",
+      "label": "가벼운 훈련 예산",
+      "value": 7,
+      "unit": "장",
+      "status": "채택 방향",
+      "note": "대화에서 채택한 설계 방향"
+    },
+    {
+      "key": "training.normal",
+      "label": "보통 훈련 예산",
+      "value": 10,
+      "unit": "장",
+      "status": "채택 방향",
+      "note": "대화에서 채택한 설계 방향"
+    },
+    {
+      "key": "training.hard",
+      "label": "강한 훈련 예산",
+      "value": 13,
+      "unit": "장",
+      "status": "채택 방향",
+      "note": "대화에서 채택한 설계 방향"
+    },
+    {
+      "key": "training.max_each",
+      "label": "능력별 티켓 상한",
+      "value": 5,
+      "unit": "장",
+      "status": "채택 방향",
+      "note": "대화에서 채택한 설계 방향"
+    },
+    {
+      "key": "training.focus_min",
+      "label": "1장 기본 집중 성장",
+      "value": 0.1,
+      "unit": "점/주",
+      "status": "채택 방향",
+      "note": "대화에서 채택한 설계 방향"
+    },
+    {
+      "key": "training.focus_span",
+      "label": "로그 추가 성장 폭",
+      "value": 0.15,
+      "unit": "점/주",
+      "status": "수식 구체화",
+      "note": "5장 총성장 0.25; G(t)=0.1+0.15 ln(t)/ln(5)"
+    },
+    {
+      "key": "training.base",
+      "label": "주역할 기초 성장",
+      "value": 0.03,
+      "unit": "점/능력/주",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "training.bq",
+      "label": "BQ 성장",
+      "value": 0.025,
+      "unit": "점/주",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "training.days",
+      "label": "정규 훈련일",
+      "value": 5,
+      "unit": "일/주",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "training.game_fraction",
+      "label": "경기 출전일 훈련 환산",
+      "value": 0.25,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "training.bench_fraction",
+      "label": "경기 벤치일 훈련 환산",
+      "value": 0.75,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "growth.break1",
+      "label": "1차 성장 둔화 시작",
+      "value": 50,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "growth.break2",
+      "label": "2차 성장 둔화 시작",
+      "value": 60,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "growth.break3",
+      "label": "3차 성장 둔화 시작",
+      "value": 70,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "growth.break4",
+      "label": "4차 성장 둔화 시작",
+      "value": 80,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "growth.break5",
+      "label": "5차 성장 둔화 시작",
+      "value": 90,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "growth.factor0",
+      "label": "성장 구간 1 배율",
+      "value": 1,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "growth.factor1",
+      "label": "성장 구간 2 배율",
+      "value": 0.5,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "growth.factor2",
+      "label": "성장 구간 3 배율",
+      "value": 0.25,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "growth.factor3",
+      "label": "성장 구간 4 배율",
+      "value": 0.12,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "growth.factor4",
+      "label": "성장 구간 5 배율",
+      "value": 0.06,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "growth.factor5",
+      "label": "성장 구간 6 배율",
+      "value": 0.025,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "fatigue.ticket_cost",
+      "label": "실사용 티켓당 기본 피로",
+      "value": 0.3,
+      "unit": "점/주",
+      "status": "사용자 요청 반영",
+      "note": "2026-11-04 요청: v0.4.1 대비 일반 훈련·경기 피로와 자연 회복을 1/10로 조정. 회복 훈련의 일일 회복 20은 유지."
+    },
+    {
+      "key": "fatigue.field_game",
+      "label": "야수 9이닝 기본 피로",
+      "value": 1,
+      "unit": "점/경기",
+      "status": "사용자 요청 반영",
+      "note": "2026-11-04 요청: v0.4.1 대비 일반 훈련·경기 피로와 자연 회복을 1/10로 조정. 회복 훈련의 일일 회복 20은 유지."
+    },
+    {
+      "key": "fatigue.pitch_out",
+      "label": "투구 1아웃 기본 피로",
+      "value": 0.1,
+      "unit": "점/아웃",
+      "status": "사용자 요청 반영",
+      "note": "2026-11-04 요청: v0.4.1 대비 일반 훈련·경기 피로와 자연 회복을 1/10로 조정. 회복 훈련의 일일 회복 20은 유지."
+    },
+    {
+      "key": "fatigue.daily_recovery",
+      "label": "기본 회복",
+      "value": 0.15,
+      "unit": "점/일",
+      "status": "사용자 요청 반영",
+      "note": "2026-11-04 요청: v0.4.1 대비 일반 훈련·경기 피로와 자연 회복을 1/10로 조정. 회복 훈련의 일일 회복 20은 유지."
+    },
+    {
+      "key": "fatigue.rest_bonus",
+      "label": "완전 휴식 추가 회복",
+      "value": 0.05,
+      "unit": "점/일",
+      "status": "사용자 요청 반영",
+      "note": "2026-11-04 요청: v0.4.1 대비 일반 훈련·경기 피로와 자연 회복을 1/10로 조정. 회복 훈련의 일일 회복 20은 유지."
+    },
+    {
+      "key": "physical.accum_low",
+      "label": "스태미나 1 누적 배율",
+      "value": 1.25,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "physical.accum_mid",
+      "label": "스태미나 50 누적 배율",
+      "value": 1,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "physical.accum_high",
+      "label": "스태미나 100 누적 배율",
+      "value": 0.75,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "physical.recovery_low",
+      "label": "회복력 1 회복 배율",
+      "value": 0.75,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "physical.recovery_mid",
+      "label": "회복력 50 회복 배율",
+      "value": 1,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "physical.recovery_high",
+      "label": "회복력 100 회복 배율",
+      "value": 1.25,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "fatigue.risk_start",
+      "label": "부상 위험 시작",
+      "value": 60,
+      "unit": "피로점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "fatigue.high_start",
+      "label": "고피로 구간 시작",
+      "value": 80,
+      "unit": "피로점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "fatigue.force_rest",
+      "label": "강제 휴식",
+      "value": 100,
+      "unit": "피로점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "fatigue.ready_return",
+      "label": "강제 휴식 해제",
+      "value": 80,
+      "unit": "미만",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "fatigue.effective_min",
+      "label": "피로 100 경기 능력 배율",
+      "value": 0.85,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.risk_at60",
+      "label": "피로 60 활동일 부상 확률",
+      "value": 0.005,
+      "unit": "확률/일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.risk_slope60",
+      "label": "피로 60~79 확률 증가",
+      "value": 0.0005,
+      "unit": "확률/피로점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.risk_at80",
+      "label": "피로 80 활동일 부상 확률",
+      "value": 0.02,
+      "unit": "확률/일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.risk_slope80",
+      "label": "피로 80~100 확률 증가",
+      "value": 0.002,
+      "unit": "확률/피로점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.mild.weight",
+      "label": "mild 심각도 비중",
+      "value": 0.75,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.mild.min_days",
+      "label": "mild 최소 결장",
+      "value": 7,
+      "unit": "일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.mild.max_days",
+      "label": "mild 최대 결장",
+      "value": 14,
+      "unit": "일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.mild.penalty",
+      "label": "mild 회복 가능 저하",
+      "value": 0,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.mild.recovery_days",
+      "label": "mild 복귀 후 저하 해소",
+      "value": 0,
+      "unit": "일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.moderate.weight",
+      "label": "moderate 심각도 비중",
+      "value": 0.2,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.moderate.min_days",
+      "label": "moderate 최소 결장",
+      "value": 21,
+      "unit": "일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.moderate.max_days",
+      "label": "moderate 최대 결장",
+      "value": 42,
+      "unit": "일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.moderate.penalty",
+      "label": "moderate 회복 가능 저하",
+      "value": 2,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.moderate.recovery_days",
+      "label": "moderate 복귀 후 저하 해소",
+      "value": 14,
+      "unit": "일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.severe.weight",
+      "label": "severe 심각도 비중",
+      "value": 0.05,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.severe.min_days",
+      "label": "severe 최소 결장",
+      "value": 49,
+      "unit": "일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.severe.max_days",
+      "label": "severe 최대 결장",
+      "value": 84,
+      "unit": "일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.severe.penalty",
+      "label": "severe 회복 가능 저하",
+      "value": 5,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "injury.severe.recovery_days",
+      "label": "severe 복귀 후 저하 해소",
+      "value": 28,
+      "unit": "일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "stance.swing",
+      "label": "스윙 컨택/파워 상대 보정",
+      "value": 0.15,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "stance.full_velocity",
+      "label": "전력 구속 배율",
+      "value": 1.12,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "stance.full_control",
+      "label": "전력 제구 배율",
+      "value": 0.92,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "stance.full_cost",
+      "label": "전력 투구 피로 배율",
+      "value": 1.25,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "stance.command_velocity",
+      "label": "커맨드 구속 배율",
+      "value": 0.94,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "stance.command_control",
+      "label": "커맨드 제구 배율",
+      "value": 1.12,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "stance.command_cost",
+      "label": "커맨드 피로 배율",
+      "value": 0.9,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.effective_max",
+      "label": "유효 능력치 상한",
+      "value": 120,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.bb_base",
+      "label": "동급 볼넷 확률",
+      "value": 0.09,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.bb_slope",
+      "label": "BQ-제구 볼넷 기울기",
+      "value": 0.0015,
+      "unit": "확률/점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.bb_min",
+      "label": "볼넷 하한",
+      "value": 0.02,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.bb_max",
+      "label": "볼넷 상한",
+      "value": 0.22,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.hit_base",
+      "label": "비볼넷 타석 안타 기준",
+      "value": 0.28,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.hit_slope",
+      "label": "타격-투구 안타 기울기",
+      "value": 0.003,
+      "unit": "확률/점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.defense_slope",
+      "label": "상대 수비 안타 감소",
+      "value": 0.001,
+      "unit": "확률/점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.hit_min",
+      "label": "안타 조건부 하한",
+      "value": 0.08,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.hit_max",
+      "label": "안타 조건부 상한",
+      "value": 0.55,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.hr_base",
+      "label": "안타 중 홈런 기준",
+      "value": 0.08,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.hr_slope",
+      "label": "파워-변화구 홈런 기울기",
+      "value": 0.003,
+      "unit": "확률/점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.hr_min",
+      "label": "안타 중 홈런 하한",
+      "value": 0.01,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.hr_max",
+      "label": "안타 중 홈런 상한",
+      "value": 0.35,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.double_base",
+      "label": "안타 중 2루타 기준",
+      "value": 0.2,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.double_slope",
+      "label": "파워-제구 2루타 기울기",
+      "value": 0.001,
+      "unit": "확률/점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.double_min",
+      "label": "안타 중 2루타 하한",
+      "value": 0.1,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.double_max",
+      "label": "안타 중 2루타 상한",
+      "value": 0.3,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.triple_base",
+      "label": "안타 중 3루타 기준",
+      "value": 0.02,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.triple_slope",
+      "label": "주력-어깨 3루타 기울기",
+      "value": 0.0005,
+      "unit": "확률/점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.triple_min",
+      "label": "안타 중 3루타 하한",
+      "value": 0.005,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.triple_max",
+      "label": "안타 중 3루타 상한",
+      "value": 0.05,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.k_base",
+      "label": "아웃 중 삼진 기준",
+      "value": 0.28,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.k_slope",
+      "label": "구속-컨택 삼진 기울기",
+      "value": 0.004,
+      "unit": "확률/점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.k_min",
+      "label": "아웃 중 삼진 하한",
+      "value": 0.08,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.k_max",
+      "label": "아웃 중 삼진 상한",
+      "value": 0.65,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.gb_down",
+      "label": "다운스윙 비삼진 아웃 중 땅볼",
+      "value": 0.65,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.gb_level",
+      "label": "레벨스윙 비삼진 아웃 중 땅볼",
+      "value": 0.5,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.gb_up",
+      "label": "어퍼스윙 비삼진 아웃 중 땅볼",
+      "value": 0.35,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.regular_innings",
+      "label": "정규 이닝",
+      "value": 9,
+      "unit": "이닝",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.max_innings",
+      "label": "동점 최대 이닝",
+      "value": 12,
+      "unit": "이닝",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.max_pa",
+      "label": "반이닝 안전 정지",
+      "value": 100,
+      "unit": "타석",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.replace_fatigue",
+      "label": "투수 교체 기준",
+      "value": 80,
+      "unit": "피로점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.starter_outs",
+      "label": "선발 투구 상한",
+      "value": 18,
+      "unit": "아웃",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.relief_outs",
+      "label": "불펜 투구 상한",
+      "value": 6,
+      "unit": "아웃",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.closer_outs",
+      "label": "마무리 투구 상한",
+      "value": 3,
+      "unit": "아웃",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.offer_gap",
+      "label": "보직 전환 제안 우위",
+      "value": 8,
+      "unit": "평가점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.offer_weeks",
+      "label": "전환 제안 연속 유지",
+      "value": 3,
+      "unit": "주",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.offer_cooldown",
+      "label": "전환 제안 쿨다운",
+      "value": 8,
+      "unit": "주",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "reputation.hitter_prior",
+      "label": "타자 기록 축소 표본",
+      "value": 60,
+      "unit": "타석",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "reputation.pitcher_prior",
+      "label": "투수 기록 축소 표본",
+      "value": 60,
+      "unit": "아웃",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "draft.ratio",
+      "label": "고교 지명 슬롯 비율",
+      "value": 0.1,
+      "unit": "지원자 비율",
+      "status": "임시 근사",
+      "note": "전체 실제 드래프트 정원과 다름; 대학·기타 지원자 제외 MVP"
+    },
+    {
+      "key": "draft.talent_weight",
+      "label": "지명 재능 가중치",
+      "value": 0.1,
+      "unit": "배율",
+      "status": "사용자 요청 반영",
+      "note": "평판 80% + 재능 10% + 적합도 10%. OVR 직접 가산 및 후보 제한 없음."
+    },
+    {
+      "key": "draft.reputation_weight",
+      "label": "지명 평판 가중치",
+      "value": 0.8,
+      "unit": "배율",
+      "status": "사용자 요청 반영",
+      "note": "평판 80% + 재능 10% + 적합도 10%. OVR 직접 가산 및 후보 제한 없음."
+    },
+    {
+      "key": "draft.need_decay",
+      "label": "지명 후 해당 역할 필요도 감소",
+      "value": 0.25,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.fatigue_penalty",
+      "label": "출전 평가 피로 감점",
+      "value": 0.15,
+      "unit": "평가점/피로점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.recent_max",
+      "label": "최근 성적 최대 가감",
+      "value": 5,
+      "unit": "평가점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.recent_pa",
+      "label": "최근 타격 기록 창",
+      "value": 50,
+      "unit": "타석",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.recent_outs",
+      "label": "최근 투구 기록 창",
+      "value": 60,
+      "unit": "아웃",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.starter_rest",
+      "label": "선발 최소 휴식",
+      "value": 4,
+      "unit": "일",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "coach.starter_fatigue",
+      "label": "선발 정상 출전 피로 미만",
+      "value": 60,
+      "unit": "피로점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "fatigue.no_out_cost",
+      "label": "아웃 없는 투구 타석 비용",
+      "value": 0.025,
+      "unit": "아웃 상당",
+      "status": "사용자 요청 반영",
+      "note": "2026-11-04 요청: v0.4.1 대비 일반 훈련·경기 피로와 자연 회복을 1/10로 조정. 회복 훈련의 일일 회복 20은 유지."
+    },
+    {
+      "key": "match.attack_contact",
+      "label": "공격 평가 컨택 가중치",
+      "value": 0.9,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.attack_bq",
+      "label": "공격 평가 BQ 가중치",
+      "value": 0.1,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.pitch_velocity",
+      "label": "투구 평가 구속 가중치",
+      "value": 0.4,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.pitch_control",
+      "label": "투구 평가 제구 가중치",
+      "value": 0.4,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.pitch_movement",
+      "label": "투구 평가 변화구 가중치",
+      "value": 0.15,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.pitch_bq",
+      "label": "투구 평가 BQ 가중치",
+      "value": 0.05,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "match.defense_center",
+      "label": "안타 보정 수비 기준점",
+      "value": 40,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "running.extra_base",
+      "label": "추가 진루 기준 확률",
+      "value": 0.3,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "running.extra_slope",
+      "label": "주력-어깨 추가 진루 기울기",
+      "value": 0.005,
+      "unit": "확률/점",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "running.extra_min",
+      "label": "추가 진루 하한",
+      "value": 0.05,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "running.extra_max",
+      "label": "추가 진루 상한",
+      "value": 0.8,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "reputation.pitch_k",
+      "label": "투수 기록 SO/BF 가중치",
+      "value": 3,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "reputation.pitch_bb",
+      "label": "투수 기록 BB/BF 차감",
+      "value": 3,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "reputation.pitch_hr",
+      "label": "투수 기록 HR/BF 차감",
+      "value": 12,
+      "unit": "배율",
+      "status": "임시 기본값",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "preview.start",
+      "label": "성장 계산 시작 능력",
+      "value": 40,
+      "unit": "점",
+      "status": "계산 입력",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "preview.tickets",
+      "label": "성장 계산 집중 티켓",
+      "value": 3,
+      "unit": "장",
+      "status": "계산 입력",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "preview.talent",
+      "label": "성장 계산 재능",
+      "value": 5,
+      "unit": "점",
+      "status": "계산 입력",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "preview.availability",
+      "label": "성장 계산 훈련 가능 비율",
+      "value": 0.85,
+      "unit": "비율",
+      "status": "계산 입력",
+      "note": "경기·부상·휴식 시뮬레이션 대신 고정한 민감도 입력"
+    },
+    {
+      "key": "preview.fatigue",
+      "label": "피로 계산 주초 피로",
+      "value": 40,
+      "unit": "점",
+      "status": "계산 입력",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "preview.stamina",
+      "label": "피로 계산 스태미나",
+      "value": 50,
+      "unit": "점",
+      "status": "계산 입력",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "preview.recovery",
+      "label": "피로 계산 회복력",
+      "value": 50,
+      "unit": "점",
+      "status": "계산 입력",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "preview.used_tickets",
+      "label": "피로 계산 실사용 티켓",
+      "value": 10,
+      "unit": "장",
+      "status": "계산 입력",
+      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+    },
+    {
+      "key": "fatigue.mode_light",
+      "label": "약한 훈련 피로 배율",
+      "value": 1,
+      "unit": "계수",
+      "status": "사용자 요청 반영",
+      "note": "회복 훈련은 훈련·출전 없이 전용 회복량 적용"
+    },
+    {
+      "key": "fatigue.mode_normal",
+      "label": "중간 훈련 피로 배율",
+      "value": 1.15,
+      "unit": "계수",
+      "status": "사용자 요청 반영",
+      "note": "회복 훈련은 훈련·출전 없이 전용 회복량 적용"
+    },
+    {
+      "key": "fatigue.mode_hard",
+      "label": "강한 훈련 피로 배율",
+      "value": 1.35,
+      "unit": "계수",
+      "status": "사용자 요청 반영",
+      "note": "회복 훈련은 훈련·출전 없이 전용 회복량 적용"
+    },
+    {
+      "key": "fatigue.recovery_policy",
+      "label": "회복 훈련 일일 현재 피로 회복 비율",
+      "value": 0.05360442327212622,
+      "unit": "현재 피로 비율/일",
+      "status": "사용자 요청 반영",
+      "note": "회복력 50 기준 회복 1주에 현재 피로 32% 감소. 일일 비율=1-0.68^(1/7), 회복력 배율을 매일 적용. 일괄 0 초기화하지 않음."
+    },
+    {
+      "key": "coach.rest_fatigue",
+      "label": "NPC 비경기일 회복 전환 피로",
+      "value": 40,
+      "unit": "점",
+      "status": "구현용 임시값",
+      "note": "선수별 일일 회복 관리로 팀 전체의 동시 휴식과 과도한 기권을 방지"
+    },
+    {
+      "key": "coach.recover_target",
+      "label": "NPC 회복 목표 피로",
+      "value": 30,
+      "unit": "점",
+      "status": "구현용 임시값",
+      "note": "선수별 일일 회복 관리로 팀 전체의 동시 휴식과 과도한 기권을 방지"
+    },
+    {
+      "key": "coach.match_rest_fatigue",
+      "label": "NPC 경기일 출전 휴식 피로",
+      "value": 70,
+      "unit": "점",
+      "status": "구현용 임시값",
+      "note": "선수별 일일 회복 관리로 팀 전체의 동시 휴식과 과도한 기권을 방지"
+    },
+    {
+      "key": "injury.training_base_risk",
+      "label": "훈련일 기본 부상 확률",
+      "value": 0.0005,
+      "unit": "확률/훈련일",
+      "status": "사용자 요청 반영",
+      "note": "실제 훈련한 날에만 기본 0.05% 적용. 피로 부상 위험과 독립 결합."
+    },
+    {
+      "key": "events.gap_weeks",
+      "label": "이벤트 최소 간격",
+      "value": 6,
+      "unit": "주",
+      "status": "구현용 임시값",
+      "note": "이전 이벤트 이후 최소 6주 간격"
+    },
+    {
+      "key": "events.weekly_chance",
+      "label": "이벤트 주간 발생 확률",
+      "value": 0.25,
+      "unit": "확률",
+      "status": "구현용 임시값",
+      "note": "실제 훈련한 주, 부상·강제휴식·역할 제안이 없을 때만 평가"
+    },
+    {
+      "key": "reputation.ability_weight",
+      "label": "평판 현재 OVR 가중치",
+      "value": 0.6,
+      "unit": "계수",
+      "status": "사용자 요청 반영",
+      "note": "현재 주 역할 OVR 반영"
+    },
+    {
+      "key": "reputation.performance_weight",
+      "label": "평판 경기 성과 가중치",
+      "value": 0.4,
+      "unit": "계수",
+      "status": "사용자 요청 반영",
+      "note": "표본 보정한 경기 성과 백분위. 진급 후에도 마지막 성과 평가 유지"
+    },
+    {
+      "key": "reputation.unrated_performance",
+      "label": "출전 전 중립 성과 평가",
+      "value": 50,
+      "unit": "계수",
+      "status": "사용자 요청 반영",
+      "note": "경기 기록이 없을 때만 50점 사용"
+    },
+    {
+      "key": "draft.fit_weight",
+      "label": "스카우트 적합도 가중치",
+      "value": 0.1,
+      "unit": "계수",
+      "status": "사용자 요청 반영",
+      "note": "역할 능력과 구단 수요를 합성한 0~100점"
+    },
+    {
+      "key": "draft.fit_role_weight",
+      "label": "적합도 내부 역할 능력 비중",
+      "value": 0.5,
+      "unit": "계수",
+      "status": "사용자 요청 반영",
+      "note": "역할 능력 50%"
+    },
+    {
+      "key": "draft.fit_need_weight",
+      "label": "적합도 내부 구단 수요 비중",
+      "value": 0.5,
+      "unit": "계수",
+      "status": "사용자 요청 반영",
+      "note": "구단 포지션 수요 50%"
+    }
+  ],
+  "roleWeights": {
+    "코너 야수": {
+      "contact": 0.4,
+      "power": 0.4,
+      "defense": 0.1,
+      "speed": 0.1
+    },
+    "센터라인": {
+      "defense": 0.45,
+      "speed": 0.3,
+      "contact": 0.2,
+      "power": 0.05
+    },
+    "포수": {
+      "defense": 0.65,
+      "arm": 0.2,
+      "contact": 0.1,
+      "power": 0.05
+    },
+    "선발": {
+      "stamina": 0.35,
+      "control": 0.35,
+      "recovery": 0.15,
+      "movement": 0.1,
+      "velocity": 0.05
+    },
+    "중간계투": {
+      "velocity": 0.3,
+      "control": 0.3,
+      "movement": 0.3,
+      "stamina": 0.1
+    },
+    "마무리": {
+      "velocity": 0.5,
+      "movement": 0.35,
+      "control": 0.15
+    }
+  },
+  "roleWeightStatus": "임시 기본값",
+  "sources": [
+    {
+      "purpose": "대화에서 채택한 요구사항",
+      "source": "이 대화"
+    },
+    {
+      "purpose": "향후 기록 필드 대조; 시즌 보정값으로 사용하지 않음",
+      "source": "https://www.koreabaseball.com/Record/Player/PitcherBasic/Basic1.aspx"
+    },
+    {
+      "purpose": "향후 일정 데이터 원천; 현재 실제 일정 미수록",
+      "source": "https://result.sports.or.kr/BA/"
+    }
+  ]
+}

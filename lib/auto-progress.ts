@@ -44,6 +44,7 @@ export class AutoProgress {
 
 export function autoPauseReason(previous: GameState, next: GameState): string | null {
   if (next.phase === "ended") return "드래프트가 완료되어 자동 진행을 종료했습니다.";
+  if (next.careerEvent) return "커리어 이벤트가 발생해 자동 진행을 멈췄습니다. 선택을 확인해 주세요.";
   const before = previous.players.find(p => p.id === previous.playerId)!;
   const after = next.players.find(p => p.id === next.playerId)!;
   if (after.roleOffer) return "감독의 역할 제안이 도착해 자동 진행을 멈췄습니다.";

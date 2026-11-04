@@ -66,3 +66,44 @@ test('actual yearly promotion preserves each season and exposes all three years'
   assert.deepEqual(rows[2].records, e.emptyRecord());
   const total = totalRecords(rows); assert.equal(total.batting.H, 9); assert.equal(total.pitching.outs, 35);
 });
+
+test('promotion preserves earned reputation through weeks without new appearances, while freshmen start with a neutral performance assessment', () => {
+  let state = e.createGame('reputation-promotion', '평판유지', 'SS');
+  const player = e.getPlayer(state);
+  for (const key of Object.keys(player.stats)) player.stats[key] = 80;
+  player.performanceReputation = 75;
+  player.reputation = 78;
+  player.seasonStats = record(10, 4, 2, 0, 0);
+  state.date = '2027-12-27';
+  const step = s => e.advanceWeek(s, e.getPlayer(s).trainingPolicy, e.getPlayer(s).stance);
+  state = step(state);
+  assert.equal(e.getPlayer(state).grade, 2);
+  assert.equal(e.getPlayer(state).reputation, 78);
+  assert.deepEqual(e.getPlayer(state).seasonStats, e.emptyRecord());
+  state = step(state);
+  assert.equal(e.getPlayer(state).reputation, 78);
+  assert.ok(state.players.filter(p => p.grade === 1).every(p => p.performanceReputation === null && p.reputation !== null));
+  e.getPlayer(state).seasonStats = record(10, 4, 2, 0, 0);
+  state = step(state);
+  assert.equal(e.getPlayer(state).performanceReputation, 50);
+  close(e.getPlayer(state).reputation, 68);
+});
+
+test('switching to pitching retains reputation, hitter eligibility and batting records before the first pitching appearance', () => {
+  const original = e.createGame('two-way-reputation', '겸업선수', 'SS');
+  const p = e.getPlayer(original);
+  for (const key of Object.keys(p.stats)) p.stats[key] = 100;
+  p.performanceReputation = 60;
+  p.reputation = 84;
+  p.seasonStats = record(20, 7, 2, 0, 0);
+  p.roleOffer = '선발';
+  original.date = '2027-12-20';
+  const accepted = e.answerOffer(original, true);
+  const result = e.advanceWeek(accepted, e.getPlayer(accepted).trainingPolicy, p.stance);
+  const converted = e.getPlayer(result);
+  assert.equal(converted.primaryRole, '선발');
+  assert.equal(converted.reputation, 84);
+  assert.ok(converted.eligiblePositions.includes('SP') && converted.eligiblePositions.includes('SS'));
+  assert.deepEqual(converted.seasonStats.batting, p.seasonStats.batting);
+  assert.equal(converted.seasonStats.pitching.outs, 0);
+});

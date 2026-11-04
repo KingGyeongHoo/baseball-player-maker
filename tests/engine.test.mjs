@@ -9,7 +9,10 @@ const {
 } = require('../.test-build/lib/sim/types.js');
 const close = (a, b, tolerance = 1e-9) => assert.ok(Math.abs(a - b) < tolerance, `${a} != ${b}`);
 const newGame = (seed = 'unit') => e.createGame(seed, '테스트', 'SS');
-const step = s => e.advanceWeek(s, e.getPlayer(s).trainingPolicy, e.getPlayer(s).stance);
+const step = input => {
+  const s = input.careerEvent ? e.answerCareerEvent(input, input.careerEvent.choices[0].id) : input;
+  return e.advanceWeek(s, e.getPlayer(s).trainingPolicy, e.getPlayer(s).stance);
+};
 const uniform = (p, n) => {
   for (const k of statKeys) p.stats[k] = n;
 };
@@ -188,17 +191,18 @@ test('conditional probabilities match documented equal-40 example', () => {
   }
   assert.equal(e.ops(e.emptyRecord()), null);
 });
-test('fictional calendar has no duplicate teams, 200 training days and first-Monday draft', () => {
+test('reference calendar has no duplicate teams, 200 training days and first-Monday draft', () => {
   for (const year of [2027, 2028, 2029]) {
     const c = e.calendar(year);
-    assert.equal(c.sourceKind, 'fictional');
+    assert.equal(c.sourceKind, 'reference');
+    assert.equal(c.referenceYear, 2026);
     assert.equal(c.trainingDays.length, 200);
     assert.equal(new Date(c.draftDate + 'T00:00:00Z').getUTCDay(), 1);
     assert.ok(+c.draftDate.slice(-2) <= 7);
     for (const date of new Set(c.events.map(g => g.date))) {
       const ids = c.events.filter(g => g.date === date).flatMap(g => [g.homeTeamId, g.awayTeamId]);
       assert.equal(ids.length, 100);
-      assert.equal(new Set(ids).size, 100);
+      assert.equal(new Set(ids).size, ids.length);
     }
   }
 });
@@ -251,9 +255,10 @@ test('rest, injury recovery date, forced rest and talent disclosure', () => {
   const snapshot = {
     ...e.getPlayer(s).stats
   };
+  const beforeRestFatigue = e.getPlayer(s).fatigue;
   s = e.advanceWeek(s, rest, e.getPlayer(s).stance);
   assert.deepEqual(e.getPlayer(s).stats, snapshot);
-  assert.equal(e.getPlayer(s).fatigue, 0);
+  close(e.getPlayer(s).fatigue, beforeRestFatigue * (1 - (1 - .68 ** (1 / 7)) * e.interpolate(snapshot.recovery, .75, 1, 1.25)) ** 7);
   const player = e.getPlayer(s);
   player.talentExposure.batting = 9.99;
   assert.equal(e.talentLabel(player, 'batting'), '미상');
@@ -267,6 +272,8 @@ test('completed games preserve PA, outs, hits, runs, and pitcher attribution', (
   for (let w = 0; w < 10; w++) s = step(s);
   const completed = s.calendar.events.filter(g => g.status === 'completed');
   assert.ok(completed.length >= 100);
+  const played = s.calendar.events.filter(g => g.status !== 'scheduled');
+  assert.ok(played.filter(g => g.status === 'forfeit').length / played.length < .1, 'NPC recovery must not make whole teams rest together');
   for (const g of completed) assertGame(g, s.players);
   const game = structuredClone(s.calendar.events.find(g => g.status === 'scheduled'));
   const roster = s.players.filter(p => p.teamId === game.homeTeamId);
@@ -313,7 +320,7 @@ test('twelve scoreless innings end in a draw without manufacturing runs', () => 
 });
 test('100-PA guard aborts the entire weekly commit and reports seed/game', () => {
   const s = newGame('safety-guard');
-  s.date = '2027-04-01';
+  s.date = s.calendar.events[0].date;
   const before = structuredClone(s);
   const old = [e.params['match.bb_min'], e.params['match.bb_max']];
   try {
@@ -324,18 +331,21 @@ test('100-PA guard aborts the entire weekly commit and reports seed/game', () =>
     [e.params['match.bb_min'], e.params['match.bb_max']] = old;
   }
 });
-test('one evaluated player and tied evaluated players receive reputation 50', () => {
+test('one evaluated player and tied evaluated players receive performance rating 50', () => {
   let s = newGame('reputation');
+  s.calendar.events = []; // Isolate reputation cohorts from March league appearances.
   const p = e.getPlayer(s);
   p.seasonStats.batting.PA = p.seasonStats.batting.AB = p.seasonStats.batting.H = 1;
   s = step(s);
-  assert.equal(e.getPlayer(s).reputation, 50);
-  assert.equal(s.players.filter(p => p.reputation !== null).length, 1);
+  assert.equal(e.getPlayer(s).performanceReputation, 50);
+  close(e.getPlayer(s).reputation, .6 * e.ovr(e.getPlayer(s)) + .4 * 50);
+  assert.equal(s.players.filter(p => p.performanceReputation !== null).length, 1);
   const second = s.players.find(p => p.id !== s.playerId && !e.isPitcher(p.primaryRole));
   second.seasonStats = structuredClone(e.getPlayer(s).seasonStats);
   s = step(s);
-  assert.equal(e.getPlayer(s).reputation, 50);
-  assert.equal(s.players.find(p => p.id === second.id).reputation, 50);
+  assert.equal(e.getPlayer(s).performanceReputation, 50);
+  close(e.getPlayer(s).reputation, .6 * e.ovr(e.getPlayer(s)) + .4 * 50);
+  assert.equal(s.players.find(p => p.id === second.id).performanceReputation, 50);
 });
 test('three seasons preserve roster size, promote, draft once and block further play', {
   timeout: 120000
@@ -355,6 +365,11 @@ test('three seasons preserve roster size, promote, draft once and block further 
   assert.equal(s.draft.length, 100);
   assert.equal(new Set(s.draft.map(d => d.playerId)).size, 100);
   assert.equal(s.calendar.seasonYear, 2029);
+  assert.ok(s.calendar.competitions.filter(c => c.kind === 'tournament').every(c => c.championTeamId !== null));
+  const leaders = e.draftBoard(s.players).slice(0, 10);
+  const overlap = s.draft.slice(0, 10).filter(pick => leaders.some(p => p.id === pick.playerId)).length;
+  assert.ok(s.draft.every(pick => Number.isFinite(pick.score) && pick.reputation >= 0 && pick.reputation <= 100));
+  console.log(`full-career draft top-ten overlap: ${overlap}/10`);
   assert.ok(p.career.every(c => c.records.batting.PA >= 0));
   assert.throws(() => step(s));
   for (const g of s.calendar.events) assertGame(g, s.players);

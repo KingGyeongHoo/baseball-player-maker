@@ -1,4 +1,6 @@
-import balance from "../../baseball_balance_v0_3.json";
+import { buildCalendar, prepareCompetitions, finishCompetitionDay } from "./calendar";
+import { createCareerEvent } from "./career-events";
+import balance from "../../baseball_balance_v0_4.json";
 import { statKeys, ticketKeys, type Stats, type Stat, type Ticket, type Mode, type Policy, type Position, type Role, type Player, type GameState, type Calendar, type Game, type RecordLine, type Stance, type DraftPick, type FatigueReport } from "./types";
 export const params: Record<string, number> = Object.fromEntries(balance.parameters.map(p => [p.key, p.value]));
 export const labels: Record<Ticket | Stat, string> = {
@@ -60,6 +62,15 @@ export const emptyRecord = (): RecordLine => ({
     ER: 0
   }
 });
+export function policyForMode(policy: Policy, mode: Mode): Policy {
+  if (mode !== "rest") return { mode, tickets: { ...(policy.mode === "rest" ? policy.previousTraining?.tickets ?? policy.tickets : policy.tickets) } };
+  const previousTraining = policy.mode === "rest" ? policy.previousTraining : { mode: policy.mode, tickets: policy.tickets };
+  return {
+    mode,
+    tickets: Object.fromEntries(ticketKeys.map(key => [key, 0])) as Policy["tickets"],
+    ...(previousTraining ? { previousTraining: { mode: previousTraining.mode, tickets: { ...previousTraining.tickets } } } : {}),
+  };
+}
 export const ticketsUsed = (p: Policy) => Object.values(p.tickets).reduce((a, b) => a + b, 0);
 export const validPolicy = (p: Policy) => ["light", "normal", "hard", "rest"].includes(p.mode) && ticketKeys.every(k => Number.isInteger(p.tickets[k]) && p.tickets[k] >= 0 && p.tickets[k] <= params["training.max_each"]) && ticketsUsed(p) <= budget(p.mode);
 export function defaultPolicy(role: Role): Policy {
@@ -129,59 +140,8 @@ export const addDays = (s: string, n: number) => {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 };
-const weekday = (s: string) => new Date(s + "T00:00:00Z").getUTCDay();
 export const dateLabel = (s: string) => s.replaceAll("-", ".");
-export function calendar(year: number): Calendar {
-  const start = `${year}-03-01`;
-  let monday = start;
-  while (weekday(monday) !== 1) monday = addDays(monday, 1);
-  const trainingDays = Array.from({
-    length: 40
-  }, (_, w) => Array.from({
-    length: 5
-  }, (_, d) => addDays(monday, w * 7 + d))).flat();
-  let draftDate = `${year}-09-01`;
-  while (weekday(draftDate) !== 1) draftDate = addDays(draftDate, 1);
-  const events: Game[] = [];
-  let round = 0;
-  for (let month = 4; month <= 8; month++) {
-    let day = `${year}-${String(month).padStart(2, "0")}-01`;
-    while (weekday(day) !== 6) day = addDays(day, 1);
-    for (const delta of [0, 14]) {
-      // Circle schedule: every team appears exactly once per fixture day.
-      const ring = [0, ...Array.from({
-        length: params["world.teams"] - 1
-      }, (_, i) => 1 + (i + round) % (params["world.teams"] - 1))];
-      for (let i = 0; i < ring.length / 2; i++) {
-        const pair = [ring[i], ring[ring.length - 1 - i]];
-        if (round % 2) pair.reverse();
-        events.push({
-          id: `${year}-${round}-${i}`,
-          date: addDays(day, delta),
-          homeTeamId: pair[0],
-          awayTeamId: pair[1],
-          competitionId: "development-fixture",
-          rulesetId: "high-school-mvp-v0.3",
-          status: "scheduled",
-          score: [0, 0],
-          innings: [[], []],
-          lineup: [],
-          boxScore: {}
-        });
-      }
-      round++;
-    }
-  }
-  return {
-    seasonYear: year,
-    sourceKind: "fictional",
-    sourceUrl: null,
-    trainingDays,
-    events,
-    draftDate,
-    seasonEnd: `${year}-12-31`
-  };
-}
+export const calendar = (year: number): Calendar => buildCalendar(year, params["world.teams"]);
 export const focusGrowth = (n: number) => n === 0 ? 0 : params["training.focus_min"] + params["training.focus_span"] * Math.log(n) / Math.log(params["training.max_each"]);
 export function slowdown(s: number) {
   for (let i = 1; i <= 5; i++) if (s < params[`growth.break${i}`]) return params[`growth.factor${i - 1}`];
@@ -190,11 +150,13 @@ export function slowdown(s: number) {
 export const interpolate = (s: number, a: number, b: number, c: number) => s <= 50 ? a + (b - a) * (s - 1) / 49 : b + (c - b) * (s - 50) / 50;
 const accumulation = (s: number) => interpolate(s, params["physical.accum_low"], params["physical.accum_mid"], params["physical.accum_high"]);
 const recovery = (s: number) => interpolate(s, params["physical.recovery_low"], params["physical.recovery_mid"], params["physical.recovery_high"]);
+export const recoveryAmount = (mode: Mode, active: boolean, fatigue = 0) => mode === "rest"
+  ? fatigue * params["fatigue.recovery_policy"]
+  : params["fatigue.daily_recovery"] + (active ? 0 : params["fatigue.rest_bonus"]);
 export function fatigueForecast(player: Player, policy: Policy) {
   const used = policy.mode === "rest" ? 0 : ticketsUsed(policy);
-  const weeklyTraining = used * params["fatigue.ticket_cost"] * accumulation(player.stats.stamina);
+  const weeklyTraining = used * params["fatigue.ticket_cost"] * (params[`fatigue.mode_${policy.mode}`] ?? 0) * accumulation(player.stats.stamina);
   const dailyRecovery = params["fatigue.daily_recovery"] * recovery(player.stats.recovery);
-  const restRecovery = (params["fatigue.daily_recovery"] + params["fatigue.rest_bonus"]) * recovery(player.stats.recovery);
   let end = player.fatigue;
   let peak = end;
   let recoveryCapacity = 0;
@@ -202,7 +164,7 @@ export function fatigueForecast(player: Player, policy: Policy) {
     const trainingDay = used > 0 && day < params["training.days"];
     end = clamp(end + (trainingDay ? weeklyTraining / params["training.days"] : 0));
     peak = Math.max(peak, end);
-    const recover = trainingDay ? dailyRecovery : restRecovery;
+    const recover = recoveryAmount(policy.mode, trainingDay, end) * recovery(player.stats.recovery);
     recoveryCapacity += recover;
     end = clamp(end - recover);
   }
@@ -229,6 +191,11 @@ export function train(p: Player, a: number) {
 }
 export const ovr = (p: Player, pitching = isPitcher(p.primaryRole)) => (pitching ? p.stats.velocity + p.stats.control + p.stats.movement : p.stats.contact + p.stats.power + p.stats.speed + p.stats.defense) / (pitching ? 3 : 4);
 export const roleScore = (p: Player, role = p.primaryRole) => Object.entries(balance.roleWeights[role]).reduce((sum, [key, weight]) => sum + p.stats[key as Stat] * weight, 0);
+export const reputationScore = (p: Player) => clamp(
+  params["reputation.ability_weight"] * ovr(p)
+  + params["reputation.performance_weight"] * (p.performanceReputation ?? params["reputation.unrated_performance"])
+  + (p.reputationBonus ?? 0)
+);
 export function talentLabel(p: Player, type: "batting" | "pitching") {
   const n = p.talentExposure[type];
   return n < params["talent.hint"] ? "미상" : n < params["talent.reveal"] ? p.talent[type] <= 3 ? "낮음" : p.talent[type] <= 7 ? "보통" : "높음" : `${p.talent[type]} / 10`;
@@ -272,6 +239,7 @@ function makePlayer(s: GameState, teamId: number, grade: number, index: number, 
     career: [],
     recentAppearances: [],
     reputation: null,
+    performanceReputation: null,
     recentZ: 0,
     lastPitched: null,
     roleOffer: null,
@@ -299,7 +267,8 @@ function skeleton(seed: string): GameState {
       training: hash(seed + ":training"),
       match: hash(seed + ":match"),
       injury: hash(seed + ":injury"),
-      draft: hash(seed + ":draft")
+      draft: hash(seed + ":draft"),
+      events: hash(seed + ":events")
     },
     date: "2027-03-01",
     phase: "weekStart",
@@ -313,7 +282,10 @@ function skeleton(seed: string): GameState {
     report: null,
     history: [],
     draft: [],
-    injuryDays: 0
+    injuryDays: 0,
+    careerEvent: null,
+    careerEventHistory: [],
+    lastCareerEventWeek: 0
   };
 }
 export function createGame(seed: string, name: string, position: Position, teamId = 0): GameState {
@@ -338,6 +310,7 @@ export function createGame(seed: string, name: string, position: Position, teamI
   const p = s.players[teamId * params["world.grade_size"] * 3];
   p.name = name.trim();
   s.playerId = p.id;
+  updateReputation(s);
   s.history.push({
     week: 1,
     ovr: ovr(p),
@@ -609,15 +582,17 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]) {
     p.recentAppearances = p.recentAppearances.slice(keepFrom);
   }
 }
-export function injuryRisk(f: number) {
-  return f < params["fatigue.risk_start"] ? 0 : f < params["fatigue.high_start"] ? params["injury.risk_at60"] + params["injury.risk_slope60"] * (f - params["fatigue.risk_start"]) : params["injury.risk_at80"] + params["injury.risk_slope80"] * (f - params["fatigue.high_start"]);
+export function injuryRisk(f: number, trained = false) {
+  const fatigueRisk = f < params["fatigue.risk_start"] ? 0 : f < params["fatigue.high_start"] ? params["injury.risk_at60"] + params["injury.risk_slope60"] * (f - params["fatigue.risk_start"]) : params["injury.risk_at80"] + params["injury.risk_slope80"] * (f - params["fatigue.high_start"]);
+  return 1 - (1 - fatigueRisk) * (1 - (trained ? params["injury.training_base_risk"] : 0));
 }
-function npcPolicy(p: Player) {
+function npcPolicy(p: Player, date: string, hasGame: boolean) {
   const policy = defaultPolicy(p.primaryRole);
-  if (p.fatigue >= 80) {
+  const recovering = p.trainingPolicy.mode === "rest" && p.fatigue > params["coach.recover_target"];
+  if (p.forcedRest || (p.injury && date < p.injury.unavailableUntil) || p.fatigue >= params[hasGame ? "coach.match_rest_fatigue" : "coach.rest_fatigue"] || (!hasGame && recovering)) {
     policy.mode = "rest";
     for (const k of ticketKeys) policy.tickets[k] = 0;
-  } else if (p.fatigue >= 60) {
+  } else if (hasGame || p.fatigue >= params["coach.recover_target"]) {
     policy.mode = "light";
     const keys = [...ticketKeys].sort((a, b) => policy.tickets[a] - policy.tickets[b] || a.localeCompare(b));
     for (const k of keys) while (policy.tickets[k] > 0 && ticketsUsed(policy) > 7) policy.tickets[k]--;
@@ -679,28 +654,47 @@ function updateReputation(s: GameState) {
       ranks.set(sorted[i], sorted.length === 1 ? 50 : 100 * (i + (j - i - 1) / 2) / (sorted.length - 1));
       i = j;
     }
-    for (const p of s.players) p.reputation = zs.has(p.id) ? ranks.get(zs.get(p.id)!)! : null;
+    // Keep the last performance assessment across promotions and role changes.
+    // Current ability still contributes when there are no new appearances.
+    for (const p of s.players) {
+      if (zs.has(p.id)) p.performanceReputation = ranks.get(zs.get(p.id)!)!;
+      p.reputation = reputationScore(p);
+    }
   }
 }
-function draftPlayers(s: GameState): DraftPick[] {
-  const candidates = s.players.filter(p => p.grade === 3);
+export const draftBoard = (players: Player[]) => players.filter(p => p.grade === 3)
+  .sort((a, b) => ovr(b) - ovr(a) || roleScore(b) - roleScore(a) || a.id.localeCompare(b.id));
+export function draftPlayers(s: GameState): DraftPick[] {
+  const candidates = draftBoard(s.players);
+  const ranks = new Map(candidates.map((p, i) => [p.id, i + 1]));
   const selected = new Set<string>();
   const clubs = ["서울 파이오니어스", "부산 웨이브스", "인천 마리너스", "대구 레드윙스", "광주 타이탄스", "대전 스파크스", "수원 위저즈", "창원 다이노스", "청주 이글스", "전주 라이온스"];
   const needs = clubs.map(() => Object.fromEntries(roles.map(role => [role, random(s, "draft")]))) as Record<Role, number>[];
   const picks: DraftPick[] = [];
   for (let i = 0; i < Math.round(candidates.length * params["draft.ratio"]); i++) {
     const club = i % params["world.clubs"];
-    const best = candidates.filter(p => !selected.has(p.id)).map(p => {
-      const qualified = [...new Set(p.eligiblePositions.map(roleFor))];
+    const remaining = candidates.filter(p => !selected.has(p.id));
+    const best = remaining.map(p => {
+      const qualified = [...new Set(p.eligiblePositions.map(roleFor))].filter(role => isPitcher(role) === isPitcher(p.primaryRole));
       return qualified.map(role => {
-        const ability = roleScore(p, role);
+        const ability = ovr(p);
         const talent = p.talent[isPitcher(role) ? "pitching" : "batting"];
-        const score = params["draft.ability_weight"] * ability + params["draft.talent_weight"] * (talent - 1) / 9 * 100 + params["draft.reputation_weight"] * (p.reputation ?? params["draft.unrated"]) + params["draft.need_bonus"] * needs[club][role];
+        const reputation = p.reputation ?? reputationScore(p);
+        const fit = params["draft.fit_role_weight"] * roleScore(p, role) + params["draft.fit_need_weight"] * needs[club][role] * 100;
+        const components = {
+          talent: params["draft.talent_weight"] * (talent - 1) / 9 * 100,
+          reputation: params["draft.reputation_weight"] * reputation,
+          fit: params["draft.fit_weight"] * fit,
+        };
+        const score = Object.values(components).reduce((sum, points) => sum + points, 0);
         return {
           p,
           role,
           ability,
           talent,
+          reputation,
+          fit,
+          components,
           score
         };
       }).sort((a, b) => b.score - a.score || b.ability - a.ability || b.talent - a.talent || a.p.id.localeCompare(b.p.id))[0];
@@ -714,7 +708,13 @@ function draftPlayers(s: GameState): DraftPick[] {
       club: clubs[club],
       overall: i + 1,
       role: best.role,
-      score: best.score
+      score: best.score,
+      ability: best.ability,
+      abilityRank: ranks.get(best.p.id)!,
+      reputation: best.reputation,
+      talent: best.talent,
+      fit: best.fit,
+      components: best.components,
     });
   }
   return picks;
@@ -732,7 +732,6 @@ function promote(s: GameState) {
     p.grade++;
     p.seasonStats = emptyRecord();
     p.recentAppearances = [];
-    p.reputation = null;
     p.recentZ = 0;
   }
   s.players = s.players.filter(p => p.grade <= 3);
@@ -745,6 +744,7 @@ function promote(s: GameState) {
 }
 export function advanceWeek(input: GameState, policy: Policy, stance: Stance): GameState {
   if (input.phase === "ended") throw new Error("종료된 커리어입니다.");
+  if (input.careerEvent) throw new Error("진행 중인 이벤트에서 선택을 먼저 완료해 주세요.");
   if (!validPolicy(policy)) throw new Error("훈련 티켓 배분을 확인해 주세요.");
   const s = structuredClone(input);
   const player = getPlayer(s);
@@ -768,7 +768,6 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
   player.stance = {
     ...stance
   };
-  for (const p of s.players) if (p.id !== s.playerId) npcPolicy(p);
   let rosters: Player[][] = s.teams.map(() => []);
   for (const p of s.players) rosters[p.teamId].push(p);
   for (let day = 0; day < 7; day++) {
@@ -787,7 +786,10 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
     for (const p of s.players) {
       if (p.forcedRest && p.fatigue < params["fatigue.ready_return"]) p.forcedRest = false;
     }
-    const games = s.calendar.events.filter(g => g.date === date);
+    prepareCompetitions(s.calendar, date, s.seed);
+    const games = s.calendar.events.filter(g => g.date === date && g.status === "scheduled");
+    const playingTeams = new Set(games.flatMap(g => [g.homeTeamId, g.awayTeamId]));
+    for (const p of s.players) if (p.id !== s.playerId) npcPolicy(p, date, playingTeams.has(p.teamId));
     for (const game of games) {
       simulateGame(s, game, [rosters[game.homeTeamId], rosters[game.awayTeamId]]);
       if (game.boxScore[s.playerId]) mergeRecord(report.records, game.boxScore[s.playerId]);
@@ -798,6 +800,13 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
       for (const id of Object.keys(game.boxScore)) {
         appearances.add(id);
         active.add(id);
+      }
+      if (s.calendar.competitions.find(c => c.id === game.competitionId)?.kind === "tournament") {
+        game.advancingTeamId = game.status === "forfeit"
+          ? game.forfeitTeamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId
+          : game.score[0] === game.score[1]
+            ? (random(s, "match") < 0.5 ? game.homeTeamId : game.awayTeamId)
+            : game.score[0] > game.score[1] ? game.homeTeamId : game.awayTeamId;
       }
       const home = s.teams[game.homeTeamId],
         away = s.teams[game.awayTeamId];
@@ -814,9 +823,11 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
       }
       if (game.homeTeamId === player.teamId || game.awayTeamId === player.teamId) report.games.push(game.id);
     }
+    finishCompetitionDay(s.calendar, date);
     fatigueDay.game = Math.max(0, player.fatigue - fatigueDay.start);
     for (const p of s.players) {
       const injured = !!p.injury && date < p.injury.unavailableUntil;
+      let trained = false;
       if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
       if (p.id === s.playerId && injured) s.injuryDays++;
       if (training && available(p, date) && ticketsUsed(p.trainingPolicy)) {
@@ -825,12 +836,13 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
         const accum = accumulation(p.stats.stamina);
         train(p, a);
         const beforeTraining = p.fatigue;
-        p.fatigue = clamp(p.fatigue + ticketsUsed(p.trainingPolicy) * params["fatigue.ticket_cost"] * a / params["training.days"] * accum);
+        p.fatigue = clamp(p.fatigue + ticketsUsed(p.trainingPolicy) * params["fatigue.ticket_cost"] * params[`fatigue.mode_${p.trainingPolicy.mode}`] * a / params["training.days"] * accum);
         if (p.id === s.playerId) fatigueDay.training = p.fatigue - beforeTraining;
         active.add(p.id);
+        trained = true;
       }
       if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
-      if (active.has(p.id) && !injured && random(s, "injury") < injuryRisk(p.fatigue)) {
+      if (active.has(p.id) && !injured && random(s, "injury") < injuryRisk(p.fatigue, trained)) {
         const roll = random(s, "injury");
         const severity = roll < params["injury.mild.weight"] ? "mild" : roll < params["injury.mild.weight"] + params["injury.moderate.weight"] ? "moderate" : "severe";
         const prefix = `injury.${severity}`;
@@ -847,7 +859,8 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
         if (p.id === s.playerId) report.messages.push(`활동 후 ${severity === "mild" ? "경미한" : severity === "moderate" ? "보통" : "심각한"} 부상 발견 · ${duration}일 결장`);
       }
       const beforeRecovery = p.fatigue;
-      p.fatigue = clamp(p.fatigue - (params["fatigue.daily_recovery"] + (active.has(p.id) ? 0 : params["fatigue.rest_bonus"])) * dailyRecovery.get(p.id)!);
+      const recoveryMode = p.forcedRest || injured ? "rest" : p.trainingPolicy.mode;
+      p.fatigue = clamp(p.fatigue - recoveryAmount(recoveryMode, active.has(p.id), p.fatigue) * dailyRecovery.get(p.id)!);
       if (p.id === s.playerId) {
         fatigueDay.peak = Math.max(fatigueDay.start, beforeRecovery);
         fatigueDay.recovered = beforeRecovery - p.fatigue;
@@ -908,6 +921,40 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
     ovr: ovr(player),
     fatigue: player.fatigue
   });
+  if (s.phase !== "ended" && !player.roleOffer && !player.forcedRest && !(player.injury && s.date < player.injury.unavailableUntil)
+    && policy.mode !== "rest" && report.fatigue.training > 0 && s.week - (s.lastCareerEventWeek ?? 0) >= params["events.gap_weeks"]
+    && random(s, "events") < params["events.weekly_chance"]) {
+    const kinds: ("coach" | "condition" | "scout")[] = ["coach", "condition"];
+    if (player.seasonStats.batting.PA || player.seasonStats.pitching.BF) kinds.push("scout");
+    const previousKind = s.careerEventHistory?.at(-1)?.kind;
+    const pool = kinds.filter(kind => kind !== previousKind);
+    const kind = pool[Math.floor(random(s, "events") * pool.length)];
+    s.careerEvent = createCareerEvent(kind, player, s.date, s.week);
+    s.lastCareerEventWeek = s.week;
+  }
+  return s;
+}
+export function answerCareerEvent(input: GameState, choiceId: string): GameState {
+  if (input.phase === "ended" || !input.careerEvent) throw new Error("선택할 이벤트가 없습니다.");
+  const choice = input.careerEvent.choices.find(c => c.id === choiceId);
+  if (!choice) throw new Error("유효하지 않은 이벤트 선택입니다.");
+  const s = structuredClone(input), p = getPlayer(s), event = s.careerEvent!;
+  const changes: Partial<Stats> = {};
+  for (const [key, amount] of Object.entries(choice.stats) as [Stat, number][]) {
+    const before = p.stats[key];
+    p.stats[key] = clamp(before + amount, 1);
+    changes[key] = p.stats[key] - before;
+  }
+  const oldReputation = p.reputation ?? 50, oldFatigue = p.fatigue;
+  p.reputationBonus = (p.reputationBonus ?? 0) + choice.reputation;
+  p.reputation = reputationScore(p);
+  p.fatigue = clamp(p.fatigue + choice.fatigue);
+  s.careerEventHistory ??= [];
+  s.careerEventHistory.push({ id: event.id, kind: event.kind, title: event.title, date: event.date, choice: choice.label,
+    stats: changes, reputation: p.reputation - oldReputation, fatigue: p.fatigue - oldFatigue });
+  s.careerEvent = null;
+  const point = s.history.at(-1);
+  if (point) { point.ovr = ovr(p); point.fatigue = p.fatigue; }
   return s;
 }
 export function answerOffer(input: GameState, accept: boolean) {
@@ -926,6 +973,7 @@ export function answerOffer(input: GameState, accept: boolean) {
     p.preferredRole = p.roleOffer;
     p.position = map[p.roleOffer];
     p.eligiblePositions = [...new Set([...p.eligiblePositions, ...eligible(p.position)])];
+    p.reputation = reputationScore(p);
   }
   s.pendingEvents = s.pendingEvents.filter(event => event.type !== "roleOffer");
   p.roleOffer = null;
