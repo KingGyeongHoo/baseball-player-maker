@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Baseball Life
 
-## Getting Started
+DOCX v0.3 기획·구현 명세와 `baseball_balance_v0_3.json`을 바탕으로 만든 고교 야구 육성 시뮬레이션입니다. `design.md`의 네이비·화이트, KBO 서체, 작은 모서리와 기록표 스타일을 적용했습니다.
 
-First, run the development server:
+## 실행
 
-```bash
+```sh
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`http://localhost:3000`에서 이름을 입력하고 타자·투수 유형을 선택합니다. 타자는 야구장 위 수비 위치를, 투수는 와인드업·셋포지션·역동적인 투구 실루엣 카드를 눌러 포지션을 고릅니다. 시작하면 학교와 능력치를 무작위로 배정합니다. 시작 전 능력치 미리보기·재추첨·시드 입력은 제공하지 않습니다. 서버 인증과 저장 기능은 없으며 새로고침하면 현재 플레이가 초기화됩니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 플레이
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- 훈련 센터: 7·10·13장 또는 회복 0장, 능력별 0~5장을 배분합니다. 초과 배분을 자동 조정하지 않으며 저장과 진행을 막습니다.
+- 훈련 항목은 투수 능력치(구속·제구·변화구), 타자 능력치(컨택·파워·스피드·수비), 공통 피지컬 순서로 구분합니다. 투수 항목을 위에 표시하며 대시보드의 훈련 요약도 같은 순서입니다.
+- 주간 진행: Web Worker에서 날짜순으로 7일을 계산합니다. 요청 ID와 즉시 잠금으로 중복 실행을 막고 성공한 상태만 반영합니다. 실패·시간 초과 시 시작 상태를 유지합니다.
+- 자동 진행: 하단의 자동 진행 버튼으로 현재 훈련·성향을 유지하며 계속 진행합니다. 일시정지는 계산 중인 한 주를 완료한 뒤 적용되며, 새 부상·강제 휴식·감독의 역할 제안·드래프트·계산 오류가 발생하면 멈춥니다. 설정을 바꾸려면 먼저 일시정지하세요. 이미 부상 중이라면 다시 자동 진행해 회복 기간을 보낼 수 있습니다.
+- 피로 확인: 대시보드 숫자는 야간·휴식 회복 후의 현재 피로입니다. 지난주 리포트에서 훈련·경기 증가량, 실제 회복량, 주중 최고치와 일별 변화를 확인할 수 있습니다. 훈련 센터는 훈련 발생량과 회복 가능량, 회복 후 예상치를 구분합니다. v0.3 수식에서 스태미나·회복력 50의 보통 훈련은 주당 25점이 발생하지만, 회복 가능량 36점으로 다음 주 피로가 0이 될 수 있습니다. 피로·회복 계수는 원본 문서대로 유지합니다.
+- 선수·로스터: 100팀·3,000명의 학년·포지션·기본/유효 능력·평판·재능 공개를 확인합니다. 검색과 정렬을 지원합니다.
+- 개인 기록: 상단 탭에서 나의 연도별 타격·투구 기록, 시즌별 필터와 통산 합계를 확인합니다. 대시보드의 연도별 기록 및 드래프트의 상세 기록으로도 열 수 있습니다. 로스터에서 선수를 선택한 뒤 연도별 기록을 누르면 다른 선수의 기록도 열립니다. 시즌이 바뀌면 지난 기록을 보존하고 현재 시즌을 별도 행으로 표시합니다. 통산 타율·OPS·ERA·WHIP는 합산한 실제 기록으로 다시 계산합니다.
+- 일정·기록: 자동 경기 스코어·이닝 기록·나의 경기 기록을 확인합니다.
+- 드래프트: 진급·졸업·신입생 충원을 거쳐 고3 가을 지명일에 종료하며, 시즌별 결산과 전체 지명 결과를 표시합니다.
 
-## Learn More
+일정과 학교·구단은 **개발용 가상 데이터**입니다. 각 시즌 3월 1일 시작, 40주 평일 훈련, 4~8월 첫째·셋째 토요일 경기, 9월 첫 월요일 지명을 사용합니다. 실제 시즌 통계에 맞춘 최종 밸런스가 아닙니다.
 
-To learn more about Next.js, take a look at the following resources:
+## 구조
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `lib/sim/types.ts`: 게임·선수·훈련·달력·경기·보고 데이터
+- `lib/sim/engine.ts`: RNG 스트림, 선수 생성, 성장, 피로·부상, 포지션 경쟁, 타석·진루·투수 교체, 기록·평판, 진급·지명
+- `lib/sim/worker.ts`: 주간 계산과 오류 응답
+- `app/components/baseball-life.tsx`: 생성·대시보드·훈련·로스터·일정·결산 UI
+- `app/components/player-setup.tsx`, `position-picker.tsx`: 이름·유형·구장 포지션·투수 카드 선택. 원본 PNG를 직접 쓰지 않고 구장은 벡터로 그렸으며 투수 이미지는 새로 생성했습니다.
+- `lib/player-creation.ts`: 시작할 때만 새 난수를 받아 학교와 선수 생성. 내부 seed는 자동으로 생성하며 UI에 노출하지 않습니다. 엔진의 결정론 검증 경로는 유지합니다.
+- `app/baseball.css`: 반응형 화면 스타일
+- `baseball_balance_v0_3.json`: 수식 계수와 역할 가중치 원본. XLSX 변경이 자동 반영되지는 않습니다.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+기본 능력은 소수로 유지하며, 부상 저하·피로·성향을 별도로 적용합니다. 투구 기록은 이닝 소수가 아닌 아웃 수로 저장합니다. 재능은 실제 훈련 경험 10주/30주에 공개합니다. 기록 없는 평판·타율·OPS·ERA는 미평가로 표시합니다.
 
-## Deploy on Vercel
+## 검증
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```sh
+npm run lint
+npm run build
+npm test
+npm run test:balance
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`npm test`는 결정론·입력 검증·성장 수식·피로 경계·확률·달력·Worker 계산 동등성·부상 복귀·경기 기록 불변식·역할 제안·3시즌 종료를 검사합니다.
+
+`npm run test:balance`는 기본 100개 seed를 3시즌 진행하고 `test-results/balance.json`에 OVR, 재능별 성장, 부상일, 기록 분포, 지명/미지명 집단과 주간 계산 시간을 기록합니다. `BALANCE_SEEDS`, `BALANCE_WORKERS` 환경 변수로 실행 규모를 조정할 수 있습니다. 이 시간은 Node Worker 측정값이며 브라우저 성능 측정값은 아닙니다.
+
+실행한 100개 시드의 요약은 [validation/balance-v0.3.json](validation/balance-v0.3.json)에 보관했습니다. 총 13,200주·150,000경기·고3 선수 100,000명을 측정했으며 모든 커리어가 2029년 9월 3일에 종료되었습니다. 8개 Node Worker를 함께 실행한 환경에서 주간 계산 p95는 약 611ms였습니다. 일반 훈련을 유지한 플레이어 집단의 평균 부상일은 0일이므로 높은 피로 방침의 부상 분포는 별도 시나리오로 검증해야 합니다.
+
+`npm run build` 후 `npm start`로 서버를 실행한 상태에서 `npm run test:build`를 사용하면 HTTP 페이지·정적 파일 응답과 **실제 빌드된 Turbopack Worker**의 성공·오류 응답, 순차 엔진과의 동등성을 검사합니다. UI 자동화 환경이 현재 브라우저 URL을 식별하지 못해 실제 브라우저의 화면 조작 및 모바일 시각 검증은 완료하지 못했습니다.
+
+간소화 범위: 최대 12이닝 무승부, 사구·실책·도루·병살·희생타·야수선택 없음. 같은 경기 투타겸업과 투수 개인 승·패·세이브, 프로 커리어는 후속 범위입니다. 현재 개발 리그는 토너먼트 진출표를 사용하지 않습니다.

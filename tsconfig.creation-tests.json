@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "jsx": "react-jsx",
+    "noEmit": false,
+    "incremental": false,
+    "outDir": ".test-build",
+    "rootDir": ".",
+    "plugins": []
+  },
+  "include": ["app/components/position-picker.tsx", "app/components/player-setup.tsx"],
+  "exclude": ["node_modules", ".next", ".test-build"]
+}

@@ -1,0 +1,30 @@
+{
+  "tool": "built-in image_gen.imagegen",
+  "reference": "pitcher.png (broad silhouette style reference only)",
+  "transparent_background": true,
+  "common_prompt": "Create a production UI illustration asset for a Korean baseball career game. The attached local pitcher.png is a broad style reference only: a simple solid baseball pitcher silhouette. Create an ORIGINAL anatomically plausible adult male baseball athlete silhouette, monochrome very dark navy #0e2046, cap, baseball uniform trousers and cleats, glove visible. Full body fully inside frame with generous transparent margins. Crisp high-contrast continuous filled silhouette, graphic sports pictogram, no facial features, no outlines, no gradients, no words, no labels, no logos. Truly transparent background; no ground, no frame. Square canvas and consistent scale.",
+  "assets": [
+    {
+      "role": "SP",
+      "path": "public/images/pitcher-starter.png",
+      "prompt": "Pose: WINDUP for a starting pitcher. Three-quarter side view facing right. Upright balanced torso, left knee lifted high to waist/chest, weight on right planted leg, both hands and glove together above or beside the head during the windup. Clear raised knee, no stride or throwing release yet."
+    },
+    {
+      "role": "RP",
+      "path": "public/images/pitcher-reliever-front.png",
+      "prompt": "Pose: SET POSITION before pitching for a relief pitcher. Three-quarter side view facing right. Both feet firmly on ground shoulder-width apart, knees slightly flexed, relaxed upright torso. Glove and throwing hand joined at chest level. Calm readiness, no lifted knee, no stride, no throwing release.",
+      "previousPath": "public/images/pitcher-reliever.png",
+      "editReference": "public/images/pitcher-reliever.png",
+      "editPrompt": "Edit target: the attached pitcher-reliever.png. Change ONLY the viewing orientation of this same relief pitcher to a dead-on FRONT VIEW, facing directly toward the viewer/camera (toward the catcher). Both the head and torso must face directly forward: square frontal shoulders, chest visible from the front, centered cap brim, neither profile nor three-quarter view. Maintain SET POSITION before pitching: both feet grounded shoulder width apart, knees slightly flexed, upright calm torso, glove and throwing hand joined at the CENTER of the chest. No lifted knee and no throwing motion. Preserve the original dark navy #0e2046 filled silhouette graphic style, adult baseball-uniform proportions, cap, glove, trousers, cleats, consistent apparent full-body scale and generous margins. Single figure, full body inside the square canvas. Preserve transparent background. No facial detail, words, logos, watermarks, borders, extra objects, ground or backdrop."
+    },
+    {
+      "role": "CP",
+      "path": "public/images/pitcher-closer-left.png",
+      "prompt": "Pose: DYNAMIC OVERHAND PITCH for a closing pitcher. Strong athletic broad stride facing right, front left leg planted far forward, rear right leg extended backward, torso rotating and leaning, right throwing elbow and hand cocked overhead about to release a baseball, glove arm tucked in front. Energetic and readable throwing action, original pose inspired by sports silhouettes.",
+      "previousPath": "public/images/pitcher-closer.png",
+      "editReference": "public/images/pitcher-closer.png",
+      "editPrompt": "Edit the attached dark navy baseball pitcher silhouette by HORIZONTALLY MIRRORING THE ENTIRE ATHLETE. The athlete MUST face and throw toward the LEFT EDGE of the image, not the right. His face/nose and baseball cap brim point LEFT. His glove/front arm is on the LEFT side, the forward planted foot strides toward the LEFT side, and the raised throwing hand is on the RIGHT side behind his head. Preserve the existing dynamic throwing stance as a left-facing mirror image, full-body scale, dark navy silhouette graphic style, transparent square canvas, and margins. Change only horizontal direction, no new pose, no text, no extra elements, no frame or background. Keep transparency.",
+      "orientation": "Athlete faces and throws left in the image itself. No CSS transform."
+    }
+  ]
+}

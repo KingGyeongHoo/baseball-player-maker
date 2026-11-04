@@ -1,0 +1,44 @@
+{
+  "balanceVersion": "0.3.0-provisional",
+  "environment": {
+    "node": "v22.23.4",
+    "platform": "win32",
+    "cpu": "Intel(R) Core(TM) Ultra 7 265",
+    "workers": 8,
+    "note": "Node worker measurements; browser performance not claimed"
+  },
+  "seeds": 100,
+  "elapsedSeconds": 672.9308972,
+  "weeklyP95Ms": 611.196100000001,
+  "weeklyMaxMs": 1203.3686999999918,
+  "totalWeeks": 13200,
+  "endDates": [
+    "2029-09-03"
+  ],
+  "graduates": 100000,
+  "meanGraduateOvr": 59.15361707661399,
+  "meanDraftedOvr": 63.9209445685594,
+  "meanUndraftedOvr": 58.62391402195411,
+  "growthByTalent": {
+    "1": 15.098400079333862,
+    "2": 16.18021403172136,
+    "3": 17.252545579539717,
+    "4": 18.121953569037384,
+    "5": 19.007296414291666,
+    "6": 19.70460637537277,
+    "7": 20.53088741745124,
+    "8": 21.332071994421998,
+    "9": 21.90840158050212,
+    "10": 22.51518089465823
+  },
+  "meanPlayerInjuryDays": 0,
+  "games": 150000,
+  "forfeits": 0,
+  "battingAverage": 0.24679571978106993,
+  "bbRate": 0.05388887687644121,
+  "kRate": 0.19866962916876496,
+  "hrRate": 0.014953986125390424,
+  "runsPerTeamGame": 2.7849466666666665,
+  "playerDraftRate": 0.06,
+  "notice": "Fictional development fixtures; these measurements do not establish final balance."
+}
