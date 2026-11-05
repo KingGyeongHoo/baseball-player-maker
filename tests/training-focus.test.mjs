@@ -63,7 +63,7 @@ test('choosing rest pauses before practice and skips only that day, preserving t
   const n=e.advanceWeek(chosen,p.trainingPolicy,p.stance),q=e.getPlayer(n);for(const key of Object.keys(p.stats))close(q.stats[key],reference.stats[key]);
   assert.deepEqual(q.trainingPolicy,p.trainingPolicy);assert.equal(n.careerEventHistory.length,1);assert.equal(n.week,s.week+1);
   const f=n.report.fatigue;close(n.report.fatigueBefore+f.training+f.game-f.recovered+(f.events??0),n.report.fatigueAfter);
-  assert.equal(f.days[0].training,0);assert.ok(f.days.slice(1).some(d=>d.training>0));
+  assert.equal(f.days[0].training,0);for(const day of f.days.slice(1))close(day.training-day.recovered,e.trainingLoad(p.stats.recovery,p.trainingPolicy).weeklyDelta/7);
 }));
 
 test('results use the five verbal increase levels and decline text, while pre-choice effects stay hidden',()=>{

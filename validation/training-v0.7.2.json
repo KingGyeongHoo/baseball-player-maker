@@ -1,0 +1,200 @@
+{
+  "version": "0.7.2",
+  "date": "2026-11-05",
+  "kind": "training allocation formula reference",
+  "units": "fatigue points per game-free planned week",
+  "rows": [
+    {
+      "recovery": 0,
+      "allocation": 0,
+      "used": 0,
+      "maxTickets": 40,
+      "maxRecovery": 20,
+      "maxAccumulation": 100,
+      "neutralTickets": 8,
+      "neutralRatio": 0.2,
+      "weeklyDelta": -20,
+      "marker": 0
+    },
+    {
+      "recovery": 0,
+      "allocation": 5,
+      "used": 5,
+      "maxTickets": 40,
+      "maxRecovery": 20,
+      "maxAccumulation": 100,
+      "neutralTickets": 8,
+      "neutralRatio": 0.2,
+      "weeklyDelta": -7.5,
+      "marker": 31.25
+    },
+    {
+      "recovery": 0,
+      "allocation": 10,
+      "used": 10,
+      "maxTickets": 40,
+      "maxRecovery": 20,
+      "maxAccumulation": 100,
+      "neutralTickets": 8,
+      "neutralRatio": 0.2,
+      "weeklyDelta": 6.25,
+      "marker": 53.125
+    },
+    {
+      "recovery": 0,
+      "allocation": 20,
+      "used": 20,
+      "maxTickets": 40,
+      "maxRecovery": 20,
+      "maxAccumulation": 100,
+      "neutralTickets": 8,
+      "neutralRatio": 0.2,
+      "weeklyDelta": 37.5,
+      "marker": 68.75
+    },
+    {
+      "recovery": 0,
+      "allocation": 40,
+      "used": 40,
+      "maxTickets": 40,
+      "maxRecovery": 20,
+      "maxAccumulation": 100,
+      "neutralTickets": 8,
+      "neutralRatio": 0.2,
+      "weeklyDelta": 100,
+      "marker": 100
+    },
+    {
+      "recovery": 50,
+      "allocation": 0,
+      "used": 0,
+      "maxTickets": 40,
+      "maxRecovery": 60,
+      "maxAccumulation": 75,
+      "neutralTickets": 10,
+      "neutralRatio": 0.25,
+      "weeklyDelta": -60,
+      "marker": 0
+    },
+    {
+      "recovery": 50,
+      "allocation": 5,
+      "used": 5,
+      "maxTickets": 40,
+      "maxRecovery": 60,
+      "maxAccumulation": 75,
+      "neutralTickets": 10,
+      "neutralRatio": 0.25,
+      "weeklyDelta": -30,
+      "marker": 25
+    },
+    {
+      "recovery": 50,
+      "allocation": 10,
+      "used": 10,
+      "maxTickets": 40,
+      "maxRecovery": 60,
+      "maxAccumulation": 75,
+      "neutralTickets": 10,
+      "neutralRatio": 0.25,
+      "weeklyDelta": 0,
+      "marker": 50
+    },
+    {
+      "recovery": 50,
+      "allocation": 20,
+      "used": 20,
+      "maxTickets": 40,
+      "maxRecovery": 60,
+      "maxAccumulation": 75,
+      "neutralTickets": 10,
+      "neutralRatio": 0.25,
+      "weeklyDelta": 25,
+      "marker": 66.66666666666667
+    },
+    {
+      "recovery": 50,
+      "allocation": 40,
+      "used": 40,
+      "maxTickets": 40,
+      "maxRecovery": 60,
+      "maxAccumulation": 75,
+      "neutralTickets": 10,
+      "neutralRatio": 0.25,
+      "weeklyDelta": 75,
+      "marker": 100
+    },
+    {
+      "recovery": 100,
+      "allocation": 0,
+      "used": 0,
+      "maxTickets": 40,
+      "maxRecovery": 100,
+      "maxAccumulation": 50,
+      "neutralTickets": 12.000000000000002,
+      "neutralRatio": 0.30000000000000004,
+      "weeklyDelta": -100,
+      "marker": 0
+    },
+    {
+      "recovery": 100,
+      "allocation": 5,
+      "used": 5,
+      "maxTickets": 40,
+      "maxRecovery": 100,
+      "maxAccumulation": 50,
+      "neutralTickets": 12.000000000000002,
+      "neutralRatio": 0.30000000000000004,
+      "weeklyDelta": -58.333333333333336,
+      "marker": 20.83333333333333
+    },
+    {
+      "recovery": 100,
+      "allocation": 10,
+      "used": 10,
+      "maxTickets": 40,
+      "maxRecovery": 100,
+      "maxAccumulation": 50,
+      "neutralTickets": 12.000000000000002,
+      "neutralRatio": 0.30000000000000004,
+      "weeklyDelta": -16.666666666666675,
+      "marker": 41.666666666666664
+    },
+    {
+      "recovery": 100,
+      "allocation": 20,
+      "used": 20,
+      "maxTickets": 40,
+      "maxRecovery": 100,
+      "maxAccumulation": 50,
+      "neutralTickets": 12.000000000000002,
+      "neutralRatio": 0.30000000000000004,
+      "weeklyDelta": 14.285714285714281,
+      "marker": 64.28571428571428
+    },
+    {
+      "recovery": 100,
+      "allocation": 40,
+      "used": 40,
+      "maxTickets": 40,
+      "maxRecovery": 100,
+      "maxAccumulation": 50,
+      "neutralTickets": 12.000000000000002,
+      "neutralRatio": 0.30000000000000004,
+      "weeklyDelta": 50,
+      "marker": 100
+    }
+  ],
+  "validation": {
+    "tests": 204,
+    "failed": 0,
+    "actualEndpoints": [
+      "recovery 0, allocation 40: +100",
+      "recovery 100, allocation 0: -100"
+    ],
+    "notes": [
+      "Actual fatigue clamps to 0-100. Injury, forced rest, games and events are separate.",
+      "Recovery baseline is locked for each seven-day cycle and preserved through checkpoints."
+    ]
+  }
+}

@@ -1,0 +1,456 @@
+{
+  "version": "0.7.4",
+  "formula": "W=.75*batting+pitching+physical; L=W/35; T=40L",
+  "cases": [
+    {
+      "recovery": 0,
+      "name": "zero",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 0,
+          "power": 0,
+          "speed": 0,
+          "defense": 0,
+          "velocity": 0,
+          "control": 0,
+          "movement": 0,
+          "physical": 0
+        }
+      },
+      "used": 0,
+      "maxTickets": 40,
+      "maxRecovery": 20,
+      "maxAccumulation": 100,
+      "neutralTickets": 8,
+      "neutralRatio": 0.2,
+      "weeklyDelta": -20,
+      "marker": 0,
+      "loadRatio": 0,
+      "rawTickets": 0,
+      "weightedTickets": 0,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 0
+    },
+    {
+      "recovery": 0,
+      "name": "batting",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 5,
+          "power": 5,
+          "speed": 5,
+          "defense": 5,
+          "velocity": 0,
+          "control": 0,
+          "movement": 0,
+          "physical": 0
+        }
+      },
+      "used": 17.142857142857142,
+      "maxTickets": 40,
+      "maxRecovery": 20,
+      "maxAccumulation": 100,
+      "neutralTickets": 8,
+      "neutralRatio": 0.2,
+      "weeklyDelta": 28.57142857142857,
+      "marker": 64.28571428571428,
+      "loadRatio": 0.42857142857142855,
+      "rawTickets": 20,
+      "weightedTickets": 15,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 17.142857142857142
+    },
+    {
+      "recovery": 0,
+      "name": "pitching",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 0,
+          "power": 0,
+          "speed": 0,
+          "defense": 0,
+          "velocity": 5,
+          "control": 5,
+          "movement": 5,
+          "physical": 0
+        }
+      },
+      "used": 17.142857142857142,
+      "maxTickets": 40,
+      "maxRecovery": 20,
+      "maxAccumulation": 100,
+      "neutralTickets": 8,
+      "neutralRatio": 0.2,
+      "weeklyDelta": 28.57142857142857,
+      "marker": 64.28571428571428,
+      "loadRatio": 0.42857142857142855,
+      "rawTickets": 15,
+      "weightedTickets": 15,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 17.142857142857142
+    },
+    {
+      "recovery": 0,
+      "name": "all",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 5,
+          "power": 5,
+          "speed": 5,
+          "defense": 5,
+          "velocity": 5,
+          "control": 5,
+          "movement": 5,
+          "physical": 5
+        }
+      },
+      "used": 40,
+      "maxTickets": 40,
+      "maxRecovery": 20,
+      "maxAccumulation": 100,
+      "neutralTickets": 8,
+      "neutralRatio": 0.2,
+      "weeklyDelta": 100,
+      "marker": 100,
+      "loadRatio": 1,
+      "rawTickets": 40,
+      "weightedTickets": 35,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 40
+    },
+    {
+      "recovery": 0,
+      "name": "neutral",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 5,
+          "power": 0,
+          "speed": 0,
+          "defense": 0,
+          "velocity": 5,
+          "control": 0,
+          "movement": 0,
+          "physical": 0
+        }
+      },
+      "used": 10,
+      "maxTickets": 40,
+      "maxRecovery": 20,
+      "maxAccumulation": 100,
+      "neutralTickets": 8,
+      "neutralRatio": 0.2,
+      "weeklyDelta": 6.25,
+      "marker": 53.125,
+      "loadRatio": 0.25,
+      "rawTickets": 10,
+      "weightedTickets": 8.75,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 10
+    },
+    {
+      "recovery": 50,
+      "name": "zero",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 0,
+          "power": 0,
+          "speed": 0,
+          "defense": 0,
+          "velocity": 0,
+          "control": 0,
+          "movement": 0,
+          "physical": 0
+        }
+      },
+      "used": 0,
+      "maxTickets": 40,
+      "maxRecovery": 60,
+      "maxAccumulation": 75,
+      "neutralTickets": 10,
+      "neutralRatio": 0.25,
+      "weeklyDelta": -60,
+      "marker": 0,
+      "loadRatio": 0,
+      "rawTickets": 0,
+      "weightedTickets": 0,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 0
+    },
+    {
+      "recovery": 50,
+      "name": "batting",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 5,
+          "power": 5,
+          "speed": 5,
+          "defense": 5,
+          "velocity": 0,
+          "control": 0,
+          "movement": 0,
+          "physical": 0
+        }
+      },
+      "used": 17.142857142857142,
+      "maxTickets": 40,
+      "maxRecovery": 60,
+      "maxAccumulation": 75,
+      "neutralTickets": 10,
+      "neutralRatio": 0.25,
+      "weeklyDelta": 17.857142857142854,
+      "marker": 61.9047619047619,
+      "loadRatio": 0.42857142857142855,
+      "rawTickets": 20,
+      "weightedTickets": 15,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 17.142857142857142
+    },
+    {
+      "recovery": 50,
+      "name": "pitching",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 0,
+          "power": 0,
+          "speed": 0,
+          "defense": 0,
+          "velocity": 5,
+          "control": 5,
+          "movement": 5,
+          "physical": 0
+        }
+      },
+      "used": 17.142857142857142,
+      "maxTickets": 40,
+      "maxRecovery": 60,
+      "maxAccumulation": 75,
+      "neutralTickets": 10,
+      "neutralRatio": 0.25,
+      "weeklyDelta": 17.857142857142854,
+      "marker": 61.9047619047619,
+      "loadRatio": 0.42857142857142855,
+      "rawTickets": 15,
+      "weightedTickets": 15,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 17.142857142857142
+    },
+    {
+      "recovery": 50,
+      "name": "all",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 5,
+          "power": 5,
+          "speed": 5,
+          "defense": 5,
+          "velocity": 5,
+          "control": 5,
+          "movement": 5,
+          "physical": 5
+        }
+      },
+      "used": 40,
+      "maxTickets": 40,
+      "maxRecovery": 60,
+      "maxAccumulation": 75,
+      "neutralTickets": 10,
+      "neutralRatio": 0.25,
+      "weeklyDelta": 75,
+      "marker": 100,
+      "loadRatio": 1,
+      "rawTickets": 40,
+      "weightedTickets": 35,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 40
+    },
+    {
+      "recovery": 50,
+      "name": "neutral",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 5,
+          "power": 0,
+          "speed": 0,
+          "defense": 0,
+          "velocity": 5,
+          "control": 0,
+          "movement": 0,
+          "physical": 0
+        }
+      },
+      "used": 10,
+      "maxTickets": 40,
+      "maxRecovery": 60,
+      "maxAccumulation": 75,
+      "neutralTickets": 10,
+      "neutralRatio": 0.25,
+      "weeklyDelta": 0,
+      "marker": 50,
+      "loadRatio": 0.25,
+      "rawTickets": 10,
+      "weightedTickets": 8.75,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 10
+    },
+    {
+      "recovery": 100,
+      "name": "zero",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 0,
+          "power": 0,
+          "speed": 0,
+          "defense": 0,
+          "velocity": 0,
+          "control": 0,
+          "movement": 0,
+          "physical": 0
+        }
+      },
+      "used": 0,
+      "maxTickets": 40,
+      "maxRecovery": 100,
+      "maxAccumulation": 50,
+      "neutralTickets": 12.000000000000002,
+      "neutralRatio": 0.30000000000000004,
+      "weeklyDelta": -100,
+      "marker": 0,
+      "loadRatio": 0,
+      "rawTickets": 0,
+      "weightedTickets": 0,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 0
+    },
+    {
+      "recovery": 100,
+      "name": "batting",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 5,
+          "power": 5,
+          "speed": 5,
+          "defense": 5,
+          "velocity": 0,
+          "control": 0,
+          "movement": 0,
+          "physical": 0
+        }
+      },
+      "used": 17.142857142857142,
+      "maxTickets": 40,
+      "maxRecovery": 100,
+      "maxAccumulation": 50,
+      "neutralTickets": 12.000000000000002,
+      "neutralRatio": 0.30000000000000004,
+      "weeklyDelta": 9.183673469387752,
+      "marker": 59.183673469387756,
+      "loadRatio": 0.42857142857142855,
+      "rawTickets": 20,
+      "weightedTickets": 15,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 17.142857142857142
+    },
+    {
+      "recovery": 100,
+      "name": "pitching",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 0,
+          "power": 0,
+          "speed": 0,
+          "defense": 0,
+          "velocity": 5,
+          "control": 5,
+          "movement": 5,
+          "physical": 0
+        }
+      },
+      "used": 17.142857142857142,
+      "maxTickets": 40,
+      "maxRecovery": 100,
+      "maxAccumulation": 50,
+      "neutralTickets": 12.000000000000002,
+      "neutralRatio": 0.30000000000000004,
+      "weeklyDelta": 9.183673469387752,
+      "marker": 59.183673469387756,
+      "loadRatio": 0.42857142857142855,
+      "rawTickets": 15,
+      "weightedTickets": 15,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 17.142857142857142
+    },
+    {
+      "recovery": 100,
+      "name": "all",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 5,
+          "power": 5,
+          "speed": 5,
+          "defense": 5,
+          "velocity": 5,
+          "control": 5,
+          "movement": 5,
+          "physical": 5
+        }
+      },
+      "used": 40,
+      "maxTickets": 40,
+      "maxRecovery": 100,
+      "maxAccumulation": 50,
+      "neutralTickets": 12.000000000000002,
+      "neutralRatio": 0.30000000000000004,
+      "weeklyDelta": 50,
+      "marker": 100,
+      "loadRatio": 1,
+      "rawTickets": 40,
+      "weightedTickets": 35,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 40
+    },
+    {
+      "recovery": 100,
+      "name": "neutral",
+      "policy": {
+        "mode": "normal",
+        "tickets": {
+          "contact": 5,
+          "power": 0,
+          "speed": 0,
+          "defense": 0,
+          "velocity": 5,
+          "control": 0,
+          "movement": 0,
+          "physical": 0
+        }
+      },
+      "used": 10,
+      "maxTickets": 40,
+      "maxRecovery": 100,
+      "maxAccumulation": 50,
+      "neutralTickets": 12.000000000000002,
+      "neutralRatio": 0.30000000000000004,
+      "weeklyDelta": -2.7777777777777803,
+      "marker": 48.61111111111111,
+      "loadRatio": 0.25,
+      "rawTickets": 10,
+      "weightedTickets": 8.75,
+      "maxWeightedTickets": 35,
+      "equivalentTickets": 10
+    }
+  ]
+}

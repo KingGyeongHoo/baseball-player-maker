@@ -1,5 +1,7 @@
-import { addDays, assignRole, available, clamp, combinedOvr, focusGrowth, getPlayer, growthMultiplier, isPitcher, lineup, params, random, refreshWeekReport, reputationScore, roleScore, roles, slowdown } from "./engine";
+import { addDays, assignRole, available, clamp, overall, focusGrowth, getPlayer, growthMultiplier, isPitcher, lineup, params, random, refreshWeekReport, reputationScore, roleScore, roles, slowdown } from "./engine";
+import {applyProTwoWayChoice} from "./pro-two-way";
 import { teamStrength } from "../team-strength";
+import { professionalGrowth } from "./pro-growth";
 import { applyOpportunityChoice, observeTwoWayQualification } from "./career-opportunities";
 import { createCareerEvent, eventKind } from "./career-events";
 import { statKeys, type CareerEventBranch, type EventOpportunity, type EventScene, type GameState, type MatchEffect, type Player, type Stat } from "./types";
@@ -120,7 +122,7 @@ export function eventTrainingReward(player: Player, key: Stat, weeks: number) {
   const multiplier = params["talent.min_mult"] + (talent - 1) / 9 * (params["talent.max_mult"] - params["talent.min_mult"]);
   const rate = key === "bq" ? params["training.bq"] : physical ? focusGrowth(5) / 3
     : (focusGrowth(5) + params["training.base"]) * multiplier;
-  for (let i = 0; i < weeks * days; i++) value = clamp(value + rate * growthMultiplier(player) * slowdown(value) / days, 1);
+  for (let i = 0; i < weeks * days; i++) value = clamp(value + rate * professionalGrowth(player) * growthMultiplier(player) * slowdown(value) / days, 1);
   return value - start;
 }
 export function weightedOutcome(outcomes: CareerEventBranch[], roll: number) {
@@ -143,7 +145,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   const s = structuredClone(input), p = getPlayer(s), event = s.careerEvent!;
   const outcome = weightedOutcome(selected.outcomes, random(s, "events"));
   const deltas = { ...outcome.stats };
-  for (const key of statKeys) if ((deltas[key] ?? 0) > 0) deltas[key]! *= growthMultiplier(p);
+  for (const key of statKeys) if ((deltas[key] ?? 0) > 0) deltas[key]! *= professionalGrowth(p)*growthMultiplier(p);
   for (const [key, weeks] of Object.entries(outcome.weeks ?? {}) as [Stat, number][]) deltas[key] = eventTrainingReward(p, key, weeks);
   const positive = statKeys.filter(key => (deltas[key] ?? 0) > 0 || (outcome.weeks?.[key] ?? 0) > 0);
   const awakened = positive.length && random(s, "events") < params["events.awakening_chance"] ? positive : [];
@@ -156,9 +158,12 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   for (const [key, delta] of Object.entries(deltas) as [Stat, number][]) { const before = p.stats[key]; p.stats[key] = clamp(before + delta, 1); changes[key] = p.stats[key] - before; }
   const oldPosition = p.position;
   const opportunityChanges = applyOpportunityChoice(s, outcome);
+  Object.assign(opportunityChanges,applyProTwoWayChoice(s,outcome));
   if (outcome.role) assignRole(p, outcome.role);
+  if(outcome.proRoleTrial&&p.professional)p.professional.roleTrial={position:outcome.proRoleTrial,until:addDays(s.date,14)};
   if (event.definitionId === "P06") { p.roleOffer = null; p.offerWeeks = 0; p.offerCooldown = params["coach.offer_cooldown"]; }
-  if (outcome.reputation !== undefined || p.reputationBonus !== undefined) p.reputationBonus = (p.reputationBonus ?? 0) + (outcome.reputation ?? 0);
+  if(p.professional)p.professional.proBonus=clamp(p.professional.proBonus+(outcome.reputation??0),-10,10);
+  else if (outcome.reputation !== undefined || p.reputationBonus !== undefined) p.reputationBonus = (p.reputationBonus ?? 0) + (outcome.reputation ?? 0);
   p.reputation = reputationScore(p);
   const recoveryPercent = outcome.recoveryPercent ? outcome.recoveryPercent.min + Math.floor(random(s, "events") * (outcome.recoveryPercent.max - outcome.recoveryPercent.min + 1)) : 0;
   p.fatigue = clamp((p.fatigue + (outcome.fatigue ?? 0)) * (1 - recoveryPercent / 100));
@@ -190,7 +195,8 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
     refreshWeekReport(s);
   } else {
     const point = s.history.at(-1);
-    if (point) { point.ovr = combinedOvr(p); point.fatigue = p.fatigue; }
+    if (point?.ovrScale===100) { point.ovr = overall(p); point.fatigue = p.fatigue; }
+    else s.history.push({week:s.week,ovr:overall(p),ovrScale:100,fatigue:p.fatigue});
   }
   return s;
 }

@@ -36,15 +36,17 @@ test('joining the drafted club retains the same player, stats, talent, policy, r
   assert.deepEqual(q.trainingPolicy,p.trainingPolicy);assert.equal(q.reputation,p.reputation);assert.deepEqual(q.seasonStats,e.emptyRecord());
   assert.equal(q.career[0].schoolName,old.teams[p.teamId].name);assert.equal(q.career[0].records.batting.H,30);assert.deepEqual(next.draft,old.draft);
   assert.equal(next.date,'2028-03-01');assert.equal(q.age,19);assert.equal(next.careerNotice.kind,'entry');
+  assert.equal(q.professional.entry,'draft');
   assert.throws(()=>advance(next),/알림/);assert.throws(()=>pc.continueCareer(next,'join'),/결과와 알림/);
 });
 
-test('entry preserves two-way qualification and does not upgrade high school ability to pro ability',()=>{
+test('pro entry focuses former high-school two-way players below the pro threshold without upgrading ability',()=>{
   const s=graduate(),p=e.getPlayer(s);p.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'batting',reputationBonus:2};p.eligiblePositions.push('SP','RP','CP');
-  const n=pc.continueCareer(s,'join'),q=e.getPlayer(n);assert.deepEqual(q.twoWay,p.twoWay);assert.deepEqual(q.eligiblePositions,p.eligiblePositions);
+  const n=pc.continueCareer(s,'join'),q=e.getPlayer(n);assert.equal(q.twoWay,undefined);assert.deepEqual(q.stats,p.stats);assert.equal(q.position,e.ovr(p,true)>e.ovr(p,false)?'SP':'SS');
+  assert.ok(q.professional.twoWayHistory.some(row=>row.action==='단일 역할 입단'));
   const mean=rows=>rows.reduce((sum,p)=>sum+e.ovr(p),0)/rows.length;
   assert.ok(mean(n.players.filter(p=>p.teamId<10))>mean(n.players.filter(p=>p.teamId>=10))+10);
-  assert.ok(mean(n.players.filter(p=>p.teamId<10))>e.ovr(q)+15);
+  assert.ok(mean(n.players.filter(p=>p.teamId<10))>e.ovr(q)+10);
 });
 
 test('pro calendar has 144 first-team and 72 second-team games per club, balanced home/away and no same-day conflicts',()=>{
@@ -106,7 +108,7 @@ test('career record filters distinguish high school, college and pro level total
   const s=fixture(),p=e.getPlayer(s);p.seasonByLevel.first.batting.PA=20;p.seasonByLevel.second.batting.PA=40;p.seasonStats.batting.PA=60;
   const rows=playerSeasons(p,2028);assert.equal(rows[0].careerMode,undefined);assert.equal(rows[1].careerMode,'pro');assert.equal(rows[1].byLevel.second.batting.PA,40);assert.equal(totalRecords(rows).batting.PA,160);
   const html=renderToStaticMarkup(createElement(SeasonRecords,{player:p,year:2028,school:s.teams[p.teamId].name,ended:false,mine:true,onMyRecords(){}}));
-  assert.ok(html.includes('프로 1군')&&html.includes('프로 2군'));assert.ok(html.includes('19세'));assert.ok(!html.includes('고교 0학년'));assert.ok(html.includes(p.career[0].schoolName));
+  assert.ok(html.includes('프로 1군')&&html.includes('프로 2군')&&html.includes('포스트시즌')&&html.includes('고교'));assert.ok(html.includes('19세'));assert.ok(!html.includes('고교 0학년'));assert.equal(rows[0].schoolName,p.career[0].schoolName);
 });
 
 test('pro/college choices display correct entry options and old high-school-only proposals cannot run in pro',()=>{
@@ -131,8 +133,8 @@ test('full pro rookie season completes all 1080 games with stable population, le
   let s=pc.acknowledgeCareer(pc.createProfessionalDemo('full-rookie-test','신인','SP'));const count=s.players.length,stats={...e.getPlayer(s).stats},school=s.postSchool.graduationSchool;
   let guard=0;
   while(s.phase!=='ended'&&guard++<100){if(s.careerNotice)s=pc.acknowledgeCareer(s);if(s.careerEvent)s=e.answerCareerEvent(s,s.careerEvent.choices.at(-1).id);s=advance(s);}
-  assert.equal(s.phase,'ended');assert.equal(s.date,s.calendar.seasonEnd);assert.equal(s.players.length,count);assert.equal(s.calendar.events.filter(g=>['completed','forfeit'].includes(g.status)).length,1080);
+  assert.equal(s.phase,'ended');assert.equal(s.date,s.calendar.seasonEnd);assert.equal(s.players.length,count);assert.equal(s.calendar.events.filter(g=>!g.competitionId.startsWith('pro-playoffs-')&&['completed','forfeit'].includes(g.status)).length,1080);assert.ok(s.calendar.events.some(g=>g.competitionId.startsWith('pro-playoffs-')));
   assert.ok(s.calendar.competitions.every(c=>c.championTeamId!==null));const p=e.getPlayer(s);assert.equal(p.career[0].schoolName,school);assert.ok(p.stats.velocity>=stats.velocity);
   const sum=e.emptyRecord();e.mergeRecord(sum,p.seasonByLevel.first);e.mergeRecord(sum,p.seasonByLevel.second);assert.deepEqual(p.seasonStats,sum);assert.ok(p.seasonStats.pitching.BF>0);
-  assert.equal(s.careerNotice.kind,'seasonComplete');assert.throws(()=>advance(s),/종료/);assert.throws(()=>pc.continueCareer(pc.acknowledgeCareer(s),'join'),/신인 시즌/);
+  assert.equal(s.careerNotice.kind,'seasonComplete');assert.throws(()=>advance(s),/종료/);assert.throws(()=>pc.continueCareer(pc.acknowledgeCareer(s),'join'),/계약 화면/);
 });

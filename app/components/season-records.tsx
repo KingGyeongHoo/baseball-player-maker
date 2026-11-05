@@ -3,6 +3,7 @@ import { positionLabel } from "../../lib/sim/engine";
 import { formatInnings, playerSeasons, recordRates, totalRecords, type PlayerSeason } from "../../lib/player-records";
 import type { Player, RecordLine } from "../../lib/sim/types";
 import { careerLabel } from "../../lib/sim/pro-career";
+import {draftClubs,emptyRecord} from "../../lib/sim/engine";
 const seasonLabel=(s:PlayerSeason)=>s.careerMode==="pro"?"프로":s.careerMode==="college"?"대학":`고${s.grade}`;
 
 const rate = (value: number | null, digits = 3) => {
@@ -39,10 +40,12 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
   onMyRecords: () => void;
 }) {
   const [selectedYear, setSelectedYear] = useState("all");
-  const [level,setLevel]=useState("all");
+  const [level,setLevel]=useState(player.careerMode==="pro"?"first":"all");
+  const [club,setClub]=useState("all");
   const seasons = playerSeasons(player, year).map(season => ({ ...season, schoolName: season.schoolName ?? school }));
   const byYear = selectedYear === "all" ? seasons : seasons.filter(s => s.year === Number(selectedYear));
-  const visible = level==="all"?byYear:byYear.filter(s=>s.byLevel).map(s=>({...s,records:s.byLevel![level as "first"|"second"]}));
+  const scoped=club==="all"?byYear:byYear.filter(s=>s.byClub?.[club]).map(s=>({...s,byLevel:{first:s.byClub![club].first,second:s.byClub![club].second},postseason:s.byClub![club].postseason}));
+  const visible = level==="all"?scoped:level==="highSchool"?scoped.filter(s=>!s.careerMode):scoped.filter(s=>s.byLevel).map(s=>({...s,records:level==="postseason"?s.postseason??emptyRecord():s.byLevel![level as "first"|"second"]}));
   const total = totalRecords(visible);
   const rates = recordRates(total);
   const summary = [
@@ -61,7 +64,7 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
         <option value="all">전체 시즌</option>{seasons.map(s => <option value={s.year} key={s.year}>{s.year} · {seasonLabel(s)}</option>)}
       </select></label>
     </div>
-    {player.careerMode === "pro" && <div className="segmented pro-level-filter">{[["all","고교부터 통산"],["first","프로 1군"],["second","프로 2군"]].map(([id,label])=><button className={level===id?"selected":""} key={id} onClick={()=>setLevel(id)}>{label}</button>)}</div>}<div className="career-record-summary">{summary.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
+    {player.careerMode === "pro" && <div className="segmented pro-level-filter">{[["first","프로 1군"],["second","프로 2군"],["postseason","포스트시즌"],["highSchool","고교"],["all","전체 정규 기록"]].map(([id,label])=><button className={level===id?"selected":""} key={id} onClick={()=>setLevel(id)}>{label}</button>)}</div>}{player.careerMode==="pro"&&<label className="records-club-filter">구단별 기록 <select value={club} onChange={e=>setClub(e.target.value)}><option value="all">시즌 합계 · 모든 구단</option>{[...new Set(seasons.flatMap(s=>Object.keys(s.byClub??{})))].map(id=><option key={id} value={id}>{draftClubs[Number(id)]}</option>)}</select><span className="micro muted">선택한 리그의 원시 기록으로 비율을 다시 계산합니다.</span></label>}<div className="career-record-summary">{summary.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
     <section className="panel">
       <div className="panel-heading"><div><span className="eyebrow">PITCHING RECORDS</span><h2>연도별 투수 기록</h2></div><span className="small muted">{total.pitching.BF} 상대 타자</span></div>
       <div className="table-scroll season-table" tabIndex={0} role="region" aria-label="연도별 투수 기록, 가로로 스크롤 가능">

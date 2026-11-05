@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { AutoProgress, autoPauseReason } = require('../.test-build/lib/auto-progress.js');
+const { AutoProgress, autoPauseReason, cancelPendingSimulation } = require('../.test-build/lib/auto-progress.js');
 const e = require('../.test-build/lib/sim/engine.js');
 // Keep scheduler integration independent of the separately tested focus event.
 e.params['events.focus_chance']=0;
@@ -52,6 +52,15 @@ test('pause cancels the next week without discarding the current completed week'
   tick();
   assert.equal(commits, 1);
   assert.equal(controller.active, false);
+});
+
+test('recovering a decision invalidates queued worker replies before terminating and clears the busy lock',()=>{
+  let commits=0,terminated=0;const request={current:7},locked={current:true};
+  const worker={current:{terminate(){terminated++;if(request.current===7&&locked.current)commits++;}}};
+  const timer={current:setTimeout(()=>{commits++;},1000)};
+  cancelPendingSimulation({worker,request,locked,timer});
+  assert.equal(request.current,8);assert.equal(locked.current,false);assert.equal(worker.current,null);assert.equal(timer.current,null);assert.equal(terminated,1);assert.equal(commits,0);
+  cancelPendingSimulation({worker,request,locked,timer});assert.equal(terminated,1);assert.equal(request.current,9);
 });
 
 test('stale callbacks cannot revive after pause and restart or clear the new pending tick', () => {

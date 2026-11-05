@@ -70,14 +70,14 @@ test('off-role event rewards include the same base growth as real focused traini
   }
 });
 
-test('training UI offers three intensities, explains recovery and both-field base growth, and retains budget caps',()=>{
+test('training UI offers independent 0-5 investments, a centered balance meter and both-field base growth',()=>{
   const p=player(),render=policy=>renderToStaticMarkup(createElement(TrainingEditor,{player:p,policy,setPolicy(){}}));
-  const html=render(p.trainingPolicy),modes=html.match(/<div class="training-modes">([\s\S]*?)<\/div>/)[1];
-  assert.equal((modes.match(/<button/g)||[]).length,3);assert.ok(!modes.includes('휴식')&&!modes.includes('회복 훈련'));
-  assert.ok(html.includes('기본 성장'));assert.ok(html.includes('피로 천천히 감소'));assert.ok(html.includes('투수·타자 능력 모두 기본 성장'));
+  const html=render(p.trainingPolicy);assert.ok(!html.includes('training-modes')&&!html.includes('남은 티켓'));
+  assert.ok(html.includes('기본 성장'));assert.ok(html.includes('피로 회복')&&html.includes('피로 쌓임'));assert.ok(html.includes('투수·타자 능력 모두 기본 성장'));assert.match(html,/role="meter"/);
   const hard=structuredClone(p.trainingPolicy);hard.mode='hard';hard.tickets.power=3;
-  const full=render(hard);assert.match(full,/aria-label="구속 티켓 증가" disabled/);
-  const legacy=e.policyForMode(p.trainingPolicy,'rest');assert.match(render(legacy),/이전 버전의 휴식 설정/);
+  const full=render(hard);assert.ok(!full.includes('aria-label="구속 티켓 증가" disabled'));
+  hard.tickets.velocity=5;assert.match(render(hard),/aria-label="구속 티켓 증가" disabled/);
+  const legacy=e.policyForMode(p.trainingPolicy,'rest');assert.match(render(legacy),/이전 휴식 설정/);
 });
 
 test('NPCs recover through light training at high fatigue; only injury or forced rest completely stops activity',()=>{

@@ -52,7 +52,7 @@ export default function PlayerSetup({ onStart }: { onStart: (state: GameState) =
           {error && <p role="alert" className="error">{error}</p>}
           <div className="creation-start"><p><b>학교·능력치 무작위 배정</b><span>시작 후에는 대시보드에서 나의 학교와 능력치를 확인할 수 있습니다.</span></p>
             <button className="primary start-button" type="submit" disabled={busy || !name.trim() || !position}><span>{busy ? "나의 학교와 선수를 배정하는 중…" : "나의 커리어 시작하기"}</span><span aria-hidden="true">→</span></button>
-            <p className="micro muted center">플레이는 현재 브라우저에서만 유지되며, 새로고침하면 초기화됩니다.</p>
+            <p className="micro muted center">커리어는 이 브라우저에 자동 저장됩니다. 저장·불러오기에서 이어갈 수 있습니다.</p>
           </div>
         </form>
       </section>

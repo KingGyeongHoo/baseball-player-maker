@@ -1,8 +1,9 @@
-import { combinedOvr, isPitcher, params, random, reputationScore, roleFor, roleScore, roles } from "./engine";
+import { overall, isPitcher, params, random, reputationScore, roleFor, roleScore, roles } from "./engine";
 import type { DraftPick, GameState, Player, Role } from "./types";
+import {createScoutingReport} from "./scouting-report";
 
 export const draftBoard = (players: Player[]) => players.filter(p => p.grade === 3)
-  .sort((a, b) => combinedOvr(b) - combinedOvr(a) || roleScore(b) - roleScore(a) || a.id.localeCompare(b.id));
+  .sort((a, b) => overall(b) - overall(a) || roleScore(b) - roleScore(a) || a.id.localeCompare(b.id));
 export const draftClubs = ["서울 파이오니어스", "부산 웨이브스", "인천 마리너스", "대구 레드윙스", "광주 타이탄스", "대전 스파크스", "수원 위저즈", "창원 다이노스", "청주 이글스", "전주 라이온스"];
 // Compare prospects using identical neutral club demand, without consuming RNG.
 export function draftAssessment(p: Player) {
@@ -33,7 +34,7 @@ function selectDraft(s: GameState, limit = Infinity): DraftPick[] {
     const best = remaining.map(p => {
       const qualified = [...new Set(p.eligiblePositions.map(roleFor))].filter(role => isPitcher(role) === isPitcher(p.primaryRole));
       return qualified.map(role => {
-        const ability = combinedOvr(p);
+        const ability = overall(p);
         const talent = p.talent[isPitcher(role) ? "pitching" : "batting"];
         const reputation = p.reputation ?? reputationScore(p);
         const fit = params["draft.fit_role_weight"] * roleScore(p, role) + params["draft.fit_need_weight"] * needs[club][role] * 100;
@@ -56,8 +57,9 @@ function selectDraft(s: GameState, limit = Infinity): DraftPick[] {
       }).sort((a, b) => b.score - a.score || b.ability - a.ability || b.talent - a.talent || a.p.id.localeCompare(b.p.id))[0];
     }).sort((a, b) => b.score - a.score || b.ability - a.ability || b.talent - a.talent || a.p.id.localeCompare(b.p.id))[0];
     selected.add(best.p.id);
+    const clubNeed=needs[club][best.role]*100;
     needs[club][best.role] = Math.max(0, needs[club][best.role] - params["draft.need_decay"]);
-    picks.push({
+    const pick:DraftPick={
       playerId: best.p.id,
       playerName: best.p.name,
       teamName: s.teams[best.p.teamId].name,
@@ -73,7 +75,9 @@ function selectDraft(s: GameState, limit = Infinity): DraftPick[] {
       talent: best.talent,
       fit: best.fit,
       components: best.components,
-    });
+    };
+    pick.scoutingReport=createScoutingReport(pick,s.calendar.seasonYear,{stats:best.p.stats,records:best.p.seasonStats},candidates,clubNeed);
+    picks.push(pick);
   }
   return picks;
 }

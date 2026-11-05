@@ -1,0 +1,132 @@
+{
+  "version": "0.7.0",
+  "date": "2026-11-05",
+  "prototypeSamples": [
+    {
+      "file": "pro-career-v0.7.0-developmental.json",
+      "kind": "developmental",
+      "seasons": 10,
+      "finalAge": 28,
+      "stage": "camp",
+      "converted": null,
+      "events": 74,
+      "notices": 113,
+      "elapsedSeconds": 299.182,
+      "forfeits": 0
+    },
+    {
+      "file": "pro-career-v0.7.0-hitter.json",
+      "kind": "hitter",
+      "seasons": 10,
+      "finalAge": 28,
+      "stage": "camp",
+      "converted": null,
+      "events": 79,
+      "notices": 94,
+      "elapsedSeconds": 292.151,
+      "forfeits": 109
+    },
+    {
+      "file": "pro-career-v0.7.0-injury.json",
+      "kind": "injury",
+      "seasons": 11,
+      "finalAge": 29,
+      "stage": "camp",
+      "converted": null,
+      "events": 79,
+      "notices": 83,
+      "elapsedSeconds": 317.208,
+      "forfeits": 383
+    },
+    {
+      "file": "pro-career-v0.7.0-late.json",
+      "kind": "late",
+      "seasons": 11,
+      "finalAge": 36,
+      "stage": "camp",
+      "converted": null,
+      "events": 82,
+      "notices": 89,
+      "elapsedSeconds": 336.826,
+      "forfeits": 976
+    },
+    {
+      "file": "pro-career-v0.7.0-lower.json",
+      "kind": "lower",
+      "seasons": 10,
+      "finalAge": 28,
+      "stage": "camp",
+      "converted": null,
+      "events": 82,
+      "notices": 123,
+      "elapsedSeconds": 330.724,
+      "forfeits": 352
+    },
+    {
+      "file": "pro-career-v0.7.0-pitcher.json",
+      "kind": "pitcher",
+      "seasons": 10,
+      "finalAge": 28,
+      "stage": "camp",
+      "converted": null,
+      "events": 78,
+      "notices": 72,
+      "elapsedSeconds": 274.666,
+      "forfeits": 846
+    },
+    {
+      "file": "pro-career-v0.7.0-specialist.json",
+      "kind": "specialist",
+      "seasons": 10,
+      "finalAge": 28,
+      "stage": "camp",
+      "converted": "2031-07-19",
+      "events": 75,
+      "notices": 105,
+      "elapsedSeconds": 308.962,
+      "forfeits": 479
+    },
+    {
+      "file": "pro-career-v0.7.0-twoWay.json",
+      "kind": "twoWay",
+      "seasons": 10,
+      "finalAge": 28,
+      "stage": "camp",
+      "converted": null,
+      "events": 76,
+      "notices": 97,
+      "elapsedSeconds": 326.582,
+      "forfeits": 9
+    },
+    {
+      "file": "pro-career-v0.7.0-veteran.json",
+      "kind": "veteran",
+      "seasons": 11,
+      "finalAge": 45,
+      "stage": "retired",
+      "converted": null,
+      "events": 81,
+      "notices": 67,
+      "elapsedSeconds": 297.057,
+      "forfeits": 4
+    }
+  ],
+  "totalSeasons": 93,
+  "notes": [
+    "Initial cohort reports include results collected during development before positional-depth and contract-planning corrections. They are observations, not calibrated final balance targets.",
+    "The developmental case was rerun for 10 seasons after positional-depth corrections.",
+    "The final veteran case completed 11 seasons through age 45 with active-contract, club-budget, population and raw-record checks at every year boundary."
+  ],
+  "finalAudit": {
+    "file": "pro-career-v0.7.0-veteran.json",
+    "log": "test-results/pro-long-veteran-contract-final.log",
+    "checks": [
+      "active contracts valid for current year",
+      "club salary obligations within budgets",
+      "club and farm roster caps",
+      "raw first/farm/club record conservation",
+      "permanent player ID and one age increment",
+      "retirement archive at age 45"
+    ]
+  }
+}

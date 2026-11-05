@@ -2,6 +2,7 @@ import { buildCalendar } from "./calendar";
 import { simulateGame } from "./match-engine";
 import { advanceWeek, refreshWeekReport } from "./week-engine";
 import { resolveCareerEvent } from "./event-system";
+import { professionalGrowth } from "./pro-growth";
 export { simulateGame, advanceWeek, refreshWeekReport };
 export const answerCareerEvent = resolveCareerEvent;
 import balance from "../../baseball_balance_v0_4.json";
@@ -38,7 +39,7 @@ export const positions: Record<Position, string> = {
 export const roles = Object.keys(balance.roleWeights) as Role[];
 export const isPitcher = (role: Role) => ["선발", "중간계투", "마무리"].includes(role);
 export const clamp = (x: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, x));
-export const budget = (mode: Mode) => mode === "rest" ? 0 : params[`training.${mode}`];
+export const budget = (mode: Mode) => mode === "rest" ? 0 : ticketKeys.length * params["training.max_each"];
 export const emptyStats = () => Object.fromEntries(statKeys.map(k => [k, 0])) as Stats;
 export const emptyRecord = (): RecordLine => ({
   batting: {
@@ -157,27 +158,46 @@ export const recovery = (s: number) => interpolate(s, params["physical.recovery_
 export const recoveryAmount = (mode: Mode, active: boolean, fatigue = 0) => mode === "rest"
   ? fatigue * params["fatigue.recovery_policy"]
   : params["fatigue.daily_recovery"] + (mode === "light" ? params["fatigue.light_recovery"] : 0) + (active ? 0 : params["fatigue.rest_bonus"]);
-export function fatigueForecast(player: Player, policy: Policy) {
-  const used = policy.mode === "rest" ? 0 : ticketsUsed(policy);
-  const weeklyTraining = used * params["fatigue.ticket_cost"] * (params[`fatigue.mode_${policy.mode}`] ?? 0) * accumulation(player.stats.stamina);
-  const dailyRecovery = recoveryAmount(policy.mode, true, player.fatigue) * recovery(player.stats.recovery);
-  let end = player.fatigue;
-  let peak = end;
-  let recoveryCapacity = 0;
-  for (let day = 0; day < 7; day++) {
-    const trainingDay = used > 0 && day < params["training.days"];
-    end = clamp(end + (trainingDay ? weeklyTraining / params["training.days"] : 0));
-    peak = Math.max(peak, end);
-    const recover = recoveryAmount(policy.mode, trainingDay, end) * recovery(player.stats.recovery);
-    recoveryCapacity += recover;
-    end = clamp(end - recover);
+export function trainingEffort(policy:Policy) {
+  const weight=(key:Ticket)=>params[key==="physical"?"training.physical_fatigue_weight":["contact","power","speed","defense"].includes(key)?"training.batting_fatigue_weight":"training.pitching_fatigue_weight"];
+  const maxWeightedTickets=ticketKeys.reduce((sum,key)=>sum+params["training.max_each"]*weight(key),0);
+  const rawTickets=policy.mode==="rest"?0:ticketsUsed(policy);
+  const weightedTickets=policy.mode==="rest"?0:ticketKeys.reduce((sum,key)=>sum+policy.tickets[key]*weight(key),0);
+  return {rawTickets,weightedTickets,maxWeightedTickets,equivalentTickets:weightedTickets/maxWeightedTickets*budget("normal")};
+}
+// Numeric input is the normalized 0-40 reference load; live plans pass Policy.
+export function trainingLoad(recoveryStat:number,allocation:number|Policy) {
+  const effort=typeof allocation==="number"?null:trainingEffort(allocation);
+  const r=clamp(recoveryStat),maxTickets=budget("normal"),used=clamp(effort?effort.equivalentTickets:allocation as number,0,maxTickets);
+  const maxRecovery=params["fatigue.plan_recovery_base"]+params["fatigue.plan_recovery_stat"]*r;
+  const maxAccumulation=params["fatigue.plan_accumulation_base"]-params["fatigue.plan_accumulation_stat"]*r;
+  const neutralRatio=params["fatigue.plan_neutral_base"]+params["fatigue.plan_neutral_stat"]*r,neutralTickets=neutralRatio*maxTickets;
+  const delta=used<=neutralTickets?-maxRecovery*(1-used/neutralTickets)**params["fatigue.plan_recovery_curve"]:maxAccumulation*(used-neutralTickets)/(maxTickets-neutralTickets);
+  const weeklyDelta=Math.abs(delta)<1e-9?0:delta;
+  const marker=weeklyDelta<=0?50+50*weeklyDelta/maxRecovery:50+50*weeklyDelta/maxAccumulation;
+  return {used,maxTickets,maxRecovery,maxAccumulation,neutralTickets,neutralRatio,weeklyDelta,marker,loadRatio:used/maxTickets,...(effort??{})};
+}
+export function trainingFatigueDay(fatigue:number,recoveryStat:number,allocation:number|Policy) {
+  const delta=trainingLoad(recoveryStat,allocation).weeklyDelta/7,end=clamp(fatigue+delta),applied=end-fatigue;
+  return {end,training:Math.max(0,applied),recovered:Math.max(0,-applied)};
+}
+export function fatigueForecast(player: Player, policy: Policy, date?:string) {
+  const load=trainingLoad(player.stats.recovery,policy);
+  let end=player.fatigue,peak=end,weeklyTraining=0,recovered=0,forcedRest=player.forcedRest;
+  for(let day=0;day<7;day++){
+    if(end>=params["fatigue.force_rest"])forcedRest=true;
+    if(forcedRest&&end<params["fatigue.ready_return"])forcedRest=false;
+    const injured=!!date&&!!player.injury&&addDays(date,day)<player.injury.unavailableUntil;
+    const next=trainingFatigueDay(end,player.stats.recovery,forcedRest||injured?0:policy);
+    end=next.end;weeklyTraining+=next.training;recovered+=next.recovered;peak=Math.max(peak,end);
+    if(end>=params["fatigue.force_rest"])forcedRest=true;
   }
-  return { weeklyTraining, dailyRecovery, recoveryCapacity, peak, end };
+  return {...load,weeklyTraining,recoveryCapacity:Math.max(0,-load.weeklyDelta),recovered,peak,end};
 }
 export function train(p: Player, a: number) {
   const policy = p.trainingPolicy;
   if (!ticketsUsed(policy) || a <= 0) return;
-  const growthDays = a * growthMultiplier(p) * (p.transferAdaptation && p.transferAdaptation.weeksRemaining > 0 ? .9 : 1);
+  const growthDays = a * professionalGrowth(p) * growthMultiplier(p) * (p.transferAdaptation && p.transferAdaptation.weeksRemaining > 0 ? .9 : 1);
   for (const key of ticketKeys) {
     const g = focusGrowth(policy.tickets[key]);
     if (key === "physical") {
@@ -195,14 +215,15 @@ export function train(p: Player, a: number) {
 }
 export const ovr = (p: Player, pitching = isPitcher(p.primaryRole)) => (pitching ? p.stats.velocity + p.stats.control + p.stats.movement : p.stats.contact + p.stats.power + p.stats.speed + p.stats.defense) / (pitching ? 3 : 4);
 export const combinedOvr = (p: Player) => ovr(p, true) + ovr(p, false);
+export const overall = (p: Player) => p.twoWay ? combinedOvr(p) / 2 : ovr(p);
 export const positionLabel = (p: Player) => p.twoWay ? `${roleFor(p.twoWay.pitchingPosition)}/${positions[p.twoWay.battingPosition]}` : positions[p.position];
 export const pitchingRole = (p: Player) => p.twoWay ? roleFor(p.twoWay.pitchingPosition) : p.primaryRole;
 export const twoWayReputation = (p: Player) => p.twoWay ? Math.max(p.twoWay.reputationBonus, 3 * Math.min(1, p.seasonStats.batting.PA / 20, p.seasonStats.pitching.BF / 15)) : 0;
 export const roleScore = (p: Player, role = p.primaryRole) => Object.entries(balance.roleWeights[role]).reduce((sum, [key, weight]) => sum + p.stats[key as Stat] * weight, 0);
 export const reputationScore = (p: Player) => clamp(
-  params["reputation.ability_weight"] * ovr(p)
+  params["reputation.ability_weight"] * overall(p)
   + params["reputation.performance_weight"] * (p.performanceReputation ?? params["reputation.unrated_performance"])
-  + (p.reputationBonus ?? 0) + twoWayReputation(p)
+  + (p.reputationBonus ?? 0) + (p.professional?.proBonus??0) + twoWayReputation(p)
 );
 export function talentLabel(p: Player, type: "batting" | "pitching") {
   const n = p.talentExposure[type];
@@ -332,7 +353,7 @@ export function createGame(seed: string, name: string, position: Position, teamI
   updateReputation(s);
   s.history.push({
     week: 1,
-    ovr: combinedOvr(p),
+    ovr: overall(p), ovrScale: 100,
     fatigue: 0
   });
   return s;
@@ -378,9 +399,9 @@ export function ops(r: RecordLine) {
   return b.PA && b.AB ? (b.H + b.BB) / b.PA + (b.H + b["2B"] + 2 * b["3B"] + 3 * b.HR) / b.AB : null;
 }
 const pitchingQ = (r: RecordLine) => r.pitching.BF ? (params["reputation.pitch_k"] * r.pitching.SO - params["reputation.pitch_bb"] * r.pitching.BB - params["reputation.pitch_hr"] * r.pitching.HR) / r.pitching.BF : 0;
-export const available = (p: Player, date: string) => !p.forcedRest && p.trainingPolicy.mode !== "rest" && !(p.injury && date < p.injury.unavailableUntil);
+export const available = (p: Player, date: string) => p.professional?.employment!=="retired" && !p.forcedRest && p.trainingPolicy.mode !== "rest" && !(p.injury && date < p.injury.unavailableUntil);
 export const growthMultiplier = (p: Player) => p.proContract?.status === "developmental" ? .9 : 1;
-export const selectionScore = (p: Player, role = p.primaryRole) => roleScore(p, role) - params["coach.fatigue_penalty"] * p.fatigue + params["coach.recent_max"] * clamp(p.recentZ, -1, 1) - (p.proContract?.status === "developmental" ? 6 : 0);
+export const selectionScore = (p: Player, role = p.primaryRole) => roleScore(p, role) - params["coach.fatigue_penalty"] * p.fatigue + params["coach.recent_max"] * clamp(p.recentZ, -1, 1) - (p.proContract?.status === "developmental" ? 6 : 0) - (p.professional?.managedUntil?12:0);
 const byPitchingScore = (a: Player, b: Player) => selectionScore(b, pitchingRole(b)) - selectionScore(a, pitchingRole(a)) || a.id.localeCompare(b.id);
 export function lineup(roster: Player[], date: string) {
   const candidates = roster.filter(p => available(p, date));
@@ -437,7 +458,8 @@ export function npcPolicy(p: Player, date: string, hasGame: boolean) {
   } else if (hasGame || p.fatigue >= params["coach.rest_fatigue"] || recovering) {
     policy.mode = "light";
     const keys = [...ticketKeys].sort((a, b) => policy.tickets[a] - policy.tickets[b] || a.localeCompare(b));
-    for (const k of keys) while (policy.tickets[k] > 0 && ticketsUsed(policy) > 7) policy.tickets[k]--;
+    const target=trainingLoad(p.stats.recovery,0).neutralTickets*.5;
+    for (const k of keys) while (policy.tickets[k] > 0 && trainingEffort(policy).equivalentTickets > target) policy.tickets[k]--;
   }
   p.trainingPolicy = policy;
 }

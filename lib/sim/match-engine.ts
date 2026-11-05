@@ -1,14 +1,18 @@
-import { accumulation, advanceRunners, available, clamp, effective, emptyRecord, isPitcher, lineup, mergeRecord, params, pitchingRole, probabilities, random, roleFor, selectionScore } from "./engine";
+import { accumulation, advanceRunners, available, clamp, effective, emptyRecord, isPitcher, mergeRecord, params, pitchingRole, probabilities, random, roleFor, selectionScore } from "./engine";
+import {professionalLineup,proNotice} from "./pro-world";
+import {playoffRosterFor} from "./pro-season";
 import { applyMatchEffect, openScheduledEvent } from "./event-system";
 import type { Game, GameState, Player, Position } from "./types";
 
 // Every cursor and runner is serializable: returning at a choice never replays
 // an inning, consumes a match draw early, or commits a partial game twice.
 export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boolean {
+  if(game.status==="completed"||game.status==="forfeit")return true;
+  rosters=rosters.map(roster=>playoffRosterFor(s,game,roster));
   const players = new Map(rosters.flat().map(p => [p.id, p]));
   const player = (id: string) => players.get(id)!;
   if (!s.matchProgress) {
-    const sides = rosters.map(roster => lineup(roster, game.date));
+    const sides = rosters.map(roster => professionalLineup(s,roster,game.date,game.evaluationPlayers));
     if (sides.some(side => side.field.length < 9 || !side.starter)) {
       game.status = "forfeit";
       game.forfeitTeamId = sides[0].field.length < 9 || !sides[0].starter ? game.homeTeamId : game.awayTeamId;
@@ -56,7 +60,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       if (m.pitchOuts[pitchingSide] >= limit || current.fatigue >= params["coach.replace_fatigue"] || !available(current, game.date)) {
         const lead = game.score[pitchingSide] - game.score[side];
         const next = m.sides[pitchingSide].pitchers.map(player).filter(p => !m.usedPitchers[pitchingSide].includes(p.id) && !m.sides[pitchingSide].field.includes(p.id) && available(p, game.date) && p.fatigue < params["coach.replace_fatigue"])
-          .sort((a, b) => (m.inning >= 9 && lead >= 1 && lead <= 3 ? Number(pitchingRole(b) === "마무리") - Number(pitchingRole(a) === "마무리") : 0) || selectionScore(b, pitchingRole(b)) - selectionScore(a, pitchingRole(a)) || a.id.localeCompare(b.id))[0];
+          .sort((a, b) => Number(game.evaluationPlayers?.includes(b.id)??false)-Number(game.evaluationPlayers?.includes(a.id)??false) || (m.inning >= 9 && lead >= 1 && lead <= 3 ? Number(pitchingRole(b) === "마무리") - Number(pitchingRole(a) === "마무리") : 0) || selectionScore(b, pitchingRole(b)) - selectionScore(a, pitchingRole(a)) || a.id.localeCompare(b.id))[0];
         if (next) { m.pitchers[pitchingSide] = next.id; m.usedPitchers[pitchingSide].push(next.id); m.pitchOuts[pitchingSide] = 0; }
         else return forfeit(pitchingSide);
       }
@@ -124,10 +128,20 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     for (const id of m.sides[side].field.slice(0, 8)) { const p = player(id); p.fatigue = clamp(p.fatigue + params["fatigue.field_game"] * outs / 27 * accumulation(p.stats.stamina)); }
   }
   for (const [id, record] of Object.entries(game.boxScore)) {
-    const p=player(id);mergeRecord(p.seasonStats,record);
+    const p=player(id),postseason=game.competitionId.startsWith("pro-playoffs-");
+    if(!postseason)mergeRecord(p.seasonStats,record);
     if(s.careerMode==="pro") {
       p.seasonByLevel ??= {first:emptyRecord(),second:emptyRecord()};
-      mergeRecord(p.seasonByLevel[game.competitionId==="pro-first"?"first":"second"],record);
+      if(postseason){p.seasonPostseason??=emptyRecord();mergeRecord(p.seasonPostseason,record);}else mergeRecord(p.seasonByLevel[game.competitionId==="pro-first"?"first":"second"],record);
+      const club=String(p.teamId%10);p.seasonByClub??={};p.seasonByClub[club]??={first:emptyRecord(),second:emptyRecord(),postseason:emptyRecord()};mergeRecord(p.seasonByClub[club][postseason?"postseason":game.competitionId==="pro-first"?"first":"second"],record);
+      if(p.professional&&(record.batting.PA||record.pitching.BF)){
+        p.professional.lastAppearance=game.date;
+        if(game.competitionId==="pro-first"){
+          const first=p.professional.firsts,debuts=!first.debut;first.debut??=game.date;if(game.lineup.some(side=>side.slice(0,10).includes(id)))first.start??=game.date;
+          if(debuts&&id===s.playerId)proNotice(s,"first-team-debut","첫 1군 경기의 기록을 남겼습니다",`${game.date} · 실제 1군 경기에서 ${record.batting.PA}타석·${record.pitching.BF}타자를 상대했습니다. 능력 보너스 없이 이 순간을 커리어에 보관합니다.`);
+          if(record.batting.H)first.hit??=game.date;if(record.batting.HR)first.homeRun??=game.date;if(record.pitching.SO)first.strikeout??=game.date;
+        }
+      }
       if(id===s.playerId && game.competitionId==="pro-first" && (record.batting.PA||record.pitching.BF) && s.postSchool?.pro && !s.postSchool.pro.debutDate)s.postSchool.pro.debutDate=game.date;
     }
   }

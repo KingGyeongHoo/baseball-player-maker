@@ -1,3 +1,4 @@
+import type { ClubRecords, ProfessionalPlayer, ProWorld } from "./pro-types";
 export const statKeys = ["contact", "power", "speed", "defense", "velocity", "control", "movement", "stamina", "recovery", "arm", "bq"] as const;
 export type Stat = typeof statKeys[number];
 export type Stats = Record<Stat, number>;
@@ -71,6 +72,9 @@ export type Player = {
   twoWay?: { pitchingPosition: Position; battingPosition: Position; nextAssignment: "pitching" | "batting"; reputationBonus: number };
   transferAdaptation?: { schoolId: number; weeksRemaining: number };
   proContract?: { status: "developmental" | "regular"; joinedDate: string; convertedDate?: string };
+  professional?: ProfessionalPlayer;
+  seasonPostseason?: RecordLine;
+  seasonByClub?: Record<string,ClubRecords>;
   stats: Stats;
   initialStats: Stats;
   talent: {
@@ -97,6 +101,8 @@ export type Player = {
     careerMode?: CareerMode;
     age?: number;
     byLevel?: Record<ProLevel, RecordLine>;
+    postseason?:RecordLine;
+    byClub?:Record<string,ClubRecords>;
   }[];
   recentAppearances: RecordLine[];
   reputation: number | null;
@@ -132,6 +138,7 @@ export type Game = {
   forfeitTeamId?: number;
   round?: number;
   advancingTeamId?: number;
+  evaluationPlayers?:string[];
 };
 export type Competition = {
   id: string;
@@ -174,6 +181,13 @@ export type DraftPick = {
   talent: number;
   fit: number;
   components: { reputation: number; talent: number; fit: number };
+  scoutingReport?: ScoutingReport;
+};
+export type ScoutingReport = {
+  version:1;year:number;source:"draft"|"archive"|"evaluation";summary:string;
+  tools:{stat:Stat;title:string;description:string;value:number;rank?:number;poolSize?:number}[];
+  reasons:{title:string;description:string}[];development:string;
+  statsSnapshot?:Stats;recordsSnapshot?:RecordLine;clubNeed?:number;
 };
 export type FatigueDay = {
   date: string;
@@ -215,6 +229,8 @@ export type CareerEventBranch = {
   role?: Role; match?: MatchEffect;
   recoveryPercent?: { min: number; max: number };
   skipTraining?: boolean;
+  proRoleTrial?:Position;
+  proTwoWayAction?:"start"|"defer"|"pitching"|"batting";
   opportunity?: { action: "twoWay" | "transfer"; teamId?: number };
 };
 export type TransferOffer = { teamId: number; name: string; strength: number; competition: number; kind: "strong" | "playingTime"; twoWay: boolean };
@@ -253,6 +269,7 @@ export type WeekProgress = {
   remainingDays: number; beforeStats: Stats; report: Report & { fatigue: FatigueReport };
   policy: Policy; stance: Stance; opportunity: EventOpportunity | null;
   twoWayQualified?: boolean; adaptationTrained?: boolean;
+  fatigueRecoveryStats?: [string,number][];
   day?: {
     phase: "beforeGames" | "games" | "players" | "finish";
     fatigue: FatigueDay; recovery: [string, number][]; active: string[]; appearances: string[];
@@ -291,6 +308,7 @@ export type GameState = {
   history: {
     week: number;
     ovr: number;
+    ovrScale?: 100;
     fatigue: number;
   }[];
   draft: DraftPick[];
@@ -305,7 +323,10 @@ export type GameState = {
   trainingFocus?: { rng: number; rolledWeek: number };
   careerMode?: CareerMode;
   draftOutcome?: { revealed: boolean; offer: DevelopmentalOffer | null };
-  careerNotice?: { id: string; date: string; kind: "entry" | "promoted" | "demoted" | "tryoutFailed" | "seasonComplete" | "registered"; title: string; message: string };
+  careerNotice?: { id: string; date: string; kind: "entry" | "promoted" | "demoted" | "tryoutFailed" | "seasonComplete" | "registered" | "pro"; title: string; message: string; code?:string };
+  noticeQueue?: NonNullable<GameState["careerNotice"]>[];
+  proWorld?:ProWorld;
+  pendingEventOutcome?:CareerEventOutcome;
   postSchool?: {
     graduationYear: number; graduationSchool: string; collegeYears: number;
     collegeDraft?: DraftPick[];

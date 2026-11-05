@@ -1,7 +1,7 @@
 import { scoreText } from "../../lib/display";
 import type { ReactNode } from "react";
 import { competitionName } from "../../lib/sim/calendar";
-import { addDays, combinedOvr, dateLabel, getPlayer, ovr, positionLabel } from "../../lib/sim/engine";
+import { addDays, overall, dateLabel, getPlayer, ovr, positionLabel } from "../../lib/sim/engine";
 import { teamStrength } from "../../lib/team-strength";
 import type { GameState } from "../../lib/sim/types";
 
@@ -25,7 +25,7 @@ export default function CareerDashboard({ state, onTab, onTraining, records, sch
     <section className="dashboard-overview" aria-label="선수와 팀 요약">
       <div className="overview-profile">
         <span className="overview-label">PLAYER PROFILE</span>
-        <div className="overview-identity"><div><p className="overview-school">{team.name} · {player.grade}학년</p><h1>{player.name}</h1><div className="overview-position"><span>{positionLabel(player)}</span><small>우투우타</small></div></div><div className="overview-ovr" title="투수 OVR + 타자 OVR · 최대 200"><span>OVR / 200</span><strong>{scoreText(combinedOvr(player))}</strong></div></div>
+        <div className="overview-identity"><div><p className="overview-school">{team.name} · {player.grade}학년</p><h1>{player.name}</h1><div className="overview-position"><span>{positionLabel(player)}</span><small>우투우타</small></div></div><div className="overview-ovr" title="일반 선수: 주력 OVR · 겸업 선수: 투수·타자 평균 · 최대 100"><span>OVR / 100</span><strong>{scoreText(overall(player))}</strong></div></div>
         <div className="overview-dual"><span>투수 OVR <b>{scoreText(ovr(player, true))}</b></span><span>타자 OVR <b>{scoreText(ovr(player, false))}</b></span></div>
         {player.transferAdaptation && <p className="overview-caption">전학 적응 · 훈련 효율 90% · {player.transferAdaptation.weeksRemaining}훈련 주 남음</p>}
         {state.careerOpportunities?.pendingTransfer && <p className="overview-caption">{state.teams[state.careerOpportunities.pendingTransfer.toTeamId].name} · {dateLabel(state.careerOpportunities.pendingTransfer.effectiveDate)} 합류 예정</p>}

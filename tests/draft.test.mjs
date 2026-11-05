@@ -58,7 +58,7 @@ test('draft score uses exactly reputation 80%, talent 10%, fit 10% with no extra
     close(pick.score,Object.values(pick.components).reduce((a,b)=>a+b,0));
     assert.ok(pick.fit>=0 && pick.fit<=100);
     const player=board.find(p=>p.id===pick.playerId);
-    close(pick.ability,e.combinedOvr(player));
+    close(pick.ability,e.overall(player));
     assert.equal(pick.abilityRank,board.indexOf(player)+1);
   }
   assert.equal(new Set(picks.map(p=>p.playerId)).size,picks.length);

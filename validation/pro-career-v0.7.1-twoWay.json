@@ -1,0 +1,53 @@
+{
+  "version": "0.7.1",
+  "kind": "twoWay",
+  "requestedSeasons": 2,
+  "completedSeasons": 2,
+  "elapsedSeconds": 38.326,
+  "events": 19,
+  "notices": 12,
+  "rows": [
+    {
+      "year": 2028,
+      "age": 19,
+      "status": "regular",
+      "employment": "active",
+      "firstPA": 316,
+      "firstOuts": 369,
+      "farmPA": 0,
+      "farmOuts": 0,
+      "faDays": 150,
+      "active": 694,
+      "unattached": 0,
+      "retired": 0,
+      "forfeits": 0,
+      "champion": 0,
+      "primaryOvr": 76.66603184999252
+    },
+    {
+      "year": 2029,
+      "age": 20,
+      "status": "regular",
+      "employment": "active",
+      "firstPA": 334,
+      "firstOuts": 309,
+      "farmPA": 0,
+      "farmOuts": 0,
+      "faDays": 300,
+      "active": 743,
+      "unattached": 64,
+      "retired": 0,
+      "forfeits": 0,
+      "champion": 9,
+      "primaryOvr": 77.42835746142974
+    }
+  ],
+  "final": {
+    "stage": "camp",
+    "records": 3,
+    "entry": "draft",
+    "converted": null,
+    "twoWay": true
+  },
+  "fixture": "Controlled two-way player starting at 76 in every ability. This verifies career continuity, not the natural two-way occurrence rate."
+}

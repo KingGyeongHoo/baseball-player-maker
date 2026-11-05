@@ -63,7 +63,8 @@ test('fresh generation keeps primary average near 40 and secondary average near 
       assert.ok(Number.isFinite(e.combinedOvr(p)) && e.combinedOvr(p) <= 200);
     }
     const me = e.getPlayer(state);
-    assert.equal(state.history[0].ovr, e.combinedOvr(me));
+    assert.equal(state.history[0].ovr, e.overall(me));
+    assert.equal(state.history[0].ovrScale,100);
     assert.deepEqual(me.initialStats, me.stats);
     assert.deepEqual(state, e.createGame('role-distribution-' + seed, '검증', seed % 2 ? 'SP' : 'SS'));
   }
@@ -86,15 +87,17 @@ test('rare generation can create an above-average two-way player without capping
   }
 });
 
-test('draft OVR ranking rewards the sum rather than the stronger discipline alone', () => {
+test('draft OVR ranking uses primary ratings and two-way averages on the same 100-point scale', () => {
   const template = e.previewPlayer('two-way-ranking', '검증', 'SS');
   const players = [[90, 10], [60, 60], [30, 75]].map(([pitch, bat], index) => {
     const p = structuredClone(template);
     p.id = 'ranking-' + index;
     p.grade = 3;
+    if(index===0){p.primaryRole='선발';p.position='SP';}
+    if(index===1)p.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'batting',reputationBonus:0};
     for (const key of pitching) p.stats[key] = pitch;
     for (const key of batting) p.stats[key] = bat;
     return p;
   });
-  assert.deepEqual(e.draftBoard(players).map(p => p.id), ['ranking-1', 'ranking-2', 'ranking-0']);
+  assert.deepEqual(e.draftBoard(players).map(p => p.id), ['ranking-0', 'ranking-2', 'ranking-1']);
 });

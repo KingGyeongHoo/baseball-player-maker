@@ -159,6 +159,7 @@ try {
   assert.equal(draftResponse.result.phase, 'ended');
   assert.ok(draftResponse.result.draft.length >= 90 && draftResponse.result.draft.length <= 110);
   assert.ok(draftResponse.result.draft.every(pick => pick.round >= 1 && pick.round <= 13 && pick.slot >= 1 && pick.slot <= 10));
+  assert.ok(draftResponse.result.draft.every(pick => pick.scoutingReport?.version === 1 && pick.scoutingReport.year === draftInput.calendar.seasonYear && pick.scoutingReport.statsSnapshot));
 
   const focusInput=e.createGame('production-focus','Focus','SS'),focusPlayer=e.getPlayer(focusInput);
   focusInput.week=6;focusInput.calendar.events=[];focusInput.calendar.competitions=[];focusInput.rngStates.events=1;focusInput.trainingFocus={rng:7,rolledWeek:-1};focusPlayer.fatigue=50;
@@ -203,8 +204,70 @@ try {
   const regularWeek=await request({requestId:68,state:regular,policy:fp.trainingPolicy,stance:fp.stance});
   assert.ok(regularWeek.result,regularWeek.error);delete regularWeek.result.report.processingMs;
   assert.deepEqual(regularWeek.result,e.advanceWeek(regular,fp.trainingPolicy,fp.stance));assert.notEqual(regularWeek.result.careerNotice?.kind,'registered');
+  const postseason=structuredClone(rookie);postseason.date=postseason.proWorld.regularEnd;postseason.proWorld.stage='regular';postseason.calendar.events=[];
+  for(const club of postseason.proWorld.clubs)club.nextReview=e.addDays(postseason.date,14);
+  const playoffStart=await request({requestId:70,state:postseason,policy:rp.trainingPolicy,stance:rp.stance});
+  assert.ok(playoffStart.result,playoffStart.error);delete playoffStart.result.report.processingMs;
+  assert.equal(playoffStart.result.proWorld.stage,'postseason');assert.deepEqual(playoffStart.result,e.advanceWeek(postseason,rp.trainingPolicy,rp.stance));
+  const playoffResume=pc.acknowledgeCareer(playoffStart.result);
+  const playoffs=await request({requestId:71,state:playoffResume,policy:rp.trainingPolicy,stance:rp.stance});
+  assert.ok(playoffs.result,playoffs.error);delete playoffs.result.report.processingMs;assert.deepEqual(playoffs.result,e.advanceWeek(playoffResume,rp.trainingPolicy,rp.stance));
+  const {encodeCareerSave,decodeCareerSave}=require('../.test-build/lib/career-save.js');
+  const stored=decodeCareerSave(JSON.stringify(encodeCareerSave(playoffStart.result))).state;
+  const fromSave=pc.acknowledgeCareer(stored),restored=await request({requestId:72,state:fromSave,policy:rp.trainingPolicy,stance:rp.stance});
+  assert.ok(restored.result,restored.error);delete restored.result.report.processingMs;assert.deepEqual(restored.result,playoffs.result);
   const blocked = await request({ requestId: 45, state: eventExpected, policy: eventPlayer.trainingPolicy, stance: eventPlayer.stance });
   assert.match(blocked.error, /イベント|이벤트/);
+  const proDual=structuredClone(rookie),pd=e.getPlayer(proDual);
+  for(const key of ['velocity','control','movement'])pd.stats[key]=80;
+  for(const key of ['contact','power','speed','defense'])pd.stats[key]=78;
+  Object.assign(pd.professional.twoWayReview,{qualifiedDays:28,lastDate:e.addDays(proDual.date,-1)});
+  const dualProResponse=await request({requestId:80,state:proDual,policy:pd.trainingPolicy,stance:pd.stance});
+  assert.ok(dualProResponse.result,dualProResponse.error);delete dualProResponse.result.report.processingMs;
+  assert.equal(dualProResponse.result.careerEvent.definitionId,'PRO16');
+  assert.deepEqual(dualProResponse.result,e.advanceWeek(proDual,pd.trainingPolicy,pd.stance));
+  const acceptedProDual=e.answerCareerEvent(dualProResponse.result,'accept');
+  assert.equal(e.overall(e.getPlayer(acceptedProDual)),79);
+  const resumedProDual=await request({requestId:81,state:acceptedProDual,policy:pd.trainingPolicy,stance:pd.stance});
+  assert.ok(resumedProDual.result,resumedProDual.error);delete resumedProDual.result.report.processingMs;
+  assert.deepEqual(resumedProDual.result,e.advanceWeek(acceptedProDual,pd.trainingPolicy,pd.stance));
+  const stopDual=structuredClone(acceptedProDual),sd=e.getPlayer(stopDual);
+  for(const key of ['velocity','control','movement'])sd.stats[key]=69;
+  Object.assign(sd.professional.twoWayReview,{belowDays:28,lastDate:e.addDays(stopDual.date,-1)});
+  const focusProResponse=await request({requestId:82,state:stopDual,policy:sd.trainingPolicy,stance:sd.stance});
+  assert.ok(focusProResponse.result,focusProResponse.error);delete focusProResponse.result.report.processingMs;
+  assert.equal(focusProResponse.result.careerEvent.definitionId,'PRO17');
+  assert.deepEqual(focusProResponse.result,e.advanceWeek(stopDual,sd.trainingPolicy,sd.stance));
+  const focusedPro=e.answerCareerEvent(focusProResponse.result,'focus');
+  assert.equal(e.getPlayer(focusedPro).twoWay,undefined);
+  assert.ok(e.getPlayer(focusedPro).eligiblePositions.every(pos=>!['SP','RP','CP'].includes(pos)));
+  const focusProResume=await request({requestId:83,state:focusedPro,policy:sd.trainingPolicy,stance:sd.stance});
+  assert.ok(focusProResume.result,focusProResume.error);delete focusProResume.result.report.processingMs;
+  assert.deepEqual(focusProResume.result,e.advanceWeek(focusedPro,sd.trainingPolicy,sd.stance));
+
+  const loadBase=e.createGame('production-free-training','FreeTraining','SS');loadBase.calendar.events=[];loadBase.calendar.competitions=[];
+  const fullPolicy={mode:'normal',tickets:Object.fromEntries(Object.keys(p.trainingPolicy.tickets).map(key=>[key,5]))};
+  let fullInput,fullExpected;
+  for(let seed=0;seed<50;seed++){const candidate=structuredClone(loadBase),cp=e.getPlayer(candidate);cp.stats.recovery=0;cp.fatigue=0;candidate.rngStates.injury=seed;const predicted=e.advanceWeek(candidate,fullPolicy,cp.stance);if(!e.getPlayer(predicted).injury&&Math.abs(e.getPlayer(predicted).fatigue-100)<1e-8){fullInput=candidate;fullExpected=predicted;break;}}
+  assert.ok(fullInput,'uninterrupted full-allocation anchor');
+  const fullLoad=await request({requestId:90,state:fullInput,policy:fullPolicy,stance:e.getPlayer(fullInput).stance});
+  assert.ok(fullLoad.result,fullLoad.error);delete fullLoad.result.report.processingMs;assert.deepEqual(fullLoad.result,fullExpected);
+  assert.ok(Math.abs(e.getPlayer(fullLoad.result).fatigue-100)<1e-8);
+  const zeroInput=structuredClone(loadBase),zp=e.getPlayer(zeroInput);zp.stats.recovery=100;zp.fatigue=100;
+  const zeroPolicy={mode:'normal',tickets:Object.fromEntries(Object.keys(p.trainingPolicy.tickets).map(key=>[key,0]))};
+  const zeroLoad=await request({requestId:91,state:zeroInput,policy:zeroPolicy,stance:zp.stance});
+  assert.ok(zeroLoad.result,zeroLoad.error);delete zeroLoad.result.report.processingMs;
+  assert.deepEqual(zeroLoad.result,e.advanceWeek(zeroInput,zeroPolicy,zp.stance));assert.equal(e.getPlayer(zeroLoad.result).fatigue,0);
+
+  const disciplinePolicies=[['contact','power','speed','defense'],['velocity','control','movement']].map(keys=>({mode:'normal',tickets:Object.fromEntries(Object.keys(p.trainingPolicy.tickets).map(key=>[key,keys.includes(key)?5:0]))}));
+  const weightedInput=structuredClone(loadBase),wp=e.getPlayer(weightedInput);wp.stats.recovery=50;wp.fatigue=30;
+  for(let i=0;i<disciplinePolicies.length;i++){
+    const policy=disciplinePolicies[i],response=await request({requestId:92+i,state:weightedInput,policy,stance:wp.stance});
+    assert.ok(response.result,response.error);delete response.result.report.processingMs;
+    assert.deepEqual(response.result,e.advanceWeek(weightedInput,policy,wp.stance));
+    assert.ok(Math.abs(e.getPlayer(response.result).fatigue-(30+125/7))<1e-8,'equal batting/pitching full-focus fatigue');
+  }
+
   const bad = structuredClone(p.trainingPolicy);
   bad.tickets.contact = 99;
   const failed = await request({

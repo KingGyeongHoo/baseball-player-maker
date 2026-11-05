@@ -35,8 +35,8 @@ if (!isMainThread) {
       date: state.date,
       weeks: state.week - 1,
       drafted: chosen.has(p.id),
-      ovr: e.combinedOvr(p),
-      growth: e.combinedOvr(p) - e.combinedOvr({
+      ovr: e.overall(p),
+      growth: e.overall(p) - e.overall({
         ...p,
         stats: p.initialStats
       }),
@@ -47,9 +47,9 @@ if (!isMainThread) {
       forfeits,
       totals,
       graduates: grads.map(p => ({
-        ovr: e.combinedOvr(p),
+        ovr: e.overall(p),
         talent: p.talent[e.isPitcher(p.primaryRole) ? 'pitching' : 'batting'],
-        growth: e.combinedOvr(p) - e.combinedOvr({
+        growth: e.overall(p) - e.overall({
           ...p,
           stats: p.initialStats
         }),

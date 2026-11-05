@@ -3,6 +3,14 @@ import type { GameState } from "./sim/types";
 type Schedule = (callback: () => void, delay: number) => ReturnType<typeof setTimeout>;
 type Cancel = (timer: ReturnType<typeof setTimeout>) => void;
 
+export function cancelPendingSimulation(runtime:{worker:{current:{terminate:()=>void}|null};request:{current:number};locked:{current:boolean};timer:{current:ReturnType<typeof setTimeout>|null}}) {
+  // Invalidate first: even an already queued message cannot commit after recovery.
+  runtime.request.current++;runtime.locked.current=false;
+  if(runtime.timer.current!==null)clearTimeout(runtime.timer.current);
+  runtime.timer.current=null;
+  const worker=runtime.worker.current;runtime.worker.current=null;worker?.terminate();
+}
+
 // A single pending tick prevents overlapping requests. Pausing leaves an in-flight
 // week intact and cancels only the next week, preserving the engine's atomic commit.
 export class AutoProgress {
@@ -49,7 +57,7 @@ export function autoPauseReason(previous: GameState, next: GameState): string | 
   if (next.careerEvent) return "커리어 이벤트가 발생해 자동 진행을 멈췄습니다. 선택을 확인해 주세요.";
   const before = previous.players.find(p => p.id === previous.playerId)!;
   const after = next.players.find(p => p.id === next.playerId)!;
-  if (before.teamId !== after.teamId) return "전학한 학교에 합류해 자동 진행을 멈췄습니다. 새 학교와 적응 기간을 확인해 주세요.";
+  if (before.teamId !== after.teamId) return next.careerMode==="pro"?"소속·등록이 변경돼 자동 진행을 멈췄습니다. 이동 내역을 확인하세요.":"전학한 학교에 합류해 자동 진행을 멈췄습니다. 새 학교와 적응 기간을 확인해 주세요.";
   if (after.roleOffer) return "감독의 역할 제안이 도착해 자동 진행을 멈췄습니다.";
   if (after.injury && after.injury.startDate !== before.injury?.startDate) {
     return "새로운 부상이 발생해 자동 진행을 멈췄습니다. 회복 방침을 확인하세요.";

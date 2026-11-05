@@ -1,6 +1,8 @@
-import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, previewPlayer, random, recovery, reputationScore, roleScore } from "./engine";
+import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, positions, previewPlayer, random, recovery, reputationScore, roleScore } from "./engine";
 import { careerLeagueTable, developmentCalendar } from "./pro-calendar";
 import { developmentalOffer, revealDraftResult } from "./draft-outcome";
+import { ensureProWorld,proNews,reviewLeagueRegistrations,BASE_SALARY } from "./pro-world";
+import { finishProfessionalDay } from "./pro-season";
 import type { GameState, Player, Position, ProLevel, Team } from "./types";
 
 export type CareerChoice = "join" | "tryout" | "college" | "developmental";
@@ -10,7 +12,7 @@ const surnames = ["김","이","박","최","정","강","조","윤","장","임","�
 const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind"], title: string, message: string) => {
   s.careerNotice = { id: `${s.date}:${s.week}:${kind}`, date: s.date, kind, title, message };
 };
-export const acknowledgeCareer = (input: GameState): GameState => { const s = structuredClone(input); delete s.careerNotice; return s; };
+export const acknowledgeCareer = (input: GameState): GameState => { const s = structuredClone(input); delete s.careerNotice;const next=s.noticeQueue?.shift();if(next)s.careerNotice=next; return s; };
 function path(s: GameState) {
   const p = getPlayer(s);
   return s.postSchool ??= { graduationYear: s.calendar.seasonYear, graduationSchool: s.teams[p.teamId].name, collegeYears: 0, tryouts: [] };
@@ -19,7 +21,7 @@ export function archiveCareerSeason(s: GameState, p: Player) {
   const year = s.calendar.seasonYear;
   if (p.career.some(row => row.year === year)) return;
   p.career.push({ year, grade: p.grade, records: structuredClone(p.seasonStats), stats: { ...p.stats }, schoolId: p.teamId, schoolName: s.teams[p.teamId].name,
-    ...(s.careerMode ? { careerMode: s.careerMode, age: p.age } : {}), ...(p.seasonByLevel ? { byLevel: structuredClone(p.seasonByLevel) } : {}) });
+    ...(s.careerMode ? { careerMode: s.careerMode, age: p.age } : {}), ...(p.seasonByLevel ? { byLevel: structuredClone(p.seasonByLevel) } : {}),...(p.seasonPostseason?{postseason:structuredClone(p.seasonPostseason),byClub:structuredClone(p.seasonByClub??{})}:{}) });
 }
 function offSeason(p: Player, from: string, to: string) {
   const days = Math.max(0, (Date.parse(to) - Date.parse(from)) / 86400000);
@@ -42,7 +44,8 @@ function npc(seed: string, teamId: number, index: number, mode: "pro" | "college
   const source = { rngStates: { generation: hash(seed), training: 0, match: 0, injury: 0, draft: 0, events: 0 } };
   for (const key of Object.keys(p.stats) as (keyof Player["stats"])[]) {
     const core = main.includes(key), shared = ["stamina","recovery","arm","bq"].includes(key);
-    p.stats[key] = clamp((core ? first ? 66 : mode === "college" ? 43 : 49 : shared ? first ? 65 : 48 : 12) + random(source,"generation") * (core ? 15 : shared ? 15 : 12),1);
+    const center = core || shared ? first ? params["pro.first_mean"] : mode === "college" ? core ? 50.5 : 55.5 : params["pro.second_mean"] : params["pro.secondary_mean"];
+    p.stats[key] = clamp(center + (random(source,"generation") - .5) * (core || shared ? 15 : 10),1);
   }
   p.initialStats = { ...p.stats }; p.performanceReputation = 50; p.reputation = reputationScore(p);
   if (mode === "pro") p.seasonByLevel = { first: emptyRecord(), second: emptyRecord() };
@@ -58,7 +61,7 @@ function resetWorld(s: GameState, p: Player, year: number, pro: boolean) {
 }
 export function continueCareer(input: GameState, choice: CareerChoice): GameState {
   if (input.phase !== "ended" || input.careerEvent || input.careerNotice) throw new Error("시즌 결과와 알림을 확인한 뒤 진로를 선택해 주세요.");
-  if (input.careerMode === "pro") throw new Error("이번 프로 라이프는 신인 시즌까지 진행합니다.");
+  if (input.careerMode === "pro") throw new Error("프로의 다음 시즌은 계약 화면에서 선택해 주세요.");
   if (!input.careerMode && !input.draftOutcome?.revealed) throw new Error("드래프트 결과를 먼저 확인해 주세요.");
   const s = structuredClone(input), p = getPlayer(s), info = path(s);
   const board = s.careerMode === "college" ? info.collegeDraft ?? [] : s.draft;
@@ -106,9 +109,11 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   info.pro = { club,rookieYear:year,level:"second",nextReviewDate:`${year}-03-15`,entry,firstTeamWeeks:0,secondTeamWeeks:0,transactions:[] };
   resetWorld(s,p,year,true);
   if (entry === "developmental") p.proContract = {status:"developmental",joinedDate:s.date};
+  ensureProWorld(s);
   notice(s,"entry",entry === "developmental" ? "신고선수로 프로에 입단했습니다" : "프로 유니폼을 입었습니다",entry === "developmental"
     ? `${draftClubs[club]} 2군에서 시작합니다. 성장은 일반 선수의 90%이며 출전 경쟁에서 불리합니다. 2군 경기 성과로 정식 선수 전환 조건을 달성하면 성장과 출전 제한이 해제됩니다.`
     : `${draftClubs[club]} 2군에서 신인 시즌을 시작합니다. 훈련과 실제 출전 성적, 포지션 경쟁과 컨디션에 따라 1군 승격·2군 조정이 결정됩니다. 고교 능력치와 개인 기록은 그대로 이어집니다.`);
+  if(p.professional?.twoWayHistory?.some(row=>row.action==="단일 역할 입단"))s.careerNotice!.message+=` 프로 겸업은 투수·타자 OVR이 모두 75 이상이어야 하므로 ${positions[p.position]}에 집중합니다. 양쪽 능력을 키워 겸업에 다시 도전할 수 있습니다.`;
   return s;
 }
 export function developmentProgress(p: Player) {
@@ -120,12 +125,21 @@ export function developmentProgress(p: Player) {
 }
 export function reviewDevelopmentContract(s: GameState) {
   const p = getPlayer(s);
+  if(s.proWorld){
+    let notified=false;
+    for(const q of s.players){if(q.proContract?.status!=="developmental"||!developmentProgress(q).qualified)continue;
+      q.proContract.status="regular";q.proContract.convertedDate=s.date;const contract=q.professional?.contract;if(contract){contract.segments.push({from:s.date,salary:BASE_SALARY});contract.salary=Math.max(contract.salary,BASE_SALARY);}
+      if(q.id===p.id){notice(s,"registered","경기력으로 따낸 정식 선수 전환","2군의 실제 경기 성과로 정식 선수가 됐습니다. 앞으로 성장 100%·출전 불이익 해제가 적용되며, 다음 엔트리 평가에서 1군에 도전합니다. 전환일부터 정식 기본 연봉을 적용합니다.");notified=true;}
+      proNews(s,`${q.name} · 2군 성과로 정식 선수 전환`,`${s.calendar.seasonYear}:registered:${q.id}`);
+    }return notified;
+  }
   if (s.careerMode !== "pro" || s.careerNotice || p.proContract?.status !== "developmental" || !developmentProgress(p).qualified) return false;
   p.proContract.status = "regular"; p.proContract.convertedDate = s.date;
   notice(s,"registered","경기력으로 따낸 정식 선수 전환","2군에서 쌓은 경기 성과를 인정받아 정식 선수로 전환됐습니다. 성장 효율이 100%로 회복되고 출전 경쟁의 불이익이 해제됩니다. 이제 1군 승격에도 도전할 수 있습니다.");
   return true;
 }
 export function reviewProRoster(s: GameState) {
+  if(s.proWorld)return reviewLeagueRegistrations(s);
   const info = s.postSchool?.pro;
   if (s.careerMode !== "pro" || !info || s.date < info.nextReviewDate) return false;
   info.nextReviewDate = addDays(s.date,14);
@@ -154,6 +168,7 @@ export function reviewProRoster(s: GameState) {
   notice(s,to==="first"?"promoted":"demoted",to==="first"?"1군 승격 통보":"2군 조정 통보",reason);return true;
 }
 export function finishDevelopmentSeason(s: GameState) {
+  if(s.careerMode==="pro"&&s.proWorld)return finishProfessionalDay(s);
   if (!s.careerMode || s.date < s.calendar.seasonEnd) return false;
   s.phase="ended";
   for(const competition of s.calendar.competitions)competition.championTeamId=careerLeagueTable(s.calendar,competition.id)[0]?.teamId??null;

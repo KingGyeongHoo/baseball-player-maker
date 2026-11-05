@@ -82,3 +82,54 @@
  .pro-header .pro-brand { width:100%; text-align:left; }
  .pro-stats-table { min-width:480px; }
 }
+.career-storage { margin: 0 0 16px; }
+.career-storage-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; font-size:10px; color:#8190a6; border-bottom:1px solid #e2e8f0; }
+.career-storage-panel { padding:20px; background:white; border:1px solid #dce3ed; margin-top:8px; }
+.career-storage-panel > p { margin:0 0 16px; line-height:1.8; }
+.career-save-list { max-height:340px; overflow:auto; margin-top:20px; }
+.career-save-list > div { display:flex; align-items:center; justify-content:space-between; gap:16px; border-top:1px solid #edf0f5; padding:13px 0; }
+.career-save-list b,.career-save-list span { display:block; font-size:12px; }
+.career-save-list span { color:#8794a8; font-size:10px; margin-top:5px; }
+.pro-goals { display:grid; grid-template-columns:1.1fr 1.2fr 1fr; align-items:center; gap:20px; border:1px solid #dce3ed; background:#fff; padding:20px 24px; margin:18px 0; color:#102147; }
+.pro-goals h3 { margin:6px 0; font-size:16px; }
+.pro-goals b { font-size:12px; }
+.pro-goals p { margin:5px 0; line-height:1.7; font-size:11px; color:#7b8ba2; }
+.pro-goal-select { display:grid; gap:7px; font-size:10px; color:#7b8ba2; }
+.pro-goal-select select,.pro-position-request select,.records-club-filter select { border:1px solid #dce3ed; padding:9px; background:#fff; color:#102147; font-size:11px; }
+.career-panel-body { padding:22px 24px; }
+.career-panel-body > p { font-size:12px; line-height:1.9; margin:9px 0 16px; color:#7b8ba2; }
+.career-panel-body h3 { margin:8px 0 14px; color:#102147; font-size:16px; }
+.contract-current { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:20px; }
+.contract-current span { display:block; font-size:10px; color:#8391a6; }
+.contract-current b { display:block; font-size:22px; color:#102147; margin:10px 0; }
+.contract-current p { margin-top:7px; font-size:11px; color:#8190a6; }
+.contract-offers { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin:20px 0; }
+.contract-offers article { border:1px solid #dce3ed; padding:22px 18px; background:#f8fafd; }
+.contract-offers strong { font-size:24px; color:#102147; }
+.contract-offers strong small { font-size:10px; color:#8391a6; }
+.contract-offers p { margin:12px 0; font-size:11px; line-height:1.8; color:#7b8ba2; }
+.contract-offers .modal-actions { flex-wrap:wrap; justify-content:flex-start; }
+.contract-offers .primary,.contract-offers .secondary { font-size:11px; padding:12px; }
+.career-pay-history { margin-top:20px; }
+.career-pay-history summary,.pro-history-seasons summary { cursor:pointer; font-size:12px; color:#102147; padding:13px 0; }
+.pro-history-seasons > details { border-top:1px solid #e2e8f0; }
+.pro-history-seasons p { font-size:11px; line-height:1.8; color:#7b8ba2; }
+.pro-news-list { max-height:500px; overflow:auto; }
+.pro-news-list > div { display:grid; grid-template-columns:80px 1fr; gap:14px; border-bottom:1px solid #edf0f5; padding:14px 0; font-size:11px; }
+.pro-news-list time { color:#8794a8; }
+.pro-news-list p { color:#566b88; line-height:1.8; }
+.pro-position-request { display:flex; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap; }
+.pro-series-list > div { display:flex; align-items:center; gap:20px; padding:15px 0; border-bottom:1px solid #edf0f5; font-size:12px; color:#102147; }
+.pro-series-list small { color:#7b8ba2; }
+.pro-monthly-summary { padding:14px 20px; background:#edf2f9; color:#566b88; font-size:11px; line-height:1.8; }
+.records-club-filter { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:0 0 16px; font-size:11px; color:#7b8ba2; }
+@media(max-width:800px) {
+ .pro-goals { grid-template-columns:1fr; gap:14px; padding:18px; }
+ .contract-offers { grid-template-columns:1fr; }
+ .contract-current { grid-template-columns:1fr; gap:18px; }
+ .career-panel-body { padding:18px; }
+ .career-panel-body .modal-actions { flex-wrap:wrap; justify-content:flex-start; }
+ .pro-series-list > div { align-items:flex-start; flex-direction:column; gap:8px; }
+ .career-storage-panel { padding:16px; }
+ .career-storage-panel .modal-actions { flex-wrap:wrap; justify-content:flex-start; }
+}

@@ -1,10 +1,26 @@
 {
   "schemaVersion": 1,
-  "balanceVersion": "0.6.1-provisional",
+  "balanceVersion": "0.7.4-provisional",
   "date": "2026-11-05",
   "scope": "high-school-3-seasons-to-draft",
   "notice": "2026-11-04 사용자 요청에 따른 훈련 피로·회복 재조정 및 분야별 초기 능력·희귀 투타 생성 반영. v0.3 JSON/XLSX는 원본으로 보존. 현재 구현은 v0.4 JSON 사용. 실측 통계에 맞춘 최종 밸런스가 아님.",
   "parameters": [
+    { "key": "training.batting_fatigue_weight", "label": "타자 기술 티켓의 피로 비중", "value": 0.75, "unit": "계수", "status": "사용자 합의", "note": "타격 4항목과 투구 3항목의 전체 집중 훈련 부담을 맞춤. 성장에는 적용하지 않음." },
+    { "key": "training.pitching_fatigue_weight", "label": "투수 기술 티켓의 피로 비중", "value": 1, "unit": "계수", "status": "사용자 합의", "note": "가중 총부하를 전체 최대 부하로 나눠 기존 최대 피로 기준점을 유지." },
+    { "key": "training.physical_fatigue_weight", "label": "피지컬 티켓의 피로 비중", "value": 1, "unit": "계수", "status": "사용자 합의", "note": "공통 피지컬은 투구와 같은 비중." },
+    { "key": "fatigue.plan_recovery_curve", "label": "훈련 투자에 따른 회복 감소 곡선", "value": 2, "unit": "지수", "status": "사용자 조정", "note": "회복 구간 D=-C×(1-T/Q)^2. 0개 최대 회복과 균형점은 유지하며 투자 시 회복량이 빠르게 줄어듦." },
+    { "key": "fatigue.plan_recovery_base", "label": "무훈련 주간 기본 회복", "value": 20, "unit": "피로", "status": "사용자 합의", "note": "회복력 0의 기본 회복. 실제 피로까지만 회복." },
+    { "key": "fatigue.plan_recovery_stat", "label": "회복력당 최대 회복 증가", "value": 0.8, "unit": "계수", "status": "사용자 합의", "note": "최대 회복=20+0.8R. R=100에서 주간 100." },
+    { "key": "fatigue.plan_accumulation_base", "label": "전체 5 주간 최대 누적 기준", "value": 100, "unit": "피로", "status": "사용자 합의", "note": "회복력 0·배분 40에서 주간 +100." },
+    { "key": "fatigue.plan_accumulation_stat", "label": "회복력당 최대 누적 감소", "value": 0.5, "unit": "계수", "status": "사용자 합의", "note": "최대 누적=100-0.5R." },
+    { "key": "fatigue.plan_neutral_base", "label": "균형 배분 비율 하한", "value": 0.2, "unit": "비율", "status": "사용자 합의", "note": "균형 비율=0.2+0.001R. 8개 항목 총 40 중 8~12개." },
+    { "key": "fatigue.plan_neutral_stat", "label": "회복력당 균형 비율 증가", "value": 0.001, "unit": "계수", "status": "사용자 합의", "note": "그래프는 이 균형점을 항상 가운데에 배치." },
+    { "key": "pro.first_mean", "label": "프로 1군 초기 주력 OVR 중심", "value": 65, "unit": "점", "status": "사용자 합의", "note": "신규 프로 세계 기본 선수에만 적용. 기존 선수 능력은 재배정하지 않음." },
+    { "key": "pro.second_mean", "label": "프로 2군 초기 주력 OVR 중심", "value": 55, "unit": "점", "status": "사용자 합의", "note": "개인 능력별 중심 ±7.5 무작위. 이후 신인은 고교 성장 분포 유지." },
+    { "key": "pro.secondary_mean", "label": "프로 기본 선수 비주력 중심", "value": 15, "unit": "점", "status": "사용자 합의", "note": "비주력 능력별 중심 ±5. 초기 기본 NPC가 임의로 겸업 능력을 얻지 않음." },
+    { "key": "pro.two_way_entry", "label": "프로 겸업 진입 OVR", "value": 75, "unit": "점", "status": "사용자 합의", "note": "투수·타자 OVR 모두 충족. 입단 시 기존 겸업 유지 또는 입단 후 4주 유지 후 제안." },
+    { "key": "pro.two_way_maintain", "label": "프로 겸업 유지 OVR", "value": 70, "unit": "점", "status": "사용자 합의", "note": "한 분야가 미달한 상태로 4주 지속되면 단일 역할 전환 면담. 피로·부상 저하 제외." },
+    { "key": "pro.two_way_days", "label": "프로 겸업 지속 평가 기간", "value": 28, "unit": "일", "status": "사용자 합의", "note": "캠프·정규 시즌 연속 완료일. 중단/재개는 같은 날을 중복 계산하지 않음." },
     {
       "key": "stat.min",
       "label": "능력치 하한",
@@ -1387,7 +1403,7 @@
       "value": 0.6,
       "unit": "계수",
       "status": "사용자 요청 반영",
-      "note": "현재 주 역할 OVR 반영"
+      "note": "대표 OVR 반영. 일반 선수는 주력 분야, 겸업 선수는 투수·타자 평균."
     },
     {
       "key": "reputation.performance_weight",

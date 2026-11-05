@@ -96,7 +96,7 @@ test('seed reproduces creation and preview without normalizing totals', () => {
   assert.equal(a.players.filter(p => p.grade === 3).length, 1000);
   for (const p of a.players) for (const v of Object.values(p.stats)) assert.ok(v >= 1 && v <= 100);
 });
-test('ticket budgets reject excess, negative, fractional, and nonzero rest', () => {
+test('free training permits every field at five and rejects invalid per-field values or nonzero legacy rest', () => {
   const p = e.defaultPolicy('코너 야수');
   assert.equal(e.validPolicy(p), true);
   for (const v of [-1, .5, 6]) {
@@ -107,7 +107,8 @@ test('ticket budgets reject excess, negative, fractional, and nonzero rest', () 
   assert.equal(e.validPolicy({
     ...p,
     mode: 'light'
-  }), false);
+  }), true);
+  assert.equal(e.validPolicy({mode:'normal',tickets:Object.fromEntries(Object.keys(p.tickets).map(k=>[k,5]))}),true);
   assert.equal(e.validPolicy({
     ...p,
     mode: 'rest'
@@ -258,7 +259,7 @@ test('rest, injury recovery date, forced rest and talent disclosure', () => {
   const beforeRestFatigue = e.getPlayer(s).fatigue;
   s = e.advanceWeek(s, rest, e.getPlayer(s).stance);
   assert.deepEqual(e.getPlayer(s).stats, snapshot);
-  close(e.getPlayer(s).fatigue, beforeRestFatigue * (1 - (1 - .68 ** (1 / 7)) * e.interpolate(snapshot.recovery, .75, 1, 1.25)) ** 7);
+  close(e.getPlayer(s).fatigue, Math.max(0,beforeRestFatigue-e.trainingLoad(snapshot.recovery,0).maxRecovery));
   const player = e.getPlayer(s);
   player.talentExposure.batting = 9.99;
   assert.equal(e.talentLabel(player, 'batting'), '미상');
