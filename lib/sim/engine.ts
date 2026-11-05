@@ -1,7 +1,11 @@
-import { buildCalendar, prepareCompetitions, finishCompetitionDay } from "./calendar";
-import { createCareerEvent } from "./career-events";
+import { buildCalendar } from "./calendar";
+import { simulateGame } from "./match-engine";
+import { advanceWeek, refreshWeekReport } from "./week-engine";
+import { resolveCareerEvent } from "./event-system";
+export { simulateGame, advanceWeek, refreshWeekReport };
+export const answerCareerEvent = resolveCareerEvent;
 import balance from "../../baseball_balance_v0_4.json";
-import { statKeys, ticketKeys, type Stats, type Stat, type Ticket, type Mode, type Policy, type Position, type Role, type Player, type GameState, type Calendar, type Game, type RecordLine, type Stance, type DraftPick, type FatigueReport } from "./types";
+import { statKeys, ticketKeys, type Stats, type Stat, type Ticket, type Mode, type Policy, type Position, type Role, type Player, type GameState, type Calendar, type RecordLine } from "./types";
 export const params: Record<string, number> = Object.fromEntries(balance.parameters.map(p => [p.key, p.value]));
 export const labels: Record<Ticket | Stat, string> = {
   contact: "컨택",
@@ -125,14 +129,14 @@ export function hash(seed: string) {
   for (const c of seed) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
   return h >>> 0;
 }
-export function random(state: GameState, stream: keyof GameState["rngStates"]) {
+export function random(state: Pick<GameState, "rngStates">, stream: keyof GameState["rngStates"]) {
   let a = state.rngStates[stream] += 0x6D2B79F5;
   a = Math.imul(a ^ a >>> 15, a | 1);
   a ^= a + Math.imul(a ^ a >>> 7, a | 61);
   state.rngStates[stream] >>>= 0;
   return ((a ^ a >>> 14) >>> 0) / 4294967296;
 }
-function normal(s: GameState) {
+function normal(s: Pick<GameState, "rngStates">) {
   return Math.sqrt(-2 * Math.log(1 - random(s, "generation"))) * Math.cos(2 * Math.PI * random(s, "generation"));
 }
 export const addDays = (s: string, n: number) => {
@@ -148,15 +152,15 @@ export function slowdown(s: number) {
   return params["growth.factor5"];
 }
 export const interpolate = (s: number, a: number, b: number, c: number) => s <= 50 ? a + (b - a) * (s - 1) / 49 : b + (c - b) * (s - 50) / 50;
-const accumulation = (s: number) => interpolate(s, params["physical.accum_low"], params["physical.accum_mid"], params["physical.accum_high"]);
-const recovery = (s: number) => interpolate(s, params["physical.recovery_low"], params["physical.recovery_mid"], params["physical.recovery_high"]);
+export const accumulation = (s: number) => interpolate(s, params["physical.accum_low"], params["physical.accum_mid"], params["physical.accum_high"]);
+export const recovery = (s: number) => interpolate(s, params["physical.recovery_low"], params["physical.recovery_mid"], params["physical.recovery_high"]);
 export const recoveryAmount = (mode: Mode, active: boolean, fatigue = 0) => mode === "rest"
   ? fatigue * params["fatigue.recovery_policy"]
-  : params["fatigue.daily_recovery"] + (active ? 0 : params["fatigue.rest_bonus"]);
+  : params["fatigue.daily_recovery"] + (mode === "light" ? params["fatigue.light_recovery"] : 0) + (active ? 0 : params["fatigue.rest_bonus"]);
 export function fatigueForecast(player: Player, policy: Policy) {
   const used = policy.mode === "rest" ? 0 : ticketsUsed(policy);
   const weeklyTraining = used * params["fatigue.ticket_cost"] * (params[`fatigue.mode_${policy.mode}`] ?? 0) * accumulation(player.stats.stamina);
-  const dailyRecovery = params["fatigue.daily_recovery"] * recovery(player.stats.recovery);
+  const dailyRecovery = recoveryAmount(policy.mode, true, player.fatigue) * recovery(player.stats.recovery);
   let end = player.fatigue;
   let peak = end;
   let recoveryCapacity = 0;
@@ -173,28 +177,32 @@ export function fatigueForecast(player: Player, policy: Policy) {
 export function train(p: Player, a: number) {
   const policy = p.trainingPolicy;
   if (!ticketsUsed(policy) || a <= 0) return;
-  const pitch = isPitcher(p.primaryRole);
+  const growthDays = a * growthMultiplier(p) * (p.transferAdaptation && p.transferAdaptation.weeksRemaining > 0 ? .9 : 1);
   for (const key of ticketKeys) {
     const g = focusGrowth(policy.tickets[key]);
     if (key === "physical") {
-      for (const k of ["stamina", "recovery", "arm"] as const) p.stats[k] = clamp(p.stats[k] + g / 3 * slowdown(p.stats[k]) * a / params["training.days"], 1);
+      for (const k of ["stamina", "recovery", "arm"] as const) p.stats[k] = clamp(p.stats[k] + g / 3 * slowdown(p.stats[k]) * growthDays / params["training.days"], 1);
       continue;
     }
     const pitching = ["velocity", "control", "movement"].includes(key);
     const talent = p.talent[pitching ? "pitching" : "batting"];
     const mult = params["talent.min_mult"] + (talent - 1) / 9 * (params["talent.max_mult"] - params["talent.min_mult"]);
-    p.stats[key] = clamp(p.stats[key] + ((pitching === pitch ? params["training.base"] : 0) + g) * mult * slowdown(p.stats[key]) * a / params["training.days"], 1);
+    p.stats[key] = clamp(p.stats[key] + (params["training.base"] + g) * mult * slowdown(p.stats[key]) * growthDays / params["training.days"], 1);
   }
-  p.stats.bq = clamp(p.stats.bq + params["training.bq"] * slowdown(p.stats.bq) * a / params["training.days"], 1);
+  p.stats.bq = clamp(p.stats.bq + params["training.bq"] * slowdown(p.stats.bq) * growthDays / params["training.days"], 1);
   if (ticketKeys.slice(0, 4).some(k => policy.tickets[k])) p.talentExposure.batting += a / params["training.days"];
   if (ticketKeys.slice(4, 7).some(k => policy.tickets[k])) p.talentExposure.pitching += a / params["training.days"];
 }
 export const ovr = (p: Player, pitching = isPitcher(p.primaryRole)) => (pitching ? p.stats.velocity + p.stats.control + p.stats.movement : p.stats.contact + p.stats.power + p.stats.speed + p.stats.defense) / (pitching ? 3 : 4);
+export const combinedOvr = (p: Player) => ovr(p, true) + ovr(p, false);
+export const positionLabel = (p: Player) => p.twoWay ? `${roleFor(p.twoWay.pitchingPosition)}/${positions[p.twoWay.battingPosition]}` : positions[p.position];
+export const pitchingRole = (p: Player) => p.twoWay ? roleFor(p.twoWay.pitchingPosition) : p.primaryRole;
+export const twoWayReputation = (p: Player) => p.twoWay ? Math.max(p.twoWay.reputationBonus, 3 * Math.min(1, p.seasonStats.batting.PA / 20, p.seasonStats.pitching.BF / 15)) : 0;
 export const roleScore = (p: Player, role = p.primaryRole) => Object.entries(balance.roleWeights[role]).reduce((sum, [key, weight]) => sum + p.stats[key as Stat] * weight, 0);
 export const reputationScore = (p: Player) => clamp(
   params["reputation.ability_weight"] * ovr(p)
   + params["reputation.performance_weight"] * (p.performanceReputation ?? params["reputation.unrated_performance"])
-  + (p.reputationBonus ?? 0)
+  + (p.reputationBonus ?? 0) + twoWayReputation(p)
 );
 export function talentLabel(p: Player, type: "batting" | "pitching") {
   const n = p.talentExposure[type];
@@ -247,6 +255,17 @@ function makePlayer(s: GameState, teamId: number, grade: number, index: number, 
     offerWeeks: 0,
     offerCooldown: 0
   };
+  // A per-player stream keeps the existing primary abilities, talent, names and
+  // subsequent players' generation draws unchanged when secondary skills change.
+  const secondary = { rngStates: { ...s.rngStates, generation: hash(`${s.seed}:secondary:${p.id}`) } };
+  const exceptional = random(secondary, "generation") < params["generation.two_way_chance"];
+  const secondaryCenter = (exceptional ? params["generation.mean"] : params["generation.secondary_mean"])
+    + normal(secondary) * (exceptional ? params["generation.player_sd"] : params["generation.secondary_player_sd"]);
+  const secondaryKeys: Stat[] = isPitcher(role) ? ["contact", "power", "speed", "defense"] : ["velocity", "control", "movement"];
+  for (const key of secondaryKeys) {
+    p.stats[key] = clamp(secondaryCenter + normal(secondary) * (exceptional ? params["generation.stat_sd"] : params["generation.secondary_stat_sd"]), 1);
+  }
+  p.initialStats = { ...p.stats };
   for (let w = 0; w < 40 * (grade - 1); w++) train(p, params["training.days"] * .85);
   return p;
 }
@@ -313,7 +332,7 @@ export function createGame(seed: string, name: string, position: Position, teamI
   updateReputation(s);
   s.history.push({
     week: 1,
-    ovr: ovr(p),
+    ovr: combinedOvr(p),
     fatigue: 0
   });
   return s;
@@ -359,19 +378,20 @@ export function ops(r: RecordLine) {
   return b.PA && b.AB ? (b.H + b.BB) / b.PA + (b.H + b["2B"] + 2 * b["3B"] + 3 * b.HR) / b.AB : null;
 }
 const pitchingQ = (r: RecordLine) => r.pitching.BF ? (params["reputation.pitch_k"] * r.pitching.SO - params["reputation.pitch_bb"] * r.pitching.BB - params["reputation.pitch_hr"] * r.pitching.HR) / r.pitching.BF : 0;
-const available = (p: Player, date: string) => !p.forcedRest && p.trainingPolicy.mode !== "rest" && !(p.injury && date < p.injury.unavailableUntil);
-const selectionScore = (p: Player, role = p.primaryRole) => roleScore(p, role) - params["coach.fatigue_penalty"] * p.fatigue + params["coach.recent_max"] * clamp(p.recentZ, -1, 1);
-const byScore = (a: Player, b: Player) => selectionScore(b) - selectionScore(a) || a.id.localeCompare(b.id);
-function lineup(roster: Player[], date: string) {
+export const available = (p: Player, date: string) => !p.forcedRest && p.trainingPolicy.mode !== "rest" && !(p.injury && date < p.injury.unavailableUntil);
+export const growthMultiplier = (p: Player) => p.proContract?.status === "developmental" ? .9 : 1;
+export const selectionScore = (p: Player, role = p.primaryRole) => roleScore(p, role) - params["coach.fatigue_penalty"] * p.fatigue + params["coach.recent_max"] * clamp(p.recentZ, -1, 1) - (p.proContract?.status === "developmental" ? 6 : 0);
+const byPitchingScore = (a: Player, b: Player) => selectionScore(b, pitchingRole(b)) - selectionScore(a, pitchingRole(a)) || a.id.localeCompare(b.id);
+export function lineup(roster: Player[], date: string) {
   const candidates = roster.filter(p => available(p, date));
   const field: Player[] = [];
   for (const pos of ["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH"] as Position[]) {
-    const p = candidates.filter(p => p.eligiblePositions.includes(pos) && !field.includes(p)).sort((a, b) => selectionScore(b, roleFor(pos)) - selectionScore(a, roleFor(pos)) || a.id.localeCompare(b.id))[0];
+    const p = candidates.filter(p => p.twoWay?.nextAssignment !== "pitching" && p.eligiblePositions.includes(pos) && !field.includes(p)).sort((a, b) => selectionScore(b, roleFor(pos)) - selectionScore(a, roleFor(pos)) || a.id.localeCompare(b.id))[0];
     if (p) field.push(p);
   }
-  const pitchers = candidates.filter(p => p.eligiblePositions.includes("SP") && !field.includes(p) && p.fatigue < params["coach.replace_fatigue"]);
-  const starters = pitchers.filter(p => p.primaryRole === "선발" && p.fatigue < params["coach.starter_fatigue"] && (!p.lastPitched || date >= addDays(p.lastPitched, params["coach.starter_rest"] + 1))).sort(byScore);
-  const starter = starters[0] ?? [...pitchers].sort((a, b) => a.fatigue - b.fatigue || byScore(a, b))[0];
+  const pitchers = candidates.filter(p => p.twoWay?.nextAssignment !== "batting" && p.eligiblePositions.includes("SP") && !field.includes(p) && p.fatigue < params["coach.replace_fatigue"]);
+  const starters = pitchers.filter(p => pitchingRole(p) === "선발" && p.fatigue < params["coach.starter_fatigue"] && (!p.lastPitched || date >= addDays(p.lastPitched, params["coach.starter_rest"] + 1))).sort(byPitchingScore);
+  const starter = starters[0] ?? [...pitchers].sort((a, b) => a.fatigue - b.fatigue || byPitchingScore(a, b))[0];
   const top = [...field].sort((a, b) => b.stats.contact + b.stats.speed - a.stats.contact - a.stats.speed || a.id.localeCompare(b.id)).slice(0, 2);
   const middle = field.filter(p => !top.includes(p)).sort((a, b) => b.stats.power - a.stats.power || a.id.localeCompare(b.id)).slice(0, 3);
   const order = [...top, ...middle, ...field.filter(p => !top.includes(p) && !middle.includes(p)).sort((a, b) => b.stats.contact - a.stats.contact || a.id.localeCompare(b.id))];
@@ -382,10 +402,6 @@ function lineup(roster: Player[], date: string) {
     pitchers
   };
 }
-type Runner = {
-  player: Player;
-  pitcher: Player;
-};
 export function advanceRunners<T>(bases: (T | null)[], batter: T, outcome: 0 | 1 | 2 | 3 | 4, extra: (runner: T) => boolean, score: (runner: T, homeRun: boolean) => void) {
   if (outcome === 0) {
     if (bases[0]) {
@@ -408,198 +424,24 @@ export function advanceRunners<T>(bases: (T | null)[], batter: T, outcome: 0 | 1
   }
   if (outcome === 4) score(batter, true);else bases[outcome - 1] = batter;
 }
-export function simulateGame(s: GameState, game: Game, rosters: Player[][]) {
-  const sides = rosters.map(r => lineup(r, game.date));
-  if (sides.some(side => side.field.length < 9 || !side.starter)) {
-    game.status = "forfeit";
-    game.forfeitTeamId = sides[0].field.length < 9 || !sides[0].starter ? game.homeTeamId : game.awayTeamId;
-    return;
-  }
-  game.status = "completed";
-  game.lineup = sides.map(side => [...side.order.map(p => p.id), side.starter.id]);
-  const original = rosters.flat().map(p => ({
-    p,
-    fatigue: p.fatigue,
-    lastPitched: p.lastPitched
-  }));
-  const pitchers = sides.map(side => side.starter);
-  const usedPitchers = sides.map(side => new Set([side.starter.id]));
-  const battingIndex = [0, 0];
-  const pitchOuts = [0, 0];
-  const recentEvents: {
-    player: Player;
-    record: RecordLine;
-  }[] = [];
-  const line = (p: Player) => game.boxScore[p.id] ??= emptyRecord();
-  const defense = sides.map(side => side.field.slice(0, 8).reduce((n, p) => n + effective(p).defense, 0) / 8);
-  const arm = sides.map(side => [side.field[2], side.field[6], side.field[7]].reduce((n, p) => n + effective(p).arm / 3, 0));
-  let ended = false;
-  for (let inning = 1; inning <= params["match.max_innings"] && !ended; inning++) {
-    for (const battingSide of [1, 0]) {
-      if (battingSide === 0 && inning >= params["match.regular_innings"] && game.score[0] > game.score[1]) {
-        ended = true;
-        break;
-      }
-      const pitchingSide = 1 - battingSide;
-      let outs = 0;
-      let pa = 0;
-      let runs = 0;
-      const bases: (Runner | null)[] = [null, null, null];
-      while (outs < 3) {
-        if (++pa > params["match.max_pa"]) throw new Error(`타석 안전 한도 초과: seed=${s.seed}, game=${game.id}`);
-        let pitcher = pitchers[pitchingSide];
-        const limit = usedPitchers[pitchingSide].size === 1 ? params["coach.starter_outs"] : pitcher.primaryRole === "마무리" ? params["coach.closer_outs"] : params["coach.relief_outs"];
-        if (pitchOuts[pitchingSide] >= limit || pitcher.fatigue >= params["coach.replace_fatigue"]) {
-          const lead = game.score[pitchingSide] - game.score[battingSide];
-          const next = sides[pitchingSide].pitchers.filter(p => !usedPitchers[pitchingSide].has(p.id) && p.fatigue < params["coach.replace_fatigue"]).sort((a, b) => (inning >= 9 && lead >= 1 && lead <= 3 ? Number(b.primaryRole === "마무리") - Number(a.primaryRole === "마무리") : 0) || byScore(a, b))[0];
-          if (next) {
-            pitcher = pitchers[pitchingSide] = next;
-            usedPitchers[pitchingSide].add(next.id);
-            pitchOuts[pitchingSide] = 0;
-          } else {
-            game.status = "forfeit";
-            game.forfeitTeamId = pitchingSide === 0 ? game.homeTeamId : game.awayTeamId;
-            game.boxScore = {};
-            game.lineup = [];
-            game.innings = [[], []];
-            game.score = [0, 0];
-            for (const item of original) {
-              item.p.fatigue = item.fatigue;
-              item.p.lastPitched = item.lastPitched;
-            }
-            return;
-          }
-        }
-        const batter = sides[battingSide].order[battingIndex[battingSide] % 9];
-        battingIndex[battingSide]++;
-        const bat = line(batter).batting;
-        const pit = line(pitcher).pitching;
-        const b = effective(batter);
-        const p = effective(pitcher);
-        const probs = probabilities(b, p, defense[pitchingSide], arm[pitchingSide]);
-        const batBefore = {
-          ...bat
-        };
-        const pitBefore = {
-          ...pit
-        };
-        bat.PA++;
-        pit.BF++;
-        pitcher.lastPitched = game.date;
-        let walkoff = false;
-        const score = (runner: Runner, hr = false) => {
-          if (walkoff && !hr) return;
-          game.score[battingSide]++;
-          runs++;
-          line(runner.player).batting.R++;
-          line(runner.pitcher).pitching.R++;
-          line(runner.pitcher).pitching.ER++;
-          bat.RBI++;
-          if (battingSide === 0 && inning >= 9 && game.score[0] > game.score[1]) walkoff = true;
-        };
-        if (random(s, "match") < probs.bb) {
-          bat.BB++;
-          pit.BB++;
-          advanceRunners(bases, {
-            player: batter,
-            pitcher
-          }, 0, () => false, score);
-        } else {
-          bat.AB++;
-          if (random(s, "match") < probs.hit) {
-            bat.H++;
-            pit.H++;
-            const kind = random(s, "match");
-            const n = kind < probs.hr ? 4 : kind < probs.hr + probs.double ? 2 : kind < probs.hr + probs.double + probs.triple ? 3 : 1;
-            if (n === 4) {
-              bat.HR++;
-              pit.HR++;
-            } else if (n === 2) bat["2B"]++;else if (n === 3) bat["3B"]++;
-            const extra = (r: Runner) => random(s, "match") < clamp(params["running.extra_base"] + params["running.extra_slope"] * (effective(r.player).speed - arm[pitchingSide]), params["running.extra_min"], params["running.extra_max"]);
-            advanceRunners(bases, {
-              player: batter,
-              pitcher
-            }, n, extra, score);
-          } else {
-            outs++;
-            pit.outs++;
-            pitchOuts[pitchingSide]++;
-            if (random(s, "match") < probs.k) {
-              bat.SO++;
-              pit.SO++;
-            } else if (random(s, "match") < params[`match.gb_${batter.stance.batting}`]) bat.GB++;else bat.FB++;
-            pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.pitch_out"] * params[`stance.${pitcher.stance.pitching}_cost`] * accumulation(pitcher.stats.stamina));
-          }
-        }
-        if (pit.outs === pitBefore.outs) pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.no_out_cost"] * params[`stance.${pitcher.stance.pitching}_cost`] * accumulation(pitcher.stats.stamina));
-        const batRecent = emptyRecord();
-        const pitRecent = emptyRecord();
-        for (const key of Object.keys(bat)) (batRecent.batting as Record<string, number>)[key] = (bat as Record<string, number>)[key] - (batBefore as Record<string, number>)[key];
-        for (const key of Object.keys(pit)) (pitRecent.pitching as Record<string, number>)[key] = (pit as Record<string, number>)[key] - (pitBefore as Record<string, number>)[key];
-        // Commit recent samples only after the game succeeds, just like season totals.
-        recentEvents.push({
-          player: batter,
-          record: batRecent
-        }, {
-          player: pitcher,
-          record: pitRecent
-        });
-        if (walkoff) {
-          ended = true;
-          break;
-        }
-      }
-      game.innings[battingSide].push(runs);
-    }
-    if (inning >= params["match.regular_innings"] && game.score[0] !== game.score[1]) ended = true;
-  }
-  for (let side = 0; side < 2; side++) {
-    const outs = sides[side].pitchers.reduce((sum, p) => sum + (game.boxScore[p.id]?.pitching.outs ?? 0), 0);
-    for (const p of sides[side].field.slice(0, 8)) p.fatigue = clamp(p.fatigue + params["fatigue.field_game"] * outs / 27 * accumulation(p.stats.stamina));
-  }
-  for (const [id, record] of Object.entries(game.boxScore)) {
-    const p = rosters.flat().find(p => p.id === id)!;
-    mergeRecord(p.seasonStats, record);
-  }
-  for (const {
-    player,
-    record
-  } of recentEvents) {
-    player.recentAppearances.push(record);
-    if (player.recentAppearances.length > 350) player.recentAppearances.shift();
-  }
-  for (const item of original) {
-    const p = item.p;
-    let batting = 0,
-      outs = 0;
-    let keepFrom = p.recentAppearances.length;
-    for (let i = p.recentAppearances.length - 1; i >= 0; i--) {
-      batting += p.recentAppearances[i].batting.PA;
-      outs += p.recentAppearances[i].pitching.outs;
-      keepFrom = i;
-      if (isPitcher(p.primaryRole) ? outs >= params["coach.recent_outs"] : batting >= params["coach.recent_pa"]) break;
-    }
-    p.recentAppearances = p.recentAppearances.slice(keepFrom);
-  }
-}
 export function injuryRisk(f: number, trained = false) {
   const fatigueRisk = f < params["fatigue.risk_start"] ? 0 : f < params["fatigue.high_start"] ? params["injury.risk_at60"] + params["injury.risk_slope60"] * (f - params["fatigue.risk_start"]) : params["injury.risk_at80"] + params["injury.risk_slope80"] * (f - params["fatigue.high_start"]);
   return 1 - (1 - fatigueRisk) * (1 - (trained ? params["injury.training_base_risk"] : 0));
 }
-function npcPolicy(p: Player, date: string, hasGame: boolean) {
+export function npcPolicy(p: Player, date: string, hasGame: boolean) {
   const policy = defaultPolicy(p.primaryRole);
-  const recovering = p.trainingPolicy.mode === "rest" && p.fatigue > params["coach.recover_target"];
-  if (p.forcedRest || (p.injury && date < p.injury.unavailableUntil) || p.fatigue >= params[hasGame ? "coach.match_rest_fatigue" : "coach.rest_fatigue"] || (!hasGame && recovering)) {
+  const recovering = ["light", "rest"].includes(p.trainingPolicy.mode) && p.fatigue > params["coach.recover_target"];
+  if (p.forcedRest || (p.injury && date < p.injury.unavailableUntil)) {
     policy.mode = "rest";
     for (const k of ticketKeys) policy.tickets[k] = 0;
-  } else if (hasGame || p.fatigue >= params["coach.recover_target"]) {
+  } else if (hasGame || p.fatigue >= params["coach.rest_fatigue"] || recovering) {
     policy.mode = "light";
     const keys = [...ticketKeys].sort((a, b) => policy.tickets[a] - policy.tickets[b] || a.localeCompare(b));
     for (const k of keys) while (policy.tickets[k] > 0 && ticketsUsed(policy) > 7) policy.tickets[k]--;
   }
   p.trainingPolicy = policy;
 }
-function updateReputation(s: GameState) {
+export function updateReputation(s: GameState) {
   for (const recent of [false, true]) {
     const records = s.players.map(p => {
       if (!recent) return p.seasonStats;
@@ -658,72 +500,19 @@ function updateReputation(s: GameState) {
     // Current ability still contributes when there are no new appearances.
     for (const p of s.players) {
       if (zs.has(p.id)) p.performanceReputation = ranks.get(zs.get(p.id)!)!;
+      if (p.twoWay) p.twoWay.reputationBonus = twoWayReputation(p);
       p.reputation = reputationScore(p);
     }
   }
 }
-export const draftBoard = (players: Player[]) => players.filter(p => p.grade === 3)
-  .sort((a, b) => ovr(b) - ovr(a) || roleScore(b) - roleScore(a) || a.id.localeCompare(b.id));
-export function draftPlayers(s: GameState): DraftPick[] {
-  const candidates = draftBoard(s.players);
-  const ranks = new Map(candidates.map((p, i) => [p.id, i + 1]));
-  const selected = new Set<string>();
-  const clubs = ["서울 파이오니어스", "부산 웨이브스", "인천 마리너스", "대구 레드윙스", "광주 타이탄스", "대전 스파크스", "수원 위저즈", "창원 다이노스", "청주 이글스", "전주 라이온스"];
-  const needs = clubs.map(() => Object.fromEntries(roles.map(role => [role, random(s, "draft")]))) as Record<Role, number>[];
-  const picks: DraftPick[] = [];
-  for (let i = 0; i < Math.round(candidates.length * params["draft.ratio"]); i++) {
-    const club = i % params["world.clubs"];
-    const remaining = candidates.filter(p => !selected.has(p.id));
-    const best = remaining.map(p => {
-      const qualified = [...new Set(p.eligiblePositions.map(roleFor))].filter(role => isPitcher(role) === isPitcher(p.primaryRole));
-      return qualified.map(role => {
-        const ability = ovr(p);
-        const talent = p.talent[isPitcher(role) ? "pitching" : "batting"];
-        const reputation = p.reputation ?? reputationScore(p);
-        const fit = params["draft.fit_role_weight"] * roleScore(p, role) + params["draft.fit_need_weight"] * needs[club][role] * 100;
-        const components = {
-          talent: params["draft.talent_weight"] * (talent - 1) / 9 * 100,
-          reputation: params["draft.reputation_weight"] * reputation,
-          fit: params["draft.fit_weight"] * fit,
-        };
-        const score = Object.values(components).reduce((sum, points) => sum + points, 0);
-        return {
-          p,
-          role,
-          ability,
-          talent,
-          reputation,
-          fit,
-          components,
-          score
-        };
-      }).sort((a, b) => b.score - a.score || b.ability - a.ability || b.talent - a.talent || a.p.id.localeCompare(b.p.id))[0];
-    }).sort((a, b) => b.score - a.score || b.ability - a.ability || b.talent - a.talent || a.p.id.localeCompare(b.p.id))[0];
-    selected.add(best.p.id);
-    needs[club][best.role] = Math.max(0, needs[club][best.role] - params["draft.need_decay"]);
-    picks.push({
-      playerId: best.p.id,
-      playerName: best.p.name,
-      teamName: s.teams[best.p.teamId].name,
-      club: clubs[club],
-      overall: i + 1,
-      role: best.role,
-      score: best.score,
-      ability: best.ability,
-      abilityRank: ranks.get(best.p.id)!,
-      reputation: best.reputation,
-      talent: best.talent,
-      fit: best.fit,
-      components: best.components,
-    });
-  }
-  return picks;
-}
-function promote(s: GameState) {
+export { draftBoard, draftPlayers, draftForecast, draftProjection, draftClubs } from "./draft";
+export function promote(s: GameState) {
   for (const p of s.players) {
     p.career.push({
       year: s.calendar.seasonYear,
       grade: p.grade,
+      schoolId: p.teamId,
+      schoolName: s.teams[p.teamId].name,
       records: structuredClone(p.seasonStats),
       stats: {
         ...p.stats
@@ -742,239 +531,17 @@ function promote(s: GameState) {
   }
   s.calendar = calendar(year);
 }
-export function advanceWeek(input: GameState, policy: Policy, stance: Stance): GameState {
-  if (input.phase === "ended") throw new Error("종료된 커리어입니다.");
-  if (input.careerEvent) throw new Error("진행 중인 이벤트에서 선택을 먼저 완료해 주세요.");
-  if (!validPolicy(policy)) throw new Error("훈련 티켓 배분을 확인해 주세요.");
-  const s = structuredClone(input);
-  const player = getPlayer(s);
-  const before = {
-    ...player.stats
-  };
-  const report = {
-    from: s.date,
-    to: s.date,
-    growth: emptyStats(),
-    fatigueBefore: player.fatigue,
-    fatigueAfter: player.fatigue,
-    fatigue: { training: 0, game: 0, recovered: 0, peak: player.fatigue, days: [] } as FatigueReport,
-    games: [] as string[],
-    messages: [] as string[],
-    records: emptyRecord(),
-    reputationBefore: player.reputation,
-    reputationAfter: player.reputation
-  };
-  player.trainingPolicy = structuredClone(policy);
-  player.stance = {
-    ...stance
-  };
-  let rosters: Player[][] = s.teams.map(() => []);
-  for (const p of s.players) rosters[p.teamId].push(p);
-  for (let day = 0; day < 7; day++) {
-    const date = s.date;
-    if (date > s.calendar.seasonEnd) {
-      promote(s);
-      rosters = s.teams.map(() => []);
-      for (const p of s.players) rosters[p.teamId].push(p);
-      report.messages.push("새 학년이 시작되었습니다. 신입생이 입학했습니다.");
-    }
-    const training = s.calendar.trainingDays.includes(date);
-    const fatigueDay = { date, start: player.fatigue, training: 0, game: 0, recovered: 0, peak: player.fatigue, end: player.fatigue };
-    const active = new Set<string>();
-    const appearances = new Set<string>();
-    const dailyRecovery = new Map(s.players.map(p => [p.id, recovery(p.stats.recovery)]));
-    for (const p of s.players) {
-      if (p.forcedRest && p.fatigue < params["fatigue.ready_return"]) p.forcedRest = false;
-    }
-    prepareCompetitions(s.calendar, date, s.seed);
-    const games = s.calendar.events.filter(g => g.date === date && g.status === "scheduled");
-    const playingTeams = new Set(games.flatMap(g => [g.homeTeamId, g.awayTeamId]));
-    for (const p of s.players) if (p.id !== s.playerId) npcPolicy(p, date, playingTeams.has(p.teamId));
-    for (const game of games) {
-      simulateGame(s, game, [rosters[game.homeTeamId], rosters[game.awayTeamId]]);
-      if (game.boxScore[s.playerId]) mergeRecord(report.records, game.boxScore[s.playerId]);
-      for (const id of game.lineup.flat()) {
-        appearances.add(id);
-        active.add(id);
-      }
-      for (const id of Object.keys(game.boxScore)) {
-        appearances.add(id);
-        active.add(id);
-      }
-      if (s.calendar.competitions.find(c => c.id === game.competitionId)?.kind === "tournament") {
-        game.advancingTeamId = game.status === "forfeit"
-          ? game.forfeitTeamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId
-          : game.score[0] === game.score[1]
-            ? (random(s, "match") < 0.5 ? game.homeTeamId : game.awayTeamId)
-            : game.score[0] > game.score[1] ? game.homeTeamId : game.awayTeamId;
-      }
-      const home = s.teams[game.homeTeamId],
-        away = s.teams[game.awayTeamId];
-      const outcome = game.status === "forfeit" ? game.forfeitTeamId === home.id ? -1 : 1 : Math.sign(game.score[0] - game.score[1]);
-      if (outcome > 0) {
-        home.wins++;
-        away.losses++;
-      } else if (outcome < 0) {
-        home.losses++;
-        away.wins++;
-      } else {
-        home.draws++;
-        away.draws++;
-      }
-      if (game.homeTeamId === player.teamId || game.awayTeamId === player.teamId) report.games.push(game.id);
-    }
-    finishCompetitionDay(s.calendar, date);
-    fatigueDay.game = Math.max(0, player.fatigue - fatigueDay.start);
-    for (const p of s.players) {
-      const injured = !!p.injury && date < p.injury.unavailableUntil;
-      let trained = false;
-      if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
-      if (p.id === s.playerId && injured) s.injuryDays++;
-      if (training && available(p, date) && ticketsUsed(p.trainingPolicy)) {
-        const hasGame = games.some(g => g.homeTeamId === p.teamId || g.awayTeamId === p.teamId);
-        const a = hasGame ? appearances.has(p.id) ? params["training.game_fraction"] : params["training.bench_fraction"] : 1;
-        const accum = accumulation(p.stats.stamina);
-        train(p, a);
-        const beforeTraining = p.fatigue;
-        p.fatigue = clamp(p.fatigue + ticketsUsed(p.trainingPolicy) * params["fatigue.ticket_cost"] * params[`fatigue.mode_${p.trainingPolicy.mode}`] * a / params["training.days"] * accum);
-        if (p.id === s.playerId) fatigueDay.training = p.fatigue - beforeTraining;
-        active.add(p.id);
-        trained = true;
-      }
-      if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
-      if (active.has(p.id) && !injured && random(s, "injury") < injuryRisk(p.fatigue, trained)) {
-        const roll = random(s, "injury");
-        const severity = roll < params["injury.mild.weight"] ? "mild" : roll < params["injury.mild.weight"] + params["injury.moderate.weight"] ? "moderate" : "severe";
-        const prefix = `injury.${severity}`;
-        const duration = params[`${prefix}.min_days`] + Math.floor(random(s, "injury") * (params[`${prefix}.max_days`] - params[`${prefix}.min_days`] + 1));
-        const penalty = Math.max(p.injury?.penaltyRemaining ?? 0, params[`${prefix}.penalty`]);
-        p.injury = {
-          severity,
-          startDate: date,
-          unavailableUntil: addDays(date, duration + 1),
-          originalPenalty: Math.max(p.injury?.originalPenalty ?? 0, params[`${prefix}.penalty`]),
-          penaltyRemaining: penalty,
-          penaltyRecoverDays: Math.max(p.injury?.penaltyRecoverDays ?? 0, params[`${prefix}.recovery_days`])
-        };
-        if (p.id === s.playerId) report.messages.push(`활동 후 ${severity === "mild" ? "경미한" : severity === "moderate" ? "보통" : "심각한"} 부상 발견 · ${duration}일 결장`);
-      }
-      const beforeRecovery = p.fatigue;
-      const recoveryMode = p.forcedRest || injured ? "rest" : p.trainingPolicy.mode;
-      p.fatigue = clamp(p.fatigue - recoveryAmount(recoveryMode, active.has(p.id), p.fatigue) * dailyRecovery.get(p.id)!);
-      if (p.id === s.playerId) {
-        fatigueDay.peak = Math.max(fatigueDay.start, beforeRecovery);
-        fatigueDay.recovered = beforeRecovery - p.fatigue;
-        fatigueDay.end = p.fatigue;
-      }
-      if (p.injury && date >= p.injury.unavailableUntil) {
-        p.injury.penaltyRemaining = Math.max(0, p.injury.penaltyRemaining - (p.injury.penaltyRecoverDays ? p.injury.originalPenalty / p.injury.penaltyRecoverDays : 0));
-        if (!p.injury.penaltyRemaining) p.injury = null;
-      }
-    }
-    report.fatigue.training += fatigueDay.training;
-    report.fatigue.game += fatigueDay.game;
-    report.fatigue.recovered += fatigueDay.recovered;
-    report.fatigue.peak = Math.max(report.fatigue.peak, fatigueDay.peak);
-    report.fatigue.days.push(fatigueDay);
-    if (player.grade === 3 && date >= s.calendar.draftDate) {
-      updateReputation(s);
-      s.draft = draftPlayers(s);
-      s.phase = "ended";
-      s.pendingEvents = [{
-        type: "draft",
-        date,
-        playerId: s.playerId
-      }];
-      report.messages.push("고교 3시즌의 여정이 끝났습니다. 드래프트 결과를 확인하세요.");
-      report.to = date;
-      break;
-    }
-    s.date = addDays(date, 1);
-    report.to = date;
-  }
-  updateReputation(s);
-  for (const k of statKeys) report.growth[k] = player.stats[k] - before[k];
-  report.fatigueAfter = player.fatigue;
-  report.reputationAfter = player.reputation;
-  if (!Object.values(report.growth).some(n => n > 0)) report.messages.push(player.injury && s.date < player.injury.unavailableUntil ? "부상으로 훈련에 참가하지 못했습니다." : policy.mode === "rest" ? "회복 방침으로 훈련과 출전을 쉬었습니다." : ticketsUsed(policy) === 0 ? "사용한 티켓이 없어 성장하지 않았습니다." : "비시즌으로 정규 훈련이 없습니다.");
-  if (player.offerCooldown > 0) player.offerCooldown--;
-  if (!player.roleOffer && !player.offerCooldown) {
-    const best = [...roles].sort((a, b) => roleScore(player, b) - roleScore(player, a))[0];
-    if (best !== player.primaryRole && roleScore(player, best) - roleScore(player) >= params["coach.offer_gap"]) {
-      player.offerWeeks = player.offerCandidate === best ? player.offerWeeks + 1 : 1;
-      player.offerCandidate = best;
-      if (player.offerWeeks >= params["coach.offer_weeks"]) player.roleOffer = best;
-    } else {
-      player.offerWeeks = 0;
-      player.offerCandidate = null;
-    }
-  }
-  if (player.roleOffer && !s.pendingEvents.some(event => event.type === "roleOffer")) s.pendingEvents.push({
-    type: "roleOffer",
-    date: s.date,
-    playerId: s.playerId
-  });
-  s.week++;
-  s.report = report;
-  s.history.push({
-    week: s.week,
-    ovr: ovr(player),
-    fatigue: player.fatigue
-  });
-  if (s.phase !== "ended" && !player.roleOffer && !player.forcedRest && !(player.injury && s.date < player.injury.unavailableUntil)
-    && policy.mode !== "rest" && report.fatigue.training > 0 && s.week - (s.lastCareerEventWeek ?? 0) >= params["events.gap_weeks"]
-    && random(s, "events") < params["events.weekly_chance"]) {
-    const kinds: ("coach" | "condition" | "scout")[] = ["coach", "condition"];
-    if (player.seasonStats.batting.PA || player.seasonStats.pitching.BF) kinds.push("scout");
-    const previousKind = s.careerEventHistory?.at(-1)?.kind;
-    const pool = kinds.filter(kind => kind !== previousKind);
-    const kind = pool[Math.floor(random(s, "events") * pool.length)];
-    s.careerEvent = createCareerEvent(kind, player, s.date, s.week);
-    s.lastCareerEventWeek = s.week;
-  }
-  return s;
-}
-export function answerCareerEvent(input: GameState, choiceId: string): GameState {
-  if (input.phase === "ended" || !input.careerEvent) throw new Error("선택할 이벤트가 없습니다.");
-  const choice = input.careerEvent.choices.find(c => c.id === choiceId);
-  if (!choice) throw new Error("유효하지 않은 이벤트 선택입니다.");
-  const s = structuredClone(input), p = getPlayer(s), event = s.careerEvent!;
-  const changes: Partial<Stats> = {};
-  for (const [key, amount] of Object.entries(choice.stats) as [Stat, number][]) {
-    const before = p.stats[key];
-    p.stats[key] = clamp(before + amount, 1);
-    changes[key] = p.stats[key] - before;
-  }
-  const oldReputation = p.reputation ?? 50, oldFatigue = p.fatigue;
-  p.reputationBonus = (p.reputationBonus ?? 0) + choice.reputation;
+export function assignRole(p: Player, role: Role) {
+  const pos = (["1B", "SS", "C", "SP", "RP", "CP"] as Position[]).find(position => roleFor(position) === role)!;
+  p.primaryRole = role; p.preferredRole = role; p.position = pos;
+  if (p.twoWay) { if (isPitcher(role)) p.twoWay.pitchingPosition = pos; else p.twoWay.battingPosition = pos; }
+  p.eligiblePositions = [...new Set([...p.eligiblePositions, ...eligible(pos)])];
   p.reputation = reputationScore(p);
-  p.fatigue = clamp(p.fatigue + choice.fatigue);
-  s.careerEventHistory ??= [];
-  s.careerEventHistory.push({ id: event.id, kind: event.kind, title: event.title, date: event.date, choice: choice.label,
-    stats: changes, reputation: p.reputation - oldReputation, fatigue: p.fatigue - oldFatigue });
-  s.careerEvent = null;
-  const point = s.history.at(-1);
-  if (point) { point.ovr = ovr(p); point.fatigue = p.fatigue; }
-  return s;
 }
 export function answerOffer(input: GameState, accept: boolean) {
   const s = structuredClone(input);
   const p = getPlayer(s);
-  if (p.roleOffer && accept) {
-    const map: Record<Role, Position> = {
-      "코너 야수": "1B",
-      "센터라인": "SS",
-      "포수": "C",
-      "선발": "SP",
-      "중간계투": "RP",
-      "마무리": "CP"
-    };
-    p.primaryRole = p.roleOffer;
-    p.preferredRole = p.roleOffer;
-    p.position = map[p.roleOffer];
-    p.eligiblePositions = [...new Set([...p.eligiblePositions, ...eligible(p.position)])];
-    p.reputation = reputationScore(p);
-  }
+  if (p.roleOffer && accept) assignRole(p, p.roleOffer);
   s.pendingEvents = s.pendingEvents.filter(event => event.type !== "roleOffer");
   p.roleOffer = null;
   p.offerWeeks = 0;

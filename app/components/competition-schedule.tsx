@@ -8,7 +8,7 @@ function status(state: GameState, competition: Competition, teamId: number) {
   if (!competition.initialized) return ["emart", "phoenix"].includes(competition.id) ? "참가 예정" : "출전권 결정 대기";
   if (!competition.participantTeamIds.includes(teamId)) return "미출전";
   if (competition.championTeamId === teamId) return "우승";
-  const last = state.calendar.events.filter(g => g.competitionId === competition.id && g.status !== "scheduled" && [g.homeTeamId, g.awayTeamId].includes(teamId)).at(-1);
+  const last = state.calendar.events.filter(g => g.competitionId === competition.id && (g.status === "completed" || g.status === "forfeit") && [g.homeTeamId, g.awayTeamId].includes(teamId)).at(-1);
   if (last && last.advancingTeamId !== teamId) return "탈락";
   return "대회 참가 중";
 }
@@ -28,7 +28,7 @@ export default function CompetitionSchedule({ state }: { state: GameState }) {
         {!competition.initialized ? <p className="empty-note">개막일에 참가 학교와 첫 대진을 확정합니다. 이후 승리한 학교가 다음 라운드로 진출합니다.</p> : <>
           <p className="small">참가 {competition.participantTeamIds.length}팀 · {competition.championTeamId === null ? `${competition.round}라운드` : `우승: ${state.teams[competition.championTeamId].name}`}</p>
           {competition.byes.includes(p.teamId) && <p className="positive small">우리 학교는 이번 라운드 부전승입니다.</p>}
-          <details className="bracket-details" open><summary>전체 대진표 · 승리 팀이 다음 대진에 반영됩니다</summary><div className="bracket-rounds">{rounds.map(round => <div className="bracket-round" key={round}><h4>{round === competition.roundDates.length ? "결승" : `${round}라운드`} <span>{competition.roundDates[round - 1]?.slice(5).replace("-", ".")}</span></h4>{games.filter(g => g.round === round).map(game => <div className={`bracket-game ${[game.homeTeamId, game.awayTeamId].includes(p.teamId) ? "my-game" : ""}`} key={game.id}>{[game.homeTeamId, game.awayTeamId].map((teamId, side) => <div className={game.advancingTeamId === teamId ? "bracket-winner" : ""} key={teamId}><span>{state.teams[teamId].name}</span><b>{game.status === "scheduled" ? "—" : game.status === "forfeit" ? game.forfeitTeamId === teamId ? "기권패" : "기권승" : game.score[side]}</b></div>)}{game.status !== "scheduled" && game.status !== "forfeit" && game.score[0] === game.score[1] && <small>12이닝 무승부 · 추첨 진출</small>}</div>)}</div>)}</div></details>
+          <details className="bracket-details" open><summary>전체 대진표 · 승리 팀이 다음 대진에 반영됩니다</summary><div className="bracket-rounds">{rounds.map(round => <div className="bracket-round" key={round}><h4>{round === competition.roundDates.length ? "결승" : `${round}라운드`} <span>{competition.roundDates[round - 1]?.slice(5).replace("-", ".")}</span></h4>{games.filter(g => g.round === round).map(game => <div className={`bracket-game ${[game.homeTeamId, game.awayTeamId].includes(p.teamId) ? "my-game" : ""}`} key={game.id}>{[game.homeTeamId, game.awayTeamId].map((teamId, side) => <div className={game.advancingTeamId === teamId ? "bracket-winner" : ""} key={teamId}><span>{state.teams[teamId].name}</span><b>{game.status === "scheduled" ? "—" : game.status === "forfeit" ? game.forfeitTeamId === teamId ? "기권패" : "기권승" : game.score[side]}</b></div>)}{game.status === "completed" && game.score[0] === game.score[1] && <small>12이닝 무승부 · 추첨 진출</small>}</div>)}</div>)}</div></details>
         </>}
       </>}
     </div>

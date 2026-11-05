@@ -10,6 +10,21 @@
     "rootDir": ".",
     "plugins": []
   },
-  "include": ["app/components/position-picker.tsx", "app/components/player-setup.tsx"],
-  "exclude": ["node_modules", ".next", ".test-build"]
+  "include": [
+    "app/components/position-picker.tsx",
+    "app/components/player-setup.tsx",
+    "app/components/career-event.tsx",
+    "app/components/draft-board.tsx",
+    "app/components/training-editor.tsx",
+    "app/components/career-continuation.tsx",
+    "app/components/season-records.tsx",
+    "app/components/player-abilities.tsx",
+    "app/components/draft-round-badge.tsx",
+    "app/components/draft-result-gate.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    ".test-build"
+  ]
 }

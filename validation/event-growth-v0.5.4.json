@@ -1,0 +1,56 @@
+{
+  "balanceVersion": "0.5.4-provisional",
+  "date": "2026-11-05",
+  "basis": "primary-role contact, batting talent 5, exact current daily training formula",
+  "nationalAcceptWeights": [
+    5,
+    23.75,
+    23.75,
+    47.5
+  ],
+  "nationalDeclineWeights": [
+    25,
+    25,
+    50
+  ],
+  "awakeningChance": 0.05,
+  "awakeningMaxWeeks": 12,
+  "rows": [
+    {
+      "ability": 40,
+      "normal4Weeks": 1.617777777777718,
+      "mvp8Weeks": 3.235555555555436,
+      "awakened12Weeks": 4.853333333333154
+    },
+    {
+      "ability": 49.9,
+      "normal4Weeks": 0.8897777777778089,
+      "mvp8Weeks": 1.698666666666739,
+      "awakened12Weeks": 2.507555555555669
+    },
+    {
+      "ability": 60,
+      "normal4Weeks": 0.40444444444446503,
+      "mvp8Weeks": 0.8088888888889301,
+      "awakened12Weeks": 1.213333333333395
+    },
+    {
+      "ability": 70,
+      "normal4Weeks": 0.19413333333346827,
+      "mvp8Weeks": 0.38826666666693654,
+      "awakened12Weeks": 0.5824000000004048
+    },
+    {
+      "ability": 80,
+      "normal4Weeks": 0.09706666666659203,
+      "mvp8Weeks": 0.19413333333318405,
+      "awakened12Weeks": 0.2911999999997761
+    },
+    {
+      "ability": 90,
+      "normal4Weeks": 0.040444444444460714,
+      "mvp8Weeks": 0.08088888888892143,
+      "awakened12Weeks": 0.12133333333338214
+    }
+  ]
+}

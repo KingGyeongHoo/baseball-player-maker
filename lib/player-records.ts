@@ -6,14 +6,20 @@ export type PlayerSeason = {
   grade: number;
   current: boolean;
   records: RecordLine;
+  schoolName?: string;
+  careerMode?: Player["careerMode"];
+  age?: number;
+  byLevel?: Player["seasonByLevel"];
 };
 
 export function playerSeasons(player: Player, currentYear: number): PlayerSeason[] {
   const seasons = new Map<number, PlayerSeason>();
   for (const season of player.career) {
-    seasons.set(season.year, { year: season.year, grade: season.grade, current: false, records: season.records });
+    seasons.set(season.year, { year: season.year, grade: season.grade, current: false, records: season.records, ...(season.schoolName ? { schoolName: season.schoolName } : {}),
+      ...(season.careerMode ? { careerMode: season.careerMode, age:season.age } : {}), ...(season.byLevel ? {byLevel:season.byLevel} : {}) });
   }
-  seasons.set(currentYear, { year: currentYear, grade: player.grade, current: true, records: player.seasonStats });
+  seasons.set(currentYear, { year: currentYear, grade: player.grade, current: true, records: player.seasonStats,
+    ...(player.careerMode ? {careerMode:player.careerMode,age:player.age} : {}), ...(player.seasonByLevel ? {byLevel:player.seasonByLevel} : {}) });
   return [...seasons.values()].sort((a, b) => a.year - b.year);
 }
 

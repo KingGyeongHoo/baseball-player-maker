@@ -1,0 +1,156 @@
+{
+  "version": "0.5.7",
+  "date": "2026-11-05",
+  "scope": "No games, no events/injuries; fatigue starts at 30. Growth uses talent 1, skills 40, five full training days. Each discipline receives its own ticket count plus one physical ticket.",
+  "fatigue": [
+    {
+      "fitness": 1,
+      "mode": "light",
+      "tickets": 7,
+      "start": 30,
+      "end": 28.349999999999987,
+      "delta": -1.6500000000000128,
+      "forecastEnd": 28.349999999999987,
+      "training": 2.624999999999993,
+      "recovered": 4.275000000000006
+    },
+    {
+      "fitness": 1,
+      "mode": "normal",
+      "tickets": 10,
+      "start": 30,
+      "end": 32.8875,
+      "delta": 2.887500000000003,
+      "forecastEnd": 32.8875,
+      "training": 3.7499999999999964,
+      "recovered": 0.8624999999999936
+    },
+    {
+      "fitness": 1,
+      "mode": "hard",
+      "tickets": 13,
+      "start": 30,
+      "end": 38.887500000000024,
+      "delta": 8.887500000000024,
+      "forecastEnd": 38.887500000000024,
+      "training": 9.75000000000001,
+      "recovered": 0.8624999999999865
+    },
+    {
+      "fitness": 50,
+      "mode": "light",
+      "tickets": 7,
+      "start": 30,
+      "end": 26.400000000000002,
+      "delta": -3.599999999999998,
+      "forecastEnd": 26.400000000000002,
+      "training": 2.1000000000000085,
+      "recovered": 5.700000000000006
+    },
+    {
+      "fitness": 50,
+      "mode": "normal",
+      "tickets": 10,
+      "start": 30,
+      "end": 31.850000000000012,
+      "delta": 1.850000000000012,
+      "forecastEnd": 31.850000000000012,
+      "training": 3.000000000000007,
+      "recovered": 1.149999999999995
+    },
+    {
+      "fitness": 50,
+      "mode": "hard",
+      "tickets": 13,
+      "start": 30,
+      "end": 36.650000000000006,
+      "delta": 6.650000000000006,
+      "forecastEnd": 36.650000000000006,
+      "training": 7.800000000000004,
+      "recovered": 1.1499999999999986
+    },
+    {
+      "fitness": 100,
+      "mode": "light",
+      "tickets": 7,
+      "start": 30,
+      "end": 24.450000000000006,
+      "delta": -5.549999999999994,
+      "forecastEnd": 24.450000000000006,
+      "training": 1.5750000000000064,
+      "recovered": 7.125
+    },
+    {
+      "fitness": 100,
+      "mode": "normal",
+      "tickets": 10,
+      "start": 30,
+      "end": 30.812499999999996,
+      "delta": 0.8124999999999964,
+      "forecastEnd": 30.812499999999996,
+      "training": 2.2499999999999964,
+      "recovered": 1.4375
+    },
+    {
+      "fitness": 100,
+      "mode": "hard",
+      "tickets": 13,
+      "start": 30,
+      "end": 34.41250000000001,
+      "delta": 4.4125000000000085,
+      "forecastEnd": 34.41250000000001,
+      "training": 5.8500000000000085,
+      "recovered": 1.4375
+    }
+  ],
+  "growth": [
+    {
+      "position": "SS",
+      "selectedSkillTickets": 0,
+      "contact": 0.030000000000001137,
+      "velocity": 0.030000000000001137,
+      "zeroTicketPower": 0.030000000000001137,
+      "zeroTicketControl": 0.030000000000001137
+    },
+    {
+      "position": "SS",
+      "selectedSkillTickets": 1,
+      "contact": 0.13000000000001677,
+      "velocity": 0.13000000000001677,
+      "zeroTicketPower": 0.030000000000001137,
+      "zeroTicketControl": 0.030000000000001137
+    },
+    {
+      "position": "SS",
+      "selectedSkillTickets": 5,
+      "contact": 0.2799999999999869,
+      "velocity": 0.2799999999999869,
+      "zeroTicketPower": 0.030000000000001137,
+      "zeroTicketControl": 0.030000000000001137
+    },
+    {
+      "position": "SP",
+      "selectedSkillTickets": 0,
+      "contact": 0.030000000000001137,
+      "velocity": 0.030000000000001137,
+      "zeroTicketPower": 0.030000000000001137,
+      "zeroTicketControl": 0.030000000000001137
+    },
+    {
+      "position": "SP",
+      "selectedSkillTickets": 1,
+      "contact": 0.13000000000001677,
+      "velocity": 0.13000000000001677,
+      "zeroTicketPower": 0.030000000000001137,
+      "zeroTicketControl": 0.030000000000001137
+    },
+    {
+      "position": "SP",
+      "selectedSkillTickets": 5,
+      "contact": 0.2799999999999869,
+      "velocity": 0.2799999999999869,
+      "zeroTicketPower": 0.030000000000001137,
+      "zeroTicketControl": 0.030000000000001137
+    }
+  ]
+}

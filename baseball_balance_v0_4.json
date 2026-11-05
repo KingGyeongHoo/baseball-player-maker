@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "balanceVersion": "0.5.1-provisional",
-  "date": "2026-11-04",
+  "balanceVersion": "0.6.1-provisional",
+  "date": "2026-11-05",
   "scope": "high-school-3-seasons-to-draft",
-  "notice": "2026-11-04 사용자 요청에 따른 훈련 피로·회복 재조정. v0.3 JSON/XLSX는 원본으로 보존. 현재 구현은 v0.4 JSON 사용. 실측 통계에 맞춘 최종 밸런스가 아님.",
+  "notice": "2026-11-04 사용자 요청에 따른 훈련 피로·회복 재조정 및 분야별 초기 능력·희귀 투타 생성 반영. v0.3 JSON/XLSX는 원본으로 보존. 현재 구현은 v0.4 JSON 사용. 실측 통계에 맞춘 최종 밸런스가 아님.",
   "parameters": [
     {
       "key": "stat.min",
@@ -44,6 +44,38 @@
       "unit": "구단",
       "status": "규모 가정",
       "note": "대화의 개발 규모 가정; 실측 팀·선수 수 아님"
+    },
+    {
+      "key": "generation.secondary_mean",
+      "label": "비주력 분야 신입생 중심값",
+      "value": 15,
+      "unit": "점",
+      "status": "사용자 요청",
+      "note": "투수의 타자 능력과 타자의 투수 능력에 적용. 주력 분야와 공통 능력은 기존 생성 유지."
+    },
+    {
+      "key": "generation.secondary_player_sd",
+      "label": "비주력 분야 선수 간 표준편차",
+      "value": 4,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "비주력 분야 평균 15 부근의 개인차"
+    },
+    {
+      "key": "generation.secondary_stat_sd",
+      "label": "비주력 분야 능력별 표준편차",
+      "value": 4,
+      "unit": "점",
+      "status": "임시 기본값",
+      "note": "비주력 분야 내 능력치별 편차. 능력 범위는 1~100."
+    },
+    {
+      "key": "generation.two_way_chance",
+      "label": "비주력 분야 기존 분포 생성 확률",
+      "value": 0.001,
+      "unit": "확률",
+      "status": "임시 기본값",
+      "note": "0.1% 확률로 비주력 분야도 기존 주력 분야 분포에서 별도 추첨. 양쪽 평균 이상을 보장하지 않음."
     },
     {
       "key": "generation.mean",
@@ -167,11 +199,11 @@
     },
     {
       "key": "training.base",
-      "label": "주역할 기초 성장",
+      "label": "투수·타자 공통 기본 성장",
       "value": 0.03,
       "unit": "점/능력/주",
       "status": "임시 기본값",
-      "note": "설계 가설; 실제 시즌 데이터 보정 전"
+      "note": "실제 훈련일에는 포지션·해당 항목 티켓과 관계없이 투수·타자 기술 능력 모두 적용. 해당 분야 재능·성장 둔화 반영. 티켓 사용은 추가 집중 성장."
     },
     {
       "key": "training.bq",
@@ -958,12 +990,36 @@
       "note": "설계 가설; 실제 시즌 데이터 보정 전"
     },
     {
-      "key": "draft.ratio",
-      "label": "고교 지명 슬롯 비율",
-      "value": 0.1,
-      "unit": "지원자 비율",
-      "status": "임시 근사",
-      "note": "전체 실제 드래프트 정원과 다름; 대학·기타 지원자 제외 MVP"
+      "key": "draft.min_total",
+      "label": "드래프트 최소 지명 인원",
+      "value": 90,
+      "unit": "명",
+      "status": "사용자 지정",
+      "note": "매년 90~110명 균등 추첨"
+    },
+    {
+      "key": "draft.max_total",
+      "label": "드래프트 최대 지명 인원",
+      "value": 110,
+      "unit": "명",
+      "status": "사용자 지정",
+      "note": "구단별 지명 종료 후에도 전체 인원 범위 유지"
+    },
+    {
+      "key": "draft.min_rounds",
+      "label": "구단 최소 지명 라운드",
+      "value": 9,
+      "unit": "라운드",
+      "status": "사용자 지정",
+      "note": "모든 구단이 9라운드까지 지명"
+    },
+    {
+      "key": "draft.max_rounds",
+      "label": "구단 최대 지명 라운드",
+      "value": 13,
+      "unit": "라운드",
+      "status": "사용자 지정",
+      "note": "추가 지명을 구단별로 배분, 최대 13라운드"
     },
     {
       "key": "draft.talent_weight",
@@ -1232,7 +1288,7 @@
     {
       "key": "fatigue.mode_normal",
       "label": "중간 훈련 피로 배율",
-      "value": 1.15,
+      "value": 1,
       "unit": "계수",
       "status": "사용자 요청 반영",
       "note": "회복 훈련은 훈련·출전 없이 전용 회복량 적용"
@@ -1240,7 +1296,7 @@
     {
       "key": "fatigue.mode_hard",
       "label": "강한 훈련 피로 배율",
-      "value": 1.35,
+      "value": 2,
       "unit": "계수",
       "status": "사용자 요청 반영",
       "note": "회복 훈련은 훈련·출전 없이 전용 회복량 적용"
@@ -1288,18 +1344,42 @@
     {
       "key": "events.gap_weeks",
       "label": "이벤트 최소 간격",
-      "value": 6,
+      "value": 2,
       "unit": "주",
       "status": "구현용 임시값",
-      "note": "이전 이벤트 이후 최소 6주 간격"
+      "note": "이전 일반 이벤트 이후 최소 2주. 국가대표는 별도 자격 판정."
     },
     {
       "key": "events.weekly_chance",
       "label": "이벤트 주간 발생 확률",
-      "value": 0.25,
+      "value": 0.35,
       "unit": "확률",
       "status": "구현용 임시값",
-      "note": "실제 훈련한 주, 부상·강제휴식·역할 제안이 없을 때만 평가"
+      "note": "주간 기회를 한 번 확보하고 실제 조건에 맞는 분류·이벤트·시점을 배정. 조건 소멸 시 재추첨하지 않음."
+    },
+    {
+      "key": "events.awakening_chance",
+      "label": "이벤트 능력 상승 각성 확률",
+      "value": 0.05,
+      "unit": "확률",
+      "status": "사용자 지정",
+      "note": "상승 결과 전체에 한 번만 판정"
+    },
+    {
+      "key": "events.awakening_max_weeks",
+      "label": "각성 보상 환산 훈련 주수 상한",
+      "value": 12,
+      "unit": "주",
+      "status": "고교·프로 격차 반영",
+      "note": "고정 점수 상승을 없애고 최대 12주분의 일별 성장 둔화·재능·피지컬/BQ 공식을 적용"
+    },
+    {
+      "key": "events.awakening_mult",
+      "label": "각성 보상 훈련 주수 배율",
+      "value": 2,
+      "unit": "배",
+      "status": "고교·프로 격차 반영",
+      "note": "각성 보상 = min(12, 원래 훈련 주수 × 2)주분. 원래 보상에 추가하지 않고 다시 계산해 대체"
     },
     {
       "key": "reputation.ability_weight",
@@ -1348,6 +1428,22 @@
       "unit": "계수",
       "status": "사용자 요청 반영",
       "note": "구단 포지션 수요 50%"
+    },
+    {
+      "key": "fatigue.light_recovery",
+      "label": "약한 훈련 추가 일일 회복",
+      "value": 0.65,
+      "unit": "피로/일",
+      "status": "사용자 지정",
+      "note": "기본 야간 회복에 가산. 체력·회복력 50, 7장·훈련5일·비활동2일·경기없음 기준 주간 피로 -3.6. 경기 부하는 별도."
+    },
+    {
+      "key": "events.focus_chance",
+      "label": "Training focus event chance",
+      "value": 0.2,
+      "unit": "probability per eligible week",
+      "status": "User requested",
+      "note": "Only when no normal event is scheduled. One independent opportunity roll per eligible week; common event gap applies."
     }
   ],
   "roleWeights": {

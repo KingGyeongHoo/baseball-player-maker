@@ -1,0 +1,23 @@
+{
+  "balanceVersion": "0.5.2-provisional",
+  "date": "2026-11-04",
+  "sampleSize": 9000,
+  "seeds": ["role-distribution-0", "role-distribution-1", "role-distribution-2"],
+  "measurement": "initialStats before simulated grade 2/3 development",
+  "initialBothAbove40": 2,
+  "groups": {
+    "pitcher": {
+      "count": 4201,
+      "primaryMean": 39.910199913840614,
+      "secondaryMean": 14.898786509513265,
+      "secondaryAbove30": 4
+    },
+    "batter": {
+      "count": 4799,
+      "primaryMean": 40.018511111647,
+      "secondaryMean": 14.932182905997347,
+      "secondaryAbove30": 10
+    }
+  },
+  "note": "A deterministic sample, not a guaranteed two-way-player count for every career. The 0.1% exception draws secondary skills from the normal primary distribution; it does not guarantee both OVRs exceed 40."
+}

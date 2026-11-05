@@ -41,7 +41,7 @@ test('reputation 100 can lead the draft despite lower OVR and minimum talent', (
   for(const k of Object.keys(star.stats)) star.stats[k]=20;
   star.reputation=100; star.talent={batting:1,pitching:1};
   const picks=e.draftPlayers(state);
-  assert.equal(picks.length,100);
+  assert.ok(picks.length>=90 && picks.length<=110);
   assert.equal(picks[0].playerId,star.id);
   assert.equal(picks[0].abilityRank,1000);
 });
@@ -58,7 +58,7 @@ test('draft score uses exactly reputation 80%, talent 10%, fit 10% with no extra
     close(pick.score,Object.values(pick.components).reduce((a,b)=>a+b,0));
     assert.ok(pick.fit>=0 && pick.fit<=100);
     const player=board.find(p=>p.id===pick.playerId);
-    close(pick.ability,e.ovr(player));
+    close(pick.ability,e.combinedOvr(player));
     assert.equal(pick.abilityRank,board.indexOf(player)+1);
   }
   assert.equal(new Set(picks.map(p=>p.playerId)).size,picks.length);
@@ -87,4 +87,41 @@ test('drafting is deterministic, targets seniors only, and leaves abilities and 
   assert.ok(picks.every(p=>seniors.has(p.playerId)));
   assert.deepEqual(a.players,original.players);
   for(const stream of Object.keys(original.rngStates).filter(k=>k!=='draft'))assert.equal(a.rngStates[stream],original.rngStates[stream]);
+});
+
+test('forecast is read-only, uses actual scouting scores and current seniors, and matches the first ten picks at unchanged ability',()=>{
+  const state=e.createGame('draft-forecast','검증','SS'),rng={...state.rngStates},players=state.players;
+  const forecast=e.draftForecast(state);
+  assert.deepEqual(state.rngStates,rng);assert.equal(state.players,players);assert.deepEqual(state.draft,[]);
+  assert.equal(forecast.length,10);assert.deepEqual(forecast,e.draftForecast(state));
+  assert.deepEqual(forecast,e.draftPlayers(structuredClone(state)).slice(0,10));
+  const seniors=state.players.filter(p=>p.grade===3),star=seniors.at(-1);
+  for(const p of seniors){p.reputation=0;p.talent={batting:1,pitching:1};}
+  star.reputation=100;assert.equal(e.draftForecast(state)[0].playerId,star.id);
+  assert.ok(e.draftForecast(state).every(pick=>seniors.some(p=>p.id===pick.playerId)));
+});
+
+test('yearly totals vary from 90 to 110 and each club ends at 9-13 contiguous rounds without phantom picks',()=>{
+  const state=e.createGame('draft-sizes','검증','SS');state.players=state.players.filter(p=>p.grade===3).slice(0,120);
+  const totals=new Set(),countsSeen=new Set();
+  for(let seed=0;seed<80;seed++) {
+    state.rngStates.draft=e.hash(`draft-size-${seed}`);
+    const picks=e.draftPlayers(state);totals.add(picks.length);
+    assert.ok(picks.length>=90&&picks.length<=110);assert.equal(new Set(picks.map(p=>p.playerId)).size,picks.length);
+    assert.deepEqual(picks.map(p=>p.overall),Array.from({length:picks.length},(_,i)=>i+1));
+    for(const [index,club] of e.draftClubs.entries()) {
+      const rows=picks.filter(p=>p.club===club);countsSeen.add(rows.length);
+      assert.ok(rows.length>=9&&rows.length<=13);
+      assert.deepEqual(rows.map(p=>p.round),Array.from({length:rows.length},(_,i)=>i+1));
+      assert.ok(rows.every(p=>p.slot===index+1));
+    }
+    for(let i=1;i<picks.length;i++)assert.ok(picks[i].round>picks[i-1].round||picks[i].round===picks[i-1].round&&picks[i].slot>picks[i-1].slot);
+  }
+  assert.ok(totals.has(90)&&totals.has(110));assert.ok(totals.size>=18);assert.ok([9,10,11,12,13].every(n=>countsSeen.has(n)));
+});
+
+test('small or empty candidate pools stop cleanly without duplicate or missing-player errors',()=>{
+  const state=e.createGame('draft-small','검증','SS');state.players=state.players.filter(p=>p.grade===3).slice(0,7);
+  assert.equal(e.draftPlayers(state).length,7);assert.equal(e.draftForecast(state).length,7);
+  state.players=[];assert.deepEqual(e.draftPlayers(state),[]);assert.deepEqual(e.draftForecast(state),[]);
 });

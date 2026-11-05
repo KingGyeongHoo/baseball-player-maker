@@ -70,7 +70,7 @@ export function leagueTable(calendar: Calendar, competitionId: string, group: nu
   const teams = calendar.competitions.find(c => c.id === competitionId)?.participantTeamIds.filter(t => Math.floor(t / 10) === group) ?? [];
   return teams.map(teamId => {
     let wins = 0, losses = 0, draws = 0, difference = 0;
-    for (const game of calendar.events.filter(g => g.competitionId === competitionId && g.status !== "scheduled" && (g.homeTeamId === teamId || g.awayTeamId === teamId))) {
+    for (const game of calendar.events.filter(g => g.competitionId === competitionId && (g.status === "completed" || g.status === "forfeit") && (g.homeTeamId === teamId || g.awayTeamId === teamId))) {
       const side = game.homeTeamId === teamId ? 0 : 1;
       const diff = game.status === "forfeit" ? game.forfeitTeamId === teamId ? -1 : 1 : game.score[side] - game.score[1 - side];
       if (diff > 0) wins++; else if (diff < 0) losses++; else draws++;
@@ -125,7 +125,7 @@ export function prepareCompetitions(calendar: Calendar, date: string, seed: stri
 export function finishCompetitionDay(calendar: Calendar, date: string) {
   for (const competition of calendar.competitions.filter(c => c.kind === "tournament" && c.initialized && c.championTeamId === null)) {
     const games = calendar.events.filter(g => g.competitionId === competition.id && g.round === competition.round);
-    if (!games.length || games.some(g => g.date > date || g.status === "scheduled")) continue;
+    if (!games.length || games.some(g => g.date > date || g.status === "scheduled" || g.status === "inProgress")) continue;
     const remaining = [...competition.byes, ...games.map(g => g.advancingTeamId!)];
     if (remaining.some(t => t === undefined)) throw new Error("토너먼트 진출 팀이 결정되지 않았습니다.");
     if (remaining.length === 1) { competition.championTeamId = remaining[0]; competition.byes = []; }

@@ -348,23 +348,26 @@ test('one evaluated player and tied evaluated players receive performance rating
   assert.equal(s.players.find(p => p.id === second.id).performanceReputation, 50);
 });
 test('three seasons preserve roster size, promote, draft once and block further play', {
-  timeout: 120000
+  timeout: 180000
 }, () => {
   let s = newGame('full-career');
-  let count = 0;
+  let count = 0, requests = 0;
   while (s.phase !== 'ended') {
+    const previousWeek = s.week;
     s = step(s);
-    count++;
+    count += s.week - previousWeek;
     assert.equal(s.players.length, 3000);
     assert.ok(count < 140);
+    assert.ok(++requests < 220, 'event continuations must terminate');
   }
   const p = e.getPlayer(s);
   assert.equal(p.grade, 3);
   assert.equal(p.career.length, 2);
   assert.equal(s.date, s.calendar.draftDate);
-  assert.equal(s.draft.length, 100);
-  assert.equal(new Set(s.draft.map(d => d.playerId)).size, 100);
+  assert.ok(s.draft.length >= 90 && s.draft.length <= 110);
+  assert.equal(new Set(s.draft.map(d => d.playerId)).size, s.draft.length);
   assert.equal(s.calendar.seasonYear, 2029);
+  assert.ok(s.careerEventHistory.length > 0);
   assert.ok(s.calendar.competitions.filter(c => c.kind === 'tournament').every(c => c.championTeamId !== null));
   const leaders = e.draftBoard(s.players).slice(0, 10);
   const overlap = s.draft.slice(0, 10).filter(pick => leaders.some(p => p.id === pick.playerId)).length;

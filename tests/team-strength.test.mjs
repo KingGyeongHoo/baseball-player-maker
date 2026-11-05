@@ -11,12 +11,27 @@ test('team scores equal the exact starter 1 / reserve 0.5 weighted mean without 
   const before = structuredClone(game.players);
   const t = teamStrength(game.players, 0);
   assert.equal(t.members.length, 30);
-  assert.equal(t.starters, 15);
-  assert.equal(new Set(t.members.filter(m => m.slot).map(m => m.player.id)).size, 15);
-  assert.equal(t.totalWeight, 22.5);
-  close(t.overall, t.members.reduce((sum,m) => sum+m.score*m.weight,0) / 22.5);
+  assert.equal(t.starters, 12);
+  assert.equal(new Set(t.members.filter(m => m.slot).map(m => m.player.id)).size, 12);
+  assert.equal(t.totalWeight, 21);
+  close(t.overall, t.members.reduce((sum,m) => sum+m.score*m.weight,0) / 21);
   assert.ok(t.members.every(m => m.slot ? m.weight === 1 : m.weight === .5));
   assert.deepEqual(game.players, before);
+});
+
+test('squad status assigns exactly one starter per field/DH slot and SP/RP/CP per school, shared with team strength',()=>{
+  const {rosterAssignments,starterSlots}=require('../.test-build/lib/roster-status.js');
+  const assignments=rosterAssignments(game.players);
+  for(const team of game.teams) {
+    const members=game.players.filter(p=>p.teamId===team.id),starters=members.filter(p=>assignments.has(p.id));
+    assert.equal(starters.length,12);assert.deepEqual(starters.map(p=>assignments.get(p.id)).sort(),[...starterSlots].sort());
+    const power=teamStrength(game.players,team.id);
+    assert.ok(power.members.every(row=>!!row.slot===assignments.has(row.player.id)));
+    assert.ok(starters.every(p=>p.eligiblePositions.includes(assignments.get(p.id))));
+  }
+  const changed=structuredClone(game.players),p=changed.find(p=>p.teamId===0&&!assignments.has(p.id));
+  for(const key of Object.keys(p.stats))p.stats[key]=100;
+  assert.ok(rosterAssignments(changed).has(p.id));
 });
 
 test('a starter ability increase contributes twice as much as a reserve increase when slots remain fixed', () => {

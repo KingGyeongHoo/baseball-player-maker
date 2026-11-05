@@ -3,6 +3,17 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const e = require('../.test-build/lib/sim/engine.js');
+const { opportunityState } = require('../.test-build/lib/sim/career-opportunities.js');
+e.params['events.weekly_chance'] = 0;
+function recordsGame(...args) {
+  const s = e.createGame(...args);
+  // These fixtures isolate record archiving from separately tested call-ups.
+  s.eventLedger = { recent: [], centerGrades: [], nationalGrades: [2,3], competitions: [], games: [] };
+  const opportunities = opportunityState(s);
+  opportunities.transferOffered = true;
+  opportunities.twoWayOfferedGrades = [1,2,3];
+  return s;
+}
 const { playerSeasons, totalRecords, recordRates, formatInnings } = require('../.test-build/lib/player-records.js');
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-10, `${a} != ${b}`);
 
@@ -51,7 +62,7 @@ test('pre-admission records are not fabricated for generated senior players', ()
 });
 
 test('actual yearly promotion preserves each season and exposes all three years', () => {
-  let state = e.createGame('annual-records', '기록검증', 'SS');
+  let state = recordsGame('annual-records', '기록검증', 'SS');
   const first = record(10, 4, 2, 17, 2), second = record(20, 5, 1, 18, 3);
   e.getPlayer(state).seasonStats = structuredClone(first); state.date = '2027-12-27';
   const step = s => e.advanceWeek(s, e.getPlayer(s).trainingPolicy, e.getPlayer(s).stance);
@@ -68,7 +79,7 @@ test('actual yearly promotion preserves each season and exposes all three years'
 });
 
 test('promotion preserves earned reputation through weeks without new appearances, while freshmen start with a neutral performance assessment', () => {
-  let state = e.createGame('reputation-promotion', '평판유지', 'SS');
+  let state = recordsGame('reputation-promotion', '평판유지', 'SS');
   const player = e.getPlayer(state);
   for (const key of Object.keys(player.stats)) player.stats[key] = 80;
   player.performanceReputation = 75;
@@ -90,7 +101,7 @@ test('promotion preserves earned reputation through weeks without new appearance
 });
 
 test('switching to pitching retains reputation, hitter eligibility and batting records before the first pitching appearance', () => {
-  const original = e.createGame('two-way-reputation', '겸업선수', 'SS');
+  const original = recordsGame('two-way-reputation', '겸업선수', 'SS');
   const p = e.getPlayer(original);
   for (const key of Object.keys(p.stats)) p.stats[key] = 100;
   p.performanceReputation = 60;

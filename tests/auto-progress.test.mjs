@@ -4,6 +4,8 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { AutoProgress, autoPauseReason } = require('../.test-build/lib/auto-progress.js');
 const e = require('../.test-build/lib/sim/engine.js');
+// Keep scheduler integration independent of the separately tested focus event.
+e.params['events.focus_chance']=0;
 
 function clock() {
   let id = 0;

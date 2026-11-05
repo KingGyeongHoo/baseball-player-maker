@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { positions } from "@/lib/sim/engine";
-import { formatInnings, playerSeasons, recordRates, totalRecords, type PlayerSeason } from "@/lib/player-records";
-import type { Player, RecordLine } from "@/lib/sim/types";
+import { positionLabel } from "../../lib/sim/engine";
+import { formatInnings, playerSeasons, recordRates, totalRecords, type PlayerSeason } from "../../lib/player-records";
+import type { Player, RecordLine } from "../../lib/sim/types";
+import { careerLabel } from "../../lib/sim/pro-career";
+const seasonLabel=(s:PlayerSeason)=>s.careerMode==="pro"?"프로":s.careerMode==="college"?"대학":`고${s.grade}`;
 
 const rate = (value: number | null, digits = 3) => {
   if (value === null) return "—";
@@ -12,8 +14,8 @@ const rate = (value: number | null, digits = 3) => {
 function BattingRow({ records, label, season, ended }: { records: RecordLine; label: string; season?: PlayerSeason; ended: boolean }) {
   const b = records.batting, rates = recordRates(records);
   return <tr className={season?.current ? "current-season" : ""}>
-    <th scope="row">{label}{season?.current && <small>{ended ? "최종" : "진행 중"}</small>}</th>
-    <td>{season ? `고${season.grade}` : "—"}</td><td>{b.PA}</td><td>{b.AB}</td><td><b>{rate(rates.average)}</b></td>
+    <th scope="row">{label}{season?.current && <small>{ended ? "최종" : "진행 중"}</small>}{season?.schoolName && <span className="table-school">{season.schoolName}</span>}</th>
+    <td>{season ? seasonLabel(season) : "—"}</td><td>{b.PA}</td><td>{b.AB}</td><td><b>{rate(rates.average)}</b></td>
     <td>{b.H}</td><td>{b["2B"]}</td><td>{b["3B"]}</td><td>{b.HR}</td><td>{b.RBI}</td><td>{b.R}</td><td>{b.BB}</td><td>{b.SO}</td>
     <td>{rate(rates.obp)}</td><td>{rate(rates.slugging)}</td><td><b>{rate(rates.ops)}</b></td><td>{b.GB}</td><td>{b.FB}</td>
   </tr>;
@@ -22,8 +24,8 @@ function BattingRow({ records, label, season, ended }: { records: RecordLine; la
 function PitchingRow({ records, label, season, ended }: { records: RecordLine; label: string; season?: PlayerSeason; ended: boolean }) {
   const p = records.pitching, rates = recordRates(records);
   return <tr className={season?.current ? "current-season" : ""}>
-    <th scope="row">{label}{season?.current && <small>{ended ? "최종" : "진행 중"}</small>}</th>
-    <td>{season ? `고${season.grade}` : "—"}</td><td>{p.BF}</td><td><b>{formatInnings(p.outs)}</b></td><td><b>{rate(rates.era, 2)}</b></td>
+    <th scope="row">{label}{season?.current && <small>{ended ? "최종" : "진행 중"}</small>}{season?.schoolName && <span className="table-school">{season.schoolName}</span>}</th>
+    <td>{season ? seasonLabel(season) : "—"}</td><td>{p.BF}</td><td><b>{formatInnings(p.outs)}</b></td><td><b>{rate(rates.era, 2)}</b></td>
     <td>{p.H}</td><td>{p.HR}</td><td>{p.BB}</td><td>{p.SO}</td><td>{p.R}</td><td>{p.ER}</td><td>{rate(rates.whip, 2)}</td>
   </tr>;
 }
@@ -37,8 +39,10 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
   onMyRecords: () => void;
 }) {
   const [selectedYear, setSelectedYear] = useState("all");
-  const seasons = playerSeasons(player, year);
-  const visible = selectedYear === "all" ? seasons : seasons.filter(s => s.year === Number(selectedYear));
+  const [level,setLevel]=useState("all");
+  const seasons = playerSeasons(player, year).map(season => ({ ...season, schoolName: season.schoolName ?? school }));
+  const byYear = selectedYear === "all" ? seasons : seasons.filter(s => s.year === Number(selectedYear));
+  const visible = level==="all"?byYear:byYear.filter(s=>s.byLevel).map(s=>({...s,records:s.byLevel![level as "first"|"second"]}));
   const total = totalRecords(visible);
   const rates = recordRates(total);
   const summary = [
@@ -48,20 +52,20 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
   return <div className="season-records">
     <div className="section-intro">
       <div><span className="eyebrow">PLAYER CAREER RECORDS</span><h1>{player.name}의 연도별 기록</h1>
-        <p>{school} · {positions[player.position]} · 고교 {player.grade}학년{mine ? " · 나의 선수" : ""}</p></div>
+        <p>{school} · {positionLabel(player)} · {careerLabel(player)}{mine ? " · 나의 선수" : ""}</p></div>
       {!mine && <button className="secondary" onClick={onMyRecords}>내 기록 보기</button>}
     </div>
     <div className="records-toolbar">
-      <div><b>{selectedYear === "all" ? "고교 통산" : `${selectedYear} 시즌`} 요약</b><span>{visible.length}개 시즌 · {ended ? "최종 기록" : "이번 주까지의 누적 기록"}</span></div>
+      <div><b>{selectedYear === "all" ? "커리어 통산" : `${selectedYear} 시즌`} 요약</b><span>{visible.length}개 시즌 · {ended ? "최종 기록" : "이번 주까지의 누적 기록"}</span></div>
       <label>시즌 선택 <select value={selectedYear} onChange={event => setSelectedYear(event.target.value)}>
-        <option value="all">전체 시즌</option>{seasons.map(s => <option value={s.year} key={s.year}>{s.year} · 고{s.grade}</option>)}
+        <option value="all">전체 시즌</option>{seasons.map(s => <option value={s.year} key={s.year}>{s.year} · {seasonLabel(s)}</option>)}
       </select></label>
     </div>
-    <div className="career-record-summary">{summary.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
+    {player.careerMode === "pro" && <div className="segmented pro-level-filter">{[["all","고교부터 통산"],["first","프로 1군"],["second","프로 2군"]].map(([id,label])=><button className={level===id?"selected":""} key={id} onClick={()=>setLevel(id)}>{label}</button>)}</div>}<div className="career-record-summary">{summary.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
     <section className="panel">
       <div className="panel-heading"><div><span className="eyebrow">PITCHING RECORDS</span><h2>연도별 투수 기록</h2></div><span className="small muted">{total.pitching.BF} 상대 타자</span></div>
       <div className="table-scroll season-table" tabIndex={0} role="region" aria-label="연도별 투수 기록, 가로로 스크롤 가능">
-        <table className="pitching-seasons"><thead><tr>{["시즌", "학년", "BF", "IP", "ERA", "H", "HR", "BB", "SO", "R", "ER", "WHIP"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
+        <table className="pitching-seasons"><thead><tr>{["시즌", "단계", "BF", "IP", "ERA", "H", "HR", "BB", "SO", "R", "ER", "WHIP"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
           <tbody>{visible.map(s => <PitchingRow key={s.year} label={String(s.year)} records={s.records} season={s} ended={ended} />)}</tbody>
           <tfoot><PitchingRow label="합계" records={total} ended={ended} /></tfoot>
         </table>
@@ -72,7 +76,7 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
     <section className="panel">
       <div className="panel-heading"><div><span className="eyebrow">BATTING RECORDS</span><h2>연도별 타자 기록</h2></div><span className="small muted">{total.batting.PA} 타석</span></div>
       <div className="table-scroll season-table" tabIndex={0} role="region" aria-label="연도별 타자 기록, 가로로 스크롤 가능">
-        <table className="batting-seasons"><thead><tr>{["시즌", "학년", "PA", "AB", "AVG", "H", "2B", "3B", "HR", "RBI", "R", "BB", "SO", "OBP", "SLG", "OPS", "GB", "FB"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
+        <table className="batting-seasons"><thead><tr>{["시즌", "단계", "PA", "AB", "AVG", "H", "2B", "3B", "HR", "RBI", "R", "BB", "SO", "OBP", "SLG", "OPS", "GB", "FB"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
           <tbody>{visible.map(s => <BattingRow key={s.year} label={String(s.year)} records={s.records} season={s} ended={ended} />)}</tbody>
           <tfoot><BattingRow label="합계" records={total} ended={ended} /></tfoot>
         </table>

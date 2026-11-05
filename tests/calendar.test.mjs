@@ -5,6 +5,22 @@ const require = createRequire(import.meta.url);
 const c = require('../.test-build/lib/sim/calendar.js');
 const e = require('../.test-build/lib/sim/engine.js');
 
+test('paused games never count in standings or advance a tournament round before completion', () => {
+  const calendar = c.buildCalendar(2027), league = calendar.events[0];
+  league.status = 'inProgress'; league.score = [8, 0];
+  const row = c.leagueTable(calendar, league.competitionId, Math.floor(league.homeTeamId / 10)).find(row => row.teamId === league.homeTeamId);
+  assert.equal(row.wins + row.draws + row.losses, 0); assert.equal(row.difference, 0);
+  const tournament = calendar.competitions.find(item => item.kind === 'tournament');
+  c.prepareCompetitions(calendar, tournament.startDate, 'paused-round');
+  const games = calendar.events.filter(game => game.competitionId === tournament.id && game.round === tournament.round);
+  for (const game of games) { game.status = 'completed'; game.advancingTeamId = game.homeTeamId; }
+  games[0].status = 'inProgress'; delete games[0].advancingTeamId;
+  const round = tournament.round;
+  c.finishCompetitionDay(calendar, tournament.startDate); assert.equal(tournament.round, round);
+  games[0].status = 'completed'; games[0].advancingTeamId = games[0].homeTeamId;
+  c.finishCompetitionDay(calendar, tournament.startDate); assert.equal(tournament.round, round + 1);
+});
+
 function playCalendar(year, seed) {
   const calendar = c.buildCalendar(year);
   const appearances = new Map();

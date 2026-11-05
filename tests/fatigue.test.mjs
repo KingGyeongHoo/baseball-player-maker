@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const e = require('../.test-build/lib/sim/engine.js');
+// Fatigue equations are measured without separate choice-based event effects.
+e.params['events.weekly_chance'] = 0;
+e.params['injury.training_base_risk'] = 0;
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
 
 function fixture(mode = 'normal', stamina = 50, recovery = 50) {
@@ -40,10 +43,10 @@ test('normal training generates more fatigue than passive recovery', () => {
   const { state, player, policy } = fixture();
   const result = e.advanceWeek(state, policy, player.stance);
   const fatigue = result.report.fatigue;
-  close(fatigue.training, 3.45); close(fatigue.game, 0); close(fatigue.recovered, 1.15);
-  close(fatigue.peak, 2.85); close(e.getPlayer(result).fatigue, 2.3);
+  close(fatigue.training, 3); close(fatigue.game, 0); close(fatigue.recovered, 1.15);
+  close(fatigue.peak, 2.4); close(e.getPlayer(result).fatigue, 1.85);
   assert.equal(fatigue.days.length, 7);
-  for (const [i, day] of fatigue.days.entries()) close(day.training, i < 5 ? 0.69 : 0);
+  for (const [i, day] of fatigue.days.entries()) close(day.training, i < 5 ? 0.6 : 0);
   assert.ok(fatigue.days.slice(0, 5).every(day => day.peak > 0));
   assertConservation(result);
 });
@@ -52,17 +55,17 @@ test('weak stamina and recovery leave measurable fatigue after hard training', (
   const { state, player, policy } = fixture('hard', 1, 1);
   const forecast = e.fatigueForecast(player, policy);
   const result = e.advanceWeek(state, policy, player.stance);
-  close(result.report.fatigue.training, 6.58125); close(result.report.fatigue.recovered, 0.8625);
-  close(e.getPlayer(result).fatigue, 5.71875);
-  close(forecast.end, 5.71875); close(forecast.peak, result.report.fatigue.peak);
+  close(result.report.fatigue.training, 9.75); close(result.report.fatigue.recovered, 0.8625);
+  close(e.getPlayer(result).fatigue, 8.8875);
+  close(forecast.end, 8.8875); close(forecast.peak, result.report.fatigue.peak);
   assertConservation(result);
 });
 
 test('forecast distinguishes total training load, available recovery and actual final fatigue', () => {
   const { state, player, policy } = fixture();
   const forecast = e.fatigueForecast(player, policy);
-  close(forecast.weeklyTraining, 3.45); close(forecast.dailyRecovery, 0.15); close(forecast.recoveryCapacity, 1.15);
-  close(forecast.peak, 2.85); close(forecast.end, 2.3);
+  close(forecast.weeklyTraining, 3); close(forecast.dailyRecovery, 0.15); close(forecast.recoveryCapacity, 1.15);
+  close(forecast.peak, 2.4); close(forecast.end, 1.85);
   const result = e.advanceWeek(state, policy, player.stance);
   close(forecast.end, e.getPlayer(result).fatigue);
   close(result.report.fatigue.recovered, 1.15);
@@ -94,20 +97,17 @@ test('game fatigue is separate from training and both reconcile with the actual 
   assertConservation(result);
 });
 
-test('all full budgets accumulate fatigue, in light < normal < hard order, even at maximum fitness', () => {
-  for (const [stamina, recovery] of [[1, 1], [50, 50], [100, 100]]) {
-    const ends = [];
-    for (const mode of ['light', 'normal', 'hard']) {
-      const { state, player, policy } = fixture(mode, stamina, recovery);
-      const forecast = e.fatigueForecast(player, policy);
-      const result = e.advanceWeek(state, policy, player.stance);
-      assert.ok(forecast.weeklyTraining > forecast.recoveryCapacity);
-      assert.ok(e.getPlayer(result).fatigue > 0);
-      close(forecast.end, e.getPlayer(result).fatigue);
-      assertConservation(result);
-      ends.push(forecast.end);
+test('full light budgets recover while normal and hard accumulate at every fitness boundary', () => {
+  for (const [stamina,recovery] of [[1,1],[50,50],[100,100],[1,100],[100,1]]) {
+    const ends=[];
+    for (const mode of ['light','normal','hard']) {
+      const {state,player,policy}=fixture(mode,stamina,recovery);player.fatigue=30;
+      const forecast=e.fatigueForecast(player,policy),result=e.advanceWeek(state,policy,player.stance);
+      if(mode==='light'){assert.ok(forecast.weeklyTraining<forecast.recoveryCapacity);assert.ok(e.getPlayer(result).fatigue<30);}
+      else {assert.ok(forecast.weeklyTraining>forecast.recoveryCapacity);assert.ok(e.getPlayer(result).fatigue>30);}
+      close(forecast.end,e.getPlayer(result).fatigue);assertConservation(result);ends.push(forecast.end);
     }
-    assert.ok(ends[0] < ends[1] && ends[1] < ends[2]);
+    assert.ok(ends[0]<ends[1]&&ends[1]<ends[2]);
   }
 });
 
@@ -140,9 +140,10 @@ test('off-season does not report training load or hide a nonexistent fatigue pea
   assertConservation(result);
 });
 
-test('four consecutive training weeks accumulate one tenth of the previous baseline without filling fatigue', () => {
-  for (const [mode, expected] of [['light', 3.8], ['normal', 9.2], ['hard', 16.46]]) {
+test('four weeks preserve light recovery, slow normal gain and faster hard gain without filling fatigue', () => {
+  for (const [mode, expected] of [['light', 15.6], ['normal', 37.4], ['hard', 56.6]]) {
     const { state, player, policy } = fixture(mode);
+    player.fatigue = 30;
     let result = state;
     for (let week = 0; week < 4; week++) {
       result = e.advanceWeek(result, policy, player.stance);

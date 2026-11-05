@@ -1,16 +1,10 @@
 import { isPitcher, roleFor, roleScore } from "./sim/engine";
-import type { GameState, Player, Position } from "./sim/types";
+import type { GameState, Player } from "./sim/types";
+import { startingAssignments } from "./roster-status";
 
-const starterSlots: Position[] = ["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH", "SP", "SP", "SP", "RP", "RP", "CP"];
 export function teamStrength(players: Player[], teamId: number) {
   const roster = players.filter(p => p.teamId === teamId);
-  const assigned = new Map<string, Position>();
-  // Expected starting field nine and rotation/bullpen six, using base ability, independent of today's rest/injury.
-  for (const position of starterSlots) {
-    const candidate = roster.filter(p => !assigned.has(p.id) && p.eligiblePositions.includes(position))
-      .sort((a, b) => roleScore(b, roleFor(position)) - roleScore(a, roleFor(position)) || a.id.localeCompare(b.id))[0];
-    if (candidate) assigned.set(candidate.id, position);
-  }
+  const assigned = startingAssignments(roster);
   const members = roster.map(player => {
     const slot = assigned.get(player.id);
     const weight = slot ? 1 : 0.5;
