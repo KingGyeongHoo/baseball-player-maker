@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js'),dual=require('../.test-build/lib/sim/pro-two-way.js'),world=require('../.test-build/lib/sim/pro-world.js'),market=require('../.test-build/lib/sim/pro-market.js');
 const save=require('../.test-build/lib/career-save.js');
+e.params['pro_events.enabled']=0;
 const template=e.createGame('two-way-v071','겸업검증','SS');
 const pitchKeys=['velocity','control','movement'],batKeys=['contact','power','speed','defense'];
 function skills(p,pitch,bat){for(const key of pitchKeys)p.stats[key]=pitch;for(const key of batKeys)p.stats[key]=bat;}

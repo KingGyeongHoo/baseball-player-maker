@@ -5,6 +5,11 @@
   "scope": "high-school-3-seasons-to-draft",
   "notice": "2026-11-04 사용자 요청에 따른 훈련 피로·회복 재조정 및 분야별 초기 능력·희귀 투타 생성 반영. v0.3 JSON/XLSX는 원본으로 보존. 현재 구현은 v0.4 JSON 사용. 실측 통계에 맞춘 최종 밸런스가 아님.",
   "parameters": [
+    { "key": "pro_events.enabled", "label": "프로 선택 이벤트 사용", "value": 1, "unit": "여부", "status": "프로 선택지 기획", "note": "밸런스 비교에서 0이면 신규 프로 선택 통로를 끈다. 기존 저장된 미선택 사건은 마무리 가능." },
+    { "key": "pro_events.general_chance", "label": "프로 일반 사건 주간 확률", "value": 0.35, "unit": "확률", "status": "초기 기획값", "note": "주초 한 번, 적격 날짜와 사건을 예약. 14일 간격·시즌 12회." },
+    { "key": "pro_events.game_chance", "label": "프로 경기 사건 확률", "value": 0.2, "unit": "확률", "status": "초기 기획값", "note": "첫 적격 장면에 경기당 한 번. 7일 간격·시즌 6회." },
+    { "key": "reputation.farm_evidence_weight", "label": "평판 2군 성적 신뢰 비중", "value": 0.5, "unit": "계수", "status": "평가 기반 평판", "note": "1군 증거가 부족한 부분에만 2군 증거를 절반 비중으로 반영. 고정 출장 문턱 없이 연속 변화." },
+    { "key": "reputation.farm_score_cap", "label": "평판 2군 성적 점수 상한", "value": 70, "unit": "점", "status": "평가 기반 평판", "note": "2군 내 상대 성적을 1군 검증과 동일하게 취급하지 않음. 능력 점수와 실제 기록에는 상한 미적용." },
     { "key": "training.batting_fatigue_weight", "label": "타자 기술 티켓의 피로 비중", "value": 0.75, "unit": "계수", "status": "사용자 합의", "note": "타격 4항목과 투구 3항목의 전체 집중 훈련 부담을 맞춤. 성장에는 적용하지 않음." },
     { "key": "training.pitching_fatigue_weight", "label": "투수 기술 티켓의 피로 비중", "value": 1, "unit": "계수", "status": "사용자 합의", "note": "가중 총부하를 전체 최대 부하로 나눠 기존 최대 피로 기준점을 유지." },
     { "key": "training.physical_fatigue_weight", "label": "피지컬 티켓의 피로 비중", "value": 1, "unit": "계수", "status": "사용자 합의", "note": "공통 피지컬은 투구와 같은 비중." },
@@ -1399,11 +1404,11 @@
     },
     {
       "key": "reputation.ability_weight",
-      "label": "평판 현재 OVR 가중치",
+      "label": "평판 역할 기량 기본 가중치",
       "value": 0.6,
       "unit": "계수",
       "status": "사용자 요청 반영",
-      "note": "대표 OVR 반영. 일반 선수는 주력 분야, 겸업 선수는 투수·타자 평균."
+      "note": "역할별 기본 기량. OVR 산식은 별도 유지. 성적 신뢰도가 부족한 비중도 기량으로 배분."
     },
     {
       "key": "reputation.performance_weight",
@@ -1411,15 +1416,15 @@
       "value": 0.4,
       "unit": "계수",
       "status": "사용자 요청 반영",
-      "note": "표본 보정한 경기 성과 백분위. 진급 후에도 마지막 성과 평가 유지"
+      "note": "새 평가의 사건별 표본 보정·레벨별 리그 기준·최근 3년 가중 성과. 신뢰도에 따라 최대 40% 반영."
     },
     {
       "key": "reputation.unrated_performance",
       "label": "출전 전 중립 성과 평가",
       "value": 50,
       "unit": "계수",
-      "status": "사용자 요청 반영",
-      "note": "경기 기록이 없을 때만 50점 사용"
+      "status": "이전 평판식 호환용 · 현재 미사용",
+      "note": "새 평판은 기록이 없을 때 가상 성적 50점을 만들지 않고 역할 기량만 반영."
     },
     {
       "key": "draft.fit_weight",

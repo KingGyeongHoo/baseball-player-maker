@@ -3,8 +3,11 @@ import { simulateGame } from "./match-engine";
 import { advanceWeek, refreshWeekReport } from "./week-engine";
 import { resolveCareerEvent } from "./event-system";
 import { professionalGrowth } from "./pro-growth";
+import {syncJerseyNumbers} from "../jersey-numbers";
+import {captureEvaluationChange,capturePlayerEvaluations} from "./evaluation-lifecycle";
+import {reputationBreakdown,updateEvaluationReputations} from "./evaluation-reputation";
 export { simulateGame, advanceWeek, refreshWeekReport };
-export const answerCareerEvent = resolveCareerEvent;
+export const answerCareerEvent = (...args:Parameters<typeof resolveCareerEvent>) => captureEvaluationChange(syncJerseyNumbers(resolveCareerEvent(...args)),getPlayer(args[0]));
 import balance from "../../baseball_balance_v0_4.json";
 import { statKeys, ticketKeys, type Stats, type Stat, type Ticket, type Mode, type Policy, type Position, type Role, type Player, type GameState, type Calendar, type RecordLine } from "./types";
 export const params: Record<string, number> = Object.fromEntries(balance.parameters.map(p => [p.key, p.value]));
@@ -220,11 +223,7 @@ export const positionLabel = (p: Player) => p.twoWay ? `${roleFor(p.twoWay.pitch
 export const pitchingRole = (p: Player) => p.twoWay ? roleFor(p.twoWay.pitchingPosition) : p.primaryRole;
 export const twoWayReputation = (p: Player) => p.twoWay ? Math.max(p.twoWay.reputationBonus, 3 * Math.min(1, p.seasonStats.batting.PA / 20, p.seasonStats.pitching.BF / 15)) : 0;
 export const roleScore = (p: Player, role = p.primaryRole) => Object.entries(balance.roleWeights[role]).reduce((sum, [key, weight]) => sum + p.stats[key as Stat] * weight, 0);
-export const reputationScore = (p: Player) => clamp(
-  params["reputation.ability_weight"] * overall(p)
-  + params["reputation.performance_weight"] * (p.performanceReputation ?? params["reputation.unrated_performance"])
-  + (p.reputationBonus ?? 0) + (p.professional?.proBonus??0) + twoWayReputation(p)
-);
+export const reputationScore = (p: Player) => reputationBreakdown(p).total;
 export function talentLabel(p: Player, type: "batting" | "pitching") {
   const n = p.talentExposure[type];
   return n < params["talent.hint"] ? "미상" : n < params["talent.reveal"] ? p.talent[type] <= 3 ? "낮음" : p.talent[type] <= 7 ? "보통" : "높음" : `${p.talent[type]} / 10`;
@@ -240,6 +239,7 @@ function makePlayer(s: GameState, teamId: number, grade: number, index: number, 
     name: surnames[Math.floor(random(s, "generation") * surnames.length)] + names[Math.floor(random(s, "generation") * names.length)],
     teamId,
     grade,
+    ...(grade===1?{freshmanReserve:true}:{}),
     primaryRole: role,
     preferredRole: role,
     position: pos,
@@ -350,16 +350,19 @@ export function createGame(seed: string, name: string, position: Position, teamI
   const p = s.players[teamId * params["world.grade_size"] * 3];
   p.name = name.trim();
   s.playerId = p.id;
+  syncJerseyNumbers(s);
   updateReputation(s);
   s.history.push({
     week: 1,
     ovr: overall(p), ovrScale: 100,
     fatigue: 0
   });
+  capturePlayerEvaluations(s,"entry");
   return s;
 }
 export const getPlayer = (s: GameState) => s.players.find(p => p.id === s.playerId)!;
-export function effective(p: Player): Stats {
+export function effective(p: Player, configuration:Record<string,number> = params): Stats {
+  const params=configuration;
   const s = {
     ...p.stats
   };
@@ -378,7 +381,8 @@ export function effective(p: Player): Stats {
   for (const k of statKeys) if (k !== "stamina" && k !== "recovery") s[k] = clamp(s[k] * f, 1, params["match.effective_max"]);
   return s;
 }
-export function probabilities(b: Stats, p: Stats, defense: number, arm: number) {
+export function probabilities(b: Stats, p: Stats, defense: number, arm: number, configuration:Record<string,number> = params) {
+  const params=configuration;
   const bounded = (prefix: string, diff: number) => clamp(params[`match.${prefix}_base`] + params[`match.${prefix}_slope`] * diff, params[`match.${prefix}_min`], params[`match.${prefix}_max`]);
   const attack = params["match.attack_contact"] * b.contact + params["match.attack_bq"] * b.bq;
   const pitch = params["match.pitch_velocity"] * p.velocity + params["match.pitch_control"] * p.control + params["match.pitch_movement"] * p.movement + params["match.pitch_bq"] * p.bq;
@@ -479,7 +483,7 @@ export function updateReputation(s: GameState) {
     });
     const total = emptyRecord();
     for (const r of records) mergeRecord(total, r);
-    if (!recent) s.records = total;
+    if (!recent) {s.records = total;continue;}
     const zs = new Map<string, number>();
     for (const pitching of [false, true]) {
       const league = pitching ? pitchingQ(total) : ops(total) ?? 0;
@@ -506,29 +510,13 @@ export function updateReputation(s: GameState) {
         adjusted
       } of evaluated) if (isPitcher(p.primaryRole) === pitching) zs.set(p.id, sd ? (adjusted - mean) / sd : 0);
     }
-    if (recent) {
-      for (const p of s.players) p.recentZ = zs.get(p.id) ?? 0;
-      continue;
-    }
-    const sorted = [...zs.values()].sort((a, b) => a - b);
-    const ranks = new Map<number, number>();
-    for (let i = 0; i < sorted.length;) {
-      let j = i + 1;
-      while (j < sorted.length && sorted[j] === sorted[i]) j++;
-      ranks.set(sorted[i], sorted.length === 1 ? 50 : 100 * (i + (j - i - 1) / 2) / (sorted.length - 1));
-      i = j;
-    }
-    // Keep the last performance assessment across promotions and role changes.
-    // Current ability still contributes when there are no new appearances.
-    for (const p of s.players) {
-      if (zs.has(p.id)) p.performanceReputation = ranks.get(zs.get(p.id)!)!;
-      if (p.twoWay) p.twoWay.reputationBonus = twoWayReputation(p);
-      p.reputation = reputationScore(p);
-    }
+    for (const p of s.players) p.recentZ = zs.get(p.id) ?? 0;
   }
+  updateEvaluationReputations(s);
 }
-export { draftBoard, draftPlayers, draftForecast, draftProjection, draftClubs } from "./draft";
+export { draftBoard, draftPlayers, draftForecast, draftProjection, draftClubs,draftClubOrder } from "./draft";
 export function promote(s: GameState) {
+  capturePlayerEvaluations(s,"season-end");
   for (const p of s.players) {
     p.career.push({
       year: s.calendar.seasonYear,
@@ -541,6 +529,7 @@ export function promote(s: GameState) {
       }
     });
     p.grade++;
+    delete p.freshmanReserve;
     p.seasonStats = emptyRecord();
     p.recentAppearances = [];
     p.recentZ = 0;
@@ -552,6 +541,8 @@ export function promote(s: GameState) {
     for (let i = 0; i < params["world.grade_size"]; i++) s.players.push(makePlayer(s, t.id, 1, i, year, slotPositions[0][i]));
   }
   s.calendar = calendar(year);
+  syncJerseyNumbers(s);
+  capturePlayerEvaluations(s,"season-start");
 }
 export function assignRole(p: Player, role: Role) {
   const pos = (["1B", "SS", "C", "SP", "RP", "CP"] as Position[]).find(position => roleFor(position) === role)!;
@@ -568,5 +559,6 @@ export function answerOffer(input: GameState, accept: boolean) {
   p.roleOffer = null;
   p.offerWeeks = 0;
   p.offerCooldown = params["coach.offer_cooldown"];
-  return s;
+  syncJerseyNumbers(s);
+  return captureEvaluationChange(s,getPlayer(input));
 }

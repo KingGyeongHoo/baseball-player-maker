@@ -1,0 +1,116 @@
+{
+  "activeVariant": "light",
+  "activePriors": {
+    "events": 50,
+    "hits": 90,
+    "extraBases": 150
+  },
+  "activeHoldoutImprovement": 0.8593657823124996,
+  "model": "scouting-v1",
+  "generatedAt": "2026-11-06T06:15:39.924Z",
+  "scope": "Fixed first-team opponent model experiments; not a longitudinal validation of promotion, contracts or pro success.",
+  "priors": {
+    "raw": null,
+    "light": {
+      "events": 50,
+      "hits": 90,
+      "extraBases": 150
+    },
+    "initial": {
+      "events": 100,
+      "hits": 180,
+      "extraBases": 300
+    },
+    "strong": {
+      "events": 200,
+      "hits": 360,
+      "extraBases": 600
+    }
+  },
+  "errors": {
+    "development": {
+      "raw": {
+        "squaredError": 8.282118866656809,
+        "cases": 128,
+        "mse": 0.06470405364575632
+      },
+      "light": {
+        "squaredError": 1.0722612139206684,
+        "cases": 128,
+        "mse": 0.008377040733755222
+      },
+      "initial": {
+        "squaredError": 1.108743313967704,
+        "cases": 128,
+        "mse": 0.008662057140372688
+      },
+      "strong": {
+        "squaredError": 1.2193143695598692,
+        "cases": 128,
+        "mse": 0.009525893512186478
+      }
+    },
+    "holdout": {
+      "raw": {
+        "squaredError": 2.4987070078942772,
+        "cases": 64,
+        "mse": 0.03904229699834808
+      },
+      "light": {
+        "squaredError": 0.3514037052854865,
+        "cases": 64,
+        "mse": 0.005490682895085726
+      },
+      "initial": {
+        "squaredError": 0.37788013666914777,
+        "cases": 64,
+        "mse": 0.005904377135455434
+      },
+      "strong": {
+        "squaredError": 0.42850151059677616,
+        "cases": 64,
+        "mse": 0.0066953361030746275
+      }
+    }
+  },
+  "developmentBest": "light",
+  "initialHoldoutImprovement": 0.848769729513987,
+  "conditionalProbabilities": {
+    "expected": {
+      "bb": 0.059185622317705106,
+      "hit": 0.21576992327591193,
+      "k": 0.2110463115800557,
+      "single": 0.15507802496311318,
+      "double": 0.04101959091786129,
+      "triple": 0.003726422807573996,
+      "hr": 0.015945884587363405,
+      "obp": 0.274955545593617,
+      "slg": 0.33171263213453794,
+      "ops": 0.606668177728155,
+      "opponents": 64
+    },
+    "observed": {
+      "bb": 0.059925,
+      "k": 0.21182,
+      "hr": 0.016055,
+      "ops": 0.6091317397548068
+    },
+    "plateAppearances": 200000
+  },
+  "preserved": {
+    "randomStreams": true,
+    "draftTop10": true,
+    "developmentalRules": true,
+    "nationalTeamRules": true
+  },
+  "decisionMode": "comparison-only",
+  "registrationComparison": {
+    "players": 601,
+    "meanDifference": 0
+  },
+  "limits": [
+    "Priors remain provisional game parameters; no claim of real league calibration.",
+    "No second-team-to-first-team multiplication or fake defensive/medical measurements.",
+    "Registration and contract formulas are intentionally not switched before longitudinal validation."
+  ]
+}

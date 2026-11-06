@@ -4,6 +4,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js'),life=require('../.test-build/lib/sim/pro-season.js'),world=require('../.test-build/lib/sim/pro-world.js'),market=require('../.test-build/lib/sim/pro-market.js'),growth=require('../.test-build/lib/sim/pro-growth.js'),evaluation=require('../.test-build/lib/sim/pro-evaluation.js');
 const {eventTrainingReward}=require('../.test-build/lib/sim/event-system.js');
 const {encodeCareerSave,decodeCareerSave,validateCareerState}=require('../.test-build/lib/career-save.js');
+e.params['pro_events.enabled']=0;
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('lifecycle-tests','긴커리어','SS'));
 const fixture=()=>structuredClone(template),close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 const acknowledge=s=>{while(s.careerNotice)s=pc.acknowledgeCareer(s);return s;};
@@ -64,8 +65,8 @@ test('FA offers are at most three, future commitments obey budgets, and market r
   const s=summary(),p=e.getPlayer(s);p.professional.faEligible=true;market.openContractMarket(s);assert.equal(s.proWorld.market.kind,'fa');assert.ok(s.proWorld.market.offers.length<=3);market.waitForOffers(s);market.waitForOffers(s);assert.equal(s.proWorld.market.round,2);assert.throws(()=>market.waitForOffers(s),/세 차례/);assert.equal(market.canAfford(s,0,1000*world.BASE_SALARY,2029,4),false);
 });
 test('release keeps identity and regular status, charges future guaranteed money once, and re-signing preserves records',()=>{
-  const s=fixture(),p=e.getPlayer(s),id=p.id;p.professional.contract.endYear=2030;p.proContract.status='regular';p.seasonByLevel.second.batting.PA=80;
-  market.releasePlayer(s,p,'test',2029);assert.equal(p.teamId,-1);assert.equal(p.professional.employment,'freeAgent');assert.equal(p.professional.guarantees.length,2);assert.equal(s.proWorld.clubs[0].deadMoney['2029'],world.BASE_SALARY);market.releasePlayer(s,p,'test',2029);assert.equal(p.professional.guarantees.length,2);
+  const s=fixture(),p=e.getPlayer(s),id=p.id,club=p.professional.contract.club;p.professional.contract.endYear=2030;p.proContract.status='regular';p.seasonByLevel.second.batting.PA=80;
+  market.releasePlayer(s,p,'test',2029);assert.equal(p.teamId,-1);assert.equal(p.professional.employment,'freeAgent');assert.equal(p.professional.guarantees.length,2);assert.equal(s.proWorld.clubs[club].deadMoney['2029'],world.BASE_SALARY);market.releasePlayer(s,p,'test',2029);assert.equal(p.professional.guarantees.length,2);
   market.signContract(s,p,{id:'new-contract',club:1,year:2029,years:1,salary:world.BASE_SALARY,role:'경쟁',kind:'released',negotiated:false,final:true,competition:[]});assert.equal(p.id,id);assert.equal(p.proContract.status,'regular');assert.equal(p.seasonByLevel.second.batting.PA,80);assert.equal(p.teamId,11);
 });
 test('a trade changes both memberships atomically, keeps contracts/records/status and closes after the first half',()=>{
@@ -74,8 +75,8 @@ test('a trade changes both memberships atomically, keeps contracts/records/statu
   const success=market.tradePlayer(s,p);assert.equal(success,true);assert.notEqual(p.teamId%10,0);assert.equal(p.seasonByLevel.second.batting.PA,30);assert.equal(p.professional.movements.at(-1).kind,'트레이드');assert.deepEqual(new Set(s.players.map(p=>p.id)),ids);assert.equal(p.professional.contract.club,p.teamId%10);
   s.proWorld.stage='regular';s.date=e.addDays(s.calendar.events.filter(g=>g.competitionId==='pro-first')[360].date,1);assert.equal(market.tradePlayer(s,p),false);
 });
-test('requests have a four-week cooldown; role evaluation retains the requested field position and old eligibility',()=>{
-  const s=fixture(),p=e.getPlayer(s),eligible=[...p.eligiblePositions];market.careerRequest(s,'position','3B');assert.ok(p.professional.roleTrial);assert.throws(()=>market.careerRequest(s,'manage'),/이후/);s.date=p.professional.roleTrial.until;delete s.careerNotice;market.finishRoleTrial(s);assert.equal(p.position,'3B');assert.ok(eligible.every(pos=>p.eligiblePositions.includes(pos)));
+test('requests have a four-week cooldown; role evaluation waits for explicit choice and retains old eligibility',()=>{
+  const s=fixture(),p=e.getPlayer(s),eligible=[...p.eligiblePositions],original=p.position;market.careerRequest(s,'position','3B');assert.ok(p.professional.roleTrial);assert.throws(()=>market.careerRequest(s,'manage'),/이후/);const trial=p.professional.roleTrial;trial.trainingDates=s.calendar.trainingDays.filter(date=>date>=trial.started&&date<trial.until).slice(0,5);s.date=trial.until;delete s.careerNotice;market.finishRoleTrial(s);assert.equal(p.position,original);assert.ok(require('../.test-build/lib/sim/pro-role-evaluation.js').reviewProRoleTrial(s));const accepted=e.answerCareerEvent(s,'accept'),result=e.getPlayer(accepted);assert.equal(result.position,'3B');assert.ok(eligible.every(pos=>result.eligiblePositions.includes(pos)));
 });
 test('an older player can request an evaluation without falsifying their actual last appearance',()=>{
   const s=fixture(),p=e.getPlayer(s);p.age=32;p.professional.rookieYear=2020;p.professional.lastAppearance=s.date;

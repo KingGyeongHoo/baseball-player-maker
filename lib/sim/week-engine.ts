@@ -7,10 +7,15 @@ import { statKeys, type GameState, type Player, type Policy, type Stance } from 
 import { finishDevelopmentSeason, reviewProRoster, reviewDevelopmentContract } from "./pro-career";
 import { developmentalOffer } from "./draft-outcome";
 import { tryDevelopmentEvent } from "./pro-events";
-import {ensureProWorld,prepareEvaluationOpportunities,recordProfessionalDay,reviewProfessionalReputation,reviewProMilestones} from "./pro-world";
+import {ensureProWorld,prepareEvaluationOpportunities,recordProfessionalDay,reviewProMilestones} from "./pro-world";
 import {preparePlayoffReplacements} from "./pro-season";
 import {finishRoleTrial} from "./pro-market";
 import {recordProTwoWayDay,reviewProTwoWay} from "./pro-two-way";
+import {syncJerseyNumbers} from "../jersey-numbers";
+import {capturePendingEvaluationChanges,capturePlayerEvaluations,recordEvaluationDay} from "./evaluation-lifecycle";
+import {tickProEvents} from "./pro-event-ledger";
+import {openProGeneralEvent,planProEventWeek,proMajorDueToday} from "./pro-event-runtime";
+import {recordProRoleTraining,reviewProRoleTrial} from "./pro-role-evaluation";
 
 export function refreshWeekReport(s: GameState) {
   const progress = s.weekProgress;
@@ -35,6 +40,10 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
   if (!validPolicy(policy)) throw new Error("훈련 티켓 배분을 확인해 주세요.");
   const s = structuredClone(input), player = getPlayer(s);
   ensureProWorld(s);
+  tickProEvents(s);
+  updateReputation(s);
+  syncJerseyNumbers(s,true);
+  if(!s.evaluationSystem)capturePlayerEvaluations(s,"introduced");
   if (!s.weekProgress) {
     player.trainingPolicy = structuredClone(policy); player.stance = { ...stance };
     prepareCompetitions(s.calendar, s.date, s.seed);
@@ -42,17 +51,19 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
       report: { from: s.date, to: s.date, growth: emptyStats(), fatigueBefore: player.fatigue, fatigueAfter: player.fatigue,
         fatigue: { training: 0, game: 0, recovered: 0, peak: player.fatigue, days: [], events: 0 }, games: [], messages: [], records: emptyRecord(), reputationBefore: player.reputation, reputationAfter: player.reputation } };
     s.weekProgress.opportunity = planEventWeek(s);
+    planProEventWeek(s);
   } else { player.trainingPolicy = structuredClone(s.weekProgress.policy); player.stance = { ...s.weekProgress.stance }; }
   const progress = s.weekProgress, report = progress.report;
   progress.fatigueRecoveryStats??=s.players.map(p=>[p.id,p.stats.recovery]);
   const fatigueRecoveryStats=new Map(progress.fatigueRecoveryStats);
   let rosters: Player[][] = s.teams.map(() => []);
   for (const p of s.players) if(p.teamId>=0)rosters[p.teamId].push(p);
-  const pause = () => { refreshWeekReport(s); return s; };
+  const pause = () => { refreshWeekReport(s); return syncJerseyNumbers(capturePendingEvaluationChanges(s)); };
   while (progress.remainingDays > 0) {
     const date = s.date;
     if (!twoWayQualified(player)) progress.twoWayQualified = false;
     if (!progress.day) {
+      tickProEvents(s);
       for(const p of s.players)if(p.professional?.managedUntil&&s.date>p.professional.managedUntil)delete p.professional.managedUntil;
       if (!s.careerMode && date > s.calendar.seasonEnd) {
         promote(s); rosters = s.teams.map(() => []); for (const p of s.players) rosters[p.teamId].push(p);
@@ -85,6 +96,7 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
       reviewProMilestones(s);if(s.careerNotice)return pause();
       if(reviewProTwoWay(s))return pause();
       prepareEvaluationOpportunities(s,day.gameIds);if(s.careerNotice)return pause();
+      if(s.careerMode==="pro"&&(reviewProRoleTrial(s,proMajorDueToday(s))||s.careerNotice))return pause();
       if (tryDevelopmentEvent(s)) return pause();
       if (tryCareerOpportunity(s)) return pause();
       if (openScheduledEvent(s, "beforeGames")) return pause();
@@ -109,7 +121,7 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
       }
       finishCompetitionDay(s.calendar, date);
       day.phase = "players";
-      if (day.gameIds.length) {updateReputation(s);reviewProfessionalReputation(s);}
+      if (day.gameIds.length) updateReputation(s);
       if (tryNationalEvent(s)) return pause();
     }
     if (day.phase === "players") {
@@ -120,7 +132,7 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
       while (day.playerIndex < s.players.length) {
         const p = s.players[day.playerIndex];
         if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
-        if (p.id === s.playerId && (tryTrainingFocus(s) || openScheduledEvent(s, "training"))) { day.active = [...active]; return pause(); }
+        if (p.id === s.playerId && (openProGeneralEvent(s) || tryTrainingFocus(s) || openScheduledEvent(s, "training"))) { day.active = [...active]; return pause(); }
         const injured = !!p.injury && date < p.injury.unavailableUntil;
         let trained = false;
         if (p.id === s.playerId && injured) s.injuryDays++;
@@ -131,6 +143,7 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
           if (p.id === s.playerId && p.transferAdaptation?.weeksRemaining) progress.adaptationTrained = true;
           active.add(p.id);
           trained = true;
+          if(s.careerMode==="pro")recordProRoleTraining(s,p);
         }
         const allocation=p.forcedRest||injured||p.trainingPolicy.mode==="rest"||!trainingCycle||p.id===s.playerId&&day.skipPlayerTraining?0:p.trainingPolicy;
         const beforeFatigue=p.fatigue,fatigueDay=trainingFatigueDay(p.fatigue,fatigueRecoveryStats.get(p.id)??p.stats.recovery,allocation);
@@ -161,9 +174,12 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
       if(player.teamId>=0&&player.teamId<10)s.postSchool.pro.firstTeamWeeks+=1/7;else if(player.teamId>=10)s.postSchool.pro.secondTeamWeeks+=1/7;
       recordProfessionalDay(s);recordProTwoWayDay(s);reviewDevelopmentContract(s);
     }
-    if (finishDevelopmentSeason(s)) break;
+    recordEvaluationDay(s);capturePlayerEvaluations(s);
+    if (finishDevelopmentSeason(s)) {if(s.phase==="ended")capturePlayerEvaluations(s,"season-end");break;}
     if (!s.careerMode && player.grade === 3 && date >= s.calendar.draftDate) {
-      updateReputation(s); s.draft = draftPlayers(s); s.phase = "ended";
+      updateReputation(s);
+      capturePlayerEvaluations(s,"draft",s.players.filter(p=>p.grade===3).map(p=>p.id));
+      s.draft = draftPlayers(s); s.phase = "ended";
       s.draftOutcome = {revealed:false,offer:developmentalOffer(s)};
       s.pendingEvents = [{ type: "draft", date, playerId: s.playerId }]; report.messages.push("고교 3시즌의 여정이 끝났습니다. 드래프트 결과를 확인하세요.");
       break;
@@ -191,12 +207,11 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
     if (extra > 0) report.messages.push(`투타 양쪽 출전으로 추가 피로 ${extra.toFixed(2)}가 쌓였습니다.`);
   }
   updateReputation(s);
-  reviewProfessionalReputation(s);
   for (const key of statKeys) report.growth[key] = player.stats[key] - progress.beforeStats[key];
   report.fatigueAfter = player.fatigue; report.reputationAfter = player.reputation;
   if (!Object.values(report.growth).some(n => n > 0)) report.messages.push(player.injury && s.date < player.injury.unavailableUntil ? "부상으로 훈련에 참가하지 못했습니다." : progress.policy.mode === "rest" ? "회복 방침으로 훈련과 출전을 쉬었습니다." : ticketsUsed(progress.policy) === 0 ? "사용한 티켓이 없어 성장하지 않았습니다." : "비시즌으로 정규 훈련이 없습니다.");
   if (player.offerCooldown > 0) player.offerCooldown--;
   s.week++; s.report = report; s.history.push({ week: s.week, ovr: overall(player), ovrScale:100, fatigue: player.fatigue });
   delete s.weekProgress;
-  return s;
+  return syncJerseyNumbers(capturePendingEvaluationChanges(s));
 }

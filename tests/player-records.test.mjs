@@ -78,7 +78,7 @@ test('actual yearly promotion preserves each season and exposes all three years'
   const total = totalRecords(rows); assert.equal(total.batting.H, 9); assert.equal(total.pitching.outs, 35);
 });
 
-test('promotion preserves earned reputation through weeks without new appearances, while freshmen start with a neutral performance assessment', () => {
+test('promotion preserves observed reputation while freshmen have no invented performance evidence', () => {
   let state = recordsGame('reputation-promotion', '평판유지', 'SS');
   const player = e.getPlayer(state);
   for (const key of Object.keys(player.stats)) player.stats[key] = 80;
@@ -97,23 +97,25 @@ test('promotion preserves earned reputation through weeks without new appearance
   e.getPlayer(state).seasonStats = record(10, 4, 2, 0, 0);
   state = step(state);
   assert.equal(e.getPlayer(state).performanceReputation, 50);
-  close(e.getPlayer(state).reputation, 68);
+  close(e.getPlayer(state).reputation, 78);
 });
 
-test('switching to pitching retains reputation, hitter eligibility and batting records before the first pitching appearance', () => {
+test('switching to pitching preserves batting records and eligibility without reusing batting performance as pitching evidence', () => {
   const original = recordsGame('two-way-reputation', '겸업선수', 'SS');
   const p = e.getPlayer(original);
   for (const key of Object.keys(p.stats)) p.stats[key] = 100;
   p.performanceReputation = 60;
   p.reputation = 84;
   p.seasonStats = record(20, 7, 2, 0, 0);
+  p.seasonStats.pitching=e.emptyRecord().pitching;
   p.roleOffer = '선발';
   original.date = '2027-12-20';
   const accepted = e.answerOffer(original, true);
   const result = e.advanceWeek(accepted, e.getPlayer(accepted).trainingPolicy, p.stance);
   const converted = e.getPlayer(result);
   assert.equal(converted.primaryRole, '선발');
-  assert.equal(converted.reputation, 84);
+  close(converted.reputation,e.roleScore(converted));
+  assert.equal(converted.performanceReputation,null);
   assert.ok(converted.eligiblePositions.includes('SP') && converted.eligiblePositions.includes('SS'));
   assert.deepEqual(converted.seasonStats.batting, p.seasonStats.batting);
   assert.equal(converted.seasonStats.pitching.outs, 0);

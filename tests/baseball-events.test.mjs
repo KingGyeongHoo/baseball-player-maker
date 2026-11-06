@@ -144,7 +144,7 @@ test('national selection uses all grades, exact reputation and ID ties, includin
   tied.careerEvent=null;tied.eventLedger.nationalGrades=[];tied.playerId=ranked[23].id;ranked[23].grade=2;assert.equal(system.tryNationalEvent(tied),false);
 });
 test('national offers ignore weekly chance, occur once per eligible grade and never occur after career end',()=>{
-  const s=fixture(),p=e.getPlayer(s);p.reputation=100;assert.equal(system.tryNationalEvent(s),false);p.grade=2;
+  const s=fixture(),p=e.getPlayer(s);p.reputationBonus=50;p.reputation=e.reputationScore(p);assert.equal(system.tryNationalEvent(s),false);p.grade=2;
   assert.ok(withParams({'events.weekly_chance':0},()=>system.tryNationalEvent(s)));forceRolls(s,[0,.25]);
   let n=e.answerCareerEvent(s,'choice-1');assert.equal(system.tryNationalEvent(n),false);e.getPlayer(n).grade=3;assert.ok(system.tryNationalEvent(n));
   n.careerEvent=null;n.eventLedger.nationalGrades=[];n.phase='ended';assert.equal(system.tryNationalEvent(n),false);
@@ -212,7 +212,7 @@ test('national call-up has priority over a planned scene and its injury cancels 
   assert.equal(e.getPlayer(resumed).seasonStats.pitching.BF,0);assert.ok(e.getPlayer(resumed).injury);assert.deepEqual(resumed.careerEventHistory.map(o=>o.definitionId),['P08']);
 });
 test('a new qualification after a scene is checked immediately and an injured pending pitcher is substituted before any pitch',()=>{
-  const s=gameFixture('SP'),p=e.getPlayer(s);p.grade=2;p.performanceReputation=0;p.reputation=e.reputationScore(p);schedule(s,'G04');
+  const s=gameFixture('SP'),p=e.getPlayer(s);p.grade=2;p.reputationBonus=-50;p.reputation=e.reputationScore(p);schedule(s,'G04');
   const scene=e.advanceWeek(s,p.trainingPolicy,p.stance);assert.equal(scene.careerEvent.definitionId,'G04');
   scene.careerEvent.choices[0].outcomes=[{weight:100,message:'새로운 평가',reputation:100}];const chosen=e.answerCareerEvent(scene,'choice-1');
   const called=e.advanceWeek(chosen,p.trainingPolicy,p.stance);assert.equal(called.careerEvent.definitionId,'P08');assert.ok(called.matchProgress);

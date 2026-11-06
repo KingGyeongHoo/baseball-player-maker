@@ -15,6 +15,8 @@ const {autoPauseReason}=require('../.test-build/lib/auto-progress.js');
 const {playerSeasons,totalRecords}=require('../.test-build/lib/player-records.js');
 const Continuation=require('../.test-build/app/components/career-continuation.js').default;
 const SeasonRecords=require('../.test-build/app/components/season-records.js').default;
+const TrainingEditor=require('../.test-build/app/components/training-editor.js').default;
+e.params['pro_events.enabled']=0;
 e.params['events.focus_chance']=0;
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 const original=e.createGame('pro-tests','프로검증','SS');
@@ -118,8 +120,8 @@ test('pro/college choices display correct entry options and old high-school-only
   const s=fixture();e.getPlayer(s).grade=2;e.getPlayer(s).reputation=100;assert.equal(tryNationalEvent(s),false);assert.equal(tryCareerOpportunity(s),false);
 });
 
-test('development events pause before future days, use normal training-week rewards and resume without replay',()=>{
-  const s=fixture(),p=e.getPlayer(s);s.week=5;s.lastCareerEventWeek=0;
+test('college keeps legacy development events with normal training-week rewards and no replay',()=>{
+  const s=pc.acknowledgeCareer(pc.continueCareer(graduate(false),'college')),p=e.getPlayer(s);s.week=5;s.lastCareerEventWeek=0;
   let paused;
   for(let seed=0;seed<1000;seed++){s.rngStates.events=seed;const next=advance(s);if(next.careerEvent){paused=next;break;}}
   assert.ok(paused);assert.match(paused.careerEvent.definitionId,/^D0[1-4]$/);assert.equal(paused.week,s.week);assert.equal(paused.weekProgress.remainingDays,7);
@@ -137,4 +139,33 @@ test('full pro rookie season completes all 1080 games with stable population, le
   assert.ok(s.calendar.competitions.every(c=>c.championTeamId!==null));const p=e.getPlayer(s);assert.equal(p.career[0].schoolName,school);assert.ok(p.stats.velocity>=stats.velocity);
   const sum=e.emptyRecord();e.mergeRecord(sum,p.seasonByLevel.first);e.mergeRecord(sum,p.seasonByLevel.second);assert.deepEqual(p.seasonStats,sum);assert.ok(p.seasonStats.pitching.BF>0);
   assert.equal(s.careerNotice.kind,'seasonComplete');assert.throws(()=>advance(s),/종료/);assert.throws(()=>pc.continueCareer(pc.acknowledgeCareer(s),'join'),/계약 화면/);
+});
+
+const recoveryTemplates=new Map();
+function recoveryState(position='SS'){
+  if(!recoveryTemplates.has(position))recoveryTemplates.set(position,pc.acknowledgeCareer(pc.createProfessionalDemo('recovery-pro-'+position,'회복검증',position)));
+  const s=structuredClone(recoveryTemplates.get(position)),p=e.getPlayer(s);s.date='2028-04-01';s.lastCareerEventWeek=s.week;s.trainingFocus={rng:0,rolledWeek:s.week};p.fatigue=70;p.stats.recovery=50;return s;
+}
+function recoveryWeek(input,policy){
+  const keys=['events.weekly_chance','events.focus_chance','injury.training_base_risk','injury.risk_at60','injury.risk_slope60','injury.risk_at80','injury.risk_slope80'],before=keys.map(key=>e.params[key]);
+  try{for(const key of keys)e.params[key]=0;let s=input,guard=0;while(s.week===input.week&&guard++<40){while(s.careerNotice)s=pc.acknowledgeCareer(s);if(s.careerEvent)s=e.answerCareerEvent(s,s.careerEvent.choices[0].id);s=e.advanceWeek(s,policy,e.getPlayer(s).stance);}assert.equal(s.week,input.week+1);return s;}
+  finally{keys.forEach((key,index)=>e.params[key]=before[index]);}
+}
+test('pro recovery still applies daily to hitters and pitchers with zero allocation during scheduled games',()=>{
+  for(const position of ['SS','SP']){const s=recoveryState(position),p=e.getPlayer(s),policy=e.defaultPolicy(p.primaryRole);for(const key of Object.keys(policy.tickets))policy.tickets[key]=0;
+    const next=recoveryWeek(s,policy),f=next.report.fatigue;assert.ok(f.recovered>59.9);assert.ok(e.getPlayer(next).fatigue<20);assert.ok(f.game>=0);assert.ok(Math.abs(next.report.fatigueAfter-(70+f.training+f.game+(f.events??0)-f.recovered))<1e-8);assert.deepEqual(e.getPlayer(next).trainingPolicy,policy);
+  }
+});
+test('pro recovery forecast is training-only and actual game costs can outweigh a small recovery allocation',()=>{
+  const s=recoveryState(),p=e.getPlayer(s);for(const key of ['contact','power','speed','defense'])p.stats[key]=100;const policy=e.defaultPolicy(p.primaryRole),forecast=e.fatigueForecast(p,policy,s.date);assert.ok(forecast.end<p.fatigue);
+  const next=recoveryWeek(s,policy),f=next.report.fatigue;assert.ok(f.recovered>0);assert.ok(f.game>f.recovered);assert.ok(e.getPlayer(next).fatigue>p.fatigue);
+  const copy=JSON.stringify(next),html=renderToStaticMarkup(createElement(TrainingEditor,{player:e.getPlayer(next),policy,setPolicy(){},date:next.date,context:next}));
+  assert.match(html,/훈련 기준/);assert.match(html,/훈련만 반영한 예상 피로/);assert.match(html,/경기 피로는 별도/);assert.match(html,/최근 실제 피로/);assert.match(html,/경기 출전 피로가 더 크면/);assert.equal(JSON.stringify(next),copy);
+});
+test('pro recovery notice counts only the current team upcoming week and works without an old report',()=>{
+  const s=recoveryState(),p=e.getPlayer(s),sample=s.calendar.events[0],date=s.date;s.report=null;
+  s.calendar.events=[0,6,-1,7].map((offset,index)=>({...sample,id:'upcoming-'+index,date:e.addDays(date,offset),homeTeamId:p.teamId,awayTeamId:(p.teamId+1)%10,status:'scheduled'}));
+  s.calendar.events.push({...sample,date,homeTeamId:p.teamId,status:'completed'},{...sample,date,homeTeamId:p.teamId,status:'forfeit'},{...sample,date,homeTeamId:99,awayTeamId:98,status:'scheduled'});
+  const html=renderToStaticMarkup(createElement(TrainingEditor,{player:p,policy:p.trainingPolicy,setPolicy(){},date,context:s}));assert.match(html,/이번 주 예정 2경기/);assert.doesNotMatch(html,/최근 실제 피로/);
+  s.calendar.events=[];const empty=renderToStaticMarkup(createElement(TrainingEditor,{player:p,policy:p.trainingPolicy,setPolicy(){},date,context:s}));assert.doesNotMatch(empty,/이번 주 예정/);assert.match(empty,/훈련·회복만 반영/);
 });

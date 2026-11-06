@@ -4,15 +4,18 @@ import { developmentalOffer, revealDraftResult } from "./draft-outcome";
 import { ensureProWorld,proNews,reviewLeagueRegistrations,BASE_SALARY } from "./pro-world";
 import { finishProfessionalDay } from "./pro-season";
 import type { GameState, Player, Position, ProLevel, Team } from "./types";
+import {syncJerseyNumbers} from "../jersey-numbers";
+import {capturePlayerEvaluations} from "./evaluation-lifecycle";
+import {tryProNationalInvitation} from "./pro-national-events";
 
-export type CareerChoice = "join" | "tryout" | "college" | "developmental";
+export type CareerChoice = "join" | "tryout" | "college" | "developmental" | "direct";
 const slots: Position[] = ["C","C","C","1B","1B","2B","2B","3B","3B","SS","SS","LF","LF","CF","CF","RF","RF","DH","SP","SP","SP","SP","SP","SP","RP","RP","RP","RP","CP","CP"];
 const firstNames = ["도현","민준","서준","지훈","현우","우진","건우","성민","승현","재윤","준혁","정우","동현","유찬","태민"];
 const surnames = ["김","이","박","최","정","강","조","윤","장","임","한","송","서","오"];
 const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind"], title: string, message: string) => {
   s.careerNotice = { id: `${s.date}:${s.week}:${kind}`, date: s.date, kind, title, message };
 };
-export const acknowledgeCareer = (input: GameState): GameState => { const s = structuredClone(input); delete s.careerNotice;const next=s.noticeQueue?.shift();if(next)s.careerNotice=next; return s; };
+export const acknowledgeCareer = (input: GameState): GameState => { const s = structuredClone(input); delete s.careerNotice;const next=s.noticeQueue?.shift();if(next)s.careerNotice=next;else tryProNationalInvitation(s); return s; };
 function path(s: GameState) {
   const p = getPlayer(s);
   return s.postSchool ??= { graduationYear: s.calendar.seasonYear, graduationSchool: s.teams[p.teamId].name, collegeYears: 0, tryouts: [] };
@@ -47,7 +50,7 @@ function npc(seed: string, teamId: number, index: number, mode: "pro" | "college
     const center = core || shared ? first ? params["pro.first_mean"] : mode === "college" ? core ? 50.5 : 55.5 : params["pro.second_mean"] : params["pro.secondary_mean"];
     p.stats[key] = clamp(center + (random(source,"generation") - .5) * (core || shared ? 15 : 10),1);
   }
-  p.initialStats = { ...p.stats }; p.performanceReputation = 50; p.reputation = reputationScore(p);
+  p.initialStats = { ...p.stats }; p.performanceReputation = null; p.reputation = reputationScore(p);
   if (mode === "pro") p.seasonByLevel = { first: emptyRecord(), second: emptyRecord() };
   return p;
 }
@@ -64,10 +67,11 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   if (input.careerMode === "pro") throw new Error("프로의 다음 시즌은 계약 화면에서 선택해 주세요.");
   if (!input.careerMode && !input.draftOutcome?.revealed) throw new Error("드래프트 결과를 먼저 확인해 주세요.");
   const s = structuredClone(input), p = getPlayer(s), info = path(s);
-  const board = s.careerMode === "college" ? info.collegeDraft ?? [] : s.draft;
+  const board = choice==="direct"?[]:s.careerMode === "college" ? info.collegeDraft ?? [] : s.draft;
   const pick = board.find(row => row.playerId === p.id);
   let club = pick ? draftClubs.indexOf(pick.club) : -1;
-  let entry: "draft" | "tryout" | "collegeDraft" | "developmental" = s.careerMode === "college" ? "collegeDraft" : "draft";
+  let entry: "draft" | "tryout" | "collegeDraft" | "developmental" | "direct" = s.careerMode === "college" ? "collegeDraft" : "draft";
+  if(choice==="direct"){club=hash(`${s.seed}:direct-club`)%10;entry="direct";}
   if (choice === "developmental") {
     const offer = developmentalOffer(s);
     if (!offer || pick) throw new Error("신고선수 입단 제의가 없습니다.");
@@ -96,7 +100,7 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   // Preserve the actual draft class, including its personal school records.
   const rookies = board.map(d => ({ pick:d, player:s.players.find(other => other.id === d.playerId) })).filter(row => row.player);
   for (const row of rookies) archiveCareerSeason(s,row.player!);
-  archiveCareerSeason(s,p);
+  if(choice!=="direct")archiveCareerSeason(s,p);
   const year = s.calendar.seasonYear + 1, oldDate = s.date;
   const teams: Team[] = Array.from({ length:20 },(_,id) => ({ id,name:`${draftClubs[id%10]} ${id<10?"1군":"2군"}`,shortName:`${draftClubs[id%10].split(" ")[0]} ${id<10?"1군":"2군"}`,wins:0,losses:0,draws:0 }));
   s.teams = teams; s.players = teams.flatMap(t => slots.map((_,i) => npc(`${s.seed}:pro:${year}:${t.id}:${i}`,t.id,i,"pro",t.id<10)));
@@ -110,9 +114,11 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   resetWorld(s,p,year,true);
   if (entry === "developmental") p.proContract = {status:"developmental",joinedDate:s.date};
   ensureProWorld(s);
+  syncJerseyNumbers(s);
+  capturePlayerEvaluations(s,"entry");
   notice(s,"entry",entry === "developmental" ? "신고선수로 프로에 입단했습니다" : "프로 유니폼을 입었습니다",entry === "developmental"
     ? `${draftClubs[club]} 2군에서 시작합니다. 성장은 일반 선수의 90%이며 출전 경쟁에서 불리합니다. 2군 경기 성과로 정식 선수 전환 조건을 달성하면 성장과 출전 제한이 해제됩니다.`
-    : `${draftClubs[club]} 2군에서 신인 시즌을 시작합니다. 훈련과 실제 출전 성적, 포지션 경쟁과 컨디션에 따라 1군 승격·2군 조정이 결정됩니다. 고교 능력치와 개인 기록은 그대로 이어집니다.`);
+    : `${draftClubs[club]} 2군에서 신인 시즌을 시작합니다. 훈련과 실제 출전 성적, 포지션 경쟁과 컨디션에 따라 1군 승격·2군 조정이 결정됩니다. ${entry==="direct"?"배정된 능력치로 프로 커리어를 시작합니다.":"고교 능력치와 개인 기록은 그대로 이어집니다."}`);
   if(p.professional?.twoWayHistory?.some(row=>row.action==="단일 역할 입단"))s.careerNotice!.message+=` 프로 겸업은 투수·타자 OVR이 모두 75 이상이어야 하므로 ${positions[p.position]}에 집중합니다. 양쪽 능력을 키워 겸업에 다시 도전할 수 있습니다.`;
   return s;
 }
@@ -183,11 +189,12 @@ export function finishDevelopmentSeason(s: GameState) {
 export const careerLabel = (p: Player) => p.careerMode==="pro" ? `${p.age ?? 19}세 · 프로` : p.careerMode==="college" ? `${p.age ?? 19}세 · 대학` : `고교 ${p.grade}학년`;
 export function createProfessionalDemo(seed:string,name:string,position:Position) {
   const s=createGame(seed,name,position),p=getPlayer(s);p.grade=3;
+  delete p.evaluationHistory;delete p.evaluationAvailability;
   const main=isPitcher(p.primaryRole)?["velocity","control","movement"]:["contact","power","speed","defense"];
   for(const key of main)p.stats[key as keyof Player["stats"]]=76;
   for(const key of ["stamina","recovery","arm","bq"] as const)p.stats[key]=68;
   p.initialStats={...p.stats};p.talent={batting:10,pitching:10};p.reputation=reputationScore(p);
-  s.date=s.calendar.draftDate;s.draft=draftPlayers(s);s.phase="ended";
+  s.date=s.calendar.draftDate;capturePlayerEvaluations(s,"draft",[p.id]);s.draft=draftPlayers(s);s.phase="ended";
   if(!s.draft.some(d=>d.playerId===p.id))throw new Error("샘플 선수의 지명 결과를 만들지 못했습니다.");
   return continueCareer(revealDraftResult(s),"join");
 }

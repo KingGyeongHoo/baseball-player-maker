@@ -1,4 +1,6 @@
 import type { ClubRecords, ProfessionalPlayer, ProWorld } from "./pro-types";
+import type {EvaluationObservation,EvaluationSnapshot,EvaluationSystem,ReputationAssessment} from "./player-evaluation-types";
+import type {ProAppearance,ProEventContext,ProEventResult,ProEventState} from "./pro-event-types";
 export const statKeys = ["contact", "power", "speed", "defense", "velocity", "control", "movement", "stamina", "recovery", "arm", "bq"] as const;
 export type Stat = typeof statKeys[number];
 export type Stats = Record<Stat, number>;
@@ -62,6 +64,11 @@ export type Player = {
   name: string;
   teamId: number;
   grade: number;
+  jerseyNumber?: number;
+  jerseyKind?: "school" | "pro";
+  freshmanReserve?: boolean;
+  evaluationHistory?: EvaluationObservation[];
+  evaluationAvailability?: {year:number;from:string;days:number;availableDays:number;injuredDays:number;firstDays:number;lastDate:string};
   age?: number;
   careerMode?: CareerMode;
   seasonByLevel?: Record<ProLevel, RecordLine>;
@@ -107,6 +114,7 @@ export type Player = {
   recentAppearances: RecordLine[];
   reputation: number | null;
   performanceReputation?: number | null;
+  reputationEvaluation?: ReputationAssessment;
   reputationBonus?: number;
   recentZ: number;
   lastPitched: string | null;
@@ -124,6 +132,11 @@ export type Team = {
   draws: number;
 };
 export type Game = {
+  proAppearances?:Record<string,ProAppearance>;
+  proAppearanceComplete?:boolean;
+  proPreparationChecked?:boolean;
+  proPreparedLineup?:{field:string[];order:string[];starter:string;pitchers:string[]}[];
+  evaluationEnvironment?: {version:1;date:string;teams:{teamId:number;batting:number;pitching:number;defense:number;arm:number}[];playerTeams?:Record<string,number>};
   id: string;
   date: string;
   homeTeamId: number;
@@ -184,6 +197,8 @@ export type DraftPick = {
   scoutingReport?: ScoutingReport;
 };
 export type ScoutingReport = {
+  evaluation?: EvaluationSnapshot;
+  evaluationParameters?:Record<string,number>;
   version:1;year:number;source:"draft"|"archive"|"evaluation";summary:string;
   tools:{stat:Stat;title:string;description:string;value:number;rank?:number;poolSize?:number}[];
   reasons:{title:string;description:string}[];development:string;
@@ -230,6 +245,9 @@ export type CareerEventBranch = {
   recoveryPercent?: { min: number; max: number };
   skipTraining?: boolean;
   proRoleTrial?:Position;
+  proChanceRequest?:boolean;
+  proTrialDecision?:"accept"|"keep";
+  proResultId?:string;
   proTwoWayAction?:"start"|"defer"|"pitching"|"batting";
   opportunity?: { action: "twoWay" | "transfer"; teamId?: number };
 };
@@ -243,8 +261,10 @@ export type EventOpportunity = { definitionId: string; date: string; competition
 export type EventScene = {
   gameId: string; inning: number; battingSide: number; outs: number; bases: (string | null)[];
   score: number[]; batting: boolean; batterName: string; pitcherName: string;
+  batterId?:string;pitcherId?:string;
 };
 export type CareerEvent = {
+  proEvent?:ProEventContext;
   id: string;
   rewardVersion?: number;
   definitionId: string;
@@ -258,6 +278,7 @@ export type CareerEvent = {
   transferOffers?: TransferOffer[];
 };
 export type CareerEventOutcome = {
+  proEvent?:ProEventResult;
   id: string; kind: CareerEvent["kind"]; title: string; date: string; choice: string;
   stats: Partial<Stats>; reputation: number; fatigue: number;
   definitionId: string; message: string; awakened: Stat[];
@@ -279,6 +300,7 @@ export type WeekProgress = {
   };
 };
 export type MatchProgress = {
+  proStarts?:Record<string,ProAppearance>;
   gameId: string; sides: { field: string[]; order: string[]; starter: string; pitchers: string[] }[];
   original: { id: string; fatigue: number; lastPitched: string | null }[];
   pitchers: string[]; usedPitchers: string[][]; battingIndex: number[]; pitchOuts: number[];
@@ -287,6 +309,8 @@ export type MatchProgress = {
   bases: ({ playerId: string; pitcherId: string } | null)[]; ready: boolean; eventFatigue: number;
 };
 export type GameState = {
+  proEvents?:ProEventState;
+  evaluationSystem?:EvaluationSystem;
   schemaVersion: number;
   balanceVersion: string;
   seed: string;
@@ -333,7 +357,7 @@ export type GameState = {
     tryouts: { year: number; score: number; chance: number; success: boolean }[];
     pro?: {
       club: number; rookieYear: number; level: ProLevel; nextReviewDate: string;
-      entry: "draft" | "tryout" | "collegeDraft" | "developmental"; debutDate?: string;
+      entry: "draft" | "tryout" | "collegeDraft" | "developmental" | "direct"; debutDate?: string;
       firstTeamWeeks: number; secondTeamWeeks: number;
       transactions: { date: string; from: ProLevel; to: ProLevel; reason: string; exchangedPlayerId: string }[];
     };

@@ -4,6 +4,7 @@ import {BASE_SALARY,clubName,contractFor,proNews,proNotice} from "./pro-world";
 import type {GameState,Player,Position} from "./types";
 import type {ContractOffer} from "./pro-types";
 import {focusProRole} from "./pro-two-way";
+import {beginProRoleTrial} from "./pro-role-evaluation";
 
 export function salaryQuote(p:Player,year:number) {
   if(p.proContract?.status==="developmental")return .6*BASE_SALARY;
@@ -163,13 +164,13 @@ export function careerRequest(s:GameState,kind:"chance"|"position"|"manage"|"tra
   if(kind==="manage"){pro.managedUntil=addDays(s.date,14);proNotice(s,`request:${s.date}`,"몸 관리 기간을 조정했습니다","14일 동안 출전보다 몸 관리를 우선합니다. 훈련 설정과 실제 부상·피로 제한은 유지됩니다.");return;}
   if(kind==="position"&&position){
     const pitching=["SP","RP","CP"].includes(position),aptitude=ovr(p,pitching);
-    if(aptitude>=45){pro.roleTrial={position,until:addDays(s.date,14)};proNotice(s,`request:${s.date}`,"새 보직 평가를 시작합니다","14일간 해당 분야의 훈련과 역할 적성을 검토합니다. 평가가 끝난 뒤 보직을 결정하며 출전은 보장되지 않습니다.");}
+    if(aptitude>=45){beginProRoleTrial(s,position,"ROLE_REQUEST",true);proNotice(s,`request:${s.date}`,"새 보직 평가를 시작합니다","14일간 현재 역할을 유지하며 훈련과 적성을 검토합니다. 정상 훈련 5일 이상과 기량을 확인한 뒤 전환 여부를 직접 선택합니다. 출전과 승격은 보장되지 않으며 훈련 배분은 유지됩니다.");}
     else proNotice(s,`request:${s.date}`,"보직 요청 검토 결과","해당 역할의 기본 능력을 더 준비한 뒤 다시 검토하기로 했습니다.");return;
   }
   if(kind==="chance"){pro.requestedEvaluationUntil=addDays(s.date,21);proNotice(s,`request:${s.date}`,"출전 기회 요청을 전달했습니다","앞으로 3주간 나이와 무관하게 수비 자격·경쟁자·컨디션에 맞춰 평가 출전을 검토합니다. 실제 과거 출전 날짜는 바꾸지 않고, 요청만으로 출전이나 결과가 보장되지는 않습니다.");}
 }
 export function finishRoleTrial(s:GameState){
-  for(const p of s.players){const trial=p.professional?.roleTrial;if(!trial||s.date<trial.until)continue;delete p.professional!.roleTrial;
+  for(const p of s.players){const trial=p.professional?.roleTrial;if(!trial||trial.version===1||s.date<trial.until)continue;delete p.professional!.roleTrial;
     const pitching=["SP","RP","CP"].includes(trial.position);if(ovr(p,pitching)>=45){const pos=trial.position;if(!p.eligiblePositions.includes(pos))p.eligiblePositions.push(pos);assignRole(p,pitching?pos==="SP"?"선발":pos==="CP"?"마무리":"중간계투":pos==="C"?"포수":["SS","2B","CF"].includes(pos)?"센터라인":"코너 야수");p.position=pos;if(p.twoWay){if(pitching)p.twoWay.pitchingPosition=pos;else p.twoWay.battingPosition=pos;}
       if(p.professional?.twoWayReview){const pair=p.professional.twoWayReview.positions;if(pitching)pair.pitchingPosition=pos;else pair.battingPosition=pos;}
       if(!p.twoWay)focusProRole(p,pitching);

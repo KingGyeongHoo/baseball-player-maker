@@ -332,20 +332,20 @@ test('100-PA guard aborts the entire weekly commit and reports seed/game', () =>
     [e.params['match.bb_min'], e.params['match.bb_max']] = old;
   }
 });
-test('one evaluated player and tied evaluated players receive performance rating 50', () => {
+test('one evaluated player and tied players receive neutral league-relative evidence with sample-dependent influence', () => {
   let s = newGame('reputation');
   s.calendar.events = []; // Isolate reputation cohorts from March league appearances.
   const p = e.getPlayer(s);
   p.seasonStats.batting.PA = p.seasonStats.batting.AB = p.seasonStats.batting.H = 1;
   s = step(s);
   assert.equal(e.getPlayer(s).performanceReputation, 50);
-  close(e.getPlayer(s).reputation, .6 * e.ovr(e.getPlayer(s)) + .4 * 50);
+  close(e.getPlayer(s).reputation, (1-.4/61)*e.roleScore(e.getPlayer(s))+.4/61*50);
   assert.equal(s.players.filter(p => p.performanceReputation !== null).length, 1);
   const second = s.players.find(p => p.id !== s.playerId && !e.isPitcher(p.primaryRole));
   second.seasonStats = structuredClone(e.getPlayer(s).seasonStats);
   s = step(s);
   assert.equal(e.getPlayer(s).performanceReputation, 50);
-  close(e.getPlayer(s).reputation, .6 * e.ovr(e.getPlayer(s)) + .4 * 50);
+  close(e.getPlayer(s).reputation, (1-.4/61)*e.roleScore(e.getPlayer(s))+.4/61*50);
   assert.equal(s.players.find(p => p.id === second.id).performanceReputation, 50);
 });
 test('three seasons preserve roster size, promote, draft once and block further play', {

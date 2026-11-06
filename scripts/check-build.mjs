@@ -10,7 +10,7 @@ const base = process.env.APP_URL || 'http://localhost:3000';
 const response = await fetch(base);
 assert.equal(response.status, 200);
 const html = await response.text();
-for (const label of ['BASEBALL', '나의 선수 만들기', '나의 커리어 시작하기', '어떤 선수로 시작할까요?', '랜덤 배정']) assert.ok(html.includes(label), label);
+for (const label of ['BASEBALL', '나의 선수 만들기', '나의 커리어 시작하기', '어떤 선수로 시작할까요?', '고교 선수로 시작하기', '프로 선수로 시작하기', '등번호 설정']) assert.ok(html.includes(label), label);
 assert.ok(!html.includes('커리어 시드'));
 assert.ok(!html.includes('<select'));
 for (const { image: assetPath } of pitchingPositions) {
@@ -72,6 +72,10 @@ try {
   assert.ok(result.result.report.processingMs >= 0);
   delete result.result.report.processingMs;
   assert.deepEqual(result.result, expected);
+  assert.equal(result.result.evaluationSystem.version,1);
+  assert.equal(e.getPlayer(result.result).reputationEvaluation.modelVersion,'evaluation-reputation-v1');
+  assert.equal(e.getPlayer(result.result).reputation,e.reputationScore(e.getPlayer(result.result)));
+  assert.ok(e.getPlayer(result.result).evaluationHistory.length>0);
   const recoveryPolicy = e.policyForMode(p.trainingPolicy, 'rest');
   const recovered = await request({ requestId: 43, state, policy: recoveryPolicy, stance: p.stance });
   assert.ok(recovered.result, recovered.error);
@@ -159,7 +163,10 @@ try {
   assert.equal(draftResponse.result.phase, 'ended');
   assert.ok(draftResponse.result.draft.length >= 90 && draftResponse.result.draft.length <= 110);
   assert.ok(draftResponse.result.draft.every(pick => pick.round >= 1 && pick.round <= 13 && pick.slot >= 1 && pick.slot <= 10));
+  const drawnClubs=e.draftClubOrder(draftResponse.result).map(index=>e.draftClubs[index]);
+  assert.ok(draftResponse.result.draft.every(pick=>pick.club===drawnClubs[pick.slot-1]));
   assert.ok(draftResponse.result.draft.every(pick => pick.scoutingReport?.version === 1 && pick.scoutingReport.year === draftInput.calendar.seasonYear && pick.scoutingReport.statsSnapshot));
+  assert.ok(draftResponse.result.draft.every(pick => pick.scoutingReport.evaluation?.modelVersion==='scouting-v1'&&pick.scoutingReport.evaluation.playerId===pick.playerId));
 
   const focusInput=e.createGame('production-focus','Focus','SS'),focusPlayer=e.getPlayer(focusInput);
   focusInput.week=6;focusInput.calendar.events=[];focusInput.calendar.competitions=[];focusInput.rngStates.events=1;focusInput.trainingFocus={rng:7,rolledWeek:-1};focusPlayer.fatigue=50;
@@ -177,6 +184,7 @@ try {
   const rookieWeek=await request({requestId:63,state:rookie,policy:rp.trainingPolicy,stance:rp.stance});
   assert.ok(rookieWeek.result,rookieWeek.error);delete rookieWeek.result.report.processingMs;
   assert.deepEqual(rookieWeek.result,e.advanceWeek(rookie,rp.trainingPolicy,rp.stance));
+  assert.equal(e.getPlayer(rookieWeek.result).evaluationHistory.at(-1).mode,'pro');
   const callup=structuredClone(rookie);callup.date=callup.postSchool.pro.nextReviewDate;for(const key of Object.keys(e.getPlayer(callup).stats))e.getPlayer(callup).stats[key]=95;
   const promotion=await request({requestId:64,state:callup,policy:rp.trainingPolicy,stance:rp.stance});
   assert.ok(promotion.result,promotion.error);delete promotion.result.report.processingMs;
@@ -205,6 +213,7 @@ try {
   assert.ok(regularWeek.result,regularWeek.error);delete regularWeek.result.report.processingMs;
   assert.deepEqual(regularWeek.result,e.advanceWeek(regular,fp.trainingPolicy,fp.stance));assert.notEqual(regularWeek.result.careerNotice?.kind,'registered');
   const postseason=structuredClone(rookie);postseason.date=postseason.proWorld.regularEnd;postseason.proWorld.stage='regular';postseason.calendar.events=[];
+  require('../.test-build/lib/sim/pro-event-ledger.js').ensureProEvents(postseason).plannedWeek=postseason.week;
   for(const club of postseason.proWorld.clubs)club.nextReview=e.addDays(postseason.date,14);
   const playoffStart=await request({requestId:70,state:postseason,policy:rp.trainingPolicy,stance:rp.stance});
   assert.ok(playoffStart.result,playoffStart.error);delete playoffStart.result.report.processingMs;
@@ -267,6 +276,25 @@ try {
     assert.deepEqual(response.result,e.advanceWeek(weightedInput,policy,wp.stance));
     assert.ok(Math.abs(e.getPlayer(response.result).fatigue-(30+125/7))<1e-8,'equal batting/pitching full-focus fatigue');
   }
+
+  const monthInput=structuredClone(state);monthInput.date='2027-04-01';monthInput.calendar.events=[];monthInput.calendar.competitions=[];monthInput.lastCareerEventWeek=monthInput.week;monthInput.trainingFocus={rng:0,rolledWeek:monthInput.week};
+  const monthly=await request({requestId:94,state:monthInput,policy:p.trainingPolicy,stance:p.stance});
+  assert.ok(monthly.result,monthly.error);delete monthly.result.report.processingMs;
+  assert.deepEqual(monthly.result,e.advanceWeek(monthInput,p.trainingPolicy,p.stance));
+  assert.ok(monthly.result.players.every(player=>player.evaluationHistory.some(row=>row.date==='2027-04-01'&&row.reason==='monthly')));
+  assert.ok(monthly.result.players.every(player=>player.reputationEvaluation.modelVersion==='evaluation-reputation-v1'));
+  assert.ok(monthly.result.players.every(player=>player.evaluationHistory.find(row=>row.date==='2027-04-01'&&row.reason==='monthly').reputation));
+
+  // New catalog: a real rehabilitation reservation pauses and round-trips in
+  // the bundled Worker without replaying already processed recovery days.
+  const peInput=structuredClone(rookie),pep=e.getPlayer(peInput);peInput.calendar.events=[];peInput.lastCareerEventWeek=peInput.week;peInput.trainingFocus={rng:0,rolledWeek:peInput.week};pep.fatigue=60;
+  for(const key of Object.keys(pep.trainingPolicy.tickets))pep.trainingPolicy.tickets[key]=0;
+  pep.injury={severity:'mild',startDate:peInput.date,unavailableUntil:e.addDays(peInput.date,6),originalPenalty:2,penaltyRemaining:2,penaltyRecoverDays:7};
+  let peExpected;for(let seed=0;seed<60;seed++){peInput.rngStates.events=seed;const next=e.advanceWeek(peInput,pep.trainingPolicy,pep.stance);if(next.careerEvent?.definitionId==='PE18'){peExpected=next;break;}}
+  assert.ok(peExpected,'rehabilitation fixture');
+  const proChoice=await request({requestId:95,state:peInput,policy:pep.trainingPolicy,stance:pep.stance});assert.ok(proChoice.result,proChoice.error);delete proChoice.result.report.processingMs;assert.deepEqual(proChoice.result,peExpected);assert.equal(proChoice.result.careerEvent.rewardVersion,3);
+  const loadedChoice=decodeCareerSave(JSON.stringify(encodeCareerSave(proChoice.result))).state,chosenPro=e.answerCareerEvent(loadedChoice,'choice-2');
+  const proResumed=await request({requestId:96,state:chosenPro,policy:pep.trainingPolicy,stance:pep.stance});assert.ok(proResumed.result,proResumed.error);delete proResumed.result.report.processingMs;assert.deepEqual(proResumed.result,e.advanceWeek(chosenPro,pep.trainingPolicy,pep.stance));assert.equal(proResumed.result.careerEventHistory.filter(row=>row.definitionId==='PE18').length,1);
 
   const bad = structuredClone(p.trainingPolicy);
   bad.tickets.contact = 99;

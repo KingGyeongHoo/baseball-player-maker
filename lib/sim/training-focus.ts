@@ -1,5 +1,6 @@
 import { available, getPlayer, hash, isPitcher, params, random, ticketsUsed } from "./engine";
 import type { CareerEvent, CareerEventBranch, GameState, Player, Stat } from "./types";
+import {proChannelFree,proEventsEnabled,recordProChoice} from "./pro-event-ledger";
 
 export function createTrainingFocus(p: Player, date: string, week: number): CareerEvent {
   const pitching: [Stat,string][] = [["velocity","구속"],["control","제구"],["movement","변화구"]];
@@ -14,6 +15,7 @@ export function createTrainingFocus(p: Player, date: string, week: number): Care
 }
 export function tryTrainingFocus(s:GameState) {
   const progress=s.weekProgress,p=getPlayer(s);
+  if(proEventsEnabled(s)&&(!proChannelFree(s,"general")||s.proEvents?.reservation?.date===s.date))return false;
   if(s.careerEventHistory?.at(-1)?.date && s.careerEventHistory.at(-1)!.date >= (progress?.report?.from ?? s.date))return false;
   if(s.phase==="ended"||!progress||progress.opportunity||s.careerEvent||("careerNotice" in s && s.careerNotice)||s.matchProgress||params["events.weekly_chance"]<=0||s.week-(s.lastCareerEventWeek??0)<params["events.gap_weeks"]
     ||!s.calendar.trainingDays.includes(s.date)||!available(p,s.date)||!ticketsUsed(p.trainingPolicy))return false;
@@ -23,6 +25,7 @@ export function tryTrainingFocus(s:GameState) {
   const source={rngStates:{...s.rngStates,events:ledger.rng}},roll=random(source,"events");ledger.rng=source.rngStates.events;
   if(roll>=(params["events.focus_chance"]??.2))return false;
   s.careerEvent=createTrainingFocus(p,s.date,s.week);s.lastCareerEventWeek=s.week;
+  recordProChoice(s,s.careerEvent);
   const events=s.eventLedger??={recent:[],centerGrades:[],nationalGrades:[],competitions:[],games:[]};events.recent.push("S03");events.recent=events.recent.slice(-5);
   return true;
 }

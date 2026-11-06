@@ -22,6 +22,36 @@
 .dashboard-overview > div { min-width: 0; }
 .dashboard-overview > div + div { border-left: 1px solid #ffffff20; padding-left: 22px; }
 .overview-label { display: block; font-size: 10px; font-weight: 400; letter-spacing: 1px; line-height: 1.5; color: #b5c4dc; }
+.overview-profile-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.overview-profile-heading .evaluation-open { color:#c3d2e8; font-size:10px; padding:0; }
+.records-evaluation-action { display:flex; justify-content:flex-end; margin-bottom:12px; }
+.modal.player-evaluation-modal { width:min(880px,calc(100vw - 28px)); }
+.player-evaluation-modal h2:focus { outline:none; }
+.player-evaluation-content { color:#596c88; font-size:12px; line-height:1.8; }
+.evaluation-meta { color:var(--muted); font-size:11px; }
+.evaluation-summary { margin:14px 0 20px; padding:15px 18px; border-left:3px solid var(--navy); background:#f0f3f9; color:var(--navy); }
+.player-evaluation-content>section { margin-top:24px; padding-top:18px; border-top:1px solid var(--line); }
+.player-evaluation-content h3 { color:var(--navy); font-size:15px; margin-bottom:10px; }
+.player-evaluation-content h4 { color:var(--navy); font-size:12px; margin:12px 0 8px; }
+.evaluation-tools,.evaluation-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.evaluation-fields>article { min-width:0; padding:12px; border:1px solid var(--line); border-radius:3px; }
+.evaluation-field-title { display:flex; justify-content:space-between; gap:8px; align-items:center; color:var(--navy); }
+.evaluation-field-title>span { padding:2px 5px; background:#edf2f7; color:#6f819d; font-size:9px; }
+.player-evaluation-content table { width:100%; min-width:0; font-size:11px; }
+.player-evaluation-content td,.player-evaluation-content th { padding:8px 6px; white-space:normal; }
+.evaluation-raw { margin:6px 0 10px; color:var(--navy); }
+.player-evaluation-content details,.draft-evaluation-details { margin-top:15px; border-top:1px solid var(--line); padding-top:12px; }
+.player-evaluation-content summary,.draft-evaluation-details>summary { color:var(--navy); cursor:pointer; font-size:11px; }
+.evaluation-role { padding:12px 15px; background:#f5f7fa; color:var(--navy); }
+.evaluation-common { display:flex; flex-wrap:wrap; gap:7px 16px; margin:10px 0; font-size:10px; }
+.evaluation-common b { color:var(--navy); margin-left:4px; }
+.evaluation-role-alternatives { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; font-size:10px; }
+.evaluation-role-alternatives>span { padding:4px 8px; background:#edf2f7; }
+.evaluation-projection { margin-top:15px; }
+.evaluation-history { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:15px; color:var(--muted); font-size:11px; }
+.evaluation-history select { padding:8px; border:1px solid var(--line); border-radius:3px; color:var(--navy); font-size:11px; max-width:100%; }
+.evaluation-missing { padding-left:18px; margin:12px 0; }
+@media(max-width:600px) { .evaluation-tools,.evaluation-fields { grid-template-columns:minmax(0,1fr); } .player-evaluation-content { font-size:11px; } .player-evaluation-content td,.player-evaluation-content th { padding:7px 4px; font-size:10px; } }
 .overview-identity { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
 .overview-school { color: #bac8de; font-size: 10px; }
 .overview-identity h1 { font-size: 23px; line-height: 1.35; margin: 1px 0 5px; letter-spacing: -.7px; }
@@ -1492,6 +1522,11 @@ body:has(.week-control) .site-footer {
 .load-current {grid-column:1/-1;display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-top:3px;}
 .load-current strong {font-size:18px;font-variant-numeric:tabular-nums;}
 .load-current>span {color:#c4cfe2;font-size:10px;}
+.training-match-note {margin:12px 0;padding:12px 14px;border:1px solid #ead7a6;border-radius:10px;background:#fff9eb;color:#6a501c;font-size:12px;}
+.training-match-note p {margin:5px 0 0;line-height:1.6;}
+.training-actual-fatigue {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:7px;margin:12px 0;padding:12px 14px;border:1px solid #dbe3ee;border-radius:10px;background:#f7f9fc;font-size:12px;color:#1c3156;}
+.training-actual-fatigue p,.training-actual-fatigue small {flex-basis:100%;margin:0;line-height:1.6;}
+.training-actual-fatigue small {color:#69778d;font-size:10px;}
 .load-current.recovery strong {color:#9aefbf;}
 .load-current.accumulation strong {color:#ffb5ae;}
 .load-current.neutral strong {color:#ffe292;}
@@ -3203,6 +3238,19 @@ tbody tr:last-child td {
     font-size: 9px;
   }
 }
+.career-mode-picker { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:18px; }
+.career-mode-picker>button { padding:15px; border:1px solid var(--line); border-radius:3px; background:white; text-align:left; color:var(--navy); }
+.career-mode-picker>button.selected { border-color:var(--navy); background:#eef2f8; box-shadow:inset 0 0 0 1px var(--navy); }
+.career-mode-picker b { display:block; font-size:13px; }
+.career-mode-picker span { display:block; font-size:10px; color:var(--muted); margin-top:8px; line-height:1.8; }
+.jersey-setting { position:relative; border-top:1px solid var(--line); padding-top:20px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+.jersey-setting>span { font-size:11px; color:var(--muted); }
+.jersey-setting b { color:var(--navy); margin-left:8px; font:700 22px Arial,sans-serif; }
+.jersey-setting button { padding:9px 13px; font-size:11px; }
+.jersey-setting p { flex-basis:100%; color:var(--muted); font-size:10px; line-height:1.8; }
+.overview-jersey { margin-left:8px; color:#b8c9e2; font:10px Arial,sans-serif; white-space:nowrap; }
+.roster-number { margin-left:6px; color:#8290a5; font:10px Arial,sans-serif; }
+@media(max-width:430px) { .career-mode-picker { gap:7px; } .career-mode-picker>button { padding:12px 10px; } .career-mode-picker b { font-size:11px; } }
 .creation-hero {
   min-height: 245px;
   padding: 31px 39px;
@@ -3616,10 +3664,10 @@ tbody tr:last-child td {
 }
 .unrevealed-jersey {
   position: relative;
-  width: 65px;
-  height: 75px;
+  width: 80px;
+  height: 88px;
   color: #c3ccdc;
-  margin: 27px 0 16px;
+  margin: 22px 0 16px;
 }
 .unrevealed-jersey svg {
   width: 100%;

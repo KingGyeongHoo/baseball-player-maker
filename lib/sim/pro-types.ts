@@ -1,4 +1,5 @@
 import type { DraftPick, Player, Position, RecordLine, Stats } from "./types";
+import type {ProRoleTrial} from "./pro-event-types";
 
 export type ProStage = "camp" | "regular" | "postseason" | "summary" | "offseason" | "retired";
 export type SalaryContract = { id:string; club:number; startYear:number; endYear:number; salary:number; segments:{from:string;salary:number}[]; source:"rookie"|"renewal"|"fa"|"released" };
@@ -7,7 +8,7 @@ export type ProfessionalPlayer = {
   contract:SalaryContract|null; agingOffset:number; agedYear:number; ageChanges?:Partial<Stats>;
   faDays:number; faEligible:boolean; registration:{year:number;days:number;lastDate?:string};
   lastAppearance?:string; lastRegistration?:string; lastEvaluation?:string; requestAfter?:string;
-  managedUntil?:string; roleTrial?:{position:Position;until:string}; unattachedYears:number;
+  managedUntil?:string; roleTrial?:ProRoleTrial; unattachedYears:number;
   requestedEvaluationUntil?:string;
   twoWayReview?:{positions:{pitchingPosition:Position;battingPosition:Position};qualifiedDays:number;belowDays:number;lastDate?:string;nextProposalDate?:string};
   twoWayHistory?:{date:string;action:string;positions:{pitchingPosition:Position;battingPosition:Position};reason:string}[];

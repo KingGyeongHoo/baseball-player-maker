@@ -1,5 +1,8 @@
 import { addDays, assignRole, available, clamp, overall, focusGrowth, getPlayer, growthMultiplier, isPitcher, lineup, params, random, refreshWeekReport, reputationScore, roleScore, roles, slowdown } from "./engine";
 import {applyProTwoWayChoice} from "./pro-two-way";
+import {beginProRoleTrial,decideProRoleTrial} from "./pro-role-evaluation";
+import {recordProChoice} from "./pro-event-ledger";
+import type {ProEventResult} from "./pro-event-types";
 import { teamStrength } from "../team-strength";
 import { professionalGrowth } from "./pro-growth";
 import { applyOpportunityChoice, observeTwoWayQualification } from "./career-opportunities";
@@ -135,11 +138,12 @@ export function applyMatchEffect<T extends { bb: number; hit: number; hr: number
     k: clamp(base.k + (effect?.k ?? 0), 0, 1), hr: clamp(base.hr + (effect?.hr ?? 0), 0, Math.max(0, 1 - base.double - base.triple)) };
 }
 export function resolveCareerEvent(input: GameState, choiceId: string): GameState {
-  if (input.phase === "ended" || !input.careerEvent) throw new Error("선택할 이벤트가 없습니다.");
+  const national=input.careerEvent?.proEvent?.catalogId==="PE27"?input.proEvents?.national[String(input.careerEvent.proEvent.year)]:undefined;
+  if (!input.careerEvent||input.phase === "ended"&&!(input.careerMode==="pro"&&input.proWorld?.stage==="summary"&&national?.offered&&!national.settled)) throw new Error("선택할 이벤트가 없습니다.");
   // An unchosen event from the previous fixed-point policy must not retain its
   // old +8/+12/+24 rewards after upgrading. Settled history is never rerolled.
   const pending = input.careerEvent;
-  const choices = pending.rewardVersion === 2 ? pending.choices : createCareerEvent(pending.definitionId, getPlayer(input), pending.date, input.week, pending).choices;
+  const choices = pending.rewardVersion === 2 || pending.rewardVersion === 3 ? pending.choices : createCareerEvent(pending.definitionId, getPlayer(input), pending.date, input.week, pending).choices;
   const selected = choices.find(choice => choice.id === choiceId);
   if (!selected) throw new Error("유효하지 않은 이벤트 선택입니다.");
   const s = structuredClone(input), p = getPlayer(s), event = s.careerEvent!;
@@ -160,7 +164,10 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   const opportunityChanges = applyOpportunityChoice(s, outcome);
   Object.assign(opportunityChanges,applyProTwoWayChoice(s,outcome));
   if (outcome.role) assignRole(p, outcome.role);
-  if(outcome.proRoleTrial&&p.professional)p.professional.roleTrial={position:outcome.proRoleTrial,until:addDays(s.date,14)};
+  let proAction:ProEventResult["action"];
+  if(outcome.proRoleTrial&&p.professional){if(event.proEvent){const trial=beginProRoleTrial(s,outcome.proRoleTrial,event.proEvent.catalogId);proAction={kind:"trial",target:trial.position,until:trial.until};}else p.professional.roleTrial={position:outcome.proRoleTrial,until:addDays(s.date,14)};}
+  if(outcome.proTrialDecision)proAction=decideProRoleTrial(s,outcome.proTrialDecision==="accept");
+  if(outcome.proChanceRequest&&p.professional){const pro=p.professional;if(pro.employment!=="active"||pro.requestAfter&&s.date<pro.requestAfter||pro.requestedEvaluationUntil&&s.date<=pro.requestedEvaluationUntil)throw new Error("평가 출전 요청의 재사용 대기가 끝나지 않았습니다.");pro.requestAfter=addDays(s.date,28);pro.requestedEvaluationUntil=addDays(s.date,21);proAction={kind:"request",until:pro.requestedEvaluationUntil};}
   if (event.definitionId === "P06") { p.roleOffer = null; p.offerWeeks = 0; p.offerCooldown = params["coach.offer_cooldown"]; }
   if(p.professional)p.professional.proBonus=clamp(p.professional.proBonus+(outcome.reputation??0),-10,10);
   else if (outcome.reputation !== undefined || p.reputationBonus !== undefined) p.reputationBonus = (p.reputationBonus ?? 0) + (outcome.reputation ?? 0);
@@ -172,7 +179,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
     const previous = p.injury, prefix = `injury.${outcome.injury.severity}`;
     const penalty = params[`${prefix}.penalty`], until = addDays(s.date, outcome.injury.days);
     p.injury = { severity: previous && previous.penaltyRemaining > penalty ? previous.severity : outcome.injury.severity,
-      startDate: s.date, unavailableUntil: previous && previous.unavailableUntil > until ? previous.unavailableUntil : until,
+      startDate: previous&&previous.unavailableUntil>until?previous.startDate:s.date, unavailableUntil: previous && previous.unavailableUntil > until ? previous.unavailableUntil : until,
       originalPenalty: Math.max(previous?.originalPenalty ?? 0, penalty), penaltyRemaining: Math.max(previous?.penaltyRemaining ?? 0, penalty),
       penaltyRecoverDays: Math.max(previous?.penaltyRecoverDays ?? 0, params[`${prefix}.recovery_days`]) };
   }
@@ -184,11 +191,14 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   if (s.matchProgress) s.matchProgress.eventFatigue += fatigue;
   if (s.weekProgress?.day) { s.weekProgress.day.fatigue.events = (s.weekProgress.day.fatigue.events ?? 0) + fatigue; s.weekProgress.day.fatigue.peak = Math.max(s.weekProgress.day.fatigue.peak, p.fatigue); }
   s.careerEventHistory ??= [];
+  recordProChoice(s,event,Object.values(changes).some(n=>(n??0)>0));
   s.careerEventHistory.push({ id: event.id, definitionId: event.definitionId, kind: event.kind, title: event.title, date: event.date,
-    choice: selected.label, message: outcome.message, awakened, stats: changes, reputation: p.reputation - oldReputation, fatigue,
+    choice: selected.label, message: outcome.message, awakened:event.proEvent?awakened.filter(key=>(changes[key]??0)>0):awakened, stats: changes, reputation: p.reputation - oldReputation, fatigue,
+    ...(event.proEvent?{proEvent:{version:1 as const,catalogId:event.proEvent.catalogId,channel:event.proEvent.channel,year:event.proEvent.year,branchId:outcome.proResultId??selected.id,chainId:event.proEvent.chainId,...(proAction?{action:proAction}:{})}}:{}),
     ...(outcome.injury ? { injury: structuredClone(p.injury!) } : {}), ...(p.position !== oldPosition ? { positionChange: { from: oldPosition, to: p.position } } : {}),
     ...(outcome.match ? { match: { ...outcome.match } } : {}), ...(event.scene ? { scene: event.scene } : {}) });
   Object.assign(s.careerEventHistory.at(-1)!, opportunityChanges);
+  if(event.proEvent?.catalogId==="PE27"){const invitation=s.proEvents?.national[String(event.proEvent.year)];if(invitation)invitation.settled=true;}
   observeTwoWayQualification(s);
   s.careerEvent = null;
   if (s.weekProgress) {

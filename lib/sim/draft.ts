@@ -1,10 +1,19 @@
-import { overall, isPitcher, params, random, reputationScore, roleFor, roleScore, roles } from "./engine";
+import { hash, overall, isPitcher, params, random, reputationScore, roleFor, roleScore, roles } from "./engine";
 import type { DraftPick, GameState, Player, Role } from "./types";
 import {createScoutingReport} from "./scouting-report";
+import {buildEvaluationContext,createPlayerEvaluation} from "./player-evaluation";
 
 export const draftBoard = (players: Player[]) => players.filter(p => p.grade === 3)
   .sort((a, b) => overall(b) - overall(a) || roleScore(b) - roleScore(a) || a.id.localeCompare(b.id));
 export const draftClubs = ["서울 파이오니어스", "부산 웨이브스", "인천 마리너스", "대구 레드윙스", "광주 타이탄스", "대전 스파크스", "수원 위저즈", "창원 다이노스", "청주 이글스", "전주 라이온스"];
+export function draftClubOrder(s:Pick<GameState,"seed"|"calendar"|"rngStates"|"careerMode">) {
+  const order=draftClubs.map((_,index)=>index);
+  // Pro rookie classes already map this base order to the previous standings.
+  if(s.careerMode)return order;
+  const source={rngStates:{...s.rngStates,draft:hash(`${s.seed}:draft-order:${s.calendar.seasonYear}`)}};
+  for(let i=order.length-1;i>0;i--){const j=Math.floor(random(source,"draft")*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  return order;
+}
 // Compare prospects using identical neutral club demand, without consuming RNG.
 export function draftAssessment(p: Player) {
   const talent = p.talent[isPitcher(p.primaryRole) ? "pitching" : "batting"];
@@ -13,6 +22,7 @@ export function draftAssessment(p: Player) {
     + params["draft.talent_weight"] * (talent - 1) / 9 * 100 + params["draft.fit_weight"] * fit;
 }
 function draftSlots(s: GameState) {
+  const order=draftClubOrder(s);
   const total = params["draft.min_total"] + Math.floor(random(s, "draft") * (params["draft.max_total"] - params["draft.min_total"] + 1));
   const counts = draftClubs.map(() => params["draft.min_rounds"]);
   for (let extra = total - counts.reduce((sum, n) => sum + n, 0); extra > 0; extra--) {
@@ -20,16 +30,18 @@ function draftSlots(s: GameState) {
     counts[active[Math.floor(random(s, "draft") * active.length)]]++;
   }
   return Array.from({ length: Math.max(...counts) }, (_, index) => index + 1)
-    .flatMap(round => draftClubs.flatMap((_, club) => counts[club] >= round ? [{ round, club }] : []));
+    .flatMap(round => order.flatMap((club,index) => counts[club] >= round ? [{ round, club,slot:index+1 }] : []));
 }
 function selectDraft(s: GameState, limit = Infinity): DraftPick[] {
+  const evaluationState=s.careerMode?{...s,careerMode:undefined,calendar:{...s.calendar,seasonYear:Math.min(s.calendar.seasonYear,Number(s.date.slice(0,4)))}}:s;
+  const evaluationContext=buildEvaluationContext(evaluationState);
   const candidates = draftBoard(s.players);
   const ranks = new Map(candidates.map((p, i) => [p.id, i + 1]));
   const selected = new Set<string>();
   const needs = draftClubs.map(() => Object.fromEntries(roles.map(role => [role, random(s, "draft")]))) as Record<Role, number>[];
   const slots = draftSlots(s).slice(0, Math.min(limit, candidates.length));
   const picks: DraftPick[] = [];
-  for (const { round, club } of slots) {
+  for (const { round, club,slot } of slots) {
     const remaining = candidates.filter(p => !selected.has(p.id));
     const best = remaining.map(p => {
       const qualified = [...new Set(p.eligiblePositions.map(roleFor))].filter(role => isPitcher(role) === isPitcher(p.primaryRole));
@@ -66,7 +78,7 @@ function selectDraft(s: GameState, limit = Infinity): DraftPick[] {
       club: draftClubs[club],
       overall: picks.length + 1,
       round,
-      slot: club + 1,
+      slot,
       role: best.role,
       score: best.score,
       ability: best.ability,
@@ -77,6 +89,7 @@ function selectDraft(s: GameState, limit = Infinity): DraftPick[] {
       components: best.components,
     };
     pick.scoutingReport=createScoutingReport(pick,s.calendar.seasonYear,{stats:best.p.stats,records:best.p.seasonStats},candidates,clubNeed);
+    if(!best.p.careerMode){pick.scoutingReport.evaluation=createPlayerEvaluation(evaluationState,best.p,evaluationContext,"draft");pick.scoutingReport.evaluationParameters=Object.fromEntries(Object.entries(evaluationContext.reference.parameters).filter(([key])=>/^(training\.|talent\.|growth\.|fatigue\.plan_neutral_)/.test(key)));}
     picks.push(pick);
   }
   return picks;

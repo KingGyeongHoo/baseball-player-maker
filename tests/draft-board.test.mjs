@@ -17,7 +17,7 @@ test('forecast displays this season senior top ten instead of the OVR top ten',(
 
 test('round table retains ten club columns, the thirteenth round and empty ended cells without fabricating picks',()=>{
   const sample=e.draftForecast(state)[0];
-  const picks=[{...sample,playerId:'mine',overall:1,round:1,slot:1},{...sample,playerId:'later',overall:110,round:13,slot:7}];
+  const picks=[{...sample,playerId:'mine',overall:1,round:1,slot:1},{...sample,club:e.draftClubs.find(club=>club!==sample.club),playerId:'later',overall:110,round:13,slot:7}];
   const html=render({picks});
   assert.equal((html.match(/scope="col"/g)||[]).length,11);assert.equal((html.match(/scope="row"/g)||[]).length,13);
   assert.equal((html.match(/지명 평가 보기/g)||[]).length,2);assert.equal((html.match(/class="draft-cell-ended"/g)||[]).length,128);
@@ -29,4 +29,16 @@ test('round table displays at least ten rounds and safely displays older full-ro
   const sample=e.draftForecast(state)[0],pick={...sample,overall:92};delete pick.round;delete pick.slot;
   const html=render({picks:[pick]});assert.equal((html.match(/scope="row"/g)||[]).length,10);
   assert.match(html,/10라운드 2순번, 전체 92순위/);assert.match(html,/지명 종료/);
+});
+
+test('round headers follow the saved random club order and stay aligned with pick buttons',()=>{
+  const sample=e.draftForecast(state)[0],order=[...e.draftClubs].reverse(),picks=order.map((club,index)=>({...sample,club,playerId:`random-${index}`,overall:index+1,round:1,slot:index+1}));
+  const html=render({picks});
+  for(const [index,club]of order.entries()){
+    assert.ok(html.includes(`<strong>${index+1}</strong><span>${club}</span>`));
+    assert.ok(html.includes(`${club} 1라운드 ${index+1}순번, 전체 ${index+1}순위`));
+  }
+  assert.equal(html,render({picks:JSON.parse(JSON.stringify(picks))}));
+  const legacy=e.draftClubs.map((club,index)=>({...sample,club,playerId:`legacy-${index}`,overall:index+1,round:1,slot:index+1}));
+  const old=render({picks:legacy});for(const [index,club]of e.draftClubs.entries())assert.ok(old.includes(`<strong>${index+1}</strong><span>${club}</span>`));
 });

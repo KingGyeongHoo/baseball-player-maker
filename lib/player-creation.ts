@@ -1,4 +1,6 @@
-import { createGame, params, positions } from "./sim/engine";
+import { createGame, getPlayer, hash, isPitcher, params, positions, reputationScore } from "./sim/engine";
+import {continueCareer} from "./sim/pro-career";
+import {choosePlayerJersey} from "./jersey-numbers";
 import type { Position } from "./sim/types";
 
 export type PlayerKind = "batter" | "pitcher";
@@ -21,7 +23,7 @@ export const kindForPosition = (position: Position): PlayerKind => ["SP", "RP", 
 
 // The seed is internal: every start gets fresh entropy, while replayable engine
 // inputs remain available to automated tests and diagnostics.
-export function createRandomCareer(name: string, position: Position, entropy: Pick<Crypto, "randomUUID" | "getRandomValues"> = globalThis.crypto) {
+export function createRandomCareer(name: string, position: Position, entropy: Pick<Crypto, "randomUUID" | "getRandomValues"> = globalThis.crypto, jerseyNumber?:number) {
   if (!name.trim()) throw new Error("선수 이름을 입력해 주세요.");
   if (!Object.hasOwn(positions, position)) throw new Error("희망 포지션을 선택해 주세요.");
   const teams = params["world.teams"];
@@ -29,5 +31,20 @@ export function createRandomCareer(name: string, position: Position, entropy: Pi
   const value = new Uint32Array(1);
   do { entropy.getRandomValues(value); } while (value[0] >= limit);
   const teamId = value[0] % teams;
-  return createGame(entropy.randomUUID(), name, position, teamId);
+  return choosePlayerJersey(createGame(entropy.randomUUID(), name, position, teamId),jerseyNumber);
+}
+
+export function createRandomProCareer(name:string,position:Position,jerseyNumber?:number,entropy:Pick<Crypto,"randomUUID"|"getRandomValues">=globalThis.crypto) {
+  const s=createRandomCareer(name,position,entropy),p=getPlayer(s);
+  const main=isPitcher(p.primaryRole)?["velocity","control","movement"]:["contact","power","speed","defense"];
+  const center=params["pro.second_mean"]+(hash(`${s.seed}:direct-center`)%1601)/100-8;
+  for(const key of Object.keys(p.stats) as (keyof typeof p.stats)[]){
+    if(main.includes(key)||["stamina","recovery","arm","bq"].includes(key))p.stats[key]=Math.max(1,Math.min(100,center+(hash(`${s.seed}:direct:${key}`)%1201)/100-6));
+  }
+  p.initialStats={...p.stats};p.grade=3;p.reputation=reputationScore(p);
+  delete p.evaluationHistory;delete p.evaluationAvailability;delete s.evaluationSystem;
+  s.date=s.calendar.draftDate;s.phase="ended";s.draftOutcome={revealed:true,offer:null};
+  s.postSchool={graduationYear:s.calendar.seasonYear,graduationSchool:"프로 직접 시작",collegeYears:0,tryouts:[]};
+  s.history=[{week:1,ovr:main.reduce((sum,key)=>sum+p.stats[key as keyof typeof p.stats],0)/main.length,ovrScale:100,fatigue:0}];
+  return choosePlayerJersey(continueCareer(s,"direct"),jerseyNumber);
 }

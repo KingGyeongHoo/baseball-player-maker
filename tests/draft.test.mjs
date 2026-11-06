@@ -5,32 +5,32 @@ const require = createRequire(import.meta.url);
 const e = require('../.test-build/lib/sim/engine.js');
 const close = (a,b) => assert.ok(Math.abs(a-b) < 1e-8, a+' != '+b);
 
-test('reputation combines current OVR and retained performance with event corrections', () => {
+test('reputation combines role ability and verified performance with event corrections', () => {
   const state=e.createGame('reputation-components','검증','SS'),p=e.getPlayer(state);
   for(const k of Object.keys(p.stats)) p.stats[k]=80;
-  p.performanceReputation=60;
+  const evidence={score:60,sample:10000,reliability:1};p.reputationEvaluation.fields.batting.school=evidence;
   close(e.reputationScore(p),72);
   for(const k of Object.keys(p.stats)) p.stats[k]=90;
   close(e.reputationScore(p),78);
-  p.performanceReputation=80;
+  evidence.score=80;
   close(e.reputationScore(p),86);
   p.reputationBonus=3;
   close(e.reputationScore(p),89);
-  p.performanceReputation=null;p.reputationBonus=0;
-  close(e.reputationScore(p),74);
+  p.reputationEvaluation.fields.batting.school=null;p.reputationBonus=0;
+  close(e.reputationScore(p),90);
   p.performanceReputation=100;p.reputationBonus=100;
   close(e.reputationScore(p),100);
 });
 
-test('training raises reputation through OVR even without new game records', () => {
+test('training raises reputation through role ability even without new game records', () => {
   const state=e.createGame('training-reputation','검증','SS'),p=e.getPlayer(state);
   state.calendar.events=[];state.calendar.competitions=[];
-  p.performanceReputation=70;p.reputation=e.reputationScore(p);
-  const before=p.reputation,ability=e.ovr(p);
+  p.reputation=e.reputationScore(p);
+  const before=p.reputation,ability=e.roleScore(p);
   const next=e.advanceWeek(state,p.trainingPolicy,p.stance),after=e.getPlayer(next);
-  assert.equal(after.performanceReputation,70);
+  assert.equal(after.performanceReputation,null);
   assert.ok(after.reputation>before);
-  close(after.reputation-before,.6*(e.ovr(after)-ability));
+  close(after.reputation-before,e.roleScore(after)-ability);
 });
 
 test('reputation 100 can lead the draft despite lower OVR and minimum talent', () => {
@@ -92,12 +92,14 @@ test('drafting is deterministic, targets seniors only, and leaves abilities and 
 test('forecast is read-only, uses actual scouting scores and current seniors, and matches the first ten picks at unchanged ability',()=>{
   const state=e.createGame('draft-forecast','검증','SS'),rng={...state.rngStates},players=state.players;
   const forecast=e.draftForecast(state);
+  const clubs=forecast.map(pick=>pick.club);
   assert.deepEqual(state.rngStates,rng);assert.equal(state.players,players);assert.deepEqual(state.draft,[]);
   assert.equal(forecast.length,10);assert.deepEqual(forecast,e.draftForecast(state));
   assert.deepEqual(forecast,e.draftPlayers(structuredClone(state)).slice(0,10));
   const seniors=state.players.filter(p=>p.grade===3),star=seniors.at(-1);
   for(const p of seniors){p.reputation=0;p.talent={batting:1,pitching:1};}
   star.reputation=100;assert.equal(e.draftForecast(state)[0].playerId,star.id);
+  assert.deepEqual(e.draftForecast(state).map(pick=>pick.club),clubs);
   assert.ok(e.draftForecast(state).every(pick=>seniors.some(p=>p.id===pick.playerId)));
 });
 
@@ -109,7 +111,8 @@ test('yearly totals vary from 90 to 110 and each club ends at 9-13 contiguous ro
     const picks=e.draftPlayers(state);totals.add(picks.length);
     assert.ok(picks.length>=90&&picks.length<=110);assert.equal(new Set(picks.map(p=>p.playerId)).size,picks.length);
     assert.deepEqual(picks.map(p=>p.overall),Array.from({length:picks.length},(_,i)=>i+1));
-    for(const [index,club] of e.draftClubs.entries()) {
+    const order=e.draftClubOrder(state).map(index=>e.draftClubs[index]);
+    for(const [index,club] of order.entries()) {
       const rows=picks.filter(p=>p.club===club);countsSeen.add(rows.length);
       assert.ok(rows.length>=9&&rows.length<=13);
       assert.deepEqual(rows.map(p=>p.round),Array.from({length:rows.length},(_,i)=>i+1));
@@ -118,6 +121,18 @@ test('yearly totals vary from 90 to 110 and each club ends at 9-13 contiguous ro
     for(let i=1;i<picks.length;i++)assert.ok(picks[i].round>picks[i-1].round||picks[i].round===picks[i-1].round&&picks[i].slot>picks[i-1].slot);
   }
   assert.ok(totals.has(90)&&totals.has(110));assert.ok(totals.size>=18);assert.ok([9,10,11,12,13].every(n=>countsSeen.has(n)));
+});
+
+test('high-school club draws are stable within a season, vary by year and seed, and consume no live RNG',()=>{
+  const state=e.createGame('draft-random-order','검증','SS'),rng={...state.rngStates},order=e.draftClubOrder(state);
+  assert.deepEqual([...order].sort((a,b)=>a-b),Array.from({length:10},(_,i)=>i));
+  state.rngStates.draft++;state.players.reverse();assert.deepEqual(e.draftClubOrder(state),order);
+  state.rngStates.draft=rng.draft;assert.deepEqual(state.rngStates,rng);
+  const years=new Set(),firstClubs=new Set();
+  for(let i=0;i<40;i++){state.calendar.seasonYear=2027+i;years.add(e.draftClubOrder(state).join(','));firstClubs.add(e.draftClubOrder(state)[0]);}
+  assert.ok(years.size>=35);assert.ok(firstClubs.size>=8);assert.deepEqual(state.rngStates,rng);
+  state.calendar.seasonYear=2027;state.seed='another-draft-order';assert.notDeepEqual(e.draftClubOrder(state),order);
+  state.careerMode='pro';assert.deepEqual(e.draftClubOrder(state),Array.from({length:10},(_,i)=>i));
 });
 
 test('small or empty candidate pools stop cleanly without duplicate or missing-player errors',()=>{

@@ -22,7 +22,8 @@
     "app/components/draft-round-badge.tsx",
     "app/components/draft-result-gate.tsx",
     "lib/career-save.ts",
-    "app/components/pro-career-panels.tsx"
+    "app/components/pro-career-panels.tsx",
+    "app/components/player-evaluation.tsx"
   ],
   "exclude": [
     "node_modules",

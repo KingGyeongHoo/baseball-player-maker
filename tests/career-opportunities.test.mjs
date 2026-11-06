@@ -86,7 +86,7 @@ test('two-way reputation is earned by actual participation on both sides and ret
   p.seasonStats.pitching.BF=5;close(e.reputationScore(p),initial+1);
   p.seasonStats.pitching.BF=15;close(e.reputationScore(p),initial+3);e.updateReputation(s);
   assert.equal(p.twoWay.reputationBonus,3);e.promote(s);assert.equal(e.getPlayer(s).twoWay.reputationBonus,3);
-  const q=e.getPlayer(s),without=structuredClone(q);delete without.twoWay;close(e.reputationScore(q)-e.reputationScore(without),3);
+  const q=e.getPlayer(s),without=structuredClone(q);without.twoWay.reputationBonus=0;without.seasonStats=e.emptyRecord();close(e.reputationScore(q)-e.reputationScore(without),3);
 });
 
 test('two-way lineup alternates sides across completed games and adds workload only after both kinds of appearance',()=>{

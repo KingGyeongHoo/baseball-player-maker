@@ -1,4 +1,5 @@
-import {addDays,available,clamp,emptyRecord,getPlayer,hash,isPitcher,lineup,overall,ovr,roleScore,selectionScore,twoWayReputation} from "./engine";
+import {addDays,available,emptyRecord,getPlayer,hash,isPitcher,lineup,ovr,roleScore,selectionScore} from "./engine";
+import {updateEvaluationReputations} from "./evaluation-reputation";
 import {initializeProTwoWay} from "./pro-two-way";
 import type {GameState,Player,Position} from "./types";
 import type {SalaryContract} from "./pro-types";
@@ -149,13 +150,5 @@ export function evaluationCandidates(s:GameState,roster:Player[],date:string) {
 }
 export function reviewProfessionalReputation(s:GameState) {
   if(!s.proWorld)return;
-  const score=(r:Player["seasonStats"])=>{const b=r.batting,p=r.pitching;return b.PA?(b.H+b.BB)/b.PA+(b.AB?(b.H+b["2B"]+2*b["3B"]+3*b.HR)/b.AB:0):p.BF?(p.SO-1.5*p.BB-2*p.HR)/p.BF:0;};
-  for(const p of s.players){const pro=p.professional;if(!pro||!p.seasonByLevel)continue;const pitching=isPitcher(p.primaryRole),first=p.seasonByLevel.first,second=p.seasonByLevel.second;
-    const n=pitching?first.pitching.outs/3:first.batting.PA,needed=pitching?30:100,farmN=pitching?second.pitching.outs/3:second.batting.PA;
-    const performance=(r:Player["seasonStats"],farm=false)=>clamp(50+(score(r)-(pitching?.13:.72))*(pitching?120:65),0,farm?70:100);
-    const weight=Math.min(1,n/needed),farmWeight=Math.min(1,farmN/needed);
-    const base=pro.entryReputation,unrated=(base-.6*overall(p))/.4;
-    p.performanceReputation=weight*performance(first)+(1-weight)*(farmWeight*performance(second,true)+(1-farmWeight)*clamp(unrated,0,100));
-    p.reputation=clamp(.6*overall(p)+.4*p.performanceReputation+(p.reputationBonus??0)+pro.proBonus+twoWayReputation(p));
-  }
+  updateEvaluationReputations(s);
 }

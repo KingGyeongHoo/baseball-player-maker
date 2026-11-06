@@ -2,6 +2,7 @@ import { addDays,available, getPlayer, isPitcher, params, random, ticketsUsed } 
 import type { CareerEvent, GameState, Stat } from "./types";
 
 export function tryDevelopmentEvent(s: GameState) {
+  if(s.careerMode==="pro")return false;
   if (!s.careerMode || s.careerEvent || s.careerNotice || s.weekProgress?.remainingDays !== 7 || s.weekProgress.day?.phase !== "beforeGames") return false;
   const p=getPlayer(s);
   // One roll at the opening date of this week. Ledger prevents duplicate

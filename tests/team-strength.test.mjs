@@ -30,6 +30,7 @@ test('squad status assigns exactly one starter per field/DH slot and SP/RP/CP pe
     assert.ok(starters.every(p=>p.eligiblePositions.includes(assignments.get(p.id))));
   }
   const changed=structuredClone(game.players),p=changed.find(p=>p.teamId===0&&!assignments.has(p.id));
+  delete p.freshmanReserve; // The freshman's initial reserve period has passed.
   for(const key of Object.keys(p.stats))p.stats[key]=100;
   assert.ok(rosterAssignments(changed).has(p.id));
 });

@@ -1,0 +1,1458 @@
+[
+  {
+    "id": "PE01",
+    "title": "배트의 무게 중심",
+    "description": "장비 담당자가 지금보다 무게 중심이 다른 배트를 권했다. 타격 훈련에서 시험해볼까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "다른 배트를 시험한다",
+        "outcomes": [
+          {
+            "weight": 50,
+            "message": "스윙 궤도가 자연스럽게 이어졌다. 새 배트의 감각을 잡았다.",
+            "weeks": {
+              "contact": 4
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 50,
+            "message": "타이밍이 쉽게 맞지 않아 연습을 오래 이어갔다.",
+            "fatigue": 5
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "익숙한 배트를 유지한다",
+        "outcomes": [
+          {
+            "weight": 60,
+            "message": "익숙한 감각 속에서 타격 동작을 더 정교하게 다듬었다.",
+            "weeks": {
+              "contact": 3
+            },
+            "fatigue": 2
+          },
+          {
+            "weight": 40,
+            "message": "장비 고민을 마치고 정해둔 양만 연습했다.",
+            "fatigue": -2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE02",
+    "title": "투구 디딤발 점검",
+    "description": "투수 코치가 디딤발의 위치를 조금 바꿔보자고 한다. 익숙한 동작에 변화를 줄까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "새 동작으로 연습한다",
+        "outcomes": [
+          {
+            "weight": 65,
+            "message": "몸의 회전과 릴리스가 이전보다 자연스럽게 연결됐다.",
+            "weeks": {
+              "control": 4
+            },
+            "fatigue": 5
+          },
+          {
+            "weight": 35,
+            "message": "새로운 감각을 잡는 데 예상보다 많은 반복이 필요했다.",
+            "fatigue": 7
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "현재 동작의 반복성을 다듬는다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "익숙한 동작을 일정하게 반복하는 요령을 찾았다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 25,
+            "message": "오늘은 동작을 크게 바꾸지 않고 훈련을 마쳤다.",
+            "fatigue": -2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE03",
+    "title": "분석실에서 찾은 보완 과제",
+    "description": "분석 담당자가 최근 경기 기록을 정리해왔다. 현재 기술을 보완하는 훈련과 상황 판단을 함께 검토해보자고 한다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "약점을 고치는 연습을 한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "기록과 동작을 함께 보니 보완할 부분이 선명해졌다.",
+            "weeks": {
+              "weak": 4
+            },
+            "fatigue": 4
+          },
+          {
+            "weight": 30,
+            "message": "수정 방향은 잡았지만 아직 몸에 익지는 않았다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 3
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "상황별 판단을 정리한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "어떤 상황에서 다른 선택을 할지 구체적으로 정리했다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "개인 루틴을 먼저 지킨다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "계획한 루틴을 마치고 회복 시간을 확보했다.",
+            "fatigue": -4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE04",
+    "title": "장타를 위한 집중 훈련",
+    "description": "타격 코치가 강한 타구를 만들기 위한 집중 훈련을 제안했다. 오늘은 어떤 부분을 다듬을까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "힘을 싣는 스윙을 집중 연습한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "하체에서 배트까지 힘을 연결하는 감각을 찾았다.",
+            "weeks": {
+              "power": 4
+            },
+            "fatigue": 8
+          },
+          {
+            "weight": 20,
+            "message": "힘이 들어가 동작이 굳었다. 충분한 정리가 필요하다.",
+            "fatigue": 6
+          },
+          {
+            "weight": 10,
+            "message": "반복 동작 중 불편감이 생겨 훈련을 중단했다.",
+            "fatigue": 4,
+            "injury": {
+              "severity": "mild",
+              "days": 7
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "정확한 임팩트에 집중한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "중심을 유지하며 공을 맞히는 감각을 다듬었다.",
+            "weeks": {
+              "contact": 3
+            },
+            "fatigue": 3
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE05",
+    "title": "변화구 그립 조정",
+    "description": "배터리 코치가 변화구를 잡는 손가락 위치를 조금 조정해보자고 한다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "새로운 그립 감각을 시험한다",
+        "outcomes": [
+          {
+            "weight": 60,
+            "message": "손끝에서 공을 다루는 감각이 좋아졌다.",
+            "weeks": {
+              "movement": 4
+            },
+            "fatigue": 5
+          },
+          {
+            "weight": 40,
+            "message": "그립이 익숙하지 않아 같은 동작을 여러 번 확인했다.",
+            "fatigue": 7
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "기존 그립으로 제구를 다듬는다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "익숙한 공을 일정하게 보내는 데 집중할 수 있었다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 30,
+            "message": "정해둔 투구량만 소화하고 마무리했다.",
+            "fatigue": -2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE06",
+    "title": "송구 스텝을 줄이는 연습",
+    "description": "수비 코치가 포구 후 송구까지의 연결 동작을 점검하자고 한다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "송구 연결 동작을 바꿔본다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "발과 팔의 움직임이 자연스럽게 이어졌다.",
+            "weeks": {
+              "arm": 4
+            },
+            "fatigue": 4
+          },
+          {
+            "weight": 30,
+            "message": "새로운 스텝이 어색해 반복 연습이 길어졌다.",
+            "fatigue": 5
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "포구와 기본 자세부터 다듬는다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "흔들리던 기본 자세를 정리했다.",
+            "weeks": {
+              "defense": 3
+            },
+            "fatigue": 3
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE07",
+    "title": "첫발과 주루 판단",
+    "description": "주루 코치가 출발 동작과 상황 판단 중 한 가지를 집중해서 점검하자고 한다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "첫발을 빠르게 떼는 연습을 한다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "몸의 중심을 앞으로 옮기는 감각을 잡았다.",
+            "weeks": {
+              "speed": 4
+            },
+            "fatigue": 5
+          },
+          {
+            "weight": 25,
+            "message": "출발을 의식하다 동작이 굳어 훈련을 일찍 마쳤다.",
+            "fatigue": 3
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "상황별 주루 판단을 정리한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "무리할 때와 멈출 때를 구체적으로 복기했다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE08",
+    "title": "전문 코치의 집중 캠프",
+    "description": "프로 선수들을 지도해온 전문 코치가 짧은 집중 프로그램에 참가할 기회를 제안했다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "집중 프로그램에 참가한다",
+        "outcomes": [
+          {
+            "weight": 5,
+            "message": "전문 코치의 도움으로 흩어져 있던 감각이 하나로 이어졌다.",
+            "weeks": {
+              "core": 8
+            },
+            "fatigue": 8
+          },
+          {
+            "weight": 95,
+            "message": "강도 높은 반복 훈련으로 보완점을 다듬었지만 피로가 쌓였다.",
+            "weeks": {
+              "weak": 3
+            },
+            "fatigue": 12
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "이번에는 개인 계획을 따른다",
+        "outcomes": [
+          {
+            "weight": 50,
+            "message": "준비해둔 개인 훈련을 차분히 소화했다.",
+            "weeks": {
+              "precision": 3
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 50,
+            "message": "집중 훈련 대신 몸을 정비할 시간을 가졌다.",
+            "fatigue": -12
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE09",
+    "title": "캠프의 새 수비 위치",
+    "description": "코치가 {현재 포지션}과 함께 {목표 포지션}의 적성도 평가해보자고 한다. 14일 동안 준비한 뒤 역할을 검토할 예정이다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "새로운 수비 위치의 평가를 받는다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "제안받은 포지션을 준비하는 평가 과정에 들어갔다.",
+            "weeks": {
+              "defense": 3
+            },
+            "fatigue": 4,
+            "trial": true
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "현재 포지션을 더 다듬는다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "현재 포지션에서 필요한 기본기를 집중해서 연습했다.",
+            "weeks": {
+              "defense": 4
+            },
+            "fatigue": 3
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE10",
+    "title": "선발 경쟁 중 불펜 제안",
+    "description": "투수 코치가 중간계투 역할도 평가해보자고 한다. 짧은 이닝을 준비하는 방향으로 전환할까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "중간계투 평가에 도전한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "중간계투로 필요한 준비를 시작했다.",
+            "weeks": {
+              "movement": 3
+            },
+            "fatigue": 3,
+            "trial": true
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "선발 준비를 계속한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "긴 이닝을 준비하는 개인 계획을 이어갔다.",
+            "weeks": {
+              "stamina": 4
+            },
+            "fatigue": 4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE11",
+    "title": "타격에 집중하는 보직",
+    "description": "코치가 지명타자 경쟁을 준비해보자고 한다. 타격을 중심으로 역할을 평가받을까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "지명타자 역할을 평가받는다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "타격에 집중하는 역할을 준비하기로 했다.",
+            "weeks": {
+              "contact": 3
+            },
+            "fatigue": 3,
+            "trial": true
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "현재 포지션 경쟁을 이어간다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "공수의 기본기를 점검하며 현재 자리를 준비했다.",
+            "weeks": {
+              "defense": 3
+            },
+            "fatigue": 3
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE12",
+    "title": "2군에서 평가 기회를 요청하다",
+    "description": "훈련을 이어왔지만 경기에서 보여줄 기회가 적었다. 코치와 다음 준비 방향을 이야기할 시간이 생겼다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "평가 출전 기회를 요청한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "구단이 다음 21일 동안 출전 자격과 컨디션에 맞는 평가 기회를 검토하기로 했다.",
+            "requestChance": true
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "약점을 먼저 보완한다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "기회를 기다리며 부족했던 기술을 다듬었다.",
+            "weeks": {
+              "weak": 4
+            },
+            "fatigue": 4
+          },
+          {
+            "weight": 25,
+            "message": "보완할 부분을 찾았지만 오늘은 피로가 먼저 쌓였다.",
+            "fatigue": 5
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "몸을 정비하며 준비한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "다음 기회에 대비해 쌓인 피로를 풀었다.",
+            "fatigue": -8
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE13",
+    "title": "첫 1군 경기의 준비 시간",
+    "description": "처음 나설 1군 경기의 명단에 이름이 올랐다. 경기 전 남은 시간을 어떻게 쓸까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "기본 동작을 더 점검한다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "반복하던 동작을 정리하고 준비를 마쳤다.",
+            "weeks": {
+              "precision": 3
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 25,
+            "message": "긴장 탓에 준비가 길어졌다.",
+            "fatigue": 5
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "상대 선수의 기록을 살핀다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "상대를 어떻게 맞이할지 계획을 정리했다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "몸을 가볍게 풀고 기다린다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "몸의 긴장을 풀고 경기 시작을 기다렸다.",
+            "fatigue": -6
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE14",
+    "title": "겸업 선수의 추가 연습",
+    "description": "투타 훈련을 마친 뒤 짧은 추가 연습 시간이 생겼다. 오늘은 어느 쪽을 더 점검할까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "타격의 보완점에 집중한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "타격에서 반복되던 문제를 다듬을 실마리를 찾았다.",
+            "weeks": {
+              "battingWeak": 4
+            },
+            "fatigue": 5
+          },
+          {
+            "weight": 30,
+            "message": "집중력을 오래 유지하기 어려워 연습을 마쳤다.",
+            "fatigue": 4
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "투구의 보완점에 집중한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "투구 동작에서 놓치던 부분을 정리했다.",
+            "weeks": {
+              "pitchingWeak": 4
+            },
+            "fatigue": 6
+          },
+          {
+            "weight": 30,
+            "message": "몸이 무거워 반복을 줄이고 마무리했다.",
+            "fatigue": 5
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "오늘은 회복에 집중한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "양쪽 훈련으로 쌓인 피로를 풀었다.",
+            "fatigue": -10
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE15",
+    "title": "원정을 앞둔 준비",
+    "description": "원정 일정이 이어질 예정이다. 오늘 준비를 조금 더 할지, 몸을 정비할지 정해야 한다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "추가 연습으로 감각을 다듬는다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "집중해서 반복한 동작이 자연스럽게 이어졌다.",
+            "weeks": {
+              "precision": 3
+            },
+            "fatigue": 5
+          },
+          {
+            "weight": 30,
+            "message": "준비가 길어져 몸이 무거워졌다.",
+            "fatigue": 7
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "상대 기록을 정리하고 마친다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "원정에서 만날 상대를 차분히 정리했다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "남은 훈련을 마치고 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "출발 전에 몸을 정비할 시간을 확보했다.",
+            "fatigue": -10,
+            "skipTraining": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE16",
+    "title": "좋은 흐름과 쌓이는 피로",
+    "description": "최근 경기에서 좋은 흐름을 이어가고 있다. 다만 몸에는 피로가 쌓였다. 오늘 준비를 어떻게 마무리할까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "익숙한 루틴을 충분히 반복한다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "좋은 감각을 기술로 정리하는 시간을 가졌다.",
+            "weeks": {
+              "strong": 3
+            },
+            "fatigue": 6
+          },
+          {
+            "weight": 25,
+            "message": "흐름을 지키려다 훈련이 길어졌다.",
+            "fatigue": 8
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "오늘 남은 훈련을 줄이고 회복한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "감각을 쫓기보다 몸을 정비하며 하루를 마쳤다.",
+            "fatigue": -8,
+            "skipTraining": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE17",
+    "title": "부진 뒤의 분석실",
+    "description": "최근 경기 결과가 만족스럽지 않다. 코치가 기술 수정과 준비 방식 중 무엇을 먼저 점검할지 물었다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "약점을 고치는 훈련을 한다",
+        "outcomes": [
+          {
+            "weight": 65,
+            "message": "반복하던 문제를 다르게 접근할 실마리를 찾았다.",
+            "weeks": {
+              "weak": 4
+            },
+            "fatigue": 5
+          },
+          {
+            "weight": 35,
+            "message": "한 번의 연습으로 답을 찾기는 어려웠다.",
+            "fatigue": 5
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "익숙한 기본 동작으로 돌아간다",
+        "outcomes": [
+          {
+            "weight": 80,
+            "message": "복잡했던 생각을 정리하며 기본기를 다듬었다.",
+            "weeks": {
+              "precision": 3
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 20,
+            "message": "정해둔 양을 소화했지만 아직 감각은 돌아오지 않았다.",
+            "fatigue": 2
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "오늘은 몸을 먼저 정비한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "남은 훈련을 마치고 회복에 집중했다.",
+            "fatigue": -10,
+            "skipTraining": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE18",
+    "title": "복귀 예정일을 앞두고",
+    "description": "복귀 예정일이 가까워졌다. 구단이 허용한 범위에서 경기 복귀를 준비하려 한다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "경기 영상을 보며 판단을 정리한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "출전하지 못하는 동안 경기 상황을 차분히 복기했다.",
+            "weeks": {
+              "bq": 3
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "허용된 몸 관리에 집중한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "복귀를 서두르지 않고 몸에 남은 피로를 정비했다.",
+            "fatigue": -8
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE19",
+    "title": "휴식일의 야구 이야기",
+    "description": "쉬는 날 동료가 지난 경기의 판단을 함께 복기하자고 한다. 오늘은 어떻게 보낼까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "동료와 경기 판단을 복기한다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "다른 시각으로 보니 놓쳤던 선택이 보였다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
+          },
+          {
+            "weight": 25,
+            "message": "서로의 생각을 나누고 가볍게 하루를 마쳤다.",
+            "fatigue": -3
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "충분한 휴식을 취한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "야구 준비를 잠시 내려놓고 몸을 회복했다.",
+            "fatigue": -10
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE20",
+    "title": "강한 구위에 대응하는 타석",
+    "description": "상대 투수의 빠른 공이 위협적이다. 이번 타석은 어떤 접근으로 시작할까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "스윙을 간결하게 가져간다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "공을 따라가는 데 집중하며 준비를 정리했다.",
+            "match": {
+              "hit": 0.03,
+              "hr": -0.02
+            }
+          },
+          {
+            "weight": 30,
+            "message": "맞히는 데 신경을 쓰다 타이밍이 어색해졌다.",
+            "match": {
+              "hit": -0.02
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "타이밍을 잡아 강하게 노린다",
+        "outcomes": [
+          {
+            "weight": 55,
+            "message": "원하는 타이밍을 잡고 강한 스윙을 준비했다.",
+            "match": {
+              "hr": 0.05,
+              "hit": -0.01,
+              "k": 0.02
+            }
+          },
+          {
+            "weight": 45,
+            "message": "강한 공을 의식하다 준비 동작이 커졌다.",
+            "match": {
+              "hit": -0.03
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "공을 더 신중하게 고른다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "공격할 공의 범위를 좁히고 타석에 집중했다.",
+            "match": {
+              "bb": 0.02,
+              "hit": -0.01
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE21",
+    "title": "장타가 필요한 순간",
+    "description": "후반 이닝, 팀이 뒤진 가운데 주자가 나가 있다. 이번 타석을 어떻게 풀어갈까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "한 번의 큰 타구를 노린다",
+        "outcomes": [
+          {
+            "weight": 60,
+            "message": "강한 타구를 만들기 위한 준비를 마쳤다.",
+            "match": {
+              "hr": 0.05,
+              "hit": -0.02,
+              "k": 0.02
+            }
+          },
+          {
+            "weight": 40,
+            "message": "큰 스윙을 의식해 동작이 굳었다.",
+            "match": {
+              "hit": -0.03,
+              "hr": -0.02
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "다음 타자에게 기회를 잇는다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "정확한 타격과 출루에 집중할 준비가 됐다.",
+            "match": {
+              "hit": 0.02,
+              "bb": 0.01,
+              "hr": -0.03
+            }
+          },
+          {
+            "weight": 25,
+            "message": "공을 고르는 기준을 정리하며 승부를 기다렸다.",
+            "match": {
+              "bb": 0.01,
+              "hr": -0.03
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE22",
+    "title": "만루에서의 승부",
+    "description": "만루에서 다음 타자를 상대한다. 어떤 투구 접근으로 승부할까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "스트라이크를 넣는 데 집중한다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "공을 보내야 할 범위를 분명히 정했다.",
+            "match": {
+              "bb": -0.03,
+              "hit": 0.01
+            }
+          },
+          {
+            "weight": 25,
+            "message": "볼넷을 의식하다 승부 범위를 넓게 잡았다.",
+            "match": {
+              "hit": 0.03
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "타자의 헛스윙을 유도한다",
+        "outcomes": [
+          {
+            "weight": 60,
+            "message": "손끝의 감각을 정리하고 까다로운 승부를 준비했다.",
+            "match": {
+              "hit": -0.03,
+              "k": 0.05,
+              "bb": 0.01
+            }
+          },
+          {
+            "weight": 40,
+            "message": "유인하려는 생각이 앞서 제구 준비가 흔들렸다.",
+            "match": {
+              "bb": 0.04,
+              "hit": 0.01
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "평소의 투구 접근을 유지한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "익숙한 순서대로 호흡과 동작을 정리했다.",
+            "match": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE23",
+    "title": "한 점 차를 지키는 투구",
+    "description": "한 점 차 리드에서 다음 타자를 맞는다. 어떤 부분을 우선할까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "볼넷을 줄이는 접근을 택한다",
+        "outcomes": [
+          {
+            "weight": 65,
+            "message": "불필요하게 승부를 피하지 않기로 했다.",
+            "match": {
+              "bb": -0.02,
+              "hit": 0.01
+            }
+          },
+          {
+            "weight": 35,
+            "message": "스트라이크를 의식해 타자가 노릴 범위가 넓어졌다.",
+            "match": {
+              "hit": 0.03
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "힘을 실어 삼진을 노린다",
+        "outcomes": [
+          {
+            "weight": 65,
+            "message": "힘을 모아 다음 승부를 준비했다.",
+            "fatigue": 2,
+            "match": {
+              "hit": -0.02,
+              "k": 0.05
+            }
+          },
+          {
+            "weight": 35,
+            "message": "힘이 들어가 투구 준비가 흔들렸다.",
+            "fatigue": 3,
+            "match": {
+              "bb": 0.03
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "익숙한 템포를 유지한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "평소 템포로 다음 타자와의 승부를 준비했다.",
+            "match": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE24",
+    "title": "마운드에 쌓인 피로",
+    "description": "이닝이 이어지며 피로가 느껴진다. 당장 다음 타자에게 집중할 방법을 정한다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "동작을 간결하게 하고 제구에 집중한다",
+        "outcomes": [
+          {
+            "weight": 65,
+            "message": "불필요한 힘을 줄이며 승부를 준비했다.",
+            "fatigue": 1,
+            "match": {
+              "bb": -0.02,
+              "hit": 0.01
+            }
+          },
+          {
+            "weight": 35,
+            "message": "줄인 동작이 아직 익숙하지 않았다.",
+            "fatigue": 1,
+            "match": {
+              "hit": 0.03,
+              "bb": 0.01
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "힘을 모아 한 타자와 승부한다",
+        "outcomes": [
+          {
+            "weight": 55,
+            "message": "남은 힘을 다음 승부에 집중했다.",
+            "fatigue": 4,
+            "match": {
+              "hit": -0.03,
+              "k": 0.05
+            }
+          },
+          {
+            "weight": 45,
+            "message": "힘을 끌어올리려다 균형이 흔들렸다.",
+            "fatigue": 5,
+            "match": {
+              "hit": 0.02,
+              "bb": 0.03
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "평소의 투구 리듬을 이어간다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "익숙한 호흡으로 다음 승부를 준비했다.",
+            "fatigue": 1,
+            "match": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE25",
+    "title": "포스트시즌 상대 준비",
+    "description": "포스트시즌에서 만날 상대가 정해졌다. 동료들과 준비 방향을 정리할 시간이 생겼다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "상대 기록과 경기 상황을 함께 분석한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "여러 상황에서 취할 선택을 동료들과 정리했다.",
+            "weeks": {
+              "bq": 4
+            },
+            "fatigue": 1
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "개인 기술을 집중해서 점검한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "시리즈에 앞서 익숙한 동작을 더 정교하게 다듬었다.",
+            "weeks": {
+              "precision": 3
+            },
+            "fatigue": 4
+          },
+          {
+            "weight": 30,
+            "message": "준비가 길어지며 몸에 피로가 남았다.",
+            "fatigue": 5
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "몸을 정비하며 시리즈를 기다린다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "체력을 정비하고 다음 경기를 준비했다.",
+            "fatigue": -10
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE26",
+    "title": "패하면 끝나는 경기",
+    "description": "오늘 지면 이번 시즌의 도전이 끝난다. 경기 전 마지막 준비를 어떻게 할까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "동료와 경기 상황을 다시 정리한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "각자 맡은 상황을 복기하며 준비를 마쳤다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "가장 자신 있는 기술을 점검한다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "자신 있는 동작을 차분히 정리했다.",
+            "weeks": {
+              "strong": 3
+            },
+            "fatigue": 4
+          },
+          {
+            "weight": 25,
+            "message": "평소보다 오래 준비하며 피로가 쌓였다.",
+            "fatigue": 5
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "호흡을 가다듬고 몸을 관리한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "준비를 짧게 마치고 몸의 긴장을 풀었다.",
+            "fatigue": -8
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE27",
+    "title": "성인 대표팀 합동훈련 초청",
+    "description": "이번 시즌의 활약을 바탕으로 성인 대표팀 합동훈련에 초청받았다. 소집에 참가할까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "대표팀 합동훈련에 참가한다",
+        "outcomes": [
+          {
+            "weight": 20,
+            "message": "수준 높은 훈련에서 강점을 보여주며 새로운 감각도 얻었다.",
+            "weeks": {
+              "core": 6
+            },
+            "fatigue": 10,
+            "reputation": 3
+          },
+          {
+            "weight": 70,
+            "message": "다양한 선수와 훈련하며 보완할 부분을 찾았다.",
+            "weeks": {
+              "weak": 3
+            },
+            "fatigue": 8,
+            "reputation": 1
+          },
+          {
+            "weight": 10,
+            "message": "합동훈련 중 불편감이 생겨 일정을 중단했다.",
+            "fatigue": 5,
+            "injury": {
+              "severity": "mild",
+              "days": 7
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "이번에는 소속팀에서 준비한다",
+        "outcomes": [
+          {
+            "weight": 50,
+            "message": "소속팀의 개인 훈련으로 필요한 부분을 다듬었다.",
+            "weeks": {
+              "precision": 3
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 50,
+            "message": "시즌의 피로를 정비할 시간을 가졌다.",
+            "fatigue": -12
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE28",
+    "title": "베테랑의 훈련 방식",
+    "description": "예전과 같은 훈련량을 소화하는 일이 점점 버겁다. 현재의 강점을 이어갈 준비 방향을 정하려 한다.",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "기술을 효율적으로 다듬는다",
+        "outcomes": [
+          {
+            "weight": 90,
+            "message": "불필요한 움직임을 줄이며 익숙한 기술을 정리했다.",
+            "weeks": {
+              "strong": 3
+            },
+            "fatigue": 2
+          },
+          {
+            "weight": 10,
+            "message": "기술을 바꾸기보다 상황을 읽는 관점을 얻었다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "체력 기반을 보완한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "현재 몸에 맞춘 훈련으로 체력의 바탕을 다졌다.",
+            "weeks": {
+              "stamina": 4
+            },
+            "fatigue": 6
+          },
+          {
+            "weight": 30,
+            "message": "계획한 양을 소화했지만 몸이 무거웠다.",
+            "fatigue": 8
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "오늘 남은 훈련을 줄이고 회복한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "몸의 상태에 맞춰 훈련을 마쳤다.",
+            "fatigue": -10,
+            "skipTraining": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE29",
+    "title": "남은 강점을 살릴 역할",
+    "description": "코치가 남아 있는 강점을 {목표 역할}에서 살려보자고 한다. 14일 동안 새로운 역할을 평가받을까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "새로운 역할을 평가받는다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "다른 역할로 커리어를 이어갈 준비를 시작했다.",
+            "weeks": {
+              "bq": 3
+            },
+            "trial": true
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "현재 역할의 강점을 더 다듬는다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "익숙한 역할에서 자신의 강점을 다시 정리했다.",
+            "weeks": {
+              "strong": 4
+            },
+            "fatigue": 4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE30",
+    "title": "신인에게 설명하며 되짚은 기술",
+    "description": "같은 분야의 신인이 연습을 지켜봐달라고 부탁했다. 동작을 설명해줄까, 개인 훈련을 이어갈까?",
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "동작과 판단을 설명해준다",
+        "outcomes": [
+          {
+            "weight": 65,
+            "message": "설명하는 과정에서 경기 판단의 기준이 더 분명해졌다.",
+            "weeks": {
+              "bq": 4
+            },
+            "fatigue": 2
+          },
+          {
+            "weight": 35,
+            "message": "익숙한 동작을 말로 풀어내며 자신의 기술도 다시 정리했다.",
+            "weeks": {
+              "strong": 3
+            },
+            "fatigue": 3
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "개인 훈련 계획을 이어간다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "개인 과제에 집중하며 보완할 부분을 다듬었다.",
+            "weeks": {
+              "weak": 3
+            },
+            "fatigue": 2
+          },
+          {
+            "weight": 25,
+            "message": "계획한 양을 마치고 몸을 가볍게 정리했다.",
+            "fatigue": -3
+          }
+        ]
+      }
+    ]
+  }
+]

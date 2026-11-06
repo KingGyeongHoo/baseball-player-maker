@@ -1,6 +1,7 @@
 import { addDays, available, getPlayer, isPitcher, ovr, params, positionLabel, roleFor } from "./engine";
 import { twoWayPositions } from "./career-opportunities";
 import type { CareerEventBranch, GameState, Player, Position } from "./types";
+import {proDayFree,proEventsEnabled} from "./pro-event-ledger";
 
 type Pair = { pitchingPosition: Position; battingPosition: Position };
 const pairOf = (p: Player): Pair => p.twoWay ? { pitchingPosition:p.twoWay.pitchingPosition, battingPosition:p.twoWay.battingPosition } : {...p.professional?.twoWayReview?.positions ?? twoWayPositions(p)};
@@ -45,12 +46,13 @@ export function reviewProTwoWay(s:GameState) {
   if(!s.proWorld||!["camp","regular"].includes(s.proWorld.stage)||s.careerEvent||s.careerNotice||s.matchProgress)return false;
   const days=params["pro.two_way_days"];
   for(const p of s.players){const review=p.professional?.twoWayReview;
-    if(!review||p.professional?.employment!=="active"||p.teamId<0||!p.twoWay&&review.nextProposalDate&&s.date<review.nextProposalDate)continue;
+    if(!review||p.professional?.roleTrial||p.roleOffer||p.professional?.employment!=="active"||p.teamId<0||!p.twoWay&&review.nextProposalDate&&s.date<review.nextProposalDate)continue;
     if(review.lastDate!==s.date&&review.lastDate!==addDays(s.date,-1)){review.qualifiedDays=review.belowDays=0;continue;}
     const start=!p.twoWay&&review.qualifiedDays>=days&&proTwoWayQualified(p)&&available(p,s.date);
     const stop=!!p.twoWay&&review.belowDays>=days&&Math.min(ovr(p,true),ovr(p,false))<params["pro.two_way_maintain"];
     if(!start&&!stop)continue;
     if(p.id!==s.playerId){if(start)startTwoWay(p);else focusProRole(p);history(s,p,start?"프로 겸업 시작":"단일 역할 전환","구단이 지속된 기본 능력과 역할을 평가했습니다.");review.qualifiedDays=review.belowDays=0;review.nextProposalDate=addDays(s.date,91);continue;}
+    if(proEventsEnabled(s)&&!proDayFree(s))continue;
     const higher=strongerPitching(p)?"pitching":"batting",other=higher==="pitching"?"batting":"pitching";
     review.nextProposalDate=addDays(s.date,91);
     const title=start?"감독의 프로 투타 겸업 제안":"감독의 겸업 역할 조정 제안";
