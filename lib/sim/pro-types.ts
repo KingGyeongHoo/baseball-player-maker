@@ -1,10 +1,14 @@
-import type { Competition, DraftPick, Game, Player, Position, RecordLine, Stats } from "./types";
+import type { Competition, DraftPick, Game, Player, Position, RecordLine, Stats, Role, ProSquad } from "./types";
 import type {ProRoleTrial} from "./pro-event-types";
 import type {LeagueStanding} from "./league-standings";
 
 export type ProStage = "camp" | "regular" | "postseason" | "summary" | "offseason" | "retired";
 export type SalaryContract = { id:string; club:number; startYear:number; endYear:number; salary:number; segments:{from:string;salary:number}[]; source:"rookie"|"renewal"|"fa"|"released" };
 export type ProfessionalPlayer = {
+  assessments?:ProSeasonAssessment[];
+  assessmentUsage?:{year:number;activeDays:number;lowerDays:number;upperDays:number;firstDays?:number;lastDate?:string};
+  nonRenewal?:{year:number;kind:"reserve"|"limited-appearances"|"post-rookie-evaluation"|"second-team"|"low-evaluation";reason:string;club:number};
+  developmentalRetry?:{year:number;deadlineYear:number;club:number};
   rookieYear:number; firstClub:number; entry:string; employment:"active"|"freeAgent"|"retired";
   contract:SalaryContract|null; agingOffset:number; agedYear:number; ageChanges?:Partial<Stats>;
   faDays:number; faEligible:boolean; registration:{year:number;days:number;lastDate?:string};
@@ -25,10 +29,10 @@ export type ProAward = {year:number;kind:string;playerId:string;playerName:strin
 export type Standing = LeagueStanding;
 export type ProSeasonArchive = {year:number;endDate?:string;standings:Standing[];farmStandings:Standing[];champion:number|null;awards:ProAward[];draft:DraftPick[]};
 export type ProSeries = {id:string;stage:"wildcard"|"semi"|"playoff"|"final";clubs:[number,number];wins:[number,number];target:number;game:number;lastDate:string;winner?:number;rosters:Record<string,string[]>;excluded:string[];drawHomes?:number[];processedGame?:number};
-export type ContractOffer = {id:string;club:number;year:number;years:number;salary:number;role:string;kind:"renewal"|"fa"|"released";negotiated:boolean;final:boolean;competition:string[]};
+export type ContractOffer = {id:string;club:number;year:number;years:number;salary:number;role:string;kind:"renewal"|"fa"|"released";negotiated:boolean;final:boolean;competition:string[];registration?:"developmental";assessment?:{current:number|null;cumulative:number|null;score:number}};
 export type ProPostseason={format?:"kbo-v1";seeds:number[];series:ProSeries[];champion?:number};
 export type ProWorld = {
-  version:1; year:number; stage:ProStage; regularEnd:string; seasonClosed:boolean;
+  version:1; contractRulesVersion?:1|2|3; year:number; stage:ProStage; regularEnd:string; seasonClosed:boolean;
   clubs:{id:number;direction:"contend"|"balanced"|"rebuild";budget:number;deadMoney:Record<string,number>;nextReview?:string}[];
   seasons:ProSeasonArchive[]; archive:Player[]; retiredRecords?:Record<string,RecordLine>; news:{id:string;date:string;text:string}[];
   postseason?:ProPostseason;
@@ -39,4 +43,10 @@ export type ProWorld = {
   monthly?:{month:string;text:string}; lastMonthly?:string; draftedYears:number[];
   squadsVersion?:1;
   rookieCandidates?:Player[];
+};
+
+export type ProSeasonAssessment={
+  year:number;date:string;score:number|null;grade:string;cumulative:number|null;cumulativeGrade:string;
+  ability:number;role:Role;squad:ProSquad|null;developmental:boolean;reserveSeason:boolean;firstTeam?:boolean;secondOnly?:boolean;firstGames?:number|null;
+  source:"season-end"|"reconstructed";
 };

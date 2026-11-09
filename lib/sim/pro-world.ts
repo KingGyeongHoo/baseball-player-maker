@@ -1,3 +1,4 @@
+import {hydrateAssessments,recordAssessmentDay} from "./pro-assessment";
 import {addDays,available,emptyRecord,getPlayer,hash,isPitcher,lineup,ovr,roleScore,selectionScore} from "./engine";
 import {updateEvaluationReputations} from "./evaluation-reputation";
 import {initializeProTwoWay} from "./pro-two-way";
@@ -29,7 +30,7 @@ export function initializeProfessional(s:GameState,p:Player,club:number,entry="v
   const salary=entry!=="veteran"?(p.proContract.status==="developmental"?.6:1)*BASE_SALARY:(p.teamId<10?2+Math.max(0,ovr(p)-66)*.2:1)*BASE_SALARY;
   p.professional={rookieYear,firstClub:club,entry,employment:club<0?"freeAgent":"active",contract:club<0?null:contractFor(club,year,Math.trunc(salary)),
     agingOffset:hash(`${s.seed}:${p.id}:aging`)%5-2,agedYear:year,faDays:0,faEligible:false,registration:{year,days:0},
-    unattachedYears:0,entryReputation:p.reputation??50,proBonus:0,earnings:0,highestSalary:salary,peak:{...p.stats},
+    assessments:[],unattachedYears:0,entryReputation:p.reputation??50,proBonus:0,earnings:0,highestSalary:salary,peak:{...p.stats},
     firsts:{},movements:[{date:s.date,from:null,to:club<0?null:club,kind:"입단",reason:entry}],salaries:[],service:club<0?[]:[{club,from:year,to:year}]};
   p.seasonByLevel??={first:emptyRecord(),second:emptyRecord()};p.seasonPostseason??=emptyRecord();p.seasonByClub??={};
   initializeProTwoWay(s,p);
@@ -39,11 +40,11 @@ export function ensureProWorld(s:GameState) {
   if(s.careerMode!=="pro")return;
   discardRetiredPlayers(s);
   const year=s.calendar.seasonYear,p=getPlayer(s),info=s.postSchool?.pro;
-  s.proWorld??={version:1,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
+  s.proWorld??={version:1,contractRulesVersion:3,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
     clubs:Array.from({length:10},(_,id)=>({id,direction:"balanced",budget:(220+hash(`${s.seed}:club-budget:${id}`)%81)*BASE_SALARY,deadMoney:{},nextReview:`${year}-03-15`})),
     seasons:[],archive:[],news:[],squadsVersion:s.teams.length>=40?1:undefined,goal:p.proContract?.status==="developmental"?"정식 선수 전환":"1군 정착",longGoal:"1군 데뷔와 꾸준한 출전",draftedYears:[year]};
   const drafted=new Set([...s.draft,...s.postSchool?.collegeDraft??[]].map(pick=>pick.playerId));
-  for(const q of s.players)initializeProfessional(s,q,q.teamId<0?-1:q.teamId%10,q.id===p.id?info?.entry??"draft":drafted.has(q.id)?"draft":"veteran");
+  for(const q of s.players){initializeProfessional(s,q,q.teamId<0?-1:q.teamId%10,q.id===p.id?info?.entry??"draft":drafted.has(q.id)?"draft":"veteran");hydrateAssessments(s,q);}
   if(info&&p.professional){p.professional.rookieYear=info.rookieYear;if(info.debutDate)p.professional.firsts.debut??=info.debutDate;}
   ensureProSquadTeams(s);reorganizeProSquads(s);
 }
@@ -52,6 +53,7 @@ export function recordProfessionalDay(s:GameState) {
   const w=s.proWorld;if(!w||w.stage==="retired")return;
   const first=s.calendar.competitions.find(c=>c.id==="pro-first");
   for(const p of s.players){const pro=p.professional;if(!pro)continue;
+    recordAssessmentDay(s,p);
     if(pro.registration.year!==w.year)pro.registration={year:w.year,days:0};
     if(first&&s.date>=first.startDate&&s.date<=first.endDate&&p.teamId>=0&&p.teamId<10&&pro.employment==="active"&&p.proContract?.status!=="developmental"&&pro.registration.lastDate!==s.date&&pro.registration.days<150){
       pro.registration.days++;pro.registration.lastDate=s.date;pro.faDays++;if(pro.faDays>=900)pro.faEligible=true;

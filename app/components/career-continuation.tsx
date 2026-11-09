@@ -12,7 +12,7 @@ export function CareerNoticeDialog({ state, onChange }: { state: GameState; onCh
   if(!notice)return null;
   return <dialog ref={dialog} className="modal career-event-modal" aria-labelledby="career-notice-title" onCancel={e=>{e.preventDefault();onChange(acknowledgeCareer(state));}}>
     <div className="modal-header"><h2 id="career-notice-title" tabIndex={-1} ref={title}>{notice.title}</h2><span className="position-tag">CAREER LIFE</span></div>
-    <div className="guide-content"><p>{notice.message}</p><p className="micro muted">자동 진행은 멈춘 상태입니다. 확인 후 직접 이어갈 수 있습니다.</p><div className="modal-actions"><button className="primary" onClick={()=>onChange(acknowledgeCareer(state))}>확인</button></div></div>
+    <div className="guide-content"><p>{notice.message}</p><div className="modal-actions"><button className="primary" onClick={()=>onChange(acknowledgeCareer(state))}>확인</button></div></div>
   </dialog>;
 }
 export default function CareerContinuation({ state, onChange, onRetire }: { state:GameState;onChange:(state:GameState)=>void;onRetire?:()=>void }) {

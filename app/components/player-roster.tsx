@@ -6,7 +6,6 @@ import {
   isPitcher,
   ovr,
   positionLabel,
-  selectionScore,
 } from "../../lib/sim/engine";
 import { scoreText } from "../../lib/display";
 import { rosterAssignments } from "../../lib/roster-status";
@@ -26,6 +25,8 @@ import { dashboardRecordValues } from "./dashboard-records";
 import DraftRoundBadge from "./draft-round-badge";
 import { proSquad } from "../../lib/sim/pro-squads";
 import Tooltip from "./tooltip";
+
+const rosterScoreText = (score: number | null | undefined) => score != null && Number.isFinite(score) ? score.toFixed(1) : "—";
 
 export function PlayerGrade({
   player,
@@ -130,7 +131,7 @@ export function RosterTable({
                 )}
               </th>
             ))}
-            <th>출전평가</th>
+            <th>{pro ? "출전평가" : "평판"}</th>
           </tr>
         </thead>
         <tbody>
@@ -193,8 +194,8 @@ export function RosterTable({
                 <td key={label}>{value}</td>
               ))}
               <td>
-                <b title="역할 능력·피로·최근 성적·등록 상태를 반영한 현재 출전평가">
-                  {selectionScore(p).toFixed(1)}
+                <b title={pro ? "역할 능력·피로·최근 성적·등록 상태를 반영한 현재 출전평가" : "역할별 능력·경기 성적·이벤트 보너스를 반영한 평판"}>
+                  {rosterScoreText(rosterGradeScore(p, pro))}
                 </b>
               </td>
             </tr>
@@ -396,8 +397,8 @@ export default function PlayerRoster({
           {pro
             ? "프로 등급은 현재 역할의 출전평가를 사용합니다. 역할 능력에 피로·최근 성적·신고선수·관리 상태를 반영하므로 컨디션에 따라 변합니다."
             : "고교 등급은 역할별 능력과 표본을 보정한 경기 성적, 이벤트 보너스를 포함한 평판을 사용합니다."}{" "}
-          OVR을 다시 더하지 않습니다. 출전평가 열은 소수 첫째 자리까지 표시하며
-          프로 등급도 이 점수로 판정합니다.
+          OVR을 다시 더하지 않습니다. {pro ? "출전평가" : "평판"} 열은 소수 첫째 자리까지 표시하며
+          등급도 이 점수로 판정합니다.
         </p>
         <p>
           {pro

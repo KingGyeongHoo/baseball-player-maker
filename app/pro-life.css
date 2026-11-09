@@ -130,3 +130,5 @@
  .career-storage-panel { padding:16px; }
  .career-storage-panel .modal-actions { flex-wrap:wrap; justify-content:flex-start; }
 }
+
+.contract-assessments{border:1px solid #dce2d3;border-radius:10px;padding:18px;margin:18px 0;background:#fafbf6}.assessment-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:14px 0}.assessment-metrics span{display:block;color:#78816c;font-size:11px}.assessment-metrics b{display:block;font-size:19px;margin-top:5px}.contract-assessment-notice{padding:10px 12px;border-radius:6px;background:#fff1df;color:#966536;font-size:12px;margin:10px 0}.contract-assessments details{margin-top:14px}@media(max-width:700px){.assessment-metrics{grid-template-columns:1fr}.contract-assessments{padding:14px}}

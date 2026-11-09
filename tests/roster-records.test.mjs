@@ -69,3 +69,17 @@ test('school and pro share the roster and viewing leaves player data and RNG unt
   const proBefore=structuredClone(s),pro=renderToStaticMarkup(createElement(PlayerRoster,{state:s,onSelect(){}}));
   assert.match(pro,/1군/);assert.match(pro,/2군/);assert.match(pro,/시즌 합계/);assert.match(pro,/등급순/);assert.deepEqual(s,proBefore);
 });
+
+test('school score column shows reputation, pro shows selection score, and labels match the actual values',()=>{
+  const p=player('서로다른평가'),s=state([p]);
+  for(const key of Object.keys(p.stats))p.stats[key]=60;
+  p.reputation=82.3;p.fatigue=0;p.recentZ=0;
+  const render=()=>renderToStaticMarkup(createElement(RosterTable,{state:s,players:[p],field:'batting',onSelect(){}}));
+  const school=render();assert.match(school,/<th>평판<\/th>/);assert.doesNotMatch(school,/출전평가/);
+  assert.match(school,/평판 등급 S/);assert.match(school,/>82\.3<\/b><\/td><\/tr>/);
+  const guide=renderToStaticMarkup(createElement(PlayerRoster,{state:s,onSelect(){}}));
+  assert.match(guide,/평판 열/);assert.doesNotMatch(guide,/출전평가/);
+  s.careerMode='pro';const pro=render();
+  assert.match(pro,/<th>출전평가<\/th>/);assert.match(pro,/출전평가 등급 F/);assert.match(pro,/>60\.0<\/b><\/td><\/tr>/);
+  assert.doesNotMatch(pro,/>82\.3<\/b><\/td><\/tr>/);
+});

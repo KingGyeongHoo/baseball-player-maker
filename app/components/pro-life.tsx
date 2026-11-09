@@ -4,7 +4,7 @@ import { scoreText } from "../../lib/display";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { answerCareerEvent, overall, dateLabel, getPlayer, isPitcher, validPolicy } from "../../lib/sim/engine";
 import { careerLabel, developmentProgress } from "../../lib/sim/pro-career";
-import { AutoProgress, autoPauseReason, cancelPendingSimulation } from "../../lib/auto-progress";
+import { AutoProgress, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } from "../../lib/auto-progress";
 import {restoreWorkerState,workerStateInput} from "../../lib/sim/worker-state";
 import ProLeague from "./pro-league";
 import PlayerRoster, {RosterTable} from "./player-roster";
@@ -20,7 +20,7 @@ import {ScoutingReportContent} from "./scouting-report";
 import SeasonRecords from "./season-records";
 import CareerStorage from "./career-storage";
 import {ProGoals,ProContractPanel,ProRetirement,salaryText} from "./pro-career-panels";
-import {actOnProCareer,needsPostseasonUpgrade,upgradeProfessionalState,type ProAction} from "../../lib/sim/pro-season";
+import {actOnProCareer,needsContractUpgrade,needsPostseasonUpgrade,upgradeProfessionalState,type ProAction} from "../../lib/sim/pro-season";
 import {needsProScheduleUpgrade} from "../../lib/sim/pro-schedule";
 import {needsProSquadUpgrade,squadLabel} from "../../lib/sim/pro-squads";
 import { DraftRoundTable } from "./draft-board";
@@ -53,7 +53,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const worker=useRef<Worker|null>(null),locked=useRef(false),request=useRef(0),timer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const [autoProgress]=useState(()=>new AutoProgress());
   useEffect(()=>{
-    if(state.careerMode!=="pro"||state.proWorld&&state.proClubNamesVersion===1&&!needsPostseasonUpgrade(state)&&!needsProScheduleUpgrade(state)&&!needsProSquadUpgrade(state))return;
+    if(state.careerMode!=="pro"||state.proWorld&&state.proClubNamesVersion===1&&!needsPostseasonUpgrade(state)&&!needsProScheduleUpgrade(state)&&!needsProSquadUpgrade(state)&&!needsContractUpgrade(state))return;
     const scheduled=setTimeout(()=>{
       autoProgress.pause();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);setAuto(false);setOutcome(null);
       const next=upgradeProfessionalState(state);onChange(next);setPolicy(structuredClone(getPlayer(next).trainingPolicy));setStance({...getPlayer(next).stance});
@@ -91,7 +91,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
     }catch(e){fail(e instanceof Error?e.message:"주간 계산에 실패했습니다.");}
   },[state,policy,stance,outcome,onChange,stop]);
   useEffect(()=>{
-    if(state.careerEvent||state.careerNotice||outcome){autoProgress.pause();if(locked.current||busy)cancelPendingSimulation({worker,request,locked,timer});if(auto||busy){const settle=setTimeout(()=>{setAuto(false);setBusy(false);},0);return ()=>clearTimeout(settle);}return;}
+    if(autoWaitingForDecision(state,!!outcome)){autoProgress.cancelScheduled();if(locked.current||busy)cancelPendingSimulation({worker,request,locked,timer});if(busy){const settle=setTimeout(()=>setBusy(false),0);return ()=>clearTimeout(settle);}return;}
     if(!auto||busy||ended)return;
     autoProgress.schedule(advance);return ()=>autoProgress.cancelScheduled();
   },[auto,busy,ended,state,outcome,advance,autoProgress]);
@@ -122,7 +122,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
     </main><footer className="site-footer"><div><span className="footer-brand">BASEBALL LIFE.</span><span>고교에서 프로까지, 나의 야구 인생</span><span>가상 구단·게임용 일정</span></div></footer>
     {!ended&&<ProgressControls state={state} policy={policy} busy={busy} auto={auto} autoStartWeek={autoStartWeek} pendingOutcome={!!outcome} onAdvance={advance} onToggleAuto={()=>{if(auto)stop();else{setAutoStartWeek(state.week);autoProgress.start();setAuto(true);}}}/>}
     {state.careerNotice&&!(tab==="career"&&state.careerMode==="college"&&ended)&&<CareerNoticeDialog state={state} onChange={onChange}/>}
-    {(state.careerEvent||outcome)&&<CareerEventDialog event={state.careerEvent??null} outcome={outcome} disabled={busy} onRecover={()=>{stop();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);}} onDone={()=>{setOutcome(null);const next={...state};delete next.pendingEventOutcome;onChange(next);}} onChoose={id=>{stop();if(locked.current||!state.careerEvent)return false;const next=answerCareerEvent(state,id);next.pendingEventOutcome=next.careerEventHistory!.at(-1)!;onChange(next);setOutcome(next.pendingEventOutcome);return true;}}/>}
+    {(state.careerEvent||outcome)&&<CareerEventDialog event={state.careerEvent??null} outcome={outcome} disabled={busy} onRecover={()=>{autoProgress.cancelScheduled();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);}} onDone={()=>{setOutcome(null);const next={...state};delete next.pendingEventOutcome;onChange(next);}} onChoose={id=>{if(locked.current||!state.careerEvent)return false;const next=answerCareerEvent(state,id);next.pendingEventOutcome=next.careerEventHistory!.at(-1)!;onChange(next);setOutcome(next.pendingEventOutcome);return true;}}/>}
 
     {draftPick&&<Dialog title={`${draftPick.playerName} 지명 평가`} onClose={()=>setDraftPick(null)}><p>{draftPick.club} · 전체 {draftPick.overall}순위</p><p>{draftPick.teamName} · {draftPick.role}</p><p>평판 {scoreText(draftPick.reputation)} · 재능 {draftPick.talent}/10 · 적합도 {scoreText(draftPick.fit)} · 평가 {scoreText(draftPick.score)}</p><ScoutingReportContent state={state} pick={draftPick}/></Dialog>}
     {reset&&<Dialog title="새 선수로 시작할까요?" onClose={()=>setReset(false)}><p>현재 커리어와 기록이 초기화됩니다.</p><div className="modal-actions"><button className="secondary" onClick={()=>setReset(false)}>계속 플레이</button><button className="primary" onClick={onReset}>새 선수 만들기</button></div></Dialog>}

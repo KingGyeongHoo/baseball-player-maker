@@ -88,7 +88,7 @@ test('unqualified prospects remain in the farm team; call-up exchanges roster me
 test('registration notice pauses before games/training and resumes the same seven days without duplicate swaps',()=>{
   let s=fixture(),p=e.getPlayer(s);for(const key of Object.keys(p.stats))p.stats[key]=95;s.date='2028-03-15';
   const paused=advance(s);assert.equal(paused.date,s.date);assert.equal(paused.week,s.week);assert.equal(paused.weekProgress.remainingDays,7);assert.equal(paused.weekProgress.day.phase,'beforeGames');
-  assert.equal(paused.report.fatigue.training,0);assert.equal(paused.postSchool.pro.transactions.length,1);assert.ok(autoPauseReason(s,paused));
+  assert.equal(paused.report.fatigue.training,0);assert.equal(paused.postSchool.pro.transactions.length,1);assert.equal(autoPauseReason(s,paused),null);
   s=advance(pc.acknowledgeCareer(paused));assert.equal(s.week,paused.week+1);assert.equal(s.postSchool.pro.transactions.length,1);assert.equal(s.weekProgress,undefined);
   close(s.postSchool.pro.firstTeamWeeks,1);assert.ok(!s.calendar.events.some(g=>g.status==='inProgress'));
 });

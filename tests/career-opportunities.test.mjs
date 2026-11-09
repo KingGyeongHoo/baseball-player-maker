@@ -161,7 +161,7 @@ test('accepting transfer schedules January join; archives retain the old school 
   assert.equal(p.career[0].schoolName,oldSchool);assert.equal(p.career[0].records.batting.H,7);assert.deepEqual(p.seasonStats,e.emptyRecord());
   assert.equal(s.players.length,3000);assert.equal(s.players.filter(q=>q.id!==p.id&&q.grade>1&&q.teamId===offer.teamId).length,20);
   assert.deepEqual(p.stats,original.stats);assert.equal(p.transferAdaptation.weeksRemaining,2);assert.equal(s.careerEventHistory.at(-1).fatigue,3);
-  assert.ok(autoPauseReason(base,s));assert.equal(o.joinPendingTransfer(s),false);
+  assert.equal(autoPauseReason(base,s),null);assert.equal(o.joinPendingTransfer(s),false);
   const beforeFatigue=p.fatigue;s=complete(s);assert.equal(s.careerEventHistory.filter(x=>x.definitionId==='S02_JOIN').length,1);assert.ok(e.getPlayer(s).fatigue<=beforeFatigue);
   assert.equal(e.getPlayer(s).transferAdaptation.weeksRemaining,2);assert.equal(playerSeasons(e.getPlayer(s),2028)[0].schoolName,oldSchool);
 });

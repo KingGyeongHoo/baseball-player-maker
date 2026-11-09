@@ -1,3 +1,4 @@
+import {hydrateAssessments} from "./sim/pro-assessment";
 import {syncJerseyNumbers} from "./jersey-numbers";
 import {discardRetiredPlayers} from "./sim/retired-records";
 import {syncProClubNames} from "./sim/club-names";
@@ -13,6 +14,14 @@ export function validateCareerState(value:unknown):asserts value is GameState {
   if(typeof s.seed!=="string"||typeof s.playerId!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(s.date)||!["weekStart","ended"].includes(s.phase)||!Array.isArray(s.players)||!Array.isArray(s.teams)||!Array.isArray(s.calendar?.events))throw new Error("필수 커리어 데이터가 누락됐습니다.");
   const ids=new Set<string>();for(const p of s.players){
     if(!p||typeof p.id!=="string"||ids.has(p.id)||!Number.isInteger(p.teamId)||p.teamId>=s.teams.length||p.teamId< -1||statKeys.some(k=>!Number.isFinite(p.stats?.[k])||p.stats[k]<1||p.stats[k]>100)||!p.trainingPolicy?.tickets||!Array.isArray(p.career))throw new Error("선수·소속·능력 데이터가 손상됐습니다.");ids.add(p.id);
+    const assessments=p.professional?.assessments;
+    if(assessments!==undefined&&(!Array.isArray(assessments)||new Set(assessments.map(row=>row.year)).size!==assessments.length||assessments.some(row=>!Number.isInteger(row.year)||typeof row.date!=="string"||row.score!==null&&!Number.isFinite(row.score)||row.cumulative!==null&&!Number.isFinite(row.cumulative)||!Number.isFinite(row.ability)||typeof row.reserveSeason!=="boolean"||typeof row.developmental!=="boolean"||row.firstTeam!==undefined&&typeof row.firstTeam!=="boolean"||row.secondOnly!==undefined&&typeof row.secondOnly!=="boolean"||row.firstGames!==undefined&&row.firstGames!==null&&(!Number.isInteger(row.firstGames)||row.firstGames<0)||!["season-end","reconstructed"].includes(row.source))))throw new Error("시즌 출전평가 기록을 복원할 수 없습니다.");
+    const usage=p.professional?.assessmentUsage;
+    if(usage&&(!Number.isInteger(usage.year)||[usage.activeDays,usage.lowerDays,usage.upperDays].some(n=>!Number.isInteger(n)||n<0)||usage.lowerDays+usage.upperDays!==usage.activeDays||usage.firstDays!==undefined&&(!Number.isInteger(usage.firstDays)||usage.firstDays<0||usage.firstDays>usage.upperDays)))throw new Error("소속 군의 활동 일수를 복원할 수 없습니다.");
+    const refusal=p.professional?.nonRenewal;
+    if(refusal&&(!Number.isInteger(refusal.year)||!["reserve","limited-appearances","post-rookie-evaluation","second-team","low-evaluation"].includes(refusal.kind)||!Number.isInteger(refusal.club)||refusal.club<0||refusal.club>=10||typeof refusal.reason!=="string"))throw new Error("재계약 판정 기록이 손상됐습니다.");
+    const retry=p.professional?.developmentalRetry;
+    if(retry&&(!Number.isInteger(retry.year)||retry.deadlineYear!==retry.year||!Number.isInteger(retry.club)||retry.club<0||retry.club>=10))throw new Error("신고 재영입 기한을 복원할 수 없습니다.");
     const trial=p.professional?.roleTrial;if(trial?.version===1&&(!Array.isArray(trial.trainingDates)||typeof trial.started!=="string"||typeof trial.until!=="string"||typeof trial.sourceId!=="string"))throw new Error("보직 평가의 훈련 근거를 복원할 수 없습니다.");
   }
   if(!ids.has(s.playerId)||!s.rngStates||Object.values(s.rngStates).some(n=>!Number.isInteger(n)))throw new Error("선수 또는 난수 상태를 복원할 수 없습니다.");
@@ -33,11 +42,12 @@ export function decodeCareerSave(raw:string):CareerSave {
 function validateCareerSave(file:CareerSave):CareerSave {
   if(file?.format!=="baseball-life"||file.version!==1)throw new Error("지원하지 않는 저장 형식입니다. 원본 파일은 유지됩니다.");
   validateCareerState(file.state);if(saveChecksum(JSON.stringify(file.state))!==file.checksum)throw new Error("저장 파일의 무결성 확인에 실패했습니다. 원본 파일은 유지됩니다.");
+  let assessmentsChanged=false;for(const p of file.state.players)assessmentsChanged=hydrateAssessments(file.state,p)||assessmentsChanged;
   const retiredRemoved=discardRetiredPlayers(file.state);
   const namesChanged=syncProClubNames(file.state);
   const needsNumbers=file.state.players.some(p=>p.jerseyNumber===undefined);
   if(needsNumbers)syncJerseyNumbers(file.state);
-  if(retiredRemoved||needsNumbers||namesChanged)file.checksum=saveChecksum(JSON.stringify(file.state));
+  if(assessmentsChanged||retiredRemoved||needsNumbers||namesChanged)file.checksum=saveChecksum(JSON.stringify(file.state));
   return file;
 }
 let database:Promise<IDBDatabase>|undefined;

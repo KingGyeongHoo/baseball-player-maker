@@ -1,3 +1,5 @@
+import {assessmentValue,hydrateAssessments,requiresDevelopmentalOffer,salaryUnits,seasonExit} from "./pro-assessment";
+import {proContractRules as rules} from "./pro-contract-rules";
 import {addDays,assignRole,getPlayer,hash,ovr,roleScore} from "./engine";
 import {contractValue} from "./pro-evaluation";
 import {BASE_SALARY,clubName,contractFor,proNews,proNotice} from "./pro-world";
@@ -8,7 +10,7 @@ import {beginProRoleTrial} from "./pro-role-evaluation";
 
 export function salaryQuote(p:Player,year:number) {
   if(p.proContract?.status==="developmental")return .6*BASE_SALARY;
-  const v=contractValue(p,year),units=v<45?1:v<55?1+(v-45)*.2:v<65?2+(v-55)*.4:v<75?5+(v-65)*.7:v<85?12+(v-75)*1.8:Math.min(50,30+(v-85)*2);
+  const units=salaryUnits(assessmentValue(p,year).score);
   return Math.trunc(units*BASE_SALARY/100_000)*100_000;
 }
 export function clubInterest(s:GameState,p:Player,club:number,year:number){
@@ -50,9 +52,17 @@ export function releasePlayer(s:GameState,p:Player,reason:string,year:number){
 }
 export function signContract(s:GameState,p:Player,offer:ContractOffer){
   const pro=p.professional!;
+  if(requiresDevelopmentalOffer(p,offer.year-1)&&(offer.registration!=="developmental"||offer.club===pro.nonRenewal?.club||offer.years!==1))throw new Error("정식 재계약 불가 판정으로 다른 구단의 1년 신고 계약만 검토할 수 있습니다.");
+  if(offer.registration==="developmental"){
+    if(offer.years!==1||offer.salary!==rules.developmentalRatio*BASE_SALARY)throw new Error("신고 재영입은 1년 기본 신고 연봉으로 계약합니다.");
+  }
   if(!canAfford(s,offer.club,offer.salary,offer.year,offer.years,[p.id]))throw new Error("구단의 미래 보장액을 포함한 예산을 초과합니다.");
   const members=clubRoster(s,offer.club).filter(q=>q.id!==p.id);
   if(members.length>=75||members.filter(q=>q.teamId>=10).length>=45&&p.teamId!==offer.club)throw new Error("구단 또는 2군·잔류군·육성선수의 합산 정원이 가득 찼습니다.");
+  if(offer.registration==="developmental"){
+    p.proContract={status:"developmental",joinedDate:`${offer.year}-03-01`};
+    pro.developmentalRetry={year:offer.year,deadlineYear:offer.year,club:offer.club};
+  }
   const old=pro.employment==="active"?pro.contract?.club??p.teamId%10:null;
   if(old!==offer.club){
     const stint=pro.service.at(-1);if(stint)stint.to=s.calendar.seasonYear;
@@ -63,17 +73,24 @@ export function signContract(s:GameState,p:Player,offer:ContractOffer){
   if(p.id===s.playerId&&s.postSchool?.pro){s.postSchool.pro.club=offer.club;s.postSchool.pro.level=p.teamId<10?"first":p.teamId<20?"second":p.teamId<30?"third":"developmental";}
   proNews(s,`${p.name} · ${clubName(s,offer.club)} ${offer.years}년 계약`,`${offer.id}:signed`);
 }
-function offerFor(s:GameState,p:Player,club:number,year:number,kind:ContractOffer["kind"]):ContractOffer|null{
+export function offerFor(s:GameState,p:Player,club:number,year:number,kind:ContractOffer["kind"]):ContractOffer|null{
   const pro=p.professional!,members=clubRoster(s,club).filter(q=>q.id!==p.id);
   if(members.length>=75||members.filter(q=>q.teamId>=10).length>=45&&p.teamId!==club)return null;
-  const value=contractValue(p,year-1),own=pro.contract?.club===club&&pro.employment==="active";
-  if(!own&&clubInterest(s,p,club,year-1)<40)return null;
-  const salary=salaryQuote(p,year-1),years=kind==="fa"?Math.min((p.age??19)>=38?2:4,value>=65?2+hash(`${year}:${p.id}:${club}`)%3:1):1;
+  const assessment=assessmentValue(p,year-1),value=assessment.score,own=pro.contract?.club===club&&pro.employment==="active",trial=requiresDevelopmentalOffer(p,year-1);
+  const peers=members.filter(q=>q.position===p.position&&q.proContract?.status!=="developmental");
+  const minimum=p.position==="C"?4:p.position==="SP"?8:p.position==="RP"?6:p.position==="CP"?3:p.position==="DH"?2:3;
+  const need=peers.length<minimum,rows=pro.assessments??[],last=rows.at(-1),previous=rows.at(-2),growing=!!last&&!!previous&&last.ability-previous.ability>=rules.growthGrace;
+  if(trial){
+    if(club===pro.nonRenewal?.club||(p.age??19)>rules.reentryMaxAge||roleScore(p)<rules.reentryMinAbility)return null;
+    const chance=rules.reentryChance+((p.age??19)<=rules.youngAge?rules.youngBonus:0)+(growing?rules.growthBonus:0)+(need?rules.needBonus:0);
+    if(hash(`${s.seed}:reentry:${year}:${p.id}:${club}`)%100>=chance)return null;
+  }else if(!own&&clubInterest(s,p,club,year-1)<40)return null;
+  const salary=trial?rules.developmentalRatio*BASE_SALARY:salaryQuote(p,year-1),years=trial?1:kind==="fa"?Math.min((p.age??19)>=38?2:4,value>=rules.multiYearScore?2+hash(`${year}:${p.id}:${club}`)%3:1):1;
   let duration=years;while(duration>1&&!canAfford(s,club,salary,year,duration,[p.id]))duration--;
   if(!canAfford(s,club,salary,year,duration,[p.id]))return null;
   const competitors=members.filter(q=>q.position===p.position).sort((a,b)=>roleScore(b)-roleScore(a));
   const role=roleScore(p)>Math.max(0,...competitors.map(q=>roleScore(q)))?"주전 경쟁 우선 검토":roleScore(p)>55?"1·2군 등록 경쟁":"2군 육성·평가 출전";
-  return {id:`${year}:offer:${p.id}:${club}`,club,year,years:duration,salary,role,kind,negotiated:false,final:false,competition:competitors.slice(0,3).map(q=>q.name)};
+  return {id:`${year}:offer:${p.id}:${club}`,club,year,years:duration,salary,role:trial?"신고선수 1년 재도전 · 정식 전환 실패 시 방출":role,kind,negotiated:false,final:false,competition:competitors.slice(0,3).map(q=>q.name),assessment,...(trial?{registration:"developmental" as const}:{})};
 }
 export function openContractMarket(s:GameState){
   const w=s.proWorld!,p=getPlayer(s),pro=p.professional!,year=w.year+1;
@@ -97,7 +114,7 @@ export function negotiateOffer(s:GameState,id:string){
   const market=s.proWorld!.market!,offer=market.offers.find(o=>o.id===id);if(!offer||market.settled||offer.negotiated)throw new Error("이 제안의 재협상 기회는 이미 사용했습니다.");
   const p=getPlayer(s);offer.negotiated=true;offer.final=true;
   const raise=Math.trunc(offer.salary*1.08/100_000)*100_000;
-  if(contractValue(p,s.proWorld!.year)>=50&&canAfford(s,offer.club,raise,offer.year,offer.years,[p.id]))offer.salary=raise;
+  if(offer.registration!=="developmental"&&assessmentValue(p,s.proWorld!.year).score>=rules.negotiationScore&&canAfford(s,offer.club,raise,offer.year,offer.years,[p.id]))offer.salary=raise;
   proNotice(s,`negotiation:${id}`,"최종 계약 조건이 도착했습니다","화면의 최종 연봉·기간을 확인한 뒤 수락하거나 다른 진로를 선택하세요. 같은 제안의 재협상은 한 번입니다.");
 }
 export function waitForOffers(s:GameState){
@@ -176,4 +193,28 @@ export function finishRoleTrial(s:GameState){
       if(!p.twoWay)focusProRole(p,pitching);
       if(p.id===s.playerId)proNotice(s,`role:${s.date}`,"보직 평가를 마쳤습니다","새 보직을 적용했습니다. 능력·기록은 유지되며 해당 분야에서 경쟁합니다. 프로 겸업은 별도 기준과 감독 제안으로 결정됩니다.");}
   }
+}
+
+export function applySeasonExitPolicies(s:GameState){
+  if(!s.proWorld?.seasonClosed)return;
+  for(const p of s.players){
+    const decision=seasonExit(p,s.proWorld.year);if(!decision)continue;
+    const pro=p.professional!,club=pro.contract?.club??p.teamId%10;
+    pro.nonRenewal={year:s.proWorld.year,kind:decision.kind,reason:decision.reason,club};
+    releasePlayer(s,p,decision.reason,s.proWorld.year+1);
+    if(p.id===s.playerId)proNotice(s,`non-renewal:${s.proWorld.year}`,"방출·정식 재계약 불가 통보",`${decision.reason} 다른 구단의 수요·나이·성장세에 따라 1년 신고 재영입 제안을 받을 수 있습니다. 기존 보장액과 시즌 기록은 보존됩니다.`);
+  }
+}
+
+export function needsContractUpgrade(s:GameState){return s.careerMode==="pro"&&!!s.proWorld&&(s.proWorld.contractRulesVersion!==3||s.players.some(p=>p.professional&&(p.professional.assessments===undefined||p.professional.assessments.some(row=>row.firstTeam===undefined||row.secondOnly===undefined||row.firstGames===undefined))));}
+export function upgradeContractRules(s:GameState){
+  if(!needsContractUpgrade(s))return false;
+  for(const p of s.players){hydrateAssessments(s,p);if(p.professional?.nonRenewal&&["low-evaluation","second-team"].includes(p.professional.nonRenewal.kind))delete p.professional.nonRenewal;}
+  const world=s.proWorld!;
+  if(world.seasonClosed&&!world.market?.settled)applySeasonExitPolicies(s);
+  if(world.market&&!world.market.settled){
+    const p=getPlayer(s);if(p.professional?.employment!=="active")world.market.kind="released";
+    refreshOffers(s);
+  }
+  world.contractRulesVersion=3;return true;
 }

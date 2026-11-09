@@ -46,7 +46,7 @@ export default function CareerEventDialog({ event, outcome, disabled, onChoose, 
         {outcome.injury && <p className="error">{outcome.injury.severity === "moderate" ? "보통" : outcome.injury.severity === "severe" ? "심각한" : "경미한"} 부상 · {dateLabel(outcome.injury.unavailableUntil)} 복귀 예정</p>}
         {outcome.positionChange && <p>포지션 변경: {positions[outcome.positionChange.from]} → {positions[outcome.positionChange.to]}</p>}
         {outcome.match && <MatchChanges effect={outcome.match} batting={outcome.scene?.batting ?? false} />}
-        <p className="micro muted">실제 변화가 반영됐습니다. 자동 진행은 멈춘 상태이며, 확인 후 직접 계속 진행할 수 있습니다.</p>
+        <p className="micro muted">실제 변화가 반영됐습니다.</p>
         <div className="modal-actions"><button className="primary" onClick={onDone}>확인</button></div>
       </> : <><p>{event?.description}</p>{event?.transferOffers?.map(offer => <section className="event-scene" key={offer.teamId}><b>{offer.name} · {offer.kind === "strong" ? "전력 상위권 학교" : "포지션 경쟁이 적은 학교"}</b><span>현재 팀 전력 {scoreText(offer.strength)} · 다음 학년 포지션 경쟁 선수 능력 {scoreText(offer.competition)}</span>{offer.twoWay && <span>투타 겸업을 검토할 수 있는 선수로 관심을 보이고 있습니다.</span>}</section>)}<div className="career-event-choices">{event?.choices.map(choice => <button key={choice.id} disabled={disabled} onClick={() => { try { setChoiceError(""); submitChoice(choosing,disabled,()=>onChoose(choice.id)); } catch(error) { setChoiceError(error instanceof Error?error.message:"선택을 처리하지 못했습니다. 다시 선택해 주세요."); } }}><b>{choice.label}</b></button>)}</div></>}
     </div>

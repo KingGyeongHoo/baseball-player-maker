@@ -199,7 +199,7 @@ test('role event changes position only on success, retains eligibility and repla
 });
 test('weekly opportunity is one-shot and pauses before future training, without applying a reward until chosen',()=>{
   const s=fixture(),p=e.getPlayer(s),date=e.addDays(s.date,2);schedule(s,'T04',date);const original=structuredClone(s),n=e.advanceWeek(s,p.trainingPolicy,p.stance);
-  assert.equal(n.date,date);assert.equal(n.week,s.week);assert.equal(n.careerEvent.definitionId,'T04');assert.equal(n.weekProgress.day.phase,'players');assert.ok(autoPauseReason(s,n));
+  assert.equal(n.date,date);assert.equal(n.week,s.week);assert.equal(n.careerEvent.definitionId,'T04');assert.equal(n.weekProgress.day.phase,'players');assert.equal(autoPauseReason(s,n),null);
   const reference=structuredClone(p);e.train(reference,1);e.train(reference,1);for(const key of Object.keys(p.stats))close(e.getPlayer(n).stats[key],reference.stats[key]);
   assert.throws(()=>e.advanceWeek(n,p.trainingPolicy,p.stance),/이벤트/);assert.deepEqual(s,original);
   const resumed=fullWeek(e.answerCareerEvent(n,n.careerEvent.choices[1].id));assert.equal(resumed.week,s.week+1);assert.equal(resumed.weekProgress,undefined);assert.equal(resumed.careerEventHistory.length,1);

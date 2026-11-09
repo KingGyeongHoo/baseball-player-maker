@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { AutoProgress, autoPauseReason, cancelPendingSimulation } = require('../.test-build/lib/auto-progress.js');
+const { AutoProgress, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } = require('../.test-build/lib/auto-progress.js');
 const e = require('../.test-build/lib/sim/engine.js');
 // Keep scheduler integration independent of the separately tested focus event.
 e.params['events.focus_chance']=0;
@@ -91,21 +91,22 @@ test('effect cleanup cancels its closure and the next schedule uses the latest s
   assert.equal(controller.active, true);
 });
 
-test('a new injury stops automation while an existing injury can continue through recovery', () => {
+test('injuries do not turn off automatic progress', () => {
   const previous = snapshot(), next = structuredClone(previous);
   next.players[0].injury = { startDate: '2027-04-03' };
-  assert.match(autoPauseReason(previous, next), /부상/);
+  assert.equal(autoPauseReason(previous, next), null);
   assert.equal(autoPauseReason(next, structuredClone(next)), null);
   const recovered = structuredClone(next); recovered.players[0].injury = null;
   assert.equal(autoPauseReason(next, recovered), null);
 });
 
-test('role offers, new forced rest and the draft stop automation', () => {
+test('role offers suspend the next tick, forced rest continues and the draft stops automation', () => {
   const previous = snapshot();
   const offered = structuredClone(previous); offered.players[0].roleOffer = '선발';
-  assert.match(autoPauseReason(previous, offered), /역할 제안/);
+  assert.equal(autoPauseReason(previous, offered), null);
+  assert.equal(autoWaitingForDecision(offered), true);
   const forced = structuredClone(previous); forced.players[0].forcedRest = true;
-  assert.match(autoPauseReason(previous, forced), /강제 휴식/);
+  assert.equal(autoPauseReason(previous, forced), null);
   assert.equal(autoPauseReason(forced, structuredClone(forced)), null);
   const ended = structuredClone(offered); ended.phase = 'ended';
   assert.match(autoPauseReason(previous, ended), /드래프트/);
@@ -131,4 +132,21 @@ test('automatic progress runs real weeks with the same policy and can resume aft
   assert.equal(state.week, 4);
   controller.start(); controller.schedule(next); tick();
   assert.equal(state.week, 5);
+});
+
+test('event choice, outcome, role offer and queued notices wait without losing auto intent; explicit pause prevents resumption',()=>{
+  for(const waiting of ['careerEvent','careerNotice','pendingEventOutcome','roleOffer']){
+    const {controller,pending,tick}=clock(),s=snapshot();let requests=0;
+    const schedule=()=>{if(autoWaitingForDecision(s))controller.cancelScheduled();else controller.schedule(()=>requests++);};
+    controller.start();schedule();const stale=[...pending.values()][0];
+    if(waiting==='roleOffer')s.players[0].roleOffer='선발';else s[waiting]={id:'wait'};
+    schedule();assert.equal(pending.size,0);assert.equal(controller.active,true);stale();assert.equal(requests,0);
+    if(waiting==='roleOffer')s.players[0].roleOffer=null;else delete s[waiting];
+    s.pendingEventOutcome={id:'result'};schedule();tick();assert.equal(requests,0);
+    delete s.pendingEventOutcome;schedule();tick();assert.equal(requests,1);
+    s.careerNotice={id:'next-notice'};schedule();controller.pause();delete s.careerNotice;schedule();tick();assert.equal(requests,1);
+    assert.equal(controller.active,false);
+  }
+  assert.equal(autoWaitingForDecision(snapshot(),true),true);
+  const ended=snapshot();ended.careerMode='pro';ended.phase='ended';assert.match(autoPauseReason(snapshot(),ended),/시즌/);
 });

@@ -50,20 +50,12 @@ export class AutoProgress {
   }
 }
 
+// Waiting for a choice suspends the next tick, not the user's auto-run intent.
+export function autoWaitingForDecision(state: GameState, pendingOutcome = false): boolean {
+  return !!(state.careerEvent || state.careerNotice || pendingOutcome || state.pendingEventOutcome || state.players.find(p => p.id === state.playerId)?.roleOffer);
+}
 export function autoPauseReason(previous: GameState, next: GameState): string | null {
-  if(next.careerNotice)return `${next.careerNotice.title} · 자동 진행을 멈췄습니다.`;
-  if(next.careerMode && next.phase==="ended")return "시즌을 마쳐 자동 진행을 종료했습니다.";
+  if (next.careerMode && next.phase === "ended") return "시즌을 마쳐 자동 진행을 종료했습니다.";
   if (next.phase === "ended") return "드래프트가 완료되어 자동 진행을 종료했습니다.";
-  if (next.careerEvent) return "커리어 이벤트가 발생해 자동 진행을 멈췄습니다. 선택을 확인해 주세요.";
-  const before = previous.players.find(p => p.id === previous.playerId)!;
-  const after = next.players.find(p => p.id === next.playerId)!;
-  if (before.teamId !== after.teamId) return next.careerMode==="pro"?"소속·등록이 변경돼 자동 진행을 멈췄습니다. 이동 내역을 확인하세요.":"전학한 학교에 합류해 자동 진행을 멈췄습니다. 새 학교와 적응 기간을 확인해 주세요.";
-  if (after.roleOffer) return "감독의 역할 제안이 도착해 자동 진행을 멈췄습니다.";
-  if (after.injury && after.injury.startDate !== before.injury?.startDate) {
-    return "새로운 부상이 발생해 자동 진행을 멈췄습니다. 회복 방침을 확인하세요.";
-  }
-  if (after.forcedRest && !before.forcedRest) {
-    return "강제 휴식이 필요해 자동 진행을 멈췄습니다.";
-  }
   return null;
 }
