@@ -9,6 +9,7 @@ export type Ticket = typeof ticketKeys[number];
 export type Mode = "light" | "normal" | "hard" | "rest";
 export type CareerMode = "college" | "pro";
 export type ProLevel = "first" | "second";
+export type ProSquad = ProLevel | "third" | "developmental";
 export type Role = "코너 야수" | "센터라인" | "포수" | "선발" | "중간계투" | "마무리";
 export type Position = "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF" | "DH" | "SP" | "RP" | "CP";
 export type Policy = {
@@ -50,6 +51,7 @@ export type Pitching = {
 export type RecordLine = {
   batting: Batting;
   pitching: Pitching;
+  games?: Partial<Record<"batting"|"pitching"|"wins"|"losses"|"holds"|"saves",number>>;
 };
 export type Injury = {
   severity: "mild" | "moderate" | "severe";
@@ -111,7 +113,7 @@ export type Player = {
     postseason?:RecordLine;
     byClub?:Record<string,ClubRecords>;
   }[];
-  recentAppearances: RecordLine[];
+  recentAppearances: import("./recent-records").RecentRecord[];
   reputation: number | null;
   performanceReputation?: number | null;
   reputationEvaluation?: ReputationAssessment;
@@ -124,6 +126,7 @@ export type Player = {
   offerCooldown: number;
 };
 export type Team = {
+  schoolPrestige?: number;
   id: number;
   name: string;
   shortName: string;
@@ -152,6 +155,7 @@ export type Game = {
   round?: number;
   advancingTeamId?: number;
   evaluationPlayers?:string[];
+  tiebreaker?:boolean;
 };
 export type Competition = {
   id: string;
@@ -166,8 +170,11 @@ export type Competition = {
   roundDates: string[];
   byes: number[];
   championTeamId: number | null;
+  tiebreaks?:LeagueTiebreak[];
 };
+export type LeagueTiebreak={key:string;group:number;teams:number[];ordered:number[];next:number;low:number;high:number;gameCount:number;gameId?:string;done:boolean};
 export type Calendar = {
+  proSeriesVersion?:1;
   seasonYear: number;
   sourceKind: "reference" | "fictional";
   sourceUrl: string;
@@ -300,15 +307,17 @@ export type WeekProgress = {
   };
 };
 export type MatchProgress = {
+  scoring?: {stints:{id:string;side:number;starter:boolean;lead:number;runners:number;exitLead?:number;blown:boolean}[];winner?:string;loser?:string};
   proStarts?:Record<string,ProAppearance>;
   gameId: string; sides: { field: string[]; order: string[]; starter: string; pitchers: string[] }[];
   original: { id: string; fatigue: number; lastPitched: string | null }[];
   pitchers: string[]; usedPitchers: string[][]; battingIndex: number[]; pitchOuts: number[];
-  recentEvents: { playerId: string; record: RecordLine }[]; defense: number[]; arm: number[];
+  recentEvents: { playerId: string; record: import("./recent-records").RecentRecord }[]; defense: number[]; arm: number[];
   inning: number; battingSide: number; outs: number; pa: number; runs: number;
   bases: ({ playerId: string; pitcherId: string } | null)[]; ready: boolean; eventFatigue: number;
 };
 export type GameState = {
+  proClubNamesVersion?:1;
   proEvents?:ProEventState;
   evaluationSystem?:EvaluationSystem;
   schemaVersion: number;
@@ -356,10 +365,10 @@ export type GameState = {
     collegeDraft?: DraftPick[];
     tryouts: { year: number; score: number; chance: number; success: boolean }[];
     pro?: {
-      club: number; rookieYear: number; level: ProLevel; nextReviewDate: string;
+      club: number; rookieYear: number; level: ProSquad; nextReviewDate: string;
       entry: "draft" | "tryout" | "collegeDraft" | "developmental" | "direct"; debutDate?: string;
       firstTeamWeeks: number; secondTeamWeeks: number;
-      transactions: { date: string; from: ProLevel; to: ProLevel; reason: string; exchangedPlayerId: string }[];
+      transactions: { date: string; from: ProSquad; to: ProSquad; reason: string; exchangedPlayerId: string }[];
     };
   };
 };

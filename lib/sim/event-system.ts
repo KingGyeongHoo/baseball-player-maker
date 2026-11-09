@@ -128,6 +128,14 @@ export function eventTrainingReward(player: Player, key: Stat, weeks: number) {
   for (let i = 0; i < weeks * days; i++) value = clamp(value + rate * professionalGrowth(player) * growthMultiplier(player) * slowdown(value) / days, 1);
   return value - start;
 }
+export function eventAwakeningReward(player: Player, key: Stat, baseWeeks: number) {
+  const weeks = Math.min(params["events.awakening_max_weeks"], baseWeeks * params["events.awakening_mult"]);
+  const room = Math.max(0, 100 - player.stats[key]);
+  // A breakthrough has its own floor, including BQ and physical abilities.
+  // Training modifiers still affect the training reward, not this floor.
+  const minimum = params["events.awakening_reference_gain"] * room / (100 - params["events.awakening_reference_stat"]);
+  return Math.min(room, Math.max(minimum, eventTrainingReward(player, key, weeks)));
+}
 export function weightedOutcome(outcomes: CareerEventBranch[], roll: number) {
   let threshold = 0;
   for (const outcome of outcomes) { threshold += outcome.weight / 100; if (roll < threshold) return outcome; }
@@ -154,9 +162,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   const positive = statKeys.filter(key => (deltas[key] ?? 0) > 0 || (outcome.weeks?.[key] ?? 0) > 0);
   const awakened = positive.length && random(s, "events") < params["events.awakening_chance"] ? positive : [];
   for (const key of awakened) {
-    const baseWeeks = outcome.weeks?.[key];
-    const weeks = Math.min(params["events.awakening_max_weeks"], (baseWeeks ?? 4) * params["events.awakening_mult"]);
-    deltas[key] = eventTrainingReward(p, key, weeks);
+    deltas[key] = Math.max(deltas[key] ?? 0, eventAwakeningReward(p, key, outcome.weeks?.[key] ?? 4));
   }
   const changes: typeof deltas = {}, oldReputation = p.reputation ?? reputationScore(p), oldFatigue = p.fatigue;
   for (const [key, delta] of Object.entries(deltas) as [Stat, number][]) { const before = p.stats[key]; p.stats[key] = clamp(before + delta, 1); changes[key] = p.stats[key] - before; }
@@ -193,7 +199,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   s.careerEventHistory ??= [];
   recordProChoice(s,event,Object.values(changes).some(n=>(n??0)>0));
   s.careerEventHistory.push({ id: event.id, definitionId: event.definitionId, kind: event.kind, title: event.title, date: event.date,
-    choice: selected.label, message: outcome.message, awakened:event.proEvent?awakened.filter(key=>(changes[key]??0)>0):awakened, stats: changes, reputation: p.reputation - oldReputation, fatigue,
+    choice: selected.label, message: outcome.message, awakened:awakened.filter(key=>(changes[key]??0)>0), stats: changes, reputation: p.reputation - oldReputation, fatigue,
     ...(event.proEvent?{proEvent:{version:1 as const,catalogId:event.proEvent.catalogId,channel:event.proEvent.channel,year:event.proEvent.year,branchId:outcome.proResultId??selected.id,chainId:event.proEvent.chainId,...(proAction?{action:proAction}:{})}}:{}),
     ...(outcome.injury ? { injury: structuredClone(p.injury!) } : {}), ...(p.position !== oldPosition ? { positionChange: { from: oldPosition, to: p.position } } : {}),
     ...(outcome.match ? { match: { ...outcome.match } } : {}), ...(event.scene ? { scene: event.scene } : {}) });

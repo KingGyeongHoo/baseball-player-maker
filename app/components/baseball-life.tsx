@@ -1,12 +1,12 @@
 "use client";
 import PlayerEvaluationButton from "./player-evaluation";
-import DraftRoundBadge from "./draft-round-badge";
-import { draftProjection } from "../../lib/sim/engine";
 import { scoreText } from "../../lib/display";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AutoProgress, autoPauseReason, cancelPendingSimulation } from "@/lib/auto-progress";
+import {restoreWorkerState,workerStateInput} from "../../lib/sim/worker-state";
 import SeasonRecords from "./season-records";
+import DashboardRecords from "./dashboard-records";
 import TeamStrengthView from "./team-strength";
 import CareerEventDialog from "./career-event";
 import CareerDashboard from "./career-dashboard";
@@ -15,7 +15,7 @@ import { competitionName } from "@/lib/sim/calendar";
 import DraftOvrTop10 from "./draft-ovr-top10";
 import {ScoutingReportContent} from "./scouting-report";
 import { DraftForecast, DraftRoundTable } from "./draft-board";
-import { rosterAssignments } from "../../lib/roster-status";
+import PlayerRoster, {PlayerGrade} from "./player-roster";
 import RoleOffer from "./role-offer";
 import PlayerAbilities from "./player-abilities";
 import PlayerSetup from "./player-setup";
@@ -23,8 +23,10 @@ import CareerContinuation from "./career-continuation";
 import DraftResultGate from "./draft-result-gate";
 import ProLife from "./pro-life";
 import CareerStorage from "./career-storage";
-import TrainingEditor, { trainingLabel } from "./training-editor";
-import { answerCareerEvent, answerOffer, overall, dateLabel, defaultPolicy, getPlayer, ops, ovr, positions, positionLabel, talentLabel, ticketsUsed, validPolicy, calendar } from "@/lib/sim/engine";
+import TrainingEditor from "./training-editor";
+import TrainingCenter from "./training-center";
+import ProgressControls from "./progress-controls";
+import { answerCareerEvent, answerOffer, overall, dateLabel, defaultPolicy, getPlayer, ops, positionLabel, talentLabel, validPolicy, calendar } from "@/lib/sim/engine";
 import { type CareerEventOutcome, type DraftPick, type GameState, type Game, type Player, type Policy, type RecordLine, type Stance } from "@/lib/sim/types";
 type Tab = "home" | "training" | "team" | "roster" | "records" | "games" | "draft";
 const tabs: {
@@ -116,22 +118,7 @@ function PlayerCard({
 }: {
   player: Player; school: string; state:GameState;
 }) {
-  return <div className="player-card"><div className="player-card-top"><span className="eyebrow">PLAYER PROFILE</span><PlayerEvaluationButton state={state} player={player}/><span className="number-tag">NO. {player.jerseyNumber??"—"}</span></div><div className="player-identity"><div className="jersey"><svg viewBox="0 0 100 110" aria-hidden="true"><path d="m29 10 13-7q8 9 16 0l13 7 26 23-16 19-11-9v62H30V43L19 52 3 33Z" fill="currentColor" /><path d="M42 3q8 19 16 0M50 19v86" fill="none" stroke="white" strokeOpacity=".5" strokeWidth="2" /><text x="50" y="73" textAnchor="middle" fill="white" fontSize="34" fontWeight="800">{player.jerseyNumber??"—"}</text></svg></div><div><span className="small muted">{school} · {player.grade}학년</span><h2>{player.name || "나의 선수"}</h2><span className="position-tag">{positionLabel(player)}</span><span className="small muted"> 우투우타</span></div><div className="ovr"><span>OVR / 100</span><strong>{scoreText(overall(player))}</strong></div></div><PlayerAbilities player={player} /><div className="talent-row"><span>타자 재능 <b>{talentLabel(player, "batting")}</b></span><span>투수 재능 <b>{talentLabel(player, "pitching")}</b></span></div><p className="micro muted">재능은 훈련 경험에 따라 점차 공개됩니다.</p></div>;
-}
-function StanceEditor({
-  stance,
-  setStance
-}: {
-  stance: Stance;
-  setStance: (s: Stance) => void;
-}) {
-  return <div className="stance-editor"><div><span className="small muted">타격 성향</span><div className="segmented">{(["down", "level", "up"] as const).map((v, i) => <button key={v} className={stance.batting === v ? "selected" : ""} onClick={() => setStance({
-          ...stance,
-          batting: v
-        })}>{["다운스윙", "레벨스윙", "어퍼스윙"][i]}</button>)}</div><p className="micro muted">{stance.batting === "level" ? "기본 능력을 유지하는 균형 잡힌 스윙" : stance.batting === "down" ? "컨택 +15% · 파워 −15% · 땅볼 성향" : "파워 +15% · 컨택 −15% · 뜬공 성향"}</p></div><div><span className="small muted">투구 성향</span><div className="segmented">{(["full", "command"] as const).map((v, i) => <button key={v} className={stance.pitching === v ? "selected" : ""} onClick={() => setStance({
-          ...stance,
-          pitching: v
-        })}>{["전력투구", "커맨드 투구"][i]}</button>)}</div><p className="micro muted">{stance.pitching === "full" ? `구속 +12% · 제구 −8% · 피로 부담 큼` : `제구 +12% · 구속 −6% · 피로 부담 적음`}</p></div></div>;
+  return <div className="player-card"><div className="player-card-top"><span className="eyebrow">PLAYER PROFILE</span><PlayerEvaluationButton state={state} player={player}/><span className="number-tag">NO. {player.jerseyNumber??"—"}</span></div><div className="player-identity"><div className="jersey"><svg viewBox="0 0 100 110" aria-hidden="true"><path d="m29 10 13-7q8 9 16 0l13 7 26 23-16 19-11-9v62H30V43L19 52 3 33Z" fill="currentColor" /><path d="M42 3q8 19 16 0M50 19v86" fill="none" stroke="white" strokeOpacity=".5" strokeWidth="2" /><text x="50" y="73" textAnchor="middle" fill="white" fontSize="34" fontWeight="800">{player.jerseyNumber??"—"}</text></svg></div><div><span className="small muted">{school} · {player.grade}학년</span><h2>{player.name || "나의 선수"}</h2><span className="position-tag">{positionLabel(player)}</span><span className="small muted"> 우투우타</span></div><div className="ovr"><span>평판 등급</span><PlayerGrade player={player} pro={state.careerMode==="pro"}/></div></div><PlayerAbilities player={player} /><div className="talent-row"><span>타자 재능 <b>{talentLabel(player, "batting")}</b></span><span>투수 재능 <b>{talentLabel(player, "pitching")}</b></span></div><p className="micro muted">재능은 훈련 경험에 따라 점차 공개됩니다.</p></div>;
 }
 function RecordStats({ records }: { records: RecordLine }) {
   return <div className="both-records"><section className="record-group"><h3>투수 기록</h3><SingleRecordStats records={records} pitching /></section><section className="record-group"><h3>타자 기록</h3><SingleRecordStats records={records} pitching={false} /></section></div>;
@@ -166,21 +153,8 @@ function WeekSchedule({
       return <div className={`schedule-day ${i === 0 ? "today" : ""} ${game ? "game-day" : ""}`} key={date}><span>{["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][dow]}</span><b>{Number(date.slice(-2))}</b><small>{game ? competitionName(state.calendar, game.competitionId) : train ? "훈련" : "휴식"}</small><i /></div>;
     })}</div>;
 }
-function GrowthChart({
-  state
-}: {
-  state: GameState;
-}) {
-  const currentHistory = state.history.filter(point=>point.ovrScale===100);
-  const history = currentHistory.length ? currentHistory : [{week:state.week,ovr:overall(getPlayer(state)),fatigue:getPlayer(state).fatigue}];
-  const values = history.map(h => h.ovr);
-  const min = Math.floor(Math.min(...values)) - 1;
-  const max = Math.ceil(Math.max(...values)) + 2;
-  const points = history.map((h, i) => `${30 + i / Math.max(1, history.length - 1) * 490},${115 - (h.ovr - min) / (max - min) * 90}`).join(" ");
-  return <div className="chart"><svg viewBox="0 0 550 150" role="img" aria-label={`종합 능력 ${scoreText(values[0])}에서 ${scoreText(values[values.length - 1])}로 성장`}><defs><linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#0e2046" stopOpacity=".1" /><stop offset="1" stopColor="#0e2046" stopOpacity="0" /></linearGradient></defs>{[0, 1, 2].map(i => <g key={i}><line x1="30" y1={25 + i * 45} x2="525" y2={25 + i * 45} stroke="#e9ecf0" strokeDasharray="3 4" /><text x="0" y={29 + i * 45} fill="#8d95a3" fontSize="10">{scoreText((max - i * (max - min) / 2))}</text></g>)}<polygon points={`30,120 ${points} ${history.length > 1 ? 520 : 30},120`} fill="url(#chartFill)" /><polyline points={points} fill="none" stroke="#0e2046" strokeWidth="2.5" strokeLinejoin="round" />{history.length < 2 && <circle cx="30" cy={115 - (values[0] - min) / (max - min) * 90} r="4" fill="#0e2046" />}<text x="30" y="145" fontSize="10" fill="#8d95a3">{currentHistory.length===state.history.length ? "입학" : "기준 변경"}</text><text x="500" y="145" fontSize="10" fill="#8d95a3">현재</text></svg></div>;
-}
 function Dashboard({ state, onTab, onTraining }: { state: GameState; onTab: (t: Tab) => void; onTraining: () => void }) {
-  return <CareerDashboard state={state} onTab={onTab} onTraining={onTraining} records={<RecordStats records={getPlayer(state).seasonStats} />} schedule={<WeekSchedule state={state} />} abilities={<PlayerAbilities player={getPlayer(state)} detailsOnly />} />;
+  return <CareerDashboard state={state} onTab={onTab} onTraining={onTraining} records={<DashboardRecords records={getPlayer(state).seasonStats} />} schedule={<WeekSchedule state={state} />} abilities={<PlayerAbilities player={getPlayer(state)} detailsOnly />} />;
 }
 function GameScore({
   game,
@@ -214,30 +188,17 @@ function GamesView({
                   length: Math.max(...detail.innings.map(x => x.length))
                 }, (_, i) => <td key={i}>{detail.innings[side][i] ?? "X"}</td>)}<td><b>{detail.score[side]}</b></td></tr>)}</tbody></table></div><div className="box-score-personal"><b>나의 경기 기록</b>{detail.boxScore[p.id] ? <RecordStats records={detail.boxScore[p.id]} /> : <p className="muted small">이 경기에는 출전하지 않았습니다.</p>}</div></>}</Panel>}</>;
 }
-type RosterSort = "overall" | "pitching" | "batting" | "reputation";
-function rosterRating(player: Player, sort: RosterSort) {
-  if (sort === "pitching") return ovr(player, true);
-  if (sort === "batting") return ovr(player, false);
-  if (sort === "reputation") return player.reputation ?? -1;
-  return overall(player);
-}
-function RosterView({
-  state,
-  onRecords
-}: {
-  state: GameState;
-  onRecords: (playerId: string) => void;
-}) {
-  const [scope, setScope] = useState("team");
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState(state.playerId);
-  const [sort, setSort] = useState<RosterSort>("overall");
-  const player = getPlayer(state);
-  const roster = state.players.filter(p => (scope === "all" || p.teamId === player.teamId) && (p.name.includes(query) || state.teams[p.teamId].name.includes(query))).sort((a, b) => rosterRating(b, sort) - rosterRating(a, sort) || a.id.localeCompare(b.id));
-  const detail = state.players.find(p => p.id === selected) ?? player;
-  const assignments = rosterAssignments(state.players);
-  const projections=useMemo(()=>new Map<string,DraftPick>((scope==="all"?(state.phase==="ended"?(state.draftOutcome?.revealed?state.draft:[]):draftProjection(state)):[]).map(pick=>[pick.playerId,pick])),[state,scope]);
-  return <><div className="section-intro"><div><span className="eyebrow">PLAYERS & ROSTER</span><h1>함께 뛰고, 함께 경쟁하다.</h1><p>OVR은 일반 선수의 주력 분야, 겸업 선수의 투수·타자 평균이며 최대 100입니다. 선택한 기준의 높은 순으로 조회합니다.</p></div></div><div className="roster-layout"><Panel title={scope === "team" ? `${state.teams[player.teamId].name} 로스터` : "전국 고교 선수"} action={<span className="small muted">{roster.length.toLocaleString()}명</span>}><div className="roster-toolbar"><div className="segmented"><button onClick={() => setScope("team")} className={scope === "team" ? "selected" : ""}>우리 학교</button><button onClick={() => setScope("all")} className={scope === "all" ? "selected" : ""}>전국</button></div><input aria-label="선수 검색" placeholder="선수 · 학교 검색" value={query} onChange={e => setQuery(e.target.value)} /><select aria-label="로스터 정렬" value={sort} onChange={e => setSort(e.target.value as RosterSort)}><option value="overall">OVR순 (투·타 종합)</option><option value="pitching">투수 OVR순</option><option value="batting">타자 OVR순</option><option value="reputation">평판순</option></select></div><div className="table-scroll roster-table"><table><thead><tr><th>선수</th><th>학년</th><th>포지션</th><th title="일반 선수: 주력 OVR · 겸업 선수: 투수·타자 평균 · 최대 100">OVR</th><th>투수 OVR</th><th>타자 OVR</th><th>평판</th><th>상태</th></tr></thead><tbody>{roster.slice(0, 100).map(p => <tr key={p.id} className={[p.id === selected ? "selected-row" : "", p.id === state.playerId ? "my-player-row" : ""].filter(Boolean).join(" ")}><td><button className="player-name-button" onClick={() => setSelected(p.id)}>{p.name}{p.jerseyNumber!==undefined&&<small className="roster-number">#{p.jerseyNumber}</small>}{scope === "team" ? <small className={`roster-badge ${assignments.has(p.id) ? "starter" : "reserve"}`} title={assignments.has(p.id) ? positions[assignments.get(p.id)!] : undefined}>{assignments.has(p.id) ? "주전" : "후보"}</small> : projections.has(p.id) ? <DraftRoundBadge round={projections.get(p.id)!.round} forecast={state.phase!=="ended"}/> : null}</button>{scope === "all" && <span className="table-school">{state.teams[p.teamId].name}</span>}</td><td>{p.grade}</td><td>{positionLabel(p)}</td><td><b>{scoreText(rosterRating(p, "overall"))}</b></td><td><b>{scoreText(ovr(p, true))}</b></td><td><b>{scoreText(ovr(p, false))}</b></td><td>{p.reputation === null ? "—" : scoreText(p.reputation)}</td><td><span className={p.injury && state.date < p.injury.unavailableUntil ? "error" : "muted"}>{p.injury && state.date < p.injury.unavailableUntil ? "부상" : p.forcedRest ? "휴식" : `${scoreText(p.fatigue)} 피로`}</span></td></tr>)}</tbody></table>{!roster.length && <p className="empty-note">검색 결과가 없습니다.</p>}</div>{roster.length > 100 && <p className="micro muted training-note">상위 100명을 표시합니다. 이름이나 학교로 검색할 수 있습니다.</p>}</Panel><div><Panel title={`${detail.name} 상세`} action={<button className="text-button" onClick={() => onRecords(detail.id)}>연도별 기록 <Icon name="chevron" size={14} /></button>}><div className="detail-role"><span>{state.teams[detail.teamId].name} · {detail.grade}학년</span><b>{positionLabel(detail)}</b><span>피지컬 {scoreText(((detail.stats.stamina + detail.stats.recovery + detail.stats.arm) / 3))} · 기본 능력 평균</span>{detail.injury && <span className="error">{state.date < detail.injury.unavailableUntil ? `${dateLabel(detail.injury.unavailableUntil)} 복귀 예정` : "복귀 후 능력 회복 중"} · 회복 예정 저하 −{scoreText(detail.injury.penaltyRemaining)}</span>}</div><PlayerAbilities player={detail} showEffective /><div className="talent-row"><span>타자 <b>{talentLabel(detail, "batting")}</b></span><span>투수 <b>{talentLabel(detail, "pitching")}</b></span></div><p className="micro muted training-note">기본 능력과 경기용 유효 능력은 별도로 관리됩니다. 스태미나·회복력·어깨의 평균이 피지컬입니다.</p></Panel></div></div></>;
+function RosterView({state,onRecords}:{state:GameState;onRecords:(id:string)=>void}) {
+  const [selected,setSelected]=useState(state.playerId);
+  const detail=state.players.find(p=>p.id===selected)??getPlayer(state);
+  return <><div className="section-intro"><div><span className="eyebrow">PLAYERS & ROSTER</span><h1>함께 뛰고, 함께 경쟁하다.</h1><p>투수·타자별 시즌 기록을 비교하세요. 등급은 역할 능력과 경기 성적을 반영한 평판 기준입니다.</p></div></div>
+    <PlayerRoster state={state} selectedId={selected} onSelect={setSelected}/>
+    <Panel className="player-detail-panel" title={detail.name+" 상세"} action={<button className="text-button" onClick={()=>onRecords(detail.id)}>연도별 기록 <Icon name="chevron" size={14}/></button>}>
+      <div className="detail-role"><span>{state.teams[detail.teamId].name} · {detail.grade}학년</span><div className="detail-position"><b>{positionLabel(detail)}</b><PlayerGrade player={detail}/></div><span>OVR {scoreText(overall(detail))} · 피지컬 {scoreText((detail.stats.stamina+detail.stats.recovery+detail.stats.arm)/3)}</span>
+        {detail.injury&&<span className="error">{state.date<detail.injury.unavailableUntil?dateLabel(detail.injury.unavailableUntil)+" 복귀 예정":"복귀 후 능력 회복 중"} · 회복 예정 저하 −{scoreText(detail.injury.penaltyRemaining)}</span>}</div>
+      <PlayerAbilities player={detail} showEffective/><div className="talent-row"><span>타자 <b>{talentLabel(detail,"batting")}</b></span><span>투수 <b>{talentLabel(detail,"pitching")}</b></span></div>
+      <p className="micro muted training-note">기본 능력과 경기용 유효 능력은 별도로 관리됩니다. 스태미나·회복력·어깨의 평균이 피지컬입니다.</p>
+    </Panel></>;
 }
 function DraftView({ state, onRecords, onChange, onRetire }: { state: GameState; onRecords: (playerId?: string) => void; onChange: (s: GameState) => void; onRetire: () => void }) {
   const [showOvr, setShowOvr] = useState(false);
@@ -286,42 +247,6 @@ function Modal({
   }, []);
   return <dialog ref={ref} onCancel={onClose} className={`modal ${className}`}><div className="modal-header"><h2>{title}</h2><button className="icon-button" aria-label="닫기" onClick={onClose}><Icon name="close" /></button></div>{children}</dialog>;
 }
-function ProgressControls({ state, policy, busy, auto, autoStartWeek, onAdvance, onToggleAuto }: {
-  state: GameState;
-  policy: Policy;
-  busy: boolean;
-  auto: boolean;
-  autoStartWeek: number;
-  onAdvance: () => void;
-  onToggleAuto: () => void;
-}) {
-  const pendingOffer = !!getPlayer(state).roleOffer || !!state.careerEvent;
-  return <div className="week-control">
-    <div>
-      <div className="week-control-info">
-        <span className="week-label">WEEK {String(state.week).padStart(2, "0")}</span>
-        <div>
-          <b>{dateLabel(state.date)}</b>
-          <span>{trainingLabel(policy)} · {ticketsUsed(policy)}개 투자{!validPolicy(policy) ? " · 배분 확인" : ""}</span>
-        </div>
-        {auto && <span className="auto-running" role="status"><i className="status-dot" />자동 진행 · {state.week - autoStartWeek}주 완료</span>}
-      </div>
-      <p>{auto ? "설정 유지 중 · 부상·역할 제안·드래프트 때 멈춥니다." : state.weekProgress ? "선택한 시점에서 남은 일정을 이어갑니다." : "훈련 설정을 유지하며 자동으로 진행할 수 있습니다."}</p>
-      <div className="progress-actions">
-        <button className={`secondary auto-toggle ${auto ? "is-running" : ""}`} aria-pressed={auto}
-          disabled={!auto && (busy || !validPolicy(policy) || pendingOffer)}
-          title={pendingOffer ? "진행 중인 제안이나 이벤트에 먼저 답해 주세요." : auto ? "계산 중인 한 주를 마친 뒤 일시정지합니다." : "현재 설정으로 계속 진행합니다. 부상·역할 제안·커리어 이벤트·드래프트 시 멈춥니다."}
-          onClick={onToggleAuto}>
-          <span aria-hidden="true">{auto ? "Ⅱ" : "▷"}</span>{auto ? "일시정지" : "자동 진행"}
-        </button>
-        <button className="primary" disabled={busy || auto || pendingOffer || !validPolicy(policy)} onClick={onAdvance}>
-          {busy ? <><span className="spinner" />한 주를 진행하는 중…</> : <>{state.weekProgress ? "계속 진행하기" : "1주 진행하기"}<Icon name="arrow" size={19} /></>}
-        </button>
-      </div>
-    </div>
-  </div>;
-}
-
 export default function BaseballLife() {
   const [state, setState] = useState<GameState | null>(null);
   const [eventOutcome, setEventOutcome] = useState<CareerEventOutcome | null>(null);
@@ -390,6 +315,8 @@ export default function BaseballLife() {
       workerRef.current.onmessage = (event: MessageEvent<{
         requestId: number;
         result?: GameState;
+        reusedHistories?: string[];
+        gameOrder?: string[];
         error?: string;
       }>) => {
         if (event.data.requestId !== requestRef.current || !locked.current) return;
@@ -400,6 +327,12 @@ export default function BaseballLife() {
           return;
         }
         if (event.data.result) {
+          try { restoreWorkerState(workerRef.current!, event.data.result, event.data.reusedHistories, event.data.gameOrder); }
+          catch (error) {
+            pauseAuto();workerRef.current?.terminate();workerRef.current=null;
+            setError(`${error instanceof Error?error.message:"계산 결과를 받지 못했습니다."} 기존 상태는 유지됩니다.`);
+            return;
+          }
           const running = autoProgress.active;
           const reason = running ? autoPauseReason(state, event.data.result) : null;
           setState(event.data.result);
@@ -431,7 +364,7 @@ export default function BaseballLife() {
       }, 30000);
       workerRef.current.postMessage({
         requestId,
-        state,
+        state: workerStateInput(workerRef.current, state),
         policy,
         stance
       });
@@ -508,5 +441,5 @@ export default function BaseballLife() {
 }} />}{player?.roleOffer && state.phase !== "ended" && <RoleOffer player={player} disabled={busy || auto} onAnswer={accept => {
   setState(answerOffer(state, accept));
   notify(accept ? "새 역할을 수락했습니다. 훈련 배분을 확인하세요." : "현재 역할을 유지합니다.");
-}} />}<fieldset className="content-lock" disabled={(busy || auto) && tab !== "records"}>{tab === "home" && <Dashboard state={state} onTraining={() => { if (!locked.current && !autoProgress.active && !state.weekProgress && state.phase !== "ended") setTrainingDraft(structuredClone(policy)); }} onTab={next => { if (next === "records") openRecords(); else setTab(next); }} />}{tab === "training" && <><div className="section-intro"><div><span className="eyebrow">TRAINING CENTER</span><h1>오늘의 훈련이, 내일의 선수를.</h1><p>각 항목에 0~5를 자유롭게 투자하세요. 회복력과 배분량에 따라 피로가 회복되거나 쌓입니다. 훈련 중에는 피로와 관계없이 부상을 당할 수 있습니다.</p></div><button className="primary" onClick={() => savePolicy()} disabled={!validPolicy(policy) || state.phase === "ended" || !!state.weekProgress}><Icon name="check" size={17} />훈련 설정 저장</button></div><div className="training-layout"><Panel title="주간 훈련 배분" eyebrow="WEEKLY TRAINING"><fieldset className="content-lock" disabled={state.phase === "ended" || !!state.weekProgress}><TrainingEditor player={player!} policy={policy} setPolicy={setPolicy} date={state?.date} context={state} /></fieldset></Panel><div className="side-column"><Panel title="경기 성향" eyebrow="PLAYING STYLE"><fieldset className="content-lock" disabled={state.phase === "ended" || !!state.weekProgress}><StanceEditor stance={stance} setStance={setStance} /></fieldset></Panel><PlayerCard state={state} player={player!} school={state.teams[player!.teamId].name} /><div className="condition-note"><Icon name="info" /><div><b>훈련과 회복의 균형을 맞추세요.</b><p>배분을 줄이면 회복하고, 늘리면 피로를 쓰며 집중 성장합니다. 전체 0은 회복에 집중합니다. 부상·한계 피로로 활동이 어려우면 강제 휴식합니다.</p></div></div></div></div><Panel title="성장의 발자취" className="training-growth" eyebrow="GROWTH TRACKER"><GrowthChart state={state} /></Panel></>}{tab === "team" && <TeamStrengthView state={state} onRecords={openRecords} />}{tab === "roster" && <RosterView state={state} onRecords={openRecords} />}{tab === "records" && <SeasonRecords key={recordPlayer!.id} player={recordPlayer!} year={state.calendar.seasonYear} school={state.teams[recordPlayer!.teamId].name} ended={state.phase === "ended"} mine={recordPlayer!.id === state.playerId} onMyRecords={() => openRecords()} />}{tab === "games" && <GamesView state={state} />}{tab === "draft" && <DraftView state={state} onRecords={openRecords} onChange={setState} onRetire={newGame} />}</fieldset></>}</main><footer className="site-footer"><div><span className="footer-brand">BASEBALL LIFE.</span><span>모든 선수에게는 자신만의 이야기가 있다.</span><span>실제 대회 일정 참고 · 학교·선수·대진은 가상</span></div></footer>{state && state.phase !== "ended" && <ProgressControls state={state} policy={policy} busy={busy} auto={auto} autoStartWeek={autoStartWeek} onAdvance={advance} onToggleAuto={toggleAuto} />}{toast && <div className="toast" role="status"><Icon name="check" size={17} />{toast}</div>}{busy && <div className="busy-indicator" role="status">훈련 · 경기 · 회복을 계산하고 있습니다.</div>}{state && trainingDraft && <Modal title="훈련 설정" className="training-settings-modal" onClose={() => setTrainingDraft(null)}><div className="training-settings-body"><p className="training-settings-intro">능력치마다 0~5를 투자하고 훈련·회복 균형을 확인하세요. 저장하면 다음 진행부터 적용됩니다.</p><TrainingEditor player={player!} policy={trainingDraft} setPolicy={setTrainingDraft} date={state?.date} context={state} /></div><div className="training-settings-actions"><button className="secondary" onClick={() => setTrainingDraft(null)}>취소</button><button className="primary" disabled={!validPolicy(trainingDraft)} onClick={() => savePolicy(trainingDraft)}>훈련 설정 저장</button></div></Modal>}{help && <Modal title="플레이 가이드" onClose={() => setHelp(false)}><div className="guide-content"><p>선수 한 명을 만들어 고교 3시즌을 보내고, 고3 가을 드래프트에 도전합니다.</p><ol><li><b>훈련 센터</b>에서 각 항목에 0~5를 자유롭게 배분하세요. 회복력과 배분량에 따른 주간 피로를 막대와 마커로 확인할 수 있습니다.</li><li><b>1주 진행하기</b>는 한 주만, <b>자동 진행</b>은 현재 훈련과 성향을 유지하며 계속 진행합니다. 일시정지는 계산 중인 한 주를 마친 뒤 적용됩니다. 새 부상·강제 휴식·역할 제안·커리어 이벤트·드래프트 또는 계산 오류가 발생하면 자동으로 멈춥니다.</li><li><b>팀 전력</b>에서 주전 1·후보 0.5로 계산한 종합·타격·수비·투수 전력과 전국 순위를 확인하세요.</li><li><b>선수 · 로스터</b>에서 주전 경쟁을 확인하세요. 부상·피로·역할 능력·최근 성적에 따라 출전이 달라집니다. 역할이 바뀌어도 기존 출전 자격과 진급 전 평판은 유지됩니다.</li><li><b>개인 기록</b>에서 연도별 타격·투구 기록과 통산 합계를 확인하세요. 로스터에서 선수를 선택하면 다른 선수의 기록도 볼 수 있습니다.</li><li><b>고3 드래프트</b>에서 능력·재능·기록·구단 수요를 종합해 지명합니다.</li></ol><div className="info-box">커리어별 자동 저장과 수동 보관을 지원합니다. 저장함에서 불러오면 중단한 위치부터 이어갑니다. 2026 대회 개최 기간을 참고한 게임용 일정이며, 학교·선수·참가 규칙·대진은 가상입니다.</div><p className="micro muted">간소화 규칙: 최대 12이닝, 사구·실책·도루·병살·희생타·야수선택 및 경기별 투타 겸업 지원(같은 경기 동시 투타 출전 미지원). 투수 개인 승·패·세이브는 집계하지 않습니다.</p></div></Modal>}{reset && <Modal title="새로운 커리어를 시작할까요?" onClose={() => setReset(false)}><div className="guide-content"><p>현재 선수와 플레이 기록이 초기화됩니다.</p><div className="modal-actions"><button className="secondary" onClick={() => setReset(false)}>계속 플레이</button><button className="primary" onClick={newGame}>새 커리어 시작</button></div></div></Modal>}</>;
+}} />}<fieldset className="content-lock" disabled={(busy || auto) && tab === "training"}>{tab === "home" && <Dashboard state={state} onTraining={() => { if (!locked.current && !autoProgress.active && !state.weekProgress && state.phase !== "ended") setTrainingDraft(structuredClone(policy)); }} onTab={next => { if (next === "records") openRecords(); else setTab(next); }} />}{tab === "training" && <TrainingCenter state={state} policy={policy} setPolicy={setPolicy} stance={stance} setStance={setStance} onSave={()=>savePolicy()} disabled={busy||auto} profile={<PlayerCard state={state} player={player!} school={state.teams[player!.teamId].name}/>}/>} {tab === "team" && <TeamStrengthView state={state} onRecords={openRecords} />}{tab === "roster" && <RosterView state={state} onRecords={openRecords} />}{tab === "records" && <SeasonRecords key={recordPlayer!.id} player={recordPlayer!} year={state.calendar.seasonYear} school={state.teams[recordPlayer!.teamId].name} ended={state.phase === "ended"} mine={recordPlayer!.id === state.playerId} onMyRecords={() => openRecords()} />}{tab === "games" && <GamesView state={state} />}{tab === "draft" && <DraftView state={state} onRecords={openRecords} onChange={setState} onRetire={newGame} />}</fieldset></>}</main><footer className="site-footer"><div><span className="footer-brand">BASEBALL LIFE.</span><span>모든 선수에게는 자신만의 이야기가 있다.</span><span>실제 대회 일정 참고 · 학교·선수·대진은 가상</span></div></footer>{state && state.phase !== "ended" && <ProgressControls state={state} policy={policy} busy={busy} auto={auto} autoStartWeek={autoStartWeek} onAdvance={advance} onToggleAuto={toggleAuto} />}{toast && <div className="toast" role="status"><Icon name="check" size={17} />{toast}</div>}{busy && <div className="busy-indicator" role="status">훈련 · 경기 · 회복을 계산하고 있습니다.</div>}{state && trainingDraft && <Modal title="훈련 설정" className="training-settings-modal" onClose={() => setTrainingDraft(null)}><div className="training-settings-body"><p className="training-settings-intro">능력치마다 0~5를 투자하고 훈련·회복 균형을 확인하세요. 저장하면 다음 진행부터 적용됩니다.</p><TrainingEditor player={player!} policy={trainingDraft} setPolicy={setTrainingDraft} date={state?.date} context={state} /></div><div className="training-settings-actions"><button className="secondary" onClick={() => setTrainingDraft(null)}>취소</button><button className="primary" disabled={!validPolicy(trainingDraft)} onClick={() => savePolicy(trainingDraft)}>훈련 설정 저장</button></div></Modal>}{help && <Modal title="플레이 가이드" onClose={() => setHelp(false)}><div className="guide-content"><p>선수 한 명을 만들어 고교 3시즌을 보내고, 고3 가을 드래프트에 도전합니다.</p><ol><li><b>훈련 센터</b>에서 각 항목에 0~5를 자유롭게 배분하세요. 회복력과 배분량에 따른 주간 피로를 막대와 마커로 확인할 수 있습니다.</li><li><b>1주 진행하기</b>는 한 주만, <b>자동 진행</b>은 현재 훈련과 성향을 유지하며 계속 진행합니다. 일시정지는 계산 중인 한 주를 마친 뒤 적용됩니다. 새 부상·강제 휴식·역할 제안·커리어 이벤트·드래프트 또는 계산 오류가 발생하면 자동으로 멈춥니다.</li><li><b>팀 전력</b>에서 주전 1·후보 0.5로 계산한 종합·타격·수비·투수 전력과 전국 순위를 확인하세요.</li><li><b>선수 · 로스터</b>에서 주전 경쟁을 확인하세요. 부상·피로·역할 능력·최근 성적에 따라 출전이 달라집니다. 역할이 바뀌어도 기존 출전 자격과 진급 전 평판은 유지됩니다.</li><li><b>개인 기록</b>에서 연도별 타격·투구 기록과 통산 합계를 확인하세요. 로스터에서 선수를 선택하면 다른 선수의 기록도 볼 수 있습니다.</li><li><b>고3 드래프트</b>에서 능력·재능·기록·구단 수요를 종합해 지명합니다.</li></ol><div className="info-box">커리어별 자동 저장과 수동 보관을 지원합니다. 저장함에서 불러오면 중단한 위치부터 이어갑니다. 2026 대회 개최 기간을 참고한 게임용 일정이며, 학교·선수·참가 규칙·대진은 가상입니다.</div><p className="micro muted">간소화 규칙: 최대 12이닝, 사구·실책·도루·병살·희생타·야수선택 및 경기별 투타 겸업 지원(같은 경기 동시 투타 출전 미지원).</p></div></Modal>}{reset && <Modal title="새로운 커리어를 시작할까요?" onClose={() => setReset(false)}><div className="guide-content"><p>현재 선수와 플레이 기록이 초기화됩니다.</p><div className="modal-actions"><button className="secondary" onClick={() => setReset(false)}>계속 플레이</button><button className="primary" onClick={newGame}>새 커리어 시작</button></div></div></Modal>}</>;
 }

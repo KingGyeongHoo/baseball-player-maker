@@ -6,7 +6,7 @@ const {eventTrainingReward}=require('../.test-build/lib/sim/event-system.js');
 const {encodeCareerSave,decodeCareerSave,validateCareerState}=require('../.test-build/lib/career-save.js');
 e.params['pro_events.enabled']=0;
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('lifecycle-tests','긴커리어','SS'));
-const fixture=()=>structuredClone(template),close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
+const fixture=()=>{const s=structuredClone(template),p=e.getPlayer(s);p.teamId=p.teamId%10+10;s.postSchool.pro.level='second';return s;},close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 const acknowledge=s=>{while(s.careerNotice)s=pc.acknowledgeCareer(s);return s;};
 function summary(){const s=fixture();s.date=s.proWorld.regularEnd;life.closeProfessionalSeason(s);return acknowledge(s);}
 
@@ -49,12 +49,13 @@ test('evaluation opportunities honor eligibility, 14-day absence, two batters/on
   const original=[...game.evaluationPlayers];world.prepareEvaluationOpportunities(s,[game.id]);assert.deepEqual(game.evaluationPlayers,original);
 });
 test('postseason ties schedule a replay without random winners and preserve the recorded tied game',()=>{
-  const s=fixture();s.proWorld.stage='regular';s.date=s.proWorld.regularEnd;const rng={...s.rngStates};life.finishProfessionalDay(s);assert.equal(s.proWorld.postseason.series.length,2);
-  const series=s.proWorld.postseason.series[0],game=s.calendar.events.find(g=>g.competitionId===`pro-playoffs-${series.id}`);s.date=game.date;game.status='completed';game.score=[3,3];life.finishProfessionalDay(s);
+  const s=fixture();s.proWorld.stage='regular';s.date=s.proWorld.regularEnd;const rng={...s.rngStates};life.finishProfessionalDay(s);assert.equal(s.proWorld.postseason.series.length,1);
+  const wildcard=s.calendar.events.find(g=>g.competitionId==='pro-playoffs-wildcard');wildcard.status='completed';wildcard.score=[1,0];s.date=wildcard.date;life.finishProfessionalDay(s);
+  const series=s.proWorld.postseason.series.find(v=>v.stage==='semi'),game=s.calendar.events.find(g=>g.competitionId===`pro-playoffs-${series.id}`);s.date=game.date;game.status='completed';game.score=[3,3];life.finishProfessionalDay(s);
   assert.deepEqual(series.wins,[0,0]);assert.equal(series.game,2);assert.equal(s.calendar.events.filter(g=>g.competitionId===game.competitionId).length,2);assert.deepEqual(s.rngStates,rng);assert.equal(game.status,'completed');assert.ok(s.calendar.events.at(-1).date>game.date);
 });
 test('postseason records commit separately, do not change regular stats and cannot commit twice',()=>{
-  const s=fixture(),p=e.getPlayer(s);s.players.find(q=>q.teamId===0&&q.position===p.position).teamId=10;p.teamId=0;s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';life.finishProfessionalDay(s);const game=s.calendar.events.find(g=>g.competitionId.startsWith('pro-playoffs-')&&[g.homeTeamId,g.awayTeamId].includes(0));
+  const s=fixture(),p=e.getPlayer(s);s.players.find(q=>q.teamId===3&&q.position===p.position).teamId=13;p.teamId=3;s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';life.finishProfessionalDay(s);const game=s.calendar.events.find(g=>g.competitionId.startsWith('pro-playoffs-')&&[g.homeTeamId,g.awayTeamId].includes(3));
   p.injury=null;p.fatigue=0;for(const key of Object.keys(p.stats))p.stats[key]=99;const old=e.emptyRecord();assert.deepEqual(p.seasonStats,old);e.simulateGame(s,game,[game.homeTeamId,game.awayTeamId].map(id=>s.players.filter(p=>p.teamId===id)));assert.equal(game.status,'completed');assert.deepEqual(p.seasonStats,old);assert.ok(p.seasonPostseason.batting.PA>0);
   const record=structuredClone(p.seasonPostseason),rng={...s.rngStates};e.simulateGame(s,game,[game.homeTeamId,game.awayTeamId].map(id=>s.players.filter(p=>p.teamId===id)));assert.deepEqual(p.seasonPostseason,record);assert.deepEqual(s.rngStates,rng);
 });
@@ -67,7 +68,7 @@ test('FA offers are at most three, future commitments obey budgets, and market r
 test('release keeps identity and regular status, charges future guaranteed money once, and re-signing preserves records',()=>{
   const s=fixture(),p=e.getPlayer(s),id=p.id,club=p.professional.contract.club;p.professional.contract.endYear=2030;p.proContract.status='regular';p.seasonByLevel.second.batting.PA=80;
   market.releasePlayer(s,p,'test',2029);assert.equal(p.teamId,-1);assert.equal(p.professional.employment,'freeAgent');assert.equal(p.professional.guarantees.length,2);assert.equal(s.proWorld.clubs[club].deadMoney['2029'],world.BASE_SALARY);market.releasePlayer(s,p,'test',2029);assert.equal(p.professional.guarantees.length,2);
-  market.signContract(s,p,{id:'new-contract',club:1,year:2029,years:1,salary:world.BASE_SALARY,role:'경쟁',kind:'released',negotiated:false,final:true,competition:[]});assert.equal(p.id,id);assert.equal(p.proContract.status,'regular');assert.equal(p.seasonByLevel.second.batting.PA,80);assert.equal(p.teamId,11);
+  market.signContract(s,p,{id:'new-contract',club:1,year:2029,years:1,salary:world.BASE_SALARY,role:'경쟁',kind:'released',negotiated:false,final:true,competition:[]});assert.equal(p.id,id);assert.equal(p.proContract.status,'regular');assert.equal(p.seasonByLevel.second.batting.PA,80);assert.equal(p.teamId,21);
 });
 test('a trade changes both memberships atomically, keeps contracts/records/status and closes after the first half',()=>{
   const s=fixture(),p=e.getPlayer(s),ids=new Set(s.players.map(p=>p.id));p.seasonByLevel.second.batting.PA=30;

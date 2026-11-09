@@ -5,6 +5,16 @@ const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/e
 const j=require('../.test-build/lib/jersey-numbers.js'),r=require('../.test-build/lib/roster-status.js');
 const creation=require('../.test-build/lib/player-creation.js'),save=require('../.test-build/lib/career-save.js');
 const entropy=seed=>({randomUUID:()=>seed,getRandomValues:a=>{a[0]=0;return a;}});
+test('club rename preserves numeric identities and migrates the shared old/new Changwon name exactly once',()=>{
+  const {syncProClubNames,proClubNames}=require('../.test-build/lib/sim/club-names.js');
+  assert.deepEqual(proClubNames,['서울 베어스','서울 트윈스','고양 히어로즈','인천 랜더스','수원 위즈','대전 이글스','광주 타이거즈','대구 라이온즈','창원 다이노스','부산 자이언츠']);
+  const s={careerMode:'pro',teams:Array.from({length:20},(_,id)=>({id,name:'old',shortName:'old'})),players:[{career:[{careerMode:'pro',schoolId:7,schoolName:'창원 다이노스 1군'}]}],draft:[{club:'창원 다이노스'},{club:'청주 이글스'}],postSchool:{collegeDraft:[{club:'서울 파이오니어스'}]},proWorld:{archive:[],seasons:[{draft:[{club:'부산 웨이브스'}]}]},rngStates:{draft:123}};
+  syncProClubNames(s);assert.equal(s.teams[0].name,'서울 베어스 1군');assert.equal(s.teams[1].shortName,'서울 트윈스 1군');assert.equal(s.teams[18].name,'창원 다이노스 2군');
+  assert.deepEqual(s.draft.map(p=>p.club),['대구 라이온즈','창원 다이노스']);assert.equal(s.players[0].career[0].schoolName,'대구 라이온즈 1군');assert.deepEqual(s.rngStates,{draft:123});
+  const renamed=structuredClone(s);assert.equal(syncProClubNames(s),false);assert.deepEqual(s,renamed);
+  const old=e.createGame('club-save-migration','구단변경','SS');delete old.proClubNamesVersion;old.draft=[{club:'창원 다이노스'}];const file=save.encodeCareerSave(old),restored=save.decodeCareerSave(JSON.stringify(file));
+  assert.equal(restored.state.draft[0].club,'대구 라이온즈');assert.equal(restored.checksum,save.saveChecksum(JSON.stringify(restored.state)));assert.deepEqual(restored.state.rngStates,old.rngStates);
+});
 function schools(s){
   for(const team of s.teams){const roster=s.players.filter(p=>p.teamId===team.id),slots=r.startingAssignments(roster);
     assert.equal(new Set(roster.map(p=>p.jerseyNumber)).size,roster.length);
@@ -39,6 +49,7 @@ test('direct pro starts accept every position, preserve the selected number and 
   for(const [i,pos] of ['C','3B','RP','CP'].entries()){
     const s=creation.createRandomProCareer('프로신인',pos,7,entropy(`jersey-pro-${i}`)),p=e.getPlayer(s);values.push(e.overall(p));
     assert.equal(s.careerMode,'pro');assert.equal(p.position,pos);assert.equal(p.jerseyNumber,7);assert.equal(p.professional.entry,'direct');assert.equal(p.career.length,0);assert.equal(s.draft.length,0);assert.ok(e.overall(p)>=41&&e.overall(p)<=69);
+    assert.equal(p.proContract.status,e.roleScore(p)<e.params['pro.second_mean']?'developmental':'regular');
     for(let club=0;club<10;club++){const players=s.players.filter(p=>p.teamId>=0&&p.teamId%10===club);assert.equal(new Set(players.map(p=>p.jerseyNumber)).size,players.length);assert.ok(players.every(p=>p.jerseyNumber>=1&&p.jerseyNumber<=99));}
   }
   assert.ok(new Set(values).size>1);

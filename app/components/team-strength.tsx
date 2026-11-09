@@ -28,6 +28,7 @@ export default function TeamStrengthView({ state, onRecords }: { state: GameStat
       <div className="team-power-metrics">{([
         ["종합 전력", power.overall], ["타격 전력", power.batting], ["수비 전력", power.defense], ["투수 전력", power.pitching],
       ] as const).map(([label, value]) => <div key={label}><span>{label}</span><strong>{scoreText(value)}<small> / 100</small></strong><div className="stat-track"><i style={{ width: `${value}%` }} /></div></div>)}</div>
+      {power.team.schoolPrestige !== undefined && <p className="training-note"><b>학교 명문도 {scoreText(power.team.schoolPrestige)} / 100</b> · 명문도가 높을수록 실력과 재능이 좋은 신입생이 모일 가능성이 높습니다. 매년 팀 성적과 프로 지명 실적에 따라 달라지며, 지명 여부는 선수 개인의 평가로 결정됩니다.</p>}
       <div className="team-formula"><p><b>종합 전력 = (주전 역할 능력 합 + 후보 역할 능력 합 × 0.5) ÷ ({power.starters}명 + {power.members.length - power.starters}명 × 0.5)</b></p><p>기본 능력 기준 예상 주전: 야수·지명타자 9자리 + 선발·중간계투·마무리 각 1명. 같은 선수를 중복 선발하지 않으며, 주전 선정은 포지션별 역할 능력을 따릅니다. 부상·피로·훈련 방침에 따른 당일 출전 명단과는 차이가 있습니다.</p><details><summary>세부 전력 계산 보기</summary><p>타격: 컨택 40% + 파워 35% + 스피드 25%. 수비: 수비 60% + 어깨 25% + 야구 지능 15%. 타격·수비는 야수, 투수 전력은 투수의 역할 능력을 각각 주전 1·후보 0.5로 가중 평균합니다. 종합 전력은 모든 선수의 역할 능력으로 계산합니다.</p></details></div>
     </section>
     <div className="team-strength-layout">

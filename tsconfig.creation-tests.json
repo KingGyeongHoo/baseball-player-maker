@@ -23,7 +23,12 @@
     "app/components/draft-result-gate.tsx",
     "lib/career-save.ts",
     "app/components/pro-career-panels.tsx",
-    "app/components/player-evaluation.tsx"
+    "app/components/player-evaluation.tsx",
+    "app/components/pro-league.tsx",
+    "app/components/dashboard-records.tsx",
+    "app/components/player-roster.tsx",
+    "app/components/postseason-bracket.tsx",
+    "app/components/pro-dashboard.tsx"
   ],
   "exclude": [
     "node_modules",

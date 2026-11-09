@@ -5,12 +5,13 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js');
 const catalog=require('../.test-build/lib/sim/pro-event-catalog.js'),runtime=require('../.test-build/lib/sim/pro-event-runtime.js'),ledger=require('../.test-build/lib/sim/pro-event-ledger.js'),roles=require('../.test-build/lib/sim/pro-role-evaluation.js'),national=require('../.test-build/lib/sim/pro-national-events.js');
-const market=require('../.test-build/lib/sim/pro-market.js'),evidence=require('../.test-build/lib/sim/pro-event-evidence.js'),events=require('../.test-build/lib/sim/event-system.js'),storage=require('../.test-build/lib/career-save.js');
+const market=require('../.test-build/lib/sim/pro-market.js'),evidence=require('../.test-build/lib/sim/pro-event-evidence.js'),storage=require('../.test-build/lib/career-save.js');
 const Dialog=require('../.test-build/app/components/career-event-dialog.js').default;
+const {changeText}=require('../.test-build/lib/display.js');
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('pro-event-catalog','프로이벤트','SS'));
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 function fixture(position='SS'){
- const s=structuredClone(template),p=e.getPlayer(s);s.date='2028-04-10';s.week=8;s.calendar.events=[];s.careerNotice=null;s.noticeQueue=[];s.careerEvent=null;delete s.weekProgress;delete s.matchProgress;delete s.pendingEventOutcome;
+ const s=structuredClone(template),p=e.getPlayer(s);p.teamId=p.teamId%10+10;s.postSchool.pro.level='second';s.date='2028-04-12';s.week=8;s.calendar.events=[];s.careerNotice=null;s.noticeQueue=[];s.careerEvent=null;delete s.weekProgress;delete s.matchProgress;delete s.pendingEventOutcome;
  s.proWorld.stage='regular';s.proWorld.clubs.forEach(c=>c.nextReview='2099-01-01');s.lastCareerEventWeek=s.week;s.trainingFocus={rng:1,rolledWeek:s.week};s.careerEventHistory=[];
  p.position=position;p.primaryRole=e.roleFor(position);p.preferredRole=p.primaryRole;p.eligiblePositions=[position,'DH'];for(const k of Object.keys(p.stats))p.stats[k]=60;p.fatigue=30;p.forcedRest=false;p.injury=null;p.age=22;p.professional.lastRegistration='2028-03-01';p.professional.firsts.debut='2028-03-22';delete p.professional.roleTrial;delete p.professional.requestAfter;delete p.professional.requestedEvaluationUntil;delete p.twoWay;
  p.trainingPolicy=e.defaultPolicy(p.primaryRole);p.seasonStats=e.emptyRecord();p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};p.careerEventHistory=[];
@@ -40,13 +41,27 @@ test('all catalog outcomes resolve using saved choices and growth never advances
    const next=e.answerCareerEvent(s,choice.id),q=e.getPlayer(next),result=next.careerEventHistory.at(-1);assert.equal(result.proEvent.catalogId,definition.id);assert.equal(next.careerEvent,null);assert.equal(next.date,before.date);assert.deepEqual(q.trainingPolicy,before.policy);assert.deepEqual(q.seasonStats,before.records);assert.deepEqual(q.talentExposure,before.exposure);assert.ok(Object.values(q.stats).every(n=>n>=1&&n<=100));assert.throws(()=>e.answerCareerEvent(next,choice.id),/선택할/);
  }}
 });
-test('multi-skill camp has one awakening draw and uses replacement capped at twelve weeks',()=>{
+test('multi-skill camp has one awakening draw and gives three points at 60',()=>{
  const s=fixture(),p=e.getPlayer(s);open(s,'PE08');force(s,0,0);const before={...s.rngStates},probe={rngStates:{...before}};e.random(probe,'events');e.random(probe,'events');
- const next=e.answerCareerEvent(s,'choice-1'),q=e.getPlayer(next),out=next.careerEventHistory.at(-1);assert.equal(next.rngStates.events,probe.rngStates.events);assert.deepEqual(out.awakened,['contact','power','speed','defense']);for(const key of out.awakened)close(q.stats[key]-p.stats[key],events.eventTrainingReward(p,key,12));for(const key of ['match','training','injury','generation','draft'])assert.equal(next.rngStates[key],before[key]);
+ const next=e.answerCareerEvent(s,'choice-1'),q=e.getPlayer(next),out=next.careerEventHistory.at(-1);assert.equal(next.rngStates.events,probe.rngStates.events);assert.deepEqual(out.awakened,['contact','power','speed','defense']);for(const key of out.awakened)close(q.stats[key]-p.stats[key],3);for(const key of ['match','training','injury','generation','draft'])assert.equal(next.rngStates[key],before[key]);
 });
-test('new results show real sub-point gains and numeric match corrections only after selection',()=>{
- const s=fixture();open(s,'PE01');force(s,.1,.5);const next=e.answerCareerEvent(s,'choice-1'),out=next.careerEventHistory.at(-1),html=renderToStaticMarkup(createElement(Dialog,{event:null,outcome:out,disabled:false,onChoose(){return true;},onDone(){}}));assert.ok(html.includes('1 미만'));assert.ok(html.includes('실제 변화'));
- const m=renderToStaticMarkup(createElement(Dialog,{event:null,outcome:{...out,stats:{},awakened:[],match:{hr:.04},scene:{gameId:'g',inning:7,battingSide:0,outs:1,bases:[null,null,null],score:[0,1],batting:true,batterName:'나',pitcherName:'상대'}},disabled:false,onChoose(){return true;},onDone(){}}));assert.ok(m.includes('+4%p'));
+test('BQ awakening keeps its three-point floor for older developmental players',()=>{
+ const s=fixture(),p=e.getPlayer(s);p.age=39;p.proContract.status='developmental';open(s,'PE03');force(s,.1,0);
+ const next=e.answerCareerEvent(s,'choice-2'),out=next.careerEventHistory.at(-1);
+ assert.deepEqual(out.awakened,['bq']);close(out.stats.bq,3);close(e.getPlayer(next).stats.bq,63);
+ assert.equal(p.stats.bq,60);assert.deepEqual(next,e.answerCareerEvent(s,'choice-2'));
+});
+test('pro outcomes use the same qualitative changes as school outcomes without altering fractional results',()=>{
+ const s=fixture();open(s,'PE01');force(s,.1,.5);const next=e.answerCareerEvent(s,'choice-1'),out=next.careerEventHistory.at(-1),before=structuredClone(out);
+ const render=outcome=>renderToStaticMarkup(createElement(Dialog,{event:null,outcome,disabled:false,onChoose(){return true;},onDone(){}}));
+ const html=render(out);assert.ok(html.includes('실제 변화'));assert.ok(!html.includes('1 미만'));
+ for(const [key,amount] of Object.entries(out.stats))if(Math.abs(amount)>1e-9)assert.ok(html.includes(`${e.labels[key]} <b>${changeText(amount)}</b>`));
+ const sample={...out,stats:{contact:.03,power:.2,speed:-.2},reputation:.3,fatigue:-4,awakened:[]};
+ const changes=text=>text.match(/<div class="event-changes">(.*?)<\/div>/)[1];
+ const pro=render(sample);assert.equal(changes(pro),changes(render({...sample,proEvent:undefined})));
+ assert.ok(pro.includes('아주 조금 상승'));assert.ok(pro.includes('조금 상승'));assert.ok(pro.includes('하락'));
+ const m=render({...out,stats:{},awakened:[],match:{hr:.04},scene:{gameId:'g',inning:7,battingSide:0,outs:1,bases:[null,null,null],score:[0,1],batting:true,batterName:'나',pitcherName:'상대'}});
+ assert.ok(m.includes('홈런 종류 판정 <b>매우 크게 상승</b>'));assert.ok(!m.includes('%p'));assert.deepEqual(out,before);
 });
 test('training eligibility respects field, fatigue, current-level samples and once-per-season camp',()=>{
  const s=fixture(),p=e.getPlayer(s);assert.ok(ids(s).includes('PE01'));assert.ok(!ids(s).includes('PE02'));assert.ok(!ids(s).includes('PE03'));p.seasonByLevel.second.batting.PA=20;assert.ok(ids(s).includes('PE03'));p.fatigue=50;assert.ok(!ids(s).includes('PE04'));p.fatigue=60;assert.ok(!ids(s).includes('PE07'));
@@ -154,7 +169,7 @@ test('reservations, role decisions and frozen event choices round-trip through s
 
 function finishWeek(input,policy=e.getPlayer(input).trainingPolicy){let s=input,guard=0;while(s.week===input.week&&s.phase!=='ended'&&guard++<40){while(s.careerNotice)s=pc.acknowledgeCareer(s);if(s.careerEvent)throw new Error('unexpected choice '+s.careerEvent.definitionId);s=e.advanceWeek(s,policy,e.getPlayer(s).stance);}assert.equal(s.week,input.week+1);return s;}
 const noRandom={'events.weekly_chance':0,'events.focus_chance':0,'pro_events.general_chance':0,'pro_events.game_chance':0,'injury.training_base_risk':0,'injury.risk_at60':0,'injury.risk_slope60':0,'injury.risk_at80':0,'injury.risk_slope80':0};
-function realGame(first=false){const s=structuredClone(template),p=e.getPlayer(s);s.careerNotice=null;s.noticeQueue=[];s.proWorld.clubs.forEach(c=>c.nextReview='2099-01-01');if(first)p.teamId%=10;
+function realGame(first=false){const s=structuredClone(template),p=e.getPlayer(s);s.careerNotice=null;s.noticeQueue=[];s.proWorld.clubs.forEach(c=>c.nextReview='2099-01-01');p.teamId=p.teamId%10+(first?0:10);s.postSchool.pro.level=first?'first':'second';
  const game=s.calendar.events.find(g=>g.competitionId===(first?'pro-first':'pro-second')&&[g.homeTeamId,g.awayTeamId].includes(p.teamId));s.date=game.date;s.calendar.events=[game];s.lastCareerEventWeek=s.week;s.trainingFocus={rng:0,rolledWeek:s.week};p.eligiblePositions=['SS'];for(const key of ['contact','power','speed','defense'])p.stats[key]=100;p.stats.contact=first?100:1;p.fatigue=0;p.professional.firsts={...(first?{}:{debut:'2028-03-01'})};game.evaluationPlayers=[p.id];
  for(const q of s.players.filter(q=>q.teamId===(game.homeTeamId===p.teamId?game.awayTeamId:game.homeTeamId)))q.stats.velocity=100;
  for(const key of Object.keys(p.trainingPolicy.tickets))p.trainingPolicy.tickets[key]=0;return s;
@@ -169,7 +184,7 @@ test('first-game preparation saves a fixed lineup before any pitch and records d
  const loaded=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(paused,false))).state,chosen=e.answerCareerEvent(loaded,'choice-3'),resumed=finishWeek(chosen);assert.ok(e.getPlayer(resumed).seasonByLevel.first.batting.PA>0);assert.equal(e.getPlayer(resumed).professional.firsts.debut,input.date);assert.equal(resumed.careerEventHistory.filter(row=>row.definitionId==='PE13').length,1);
 }));
 test('weekly training supplies trial evidence and a completed trial never auto-switches the role',()=>withParams(noRandom,()=>{
- let s=fixture();roles.beginProRoleTrial(s,'3B','PE09');s=finishWeek(s);assert.equal(e.getPlayer(s).professional.roleTrial.trainingDates.length,5);s=finishWeek(s);const next=e.advanceWeek(s,e.getPlayer(s).trainingPolicy,e.getPlayer(s).stance);assert.equal(next.careerEvent.definitionId,'PE09_FOLLOWUP');assert.equal(e.getPlayer(next).position,'SS');assert.equal(e.getPlayer(e.answerCareerEvent(next,'keep')).position,'SS');
+ let s=fixture();roles.beginProRoleTrial(s,'3B','PE09');s=finishWeek(s);assert.equal(e.getPlayer(s).professional.roleTrial.trainingDates.length,6);s=finishWeek(s);const next=e.advanceWeek(s,e.getPlayer(s).trainingPolicy,e.getPlayer(s).stance);assert.equal(next.careerEvent.definitionId,'PE09_FOLLOWUP');assert.equal(e.getPlayer(next).position,'SS');assert.equal(e.getPlayer(e.answerCareerEvent(next,'keep')).position,'SS');
 }));
 
 test('existing two-way proposals respect the new daily choice limit and wait until the next day',()=>{

@@ -8,7 +8,7 @@ import { finishDevelopmentSeason, reviewProRoster, reviewDevelopmentContract } f
 import { developmentalOffer } from "./draft-outcome";
 import { tryDevelopmentEvent } from "./pro-events";
 import {ensureProWorld,prepareEvaluationOpportunities,recordProfessionalDay,reviewProMilestones} from "./pro-world";
-import {preparePlayoffReplacements} from "./pro-season";
+import {migrateActivePostseason,needsPostseasonUpgrade,preparePlayoffReplacements} from "./pro-season";
 import {finishRoleTrial} from "./pro-market";
 import {recordProTwoWayDay,reviewProTwoWay} from "./pro-two-way";
 import {syncJerseyNumbers} from "../jersey-numbers";
@@ -16,6 +16,8 @@ import {capturePendingEvaluationChanges,capturePlayerEvaluations,recordEvaluatio
 import {tickProEvents} from "./pro-event-ledger";
 import {openProGeneralEvent,planProEventWeek,proMajorDueToday} from "./pro-event-runtime";
 import {recordProRoleTraining,reviewProRoleTrial} from "./pro-role-evaluation";
+import {packRecentRecord} from "./recent-records";
+import {upgradeProSchedule} from "./pro-schedule";
 
 export function refreshWeekReport(s: GameState) {
   const progress = s.weekProgress;
@@ -34,12 +36,28 @@ export function refreshWeekReport(s: GameState) {
   s.report = report;
 }
 export function advanceWeek(input: GameState, policy: Policy, stance: Stance): GameState {
-  if (input.phase === "ended") throw new Error("종료된 커리어입니다.");
-  if (input.careerEvent) throw new Error("진행 중인 이벤트에서 선택을 먼저 완료해 주세요.");
-  if (input.careerNotice) throw new Error("진로·등록 알림을 먼저 확인해 주세요.");
+  if(!needsPostseasonUpgrade(input))validateAdvance(input, policy);
+  return advanceWeekInPlace(structuredClone(input), policy, stance);
+}
+
+function validateAdvance(s: GameState, policy: Policy) {
+  if (s.phase === "ended") throw new Error("종료된 커리어입니다.");
+  if (s.careerEvent) throw new Error("진행 중인 이벤트에서 선택을 먼저 완료해 주세요.");
+  if (s.careerNotice) throw new Error("진로·등록 알림을 먼저 확인해 주세요.");
   if (!validPolicy(policy)) throw new Error("훈련 티켓 배분을 확인해 주세요.");
-  const s = structuredClone(input), player = getPlayer(s);
+}
+
+// Only the simulation worker owns a disposable state. Public callers keep the
+// immutable wrapper above so a failed/paused request never changes their input.
+export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance): GameState {
+  if(migrateActivePostseason(s))return s;
+  validateAdvance(s, policy);
+  const player = getPlayer(s);
+  for (const p of s.players) {
+    if (p.recentAppearances.some(record => !Array.isArray(record))) p.recentAppearances = p.recentAppearances.map(packRecentRecord);
+  }
   ensureProWorld(s);
+  upgradeProSchedule(s);
   tickProEvents(s);
   updateReputation(s);
   syncJerseyNumbers(s,true);
@@ -85,14 +103,14 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
     const day = progress.day;
     if(day.phase==="beforeGames"){
       finishRoleTrial(s);preparePlayoffReplacements(s);
-      rosters=s.teams.map(()=>[]);for(const p of s.players)if(p.teamId>=0)rosters[p.teamId].push(p);
     }
     if (day.phase === "beforeGames" && (reviewDevelopmentContract(s) || reviewProRoster(s))) {
-      rosters=s.teams.map(()=>[]);for(const p of s.players)if(p.teamId>=0)rosters[p.teamId].push(p);
       return pause();
     }
     if (tryNationalEvent(s)) return pause();
     if (day.phase === "beforeGames") {
+      // Registration reviews can move NPCs without opening a user notice.
+      rosters=s.teams.map(()=>[]);for(const p of s.players)if(p.teamId>=0)rosters[p.teamId].push(p);
       reviewProMilestones(s);if(s.careerNotice)return pause();
       if(reviewProTwoWay(s))return pause();
       prepareEvaluationOpportunities(s,day.gameIds);if(s.careerNotice)return pause();
@@ -115,7 +133,7 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
           : game.score[0] === game.score[1] ? random(s, "match") < .5 ? game.homeTeamId : game.awayTeamId : game.score[0] > game.score[1] ? game.homeTeamId : game.awayTeamId;
         const home = s.teams[game.homeTeamId], away = s.teams[game.awayTeamId];
         const outcome = game.status === "forfeit" ? game.forfeitTeamId === home.id ? -1 : 1 : Math.sign(game.score[0] - game.score[1]);
-        if(!game.competitionId.startsWith("pro-playoffs-")){if (outcome > 0) { home.wins++; away.losses++; } else if (outcome < 0) { home.losses++; away.wins++; } else { home.draws++; away.draws++; }}
+        if(!game.competitionId.startsWith("pro-playoffs-")&&!game.tiebreaker){if (outcome > 0) { home.wins++; away.losses++; } else if (outcome < 0) { home.losses++; away.wins++; } else { home.draws++; away.draws++; }}
         if ([game.homeTeamId, game.awayTeamId].includes(player.teamId)) report.games.push(game.id);
         day.gameIndex++;
       }
@@ -129,6 +147,7 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
       const cycleEnd=addDays(report.from,6),trainingCycle=s.calendar.trainingDays.some(d=>d>=report.from&&d<=cycleEnd);
       const active = new Set(day.active), appearances = new Set(day.appearances);
       const playingTeams = new Set(day.gameIds.flatMap(id => { const g = s.calendar.events.find(game => game.id === id)!; return [g.homeTeamId, g.awayTeamId]; }));
+      const evaluationPlayers=new Set(day.gameIds.flatMap(id=>s.calendar.events.find(game=>game.id===id)?.evaluationPlayers??[]));
       while (day.playerIndex < s.players.length) {
         const p = s.players[day.playerIndex];
         if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
@@ -137,7 +156,7 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
         let trained = false;
         if (p.id === s.playerId && injured) s.injuryDays++;
         if (training && available(p, date) && ticketsUsed(p.trainingPolicy) && !(p.id===s.playerId && day.skipPlayerTraining)) {
-          const hasGame = playingTeams.has(p.teamId);
+          const hasGame = playingTeams.has(p.teamId)||evaluationPlayers.has(p.id);
           const a = hasGame ? appearances.has(p.id) ? params["training.game_fraction"] : params["training.bench_fraction"] : 1;
           train(p, a);
           if (p.id === s.playerId && p.transferAdaptation?.weeksRemaining) progress.adaptationTrained = true;
@@ -171,7 +190,7 @@ export function advanceWeek(input: GameState, policy: Policy, stance: Stance): G
     report.fatigue.peak = Math.max(report.fatigue.peak, day.fatigue.peak); report.fatigue.days.push(day.fatigue);
     report.to = date; delete progress.day; progress.remainingDays--;
     if (s.careerMode === "pro" && s.postSchool?.pro) {
-      if(player.teamId>=0&&player.teamId<10)s.postSchool.pro.firstTeamWeeks+=1/7;else if(player.teamId>=10)s.postSchool.pro.secondTeamWeeks+=1/7;
+      if(player.teamId>=0&&player.teamId<10)s.postSchool.pro.firstTeamWeeks+=1/7;else if(player.teamId>=10&&player.teamId<20)s.postSchool.pro.secondTeamWeeks+=1/7;
       recordProfessionalDay(s);recordProTwoWayDay(s);reviewDevelopmentContract(s);
     }
     recordEvaluationDay(s);capturePlayerEvaluations(s);

@@ -27,13 +27,29 @@ function graduate(drafted=true) {
   return revealDraftResult(s);
 }
 const entered=pc.continueCareer(graduate(),'join');
-const fixture=()=>pc.acknowledgeCareer(entered);
+const fixture=()=>{const s=pc.acknowledgeCareer(entered),p=e.getPlayer(s);p.teamId=s.postSchool.pro.club+10;s.postSchool.pro.level='second';return s;};
+test('direct pro entry evaluates current role skills before assigning status, salary and conversion goal',()=>{
+  for(const position of ['SS','SP','CP'])for(const [ability,expected] of [[54.99,'developmental'],[55,'regular']]){
+    const source=graduate(),p=e.getPlayer(source);source.draft=[];
+    e.assignRole(p,e.roleFor(position));p.position=position;delete p.twoWay;
+    for(const key of Object.keys(p.stats))p.stats[key]=ability;
+    p.initialStats={...p.stats};p.career=[];
+    const original=structuredClone(source),next=pc.continueCareer(source,'direct'),q=e.getPlayer(next);
+    assert.deepEqual(source,original);assert.deepEqual(q.stats,p.stats);
+    assert.equal(q.proContract.status,expected);assert.equal(q.professional.entry,'direct');assert.equal(next.postSchool.pro.entry,'direct');
+    assert.equal(q.professional.contract.salary,expected==='developmental'?30_000_000:50_000_000);
+    assert.equal(next.proWorld.goal,expected==='developmental'?'정식 선수 전환':'1군 정착');
+    assert.equal(next.careerNotice.title,expected==='developmental'?'신고선수로 프로에 입단했습니다':'프로 유니폼을 입었습니다');
+    assert.equal(e.growthMultiplier(q),expected==='developmental'?.9:1);assert.equal(q.teamId>=10,true);
+    assert.equal(q.career.length,0);assert.equal(next.draft.length,0);
+  }
+});
 const advance=s=>e.advanceWeek(s,e.getPlayer(s).trainingPolicy,e.getPlayer(s).stance);
 function forceTryout(s,success){for(let seed=0;seed<100000;seed++){const probe={rngStates:{...s.rngStates,draft:seed}};const roll=e.random(probe,'draft');if(success?roll<.1:roll>.9){s.rngStates.draft=seed;return;}}assert.fail('roll');}
 
 test('joining the drafted club retains the same player, stats, talent, policy, reputation and school archive',()=>{
   const old=graduate(),p=e.getPlayer(old),copy=structuredClone(old),next=pc.continueCareer(old,'join'),q=e.getPlayer(next);
-  assert.deepEqual(old,copy);assert.equal(next.careerMode,'pro');assert.equal(q.teamId,10);assert.equal(next.postSchool.pro.level,'second');
+  assert.deepEqual(old,copy);assert.equal(next.careerMode,'pro');assert.equal(q.teamId,20);assert.equal(next.postSchool.pro.level,'third');
   assert.equal(q.id,p.id);assert.deepEqual(q.stats,p.stats);assert.deepEqual(q.initialStats,p.initialStats);assert.deepEqual(q.talent,p.talent);
   assert.deepEqual(q.trainingPolicy,p.trainingPolicy);assert.equal(q.reputation,p.reputation);assert.deepEqual(q.seasonStats,e.emptyRecord());
   assert.equal(q.career[0].schoolName,old.teams[p.teamId].name);assert.equal(q.career[0].records.batting.H,30);assert.deepEqual(next.draft,old.draft);
@@ -135,7 +151,7 @@ test('full pro rookie season completes all 1080 games with stable population, le
   let s=pc.acknowledgeCareer(pc.createProfessionalDemo('full-rookie-test','신인','SP'));const count=s.players.length,stats={...e.getPlayer(s).stats},school=s.postSchool.graduationSchool;
   let guard=0;
   while(s.phase!=='ended'&&guard++<100){if(s.careerNotice)s=pc.acknowledgeCareer(s);if(s.careerEvent)s=e.answerCareerEvent(s,s.careerEvent.choices.at(-1).id);s=advance(s);}
-  assert.equal(s.phase,'ended');assert.equal(s.date,s.calendar.seasonEnd);assert.equal(s.players.length,count);assert.equal(s.calendar.events.filter(g=>!g.competitionId.startsWith('pro-playoffs-')&&['completed','forfeit'].includes(g.status)).length,1080);assert.ok(s.calendar.events.some(g=>g.competitionId.startsWith('pro-playoffs-')));
+  assert.equal(s.phase,'ended');assert.equal(s.date,s.calendar.seasonEnd);assert.equal(s.players.length,count);assert.equal(s.calendar.events.filter(g=>!g.competitionId.startsWith('pro-playoffs-')&&!g.tiebreaker&&['completed','forfeit'].includes(g.status)).length,1080);assert.ok(s.calendar.events.some(g=>g.competitionId.startsWith('pro-playoffs-')));
   assert.ok(s.calendar.competitions.every(c=>c.championTeamId!==null));const p=e.getPlayer(s);assert.equal(p.career[0].schoolName,school);assert.ok(p.stats.velocity>=stats.velocity);
   const sum=e.emptyRecord();e.mergeRecord(sum,p.seasonByLevel.first);e.mergeRecord(sum,p.seasonByLevel.second);assert.deepEqual(p.seasonStats,sum);assert.ok(p.seasonStats.pitching.BF>0);
   assert.equal(s.careerNotice.kind,'seasonComplete');assert.throws(()=>advance(s),/종료/);assert.throws(()=>pc.continueCareer(pc.acknowledgeCareer(s),'join'),/계약 화면/);

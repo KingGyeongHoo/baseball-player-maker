@@ -1,7 +1,10 @@
 import {syncJerseyNumbers} from "./jersey-numbers";
+import {discardRetiredPlayers} from "./sim/retired-records";
+import {syncProClubNames} from "./sim/club-names";
 import {statKeys,type GameState} from "./sim/types";
 
 export type CareerSave={format:"baseball-life";version:1;id:string;name:string;date:string;year:number;savedAt:string;manual:boolean;checksum:string;state:GameState};
+export type CareerSaveSummary=Pick<CareerSave,"id"|"name"|"date"|"savedAt"|"manual">&{mode:GameState["careerMode"];retired:boolean};
 export function saveChecksum(text:string){let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);return (h>>>0).toString(16);}
 export function validateCareerState(value:unknown):asserts value is GameState {
   if(!value||typeof value!=="object")throw new Error("커리어 데이터가 아닙니다.");
@@ -25,9 +28,16 @@ export function encodeCareerSave(state:GameState,manual=false,now=new Date().toI
 }
 export function decodeCareerSave(raw:string):CareerSave {
   let file:CareerSave;try{file=JSON.parse(raw);}catch{throw new Error("JSON 저장 파일을 읽지 못했습니다. 원본 파일은 유지됩니다.");}
+  return validateCareerSave(file);
+}
+function validateCareerSave(file:CareerSave):CareerSave {
   if(file?.format!=="baseball-life"||file.version!==1)throw new Error("지원하지 않는 저장 형식입니다. 원본 파일은 유지됩니다.");
   validateCareerState(file.state);if(saveChecksum(JSON.stringify(file.state))!==file.checksum)throw new Error("저장 파일의 무결성 확인에 실패했습니다. 원본 파일은 유지됩니다.");
-  if(file.state.players.some(p=>p.jerseyNumber===undefined)){syncJerseyNumbers(file.state);file.checksum=saveChecksum(JSON.stringify(file.state));}
+  const retiredRemoved=discardRetiredPlayers(file.state);
+  const namesChanged=syncProClubNames(file.state);
+  const needsNumbers=file.state.players.some(p=>p.jerseyNumber===undefined);
+  if(needsNumbers)syncJerseyNumbers(file.state);
+  if(retiredRemoved||needsNumbers||namesChanged)file.checksum=saveChecksum(JSON.stringify(file.state));
   return file;
 }
 let database:Promise<IDBDatabase>|undefined;
@@ -40,10 +50,27 @@ async function transaction<T>(mode:IDBTransactionMode,work:(store:IDBObjectStore
     request.onsuccess=()=>{result=request.result;};tx.oncomplete=()=>resolve(result);tx.onerror=tx.onabort=()=>reject(new Error("저장소 작업에 실패했습니다. 기존 저장은 보존됩니다."));});
 }
 export async function putCareerSave(file:CareerSave){validateCareerState(file.state);if(file.checksum!==saveChecksum(JSON.stringify(file.state)))throw new Error("저장 무결성을 확인하지 못했습니다.");await transaction("readwrite",store=>store.put(file));}
-export async function listCareerSaves(){const files=await transaction("readonly",store=>store.getAll()) as CareerSave[];return files.sort((a,b)=>b.savedAt.localeCompare(a.savedAt));}
-export async function getCareerSave(id:string){const file=await transaction("readonly",store=>store.get(id)) as CareerSave|undefined;if(!file)throw new Error("저장된 커리어를 찾을 수 없습니다.");return decodeCareerSave(JSON.stringify(file));}
+export async function listCareerSaves():Promise<CareerSaveSummary[]>{
+  const db=await openDatabase();
+  return new Promise((resolve,reject)=>{
+    const files:CareerSaveSummary[]=[],tx=db.transaction("careers","readonly"),request=tx.objectStore("careers").openCursor();
+    request.onsuccess=()=>{const cursor=request.result;if(!cursor)return;const file=cursor.value as CareerSave;
+      files.push({id:file.id,name:file.name,date:file.date,savedAt:file.savedAt,manual:file.manual,mode:file.state.careerMode,retired:file.state.proWorld?.stage==="retired"});cursor.continue();};
+    tx.oncomplete=()=>resolve(files.sort((a,b)=>b.savedAt.localeCompare(a.savedAt)));
+    tx.onerror=tx.onabort=()=>reject(new Error("저장 목록을 불러오지 못했습니다."));
+  });
+}
+export async function getCareerSave(id:string){const file=await transaction("readonly",store=>store.get(id)) as CareerSave|undefined;if(!file)throw new Error("저장된 커리어를 찾을 수 없습니다.");return validateCareerSave(file);}
 let autoQueue=Promise.resolve();const autoGenerations=new Map<string,number>();
 export function queueCareerAutoSave(state:GameState){
   const key=`${state.seed}:${state.playerId}`,generation=(autoGenerations.get(key)??0)+1;autoGenerations.set(key,generation);
-  const job=autoQueue.catch(()=>{}).then(async()=>{if(autoGenerations.get(key)!==generation)return;await putCareerSave(encodeCareerSave(state));});autoQueue=job;return job;
+  const job=autoQueue.catch(()=>{}).then(async()=>{
+    if(autoGenerations.get(key)!==generation)return;
+    try {
+      // encodeCareerSave validates and checksums this private snapshot once.
+      // Imported/manual files still go through putCareerSave's verification.
+      const file=encodeCareerSave(state);
+      await transaction("readwrite",store=>store.put(file));
+    } finally {if(autoGenerations.get(key)===generation)autoGenerations.delete(key);}
+  });autoQueue=job;return job;
 }

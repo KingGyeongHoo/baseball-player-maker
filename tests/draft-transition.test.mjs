@@ -59,7 +59,7 @@ test('developmental entry preserves the player and school records, starts in the
   const old=shown(graduate()),p=e.getPlayer(old);p.seasonStats.batting.PA=123;
   const next=pc.continueCareer(old,'developmental'),q=e.getPlayer(next);
   assert.equal(q.id,p.id);assert.deepEqual(q.stats,p.stats);assert.deepEqual(q.trainingPolicy,p.trainingPolicy);assert.equal(q.career[0].records.batting.PA,123);
-  assert.equal(q.teamId,10);assert.equal(q.proContract.status,'developmental');assert.equal(next.postSchool.pro.entry,'developmental');
+  assert.equal(q.teamId,30);assert.equal(q.proContract.status,'developmental');assert.equal(next.postSchool.pro.level,'developmental');assert.equal(e.growthMultiplier(q),.9);assert.equal(next.postSchool.pro.entry,'developmental');
   assert.equal(next.careerNotice.kind,'entry');assert.match(next.careerNotice.message,/90%/);
   assert.equal(next.draft.some(row=>row.playerId===p.id),false);assert.throws(()=>pc.continueCareer(shown(graduate(20)),'developmental'),/제의가 없습니다/);
 });
@@ -73,7 +73,7 @@ test('developmental training and event growth are 90%, with unmodified fatigue, 
 test('developmental status reduces selection score by six and prevents first-team registration until conversion',()=>{
   const s=developmental(),p=e.getPlayer(s),regular=structuredClone(p);delete regular.proContract;
   close(e.selectionScore(regular)-e.selectionScore(p),6);
-  for(const key of Object.keys(p.stats))p.stats[key]=99;s.date='2028-03-15';assert.equal(pc.reviewProRoster(s),false);assert.equal(p.teamId,10);
+  for(const key of Object.keys(p.stats))p.stats[key]=99;s.date='2028-03-15';pc.reviewProRoster(s);assert.ok(p.teamId>=10);assert.equal(p.proContract.status,'developmental');assert.notEqual(s.postSchool.pro.level,'first');
 });
 test('only qualified farm-game performance converts once, without stat gifts, and restores full growth and selection',()=>{
   const s=developmental(),p=e.getPlayer(s),stats={...p.stats};p.seasonStats.batting.PA=200;assert.equal(pc.reviewDevelopmentContract(s),false);
@@ -82,13 +82,46 @@ test('only qualified farm-game performance converts once, without stat gifts, an
   assert.equal(pc.reviewDevelopmentContract(s),false);delete s.careerNotice;assert.equal(pc.reviewDevelopmentContract(s),false);
   assert.equal(e.growthMultiplier(p),1);const regular=structuredClone(p);delete regular.proContract;close(e.selectionScore(p),e.selectionScore(regular));
 });
-test('pitcher conversion requires 20 innings, ERA <=4 and strikeout rate >=18%; two-way players can qualify in either field',()=>{
+test('starter conversion requires 20 innings, ERA <=4 and strikeout rate >=18%; two-way players can qualify in either field',()=>{
   const s=developmental(),p=e.getPlayer(s);e.assignRole(p,'선발');const r=p.seasonByLevel.second.pitching;
   Object.assign(r,{outs:59,BF:90,ER:8,SO:17});assert.equal(pc.developmentProgress(p).qualified,false);
   r.outs=60;assert.equal(pc.developmentProgress(p).qualified,true);r.SO=16;assert.equal(pc.developmentProgress(p).qualified,false);
   r.SO=17;r.ER=9;assert.equal(pc.developmentProgress(p).qualified,false);
   p.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'batting',reputationBonus:0};
   Object.assign(p.seasonByLevel.second.batting,{PA:80,AB:72,H:25,BB:8,HR:2,'2B':5});assert.equal(pc.developmentProgress(p).qualified,true);
+});
+
+test('relievers and closers can convert after eight one-inning appearances while quality thresholds still apply',()=>{
+  for(const role of ['중간계투','마무리']){
+    const s=developmental(),p=e.getPlayer(s);e.assignRole(p,role);
+    const r=p.seasonByLevel.second.pitching;
+    assert.equal(pc.developmentProgress(p).pitchingInningsRequired,8);
+    // A successful short outing counts toward the same season, without needing
+    // starter-sized workloads or credits for simulated innings not pitched.
+    for(let game=0;game<8;game++){
+      r.outs+=3;r.BF+=5;r.SO++;
+      assert.equal(pc.developmentProgress(p).qualified,game===7);
+    }
+    r.outs=23;assert.equal(pc.developmentProgress(p).qualified,false);
+    r.outs=24;r.ER=4;assert.equal(pc.developmentProgress(p).qualified,false);
+    r.ER=3;r.SO=7;assert.equal(pc.developmentProgress(p).qualified,false);
+    r.BF=50;r.SO=9;assert.equal(pc.developmentProgress(p).qualified,true);
+    const stats={...p.stats};
+    assert.equal(pc.reviewDevelopmentContract(s),true);assert.equal(p.proContract.status,'regular');
+    assert.equal(s.careerNotice.kind,'registered');assert.deepEqual(p.stats,stats);
+    assert.equal(pc.reviewDevelopmentContract(s),false);
+  }
+});
+
+test('conversion uses the two-way pitching role and ignores first-team or previous-season relief innings',()=>{
+  const s=developmental(),p=e.getPlayer(s);e.assignRole(p,'마무리');
+  Object.assign(p.seasonByLevel.first.pitching,{outs:24,BF:40,SO:8});
+  p.career.push({year:s.calendar.seasonYear-1,grade:0,records:e.emptyRecord(),stats:{...p.stats},schoolId:p.teamId,schoolName:'전 시즌',byLevel:structuredClone(p.seasonByLevel)});
+  assert.equal(pc.developmentProgress(p).qualified,false);
+  Object.assign(p.seasonByLevel.second.pitching,{outs:24,BF:40,SO:8});
+  p.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'batting',reputationBonus:0};
+  assert.equal(pc.developmentProgress(p).pitchingInningsRequired,20);assert.equal(pc.developmentProgress(p).qualified,false);
+  p.twoWay.pitchingPosition='CP';assert.equal(pc.developmentProgress(p).qualified,true);
 });
 test('conversion pauses before the next game or training and acknowledgment resumes without repeating the event',()=>{
   let s=developmental(),p=e.getPlayer(s);Object.assign(p.seasonByLevel.second.batting,{PA:80,AB:72,H:25,BB:8,HR:2,'2B':5});

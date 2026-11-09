@@ -170,11 +170,11 @@ test('strong-school coaching respects training slowdown and 5% awakening instead
   for(const awakening of [false,true]) {
     let s=winter(fixture());o.tryCareerOpportunity(s);const offer=s.careerEvent.transferOffers.find(x=>x.kind==='strong');
     s=e.answerCareerEvent(s,`transfer-${offer.teamId}`);const p=e.getPlayer(s);for(const key of Object.keys(p.stats))p.stats[key]=75;p.stats.contact=70;
-    const expected=system.eventTrainingReward(p,'contact',awakening?6:3);
+    const expected=awakening?system.eventAwakeningReward(p,'contact',3):system.eventTrainingReward(p,'contact',3);
     const ledger=o.opportunityState(s);
     for(let seed=1;seed<100000;seed++){const probe={rngStates:{...s.rngStates,events:seed}};if((e.random(probe,'events')<.05)===awakening){ledger.rng=seed;break;}}
     s.date='2028-01-01';e.promote(s);assert.equal(o.joinPendingTransfer(s),true);
-    close(e.getPlayer(s).stats.contact-70,expected);assert.ok(expected<1);assert.equal(s.careerEventHistory.at(-1).awakened.includes('contact'),awakening);
+    close(e.getPlayer(s).stats.contact-70,expected);if(awakening)close(expected,2.25);else assert.ok(expected<1);assert.equal(s.careerEventHistory.at(-1).awakened.includes('contact'),awakening);
   }
 });
 

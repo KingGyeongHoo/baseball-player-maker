@@ -1,0 +1,916 @@
+{
+  "version": 1,
+  "retrievedAt": "2026-11-09",
+  "season": 2026,
+  "sourceUrl": "https://www.yagoonara.com/highschool/teams",
+  "method": "조회 시점 2026 승률(승/(승+패)) 내림차순, 동률 다승순, 동일 전적 원자료 순서. 공식 종합 순위가 아닌 게임 초기 명문도용 정렬.",
+  "filter": "팀명에 BC가 들어간 팀 및 학교명이 아닌 클럽 제외. BC 없는 학교 연계 야구단 포함.",
+  "notes": [
+    "1~83번은 실존 학교 기반, 84~100번은 창작 학교이며 실제 성적 순위가 없음.",
+    "군산상일고의 게임 교명은 문서 교명 목록에 따라 군산영일고로 지정.",
+    "동산고는 인천 동산고, 서울동산고는 별도 팀. 안산 동산고는 조회 자료에 없어 추가하지 않음.",
+    "게임 교명은 docs/high-school-teams.md의 교명 목록을 기준으로 사용. 지역명이 포함된 명칭과 학교 유형도 목록대로 유지."
+  ],
+  "schools": [
+    {
+      "id": 0,
+      "referenceRank": 1,
+      "sourceName": "충암고",
+      "name": "충연고",
+      "wins": 34,
+      "losses": 4,
+      "fictional": false
+    },
+    {
+      "id": 1,
+      "referenceRank": 2,
+      "sourceName": "마산용마고",
+      "name": "용진고",
+      "wins": 29,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 2,
+      "referenceRank": 3,
+      "sourceName": "강릉고",
+      "name": "강릉원림고",
+      "wins": 23,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 3,
+      "referenceRank": 4,
+      "sourceName": "공주고",
+      "name": "공진고",
+      "wins": 19,
+      "losses": 6,
+      "fictional": false
+    },
+    {
+      "id": 4,
+      "referenceRank": 5,
+      "sourceName": "부산고",
+      "name": "부산인성고",
+      "wins": 22,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 5,
+      "referenceRank": 6,
+      "sourceName": "덕수고",
+      "name": "덕성고",
+      "wins": 24,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 6,
+      "referenceRank": 7,
+      "sourceName": "세광고",
+      "name": "세강고",
+      "wins": 21,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 7,
+      "referenceRank": 8,
+      "sourceName": "청담고",
+      "name": "청단고",
+      "wins": 20,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 8,
+      "referenceRank": 9,
+      "sourceName": "유신고",
+      "name": "유성고",
+      "wins": 17,
+      "losses": 6,
+      "fictional": false
+    },
+    {
+      "id": 9,
+      "referenceRank": 10,
+      "sourceName": "군산상일고",
+      "name": "군산영일고",
+      "wins": 18,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 10,
+      "referenceRank": 11,
+      "sourceName": "대구고",
+      "name": "대건고",
+      "wins": 20,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 11,
+      "referenceRank": 12,
+      "sourceName": "청원고",
+      "name": "청연고",
+      "wins": 15,
+      "losses": 6,
+      "fictional": false
+    },
+    {
+      "id": 12,
+      "referenceRank": 13,
+      "sourceName": "대전고",
+      "name": "대전진고",
+      "wins": 22,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 13,
+      "referenceRank": 14,
+      "sourceName": "마산고",
+      "name": "마산일성고",
+      "wins": 17,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 14,
+      "referenceRank": 15,
+      "sourceName": "광주제일고",
+      "name": "제영고",
+      "wins": 21,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 15,
+      "referenceRank": 16,
+      "sourceName": "율곡고야구단",
+      "name": "율강고",
+      "wins": 14,
+      "losses": 6,
+      "fictional": false
+    },
+    {
+      "id": 16,
+      "referenceRank": 17,
+      "sourceName": "경기상업고",
+      "name": "영기상고",
+      "wins": 16,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 17,
+      "referenceRank": 18,
+      "sourceName": "라온고",
+      "name": "가온고",
+      "wins": 13,
+      "losses": 6,
+      "fictional": false
+    },
+    {
+      "id": 18,
+      "referenceRank": 19,
+      "sourceName": "전주고",
+      "name": "전주유원고",
+      "wins": 15,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 19,
+      "referenceRank": 20,
+      "sourceName": "경북고",
+      "name": "경백고",
+      "wins": 17,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 20,
+      "referenceRank": 21,
+      "sourceName": "우신고",
+      "name": "우성고",
+      "wins": 16,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 21,
+      "referenceRank": 22,
+      "sourceName": "경주고",
+      "name": "경운고",
+      "wins": 14,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 22,
+      "referenceRank": 23,
+      "sourceName": "김해고",
+      "name": "김해금성고",
+      "wins": 15,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 23,
+      "referenceRank": 24,
+      "sourceName": "서울컨벤션고",
+      "name": "세움컨벤션고",
+      "wins": 15,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 24,
+      "referenceRank": 25,
+      "sourceName": "경동고",
+      "name": "경덕고",
+      "wins": 13,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 25,
+      "referenceRank": 26,
+      "sourceName": "성남고",
+      "name": "성남우석고",
+      "wins": 13,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 26,
+      "referenceRank": 27,
+      "sourceName": "야탑고",
+      "name": "야송고",
+      "wins": 16,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 27,
+      "referenceRank": 28,
+      "sourceName": "부경고",
+      "name": "부강고",
+      "wins": 12,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 28,
+      "referenceRank": 29,
+      "sourceName": "상동고",
+      "name": "상덕고",
+      "wins": 12,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 29,
+      "referenceRank": 30,
+      "sourceName": "서울고",
+      "name": "서울공립고",
+      "wins": 12,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 30,
+      "referenceRank": 31,
+      "sourceName": "인천고",
+      "name": "인천양북고",
+      "wins": 12,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 31,
+      "referenceRank": 32,
+      "sourceName": "청주고",
+      "name": "청주마진고",
+      "wins": 12,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 32,
+      "referenceRank": 33,
+      "sourceName": "창원공고야구단",
+      "name": "창운공고",
+      "wins": 10,
+      "losses": 6,
+      "fictional": false
+    },
+    {
+      "id": 33,
+      "referenceRank": 34,
+      "sourceName": "경남고",
+      "name": "경남도선고",
+      "wins": 13,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 34,
+      "referenceRank": 35,
+      "sourceName": "대구상원고",
+      "name": "상운고",
+      "wins": 13,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 35,
+      "referenceRank": 36,
+      "sourceName": "경기항공고",
+      "name": "항공고",
+      "wins": 11,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 36,
+      "referenceRank": 37,
+      "sourceName": "신일고",
+      "name": "신월고",
+      "wins": 14,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 37,
+      "referenceRank": 38,
+      "sourceName": "소래고",
+      "name": "소명고",
+      "wins": 12,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 38,
+      "referenceRank": 39,
+      "sourceName": "휘문고",
+      "name": "하문고",
+      "wins": 13,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 39,
+      "referenceRank": 40,
+      "sourceName": "북일고",
+      "name": "북영고",
+      "wins": 13,
+      "losses": 10,
+      "fictional": false
+    },
+    {
+      "id": 40,
+      "referenceRank": 41,
+      "sourceName": "동산고",
+      "name": "동상고",
+      "wins": 9,
+      "losses": 7,
+      "fictional": false
+    },
+    {
+      "id": 41,
+      "referenceRank": 42,
+      "sourceName": "개성고",
+      "name": "개명고",
+      "wins": 12,
+      "losses": 10,
+      "fictional": false
+    },
+    {
+      "id": 42,
+      "referenceRank": 43,
+      "sourceName": "광주동성고",
+      "name": "동선고",
+      "wins": 9,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 43,
+      "referenceRank": 44,
+      "sourceName": "배재고",
+      "name": "배정고",
+      "wins": 9,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 44,
+      "referenceRank": 45,
+      "sourceName": "인상고",
+      "name": "인성고",
+      "wins": 10,
+      "losses": 10,
+      "fictional": false
+    },
+    {
+      "id": 45,
+      "referenceRank": 46,
+      "sourceName": "인창고",
+      "name": "인찬고",
+      "wins": 9,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 46,
+      "referenceRank": 47,
+      "sourceName": "장안고",
+      "name": "장언고",
+      "wins": 9,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 47,
+      "referenceRank": 48,
+      "sourceName": "안산공업고",
+      "name": "안솔공고",
+      "wins": 8,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 48,
+      "referenceRank": 49,
+      "sourceName": "충훈고",
+      "name": "충헌고",
+      "wins": 8,
+      "losses": 8,
+      "fictional": false
+    },
+    {
+      "id": 49,
+      "referenceRank": 50,
+      "sourceName": "백송고",
+      "name": "백솔고",
+      "wins": 8,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 50,
+      "referenceRank": 51,
+      "sourceName": "선린인터넷고",
+      "name": "선림인터넷고",
+      "wins": 8,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 51,
+      "referenceRank": 52,
+      "sourceName": "장충고",
+      "name": "장청고",
+      "wins": 8,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 52,
+      "referenceRank": 53,
+      "sourceName": "포항제철고",
+      "name": "포철고",
+      "wins": 8,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 53,
+      "referenceRank": 54,
+      "sourceName": "물금고",
+      "name": "물결고",
+      "wins": 9,
+      "losses": 11,
+      "fictional": false
+    },
+    {
+      "id": 54,
+      "referenceRank": 55,
+      "sourceName": "서울디자인고",
+      "name": "서림디자인고",
+      "wins": 9,
+      "losses": 11,
+      "fictional": false
+    },
+    {
+      "id": 55,
+      "referenceRank": 56,
+      "sourceName": "광주진흥고",
+      "name": "진홍고",
+      "wins": 8,
+      "losses": 10,
+      "fictional": false
+    },
+    {
+      "id": 56,
+      "referenceRank": 57,
+      "sourceName": "김포과학기술고",
+      "name": "금오과기고",
+      "wins": 8,
+      "losses": 10,
+      "fictional": false
+    },
+    {
+      "id": 57,
+      "referenceRank": 58,
+      "sourceName": "서울동산고",
+      "name": "동림고",
+      "wins": 8,
+      "losses": 10,
+      "fictional": false
+    },
+    {
+      "id": 58,
+      "referenceRank": 59,
+      "sourceName": "비봉고",
+      "name": "비룡고",
+      "wins": 7,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 59,
+      "referenceRank": 60,
+      "sourceName": "의성고",
+      "name": "의선고",
+      "wins": 7,
+      "losses": 9,
+      "fictional": false
+    },
+    {
+      "id": 60,
+      "referenceRank": 61,
+      "sourceName": "배명고",
+      "name": "배문고",
+      "wins": 8,
+      "losses": 11,
+      "fictional": false
+    },
+    {
+      "id": 61,
+      "referenceRank": 62,
+      "sourceName": "부원고야구단",
+      "name": "부연고",
+      "wins": 7,
+      "losses": 10,
+      "fictional": false
+    },
+    {
+      "id": 62,
+      "referenceRank": 63,
+      "sourceName": "제물포고",
+      "name": "제월고",
+      "wins": 9,
+      "losses": 14,
+      "fictional": false
+    },
+    {
+      "id": 63,
+      "referenceRank": 64,
+      "sourceName": "진영고",
+      "name": "진연고",
+      "wins": 7,
+      "losses": 11,
+      "fictional": false
+    },
+    {
+      "id": 64,
+      "referenceRank": 65,
+      "sourceName": "강원고",
+      "name": "강연고",
+      "wins": 6,
+      "losses": 10,
+      "fictional": false
+    },
+    {
+      "id": 65,
+      "referenceRank": 66,
+      "sourceName": "부산공업고",
+      "name": "부영공고",
+      "wins": 6,
+      "losses": 10,
+      "fictional": false
+    },
+    {
+      "id": 66,
+      "referenceRank": 67,
+      "sourceName": "세원고",
+      "name": "세연고",
+      "wins": 6,
+      "losses": 10,
+      "fictional": false
+    },
+    {
+      "id": 67,
+      "referenceRank": 68,
+      "sourceName": "도개고",
+      "name": "도계고",
+      "wins": 6,
+      "losses": 11,
+      "fictional": false
+    },
+    {
+      "id": 68,
+      "referenceRank": 69,
+      "sourceName": "중앙고",
+      "name": "중영고",
+      "wins": 6,
+      "losses": 11,
+      "fictional": false
+    },
+    {
+      "id": 69,
+      "referenceRank": 70,
+      "sourceName": "대전제일고",
+      "name": "제선고",
+      "wins": 5,
+      "losses": 11,
+      "fictional": false
+    },
+    {
+      "id": 70,
+      "referenceRank": 71,
+      "sourceName": "서울자동차고",
+      "name": "서광자동차고",
+      "wins": 5,
+      "losses": 11,
+      "fictional": false
+    },
+    {
+      "id": 71,
+      "referenceRank": 72,
+      "sourceName": "세명컴퓨터고야구단",
+      "name": "세민컴퓨터고",
+      "wins": 5,
+      "losses": 11,
+      "fictional": false
+    },
+    {
+      "id": 72,
+      "referenceRank": 73,
+      "sourceName": "전북인공지능고",
+      "name": "한빛인공지능고",
+      "wins": 4,
+      "losses": 11,
+      "fictional": false
+    },
+    {
+      "id": 73,
+      "referenceRank": 74,
+      "sourceName": "경기고",
+      "name": "강기고",
+      "wins": 4,
+      "losses": 12,
+      "fictional": false
+    },
+    {
+      "id": 74,
+      "referenceRank": 75,
+      "sourceName": "경민IT고",
+      "name": "경문IT고",
+      "wins": 4,
+      "losses": 12,
+      "fictional": false
+    },
+    {
+      "id": 75,
+      "referenceRank": 76,
+      "sourceName": "상우고야구단",
+      "name": "상윤고",
+      "wins": 4,
+      "losses": 12,
+      "fictional": false
+    },
+    {
+      "id": 76,
+      "referenceRank": 77,
+      "sourceName": "원주고",
+      "name": "원주태한고",
+      "wins": 4,
+      "losses": 12,
+      "fictional": false
+    },
+    {
+      "id": 77,
+      "referenceRank": 78,
+      "sourceName": "제주고",
+      "name": "제주병림고",
+      "wins": 4,
+      "losses": 13,
+      "fictional": false
+    },
+    {
+      "id": 78,
+      "referenceRank": 79,
+      "sourceName": "예일메디텍고",
+      "name": "예림메디텍고",
+      "wins": 3,
+      "losses": 13,
+      "fictional": false
+    },
+    {
+      "id": 79,
+      "referenceRank": 80,
+      "sourceName": "금남고",
+      "name": "금람고",
+      "wins": 2,
+      "losses": 13,
+      "fictional": false
+    },
+    {
+      "id": 80,
+      "referenceRank": 81,
+      "sourceName": "설악고",
+      "name": "설운고",
+      "wins": 2,
+      "losses": 13,
+      "fictional": false
+    },
+    {
+      "id": 81,
+      "referenceRank": 82,
+      "sourceName": "신흥고",
+      "name": "신홍고",
+      "wins": 2,
+      "losses": 13,
+      "fictional": false
+    },
+    {
+      "id": 82,
+      "referenceRank": 83,
+      "sourceName": "화순고",
+      "name": "화선고",
+      "wins": 2,
+      "losses": 13,
+      "fictional": false
+    },
+    {
+      "id": 83,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "해솔고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 84,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "은성고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 85,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "태림고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 86,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "백현고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 87,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "청하고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 88,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "서온고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 89,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "명운고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 90,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "도원고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 91,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "하람고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 92,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "새빛고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 93,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "한결고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 94,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "유림고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 95,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "정우고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 96,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "송림고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 97,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "태원상고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 98,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "명진공고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    },
+    {
+      "id": 99,
+      "referenceRank": null,
+      "sourceName": null,
+      "name": "해온고",
+      "wins": null,
+      "losses": null,
+      "fictional": true
+    }
+  ]
+}

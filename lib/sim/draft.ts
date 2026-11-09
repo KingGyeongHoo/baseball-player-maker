@@ -2,10 +2,11 @@ import { hash, overall, isPitcher, params, random, reputationScore, roleFor, rol
 import type { DraftPick, GameState, Player, Role } from "./types";
 import {createScoutingReport} from "./scouting-report";
 import {buildEvaluationContext,createPlayerEvaluation} from "./player-evaluation";
+import {proClubNames} from "./club-names";
 
 export const draftBoard = (players: Player[]) => players.filter(p => p.grade === 3)
   .sort((a, b) => overall(b) - overall(a) || roleScore(b) - roleScore(a) || a.id.localeCompare(b.id));
-export const draftClubs = ["서울 파이오니어스", "부산 웨이브스", "인천 마리너스", "대구 레드윙스", "광주 타이탄스", "대전 스파크스", "수원 위저즈", "창원 다이노스", "청주 이글스", "전주 라이온스"];
+export const draftClubs = proClubNames;
 export function draftClubOrder(s:Pick<GameState,"seed"|"calendar"|"rngStates"|"careerMode">) {
   const order=draftClubs.map((_,index)=>index);
   // Pro rookie classes already map this base order to the previous standings.

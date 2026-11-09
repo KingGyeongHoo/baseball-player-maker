@@ -1,5 +1,5 @@
 import { available, clamp, getPlayer, hash, isPitcher, ovr, positions, random, reputationScore, roleFor, roleScore } from "./engine";
-import { eventTrainingReward } from "./event-system";
+import { eventAwakeningReward, eventTrainingReward } from "./event-system";
 import { teamStrength } from "../team-strength";
 import type { CareerEvent, CareerEventBranch, CareerEventOutcome, GameState, Player, Position, Stat, TransferOffer } from "./types";
 
@@ -105,7 +105,7 @@ export function joinPendingTransfer(s: GameState) {
     const core: Stat[] = isPitcher(p.primaryRole) ? ["velocity", "control", "movement"] : ["contact", "power", "speed", "defense"];
     const key = core.sort((a, b) => p.stats[a] - p.stats[b])[0];
     if (draw(s) < .05) awakened.push(key);
-    changes[key] = eventTrainingReward(p, key, awakened.length ? 6 : 3); p.stats[key] = clamp(p.stats[key] + changes[key]!, 1);
+    changes[key] = awakened.length ? eventAwakeningReward(p, key, 3) : eventTrainingReward(p, key, 3); p.stats[key] = clamp(p.stats[key] + changes[key]!, 1);
   }
   p.fatigue = clamp(p.fatigue + 3); p.reputation = reputationScore(p);
   const fatigue = p.fatigue - oldFatigue;

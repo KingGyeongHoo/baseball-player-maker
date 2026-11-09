@@ -87,6 +87,6 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
       {!total.batting.PA && <p className="empty-note">선택한 시즌에 타격 출전 기록이 없습니다. 타율·출루율·장타율·OPS는 미평가로 표시됩니다.</p>}
       <p className="records-caption">PA 타석 · AB 타수 · AVG 타율 · H 안타 · RBI 타점 · R 득점 · BB 볼넷 · SO 삼진 · OBP 출루율 · SLG 장타율 · GB 땅볼 · FB 뜬공</p>
     </section>
-    <div className="info-box">통산 비율 기록은 모든 시즌의 실제 타수·타석·투구 아웃을 합산해 계산합니다. 플레이 이전의 시즌 기록은 제공하지 않으며, 투수 개인 승·패·세이브는 현재 집계하지 않습니다.</div>
+    <div className="info-box">통산 비율 기록은 모든 시즌의 실제 타수·타석·투구 아웃을 합산해 계산합니다. 플레이 이전의 시즌 기록은 제공하지 않습니다.</div>
   </div>;
 }

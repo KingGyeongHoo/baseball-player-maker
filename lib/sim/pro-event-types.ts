@@ -1,7 +1,7 @@
-import type {Position,Role,Stats} from "./types";
+import type {Position,ProSquad,Role,Stats} from "./types";
 export type ProEventChannel="general"|"game"|"major"|"followup"|"external";
-export type ProEventContext={version:1;catalogId:string;channel:ProEventChannel;year:number;playerId:string;teamId:number;level:"first"|"second";field:"batting"|"pitching";openedAt:string;chainId?:string;target?:Position;partnerId?:string;gameId?:string;seriesId?:string;injuryKey?:string;nationalYear?:number;sourceStats?:Stats};
-export type ProEventRecord={id:string;catalogId:string;date:string;season:number;channel:ProEventChannel;teamId:number;level:"first"|"second";budget:boolean;injuryKey?:string;seriesId?:string;chainId?:string};
+export type ProEventContext={version:1;catalogId:string;channel:ProEventChannel;year:number;playerId:string;teamId:number;level:ProSquad;field:"batting"|"pitching";openedAt:string;chainId?:string;target?:Position;partnerId?:string;gameId?:string;seriesId?:string;injuryKey?:string;nationalYear?:number;sourceStats?:Stats};
+export type ProEventRecord={id:string;catalogId:string;date:string;season:number;channel:ProEventChannel;teamId:number;level:ProSquad;budget:boolean;injuryKey?:string;seriesId?:string;chainId?:string};
 export type ProEventState={version:1;introducedAt:string;history:ProEventRecord[];plannedWeek?:number;reservation?:{week:number;date:string;id:string;context:ProEventContext};attemptedGames:string[];cancellations:{date:string;id:string;reason:string}[];national:Record<string,{evaluatedAt:string;invitationDate:string;roster:{id:string;position:Position;reputation:number;roleScore:number}[];offered:boolean;settled:boolean}>};
 export type ProEventResult={version:1;catalogId:string;channel:ProEventChannel;year:number;branchId:string;chainId?:string;action?:{kind:"trial"|"accepted"|"kept"|"request";target?:Position;until?:string;reason?:string}};
 export type ProAppearance={teamId:number;level:"first"|"second"|"postseason";startedPitching:boolean;startedField:boolean;position:Position};

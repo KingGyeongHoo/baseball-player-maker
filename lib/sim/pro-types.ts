@@ -1,5 +1,6 @@
-import type { DraftPick, Player, Position, RecordLine, Stats } from "./types";
+import type { Competition, DraftPick, Game, Player, Position, RecordLine, Stats } from "./types";
 import type {ProRoleTrial} from "./pro-event-types";
+import type {LeagueStanding} from "./league-standings";
 
 export type ProStage = "camp" | "regular" | "postseason" | "summary" | "offseason" | "retired";
 export type SalaryContract = { id:string; club:number; startYear:number; endYear:number; salary:number; segments:{from:string;salary:number}[]; source:"rookie"|"renewal"|"fa"|"released" };
@@ -21,18 +22,21 @@ export type ProfessionalPlayer = {
 };
 export type ClubRecords = {first:RecordLine;second:RecordLine;postseason:RecordLine};
 export type ProAward = {year:number;kind:string;playerId:string;playerName:string;club:number;value:number};
-export type Standing = {teamId:number;wins:number;losses:number;draws:number;points:number;difference:number};
+export type Standing = LeagueStanding;
 export type ProSeasonArchive = {year:number;endDate?:string;standings:Standing[];farmStandings:Standing[];champion:number|null;awards:ProAward[];draft:DraftPick[]};
-export type ProSeries = {id:string;stage:"semi"|"final";clubs:[number,number];wins:[number,number];target:number;game:number;lastDate:string;winner?:number;rosters:Record<string,string[]>;excluded:string[]};
+export type ProSeries = {id:string;stage:"wildcard"|"semi"|"playoff"|"final";clubs:[number,number];wins:[number,number];target:number;game:number;lastDate:string;winner?:number;rosters:Record<string,string[]>;excluded:string[];drawHomes?:number[];processedGame?:number};
 export type ContractOffer = {id:string;club:number;year:number;years:number;salary:number;role:string;kind:"renewal"|"fa"|"released";negotiated:boolean;final:boolean;competition:string[]};
+export type ProPostseason={format?:"kbo-v1";seeds:number[];series:ProSeries[];champion?:number};
 export type ProWorld = {
   version:1; year:number; stage:ProStage; regularEnd:string; seasonClosed:boolean;
   clubs:{id:number;direction:"contend"|"balanced"|"rebuild";budget:number;deadMoney:Record<string,number>;nextReview?:string}[];
-  seasons:ProSeasonArchive[]; archive:Player[]; news:{id:string;date:string;text:string}[];
-  postseason?:{seeds:number[];series:ProSeries[];champion?:number};
+  seasons:ProSeasonArchive[]; archive:Player[]; retiredRecords?:Record<string,RecordLine>; news:{id:string;date:string;text:string}[];
+  postseason?:ProPostseason;
+  replacedPostseason?:{year:number;date:string;postseason:ProPostseason;games:Game[];competitions:Competition[];records:{playerId:string;records:RecordLine;byClub:Record<string,RecordLine>}[]};
   market?:{year:number;kind:"renewal"|"fa"|"released";round:number;offers:ContractOffer[];settled:boolean;requestedRelease?:boolean};
   goal:string; longGoal:string; customGoal?:string; campShown?:number; midseasonShown?:number;
   retired?:{date:string;reason:string;forfeited:number;summary:string};
   monthly?:{month:string;text:string}; lastMonthly?:string; draftedYears:number[];
+  squadsVersion?:1;
   rookieCandidates?:Player[];
 };

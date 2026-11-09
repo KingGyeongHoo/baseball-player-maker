@@ -1,4 +1,7 @@
 import { buildCalendar } from "./calendar";
+import { seededPlayerName } from "./player-names";
+import { createSchool, recruitmentProfile, recruitedTalent, updateSchoolPrestige } from "./school-recruiting";
+import { draftPlayers as selectSchoolDraft } from "./draft";
 import { simulateGame } from "./match-engine";
 import { advanceWeek, refreshWeekReport } from "./week-engine";
 import { resolveCareerEvent } from "./event-system";
@@ -6,6 +9,8 @@ import { professionalGrowth } from "./pro-growth";
 import {syncJerseyNumbers} from "../jersey-numbers";
 import {captureEvaluationChange,capturePlayerEvaluations} from "./evaluation-lifecycle";
 import {reputationBreakdown,updateEvaluationReputations} from "./evaluation-reputation";
+import {mergeRecentRecord,recentSample} from "./recent-records";
+import {mergeGameCounters} from "./game-records";
 export { simulateGame, advanceWeek, refreshWeekReport };
 export const answerCareerEvent = (...args:Parameters<typeof resolveCareerEvent>) => captureEvaluationChange(syncJerseyNumbers(resolveCareerEvent(...args)),getPlayer(args[0]));
 import balance from "../../baseball_balance_v0_4.json";
@@ -228,15 +233,17 @@ export function talentLabel(p: Player, type: "batting" | "pitching") {
   const n = p.talentExposure[type];
   return n < params["talent.hint"] ? "미상" : n < params["talent.reveal"] ? p.talent[type] <= 3 ? "낮음" : p.talent[type] <= 7 ? "보통" : "높음" : `${p.talent[type]} / 10`;
 }
-const surnames = ["김", "이", "박", "최", "정", "강", "조", "윤", "장", "임", "한", "송", "서", "오"];
-const names = ["도현", "민준", "서준", "지훈", "준서", "현우", "태양", "우진", "시우", "건우", "성민", "승현", "재윤", "준혁", "정우", "진호", "동현", "성훈", "유찬", "태민"];
 function makePlayer(s: GameState, teamId: number, grade: number, index: number, year: number, pos: Position): Player {
-  const center = params["generation.mean"] + normal(s) * params["generation.player_sd"];
+  const recruitment = recruitmentProfile(s.teams[teamId]);
+  const center = params["generation.mean"] + recruitment.abilityOffset + normal(s) * params["generation.player_sd"];
   const stats = Object.fromEntries(statKeys.map(k => [k, clamp(center + normal(s) * params["generation.stat_sd"], 1)])) as Stats;
   const role = roleFor(pos);
+  // Preserve the two legacy name draws so this change cannot reroll abilities,
+  // talents or later players. Name selection itself uses its own two draws.
+  random(s, "generation"); random(s, "generation");
   const p: Player = {
     id: `${year}-${teamId}-${grade}-${index}`,
-    name: surnames[Math.floor(random(s, "generation") * surnames.length)] + names[Math.floor(random(s, "generation") * names.length)],
+    name: seededPlayerName(`${s.seed}:player-name:${year}-${teamId}-${grade}-${index}`),
     teamId,
     grade,
     ...(grade===1?{freshmanReserve:true}:{}),
@@ -249,8 +256,8 @@ function makePlayer(s: GameState, teamId: number, grade: number, index: number, 
       ...stats
     },
     talent: {
-      batting: 1 + Math.floor(random(s, "generation") * 10),
-      pitching: 1 + Math.floor(random(s, "generation") * 10)
+      batting: recruitedTalent(random(s, "generation"), recruitment.talentBias),
+      pitching: recruitedTalent(random(s, "generation"), recruitment.talentBias)
     },
     talentExposure: {
       batting: 0,
@@ -293,6 +300,7 @@ function makePlayer(s: GameState, teamId: number, grade: number, index: number, 
 const slotPositions: Position[][] = [["C", "1B", "SS", "LF", "CF", "SP", "SP", "RP", "RP", "CP"], ["C", "2B", "3B", "RF", "LF", "SP", "SP", "RP", "RP", "CP"], ["C", "1B", "2B", "SS", "CF", "RF", "SP", "SP", "RP", "CP"]];
 export function previewPlayer(seed: string, name: string, position: Position) {
   const s = skeleton(seed);
+  s.teams.push(createSchool(0));
   const p = makePlayer(s, 0, 1, 0, 2027, position);
   p.name = name;
   return p;
@@ -300,6 +308,7 @@ export function previewPlayer(seed: string, name: string, position: Position) {
 function skeleton(seed: string): GameState {
   return {
     schemaVersion: 1,
+    proClubNamesVersion: 1,
     balanceVersion: balance.balanceVersion,
     seed,
     rngStates: {
@@ -334,17 +343,8 @@ export function createGame(seed: string, name: string, position: Position, teamI
   if (!Number.isInteger(teamId) || teamId < 0 || teamId >= params["world.teams"]) throw new Error("학교 배정이 올바르지 않습니다.");
   if (params["match.hr_max"] + params["match.double_max"] + params["match.triple_max"] > 1) throw new Error("안타 확률 설정이 올바르지 않습니다.");
   const s = skeleton(seed);
-  const regions = ["서울", "부산", "인천", "대구", "광주", "대전", "수원", "청주", "전주", "제주"];
-  const schools = ["중앙", "한빛", "동산", "청운", "대성", "해성", "명진", "백운", "신일", "우성"];
   for (let t = 0; t < params["world.teams"]; t++) {
-    s.teams.push({
-      id: t,
-      name: regions[t % 10] + schools[Math.floor(t / 10)] + "고",
-      shortName: t === 0 ? "서울중앙" : regions[t % 10] + schools[Math.floor(t / 10)],
-      wins: 0,
-      losses: 0,
-      draws: 0
-    });
+    s.teams.push(createSchool(t));
     for (let g = 1; g <= 3; g++) for (let i = 0; i < params["world.grade_size"]; i++) s.players.push(makePlayer(s, t, g, i, 2027, t === teamId && g === 1 && i === 0 ? position : slotPositions[g - 1][i]));
   }
   const p = s.players[teamId * params["world.grade_size"] * 3];
@@ -396,6 +396,7 @@ export function probabilities(b: Stats, p: Stats, defense: number, arm: number, 
   };
 }
 export function mergeRecord(target: RecordLine, add: RecordLine) {
+  mergeGameCounters(target,add);
   for (const group of ["batting", "pitching"] as const) for (const k of Object.keys(target[group])) (target[group] as Record<string, number>)[k] += (add[group] as Record<string, number>)[k];
 }
 export function ops(r: RecordLine) {
@@ -474,10 +475,11 @@ export function updateReputation(s: GameState) {
       const r = emptyRecord();
       let count = 0;
       const pitching = isPitcher(p.primaryRole);
-      for (const a of [...p.recentAppearances].reverse()) {
+      for (let i = p.recentAppearances.length - 1; i >= 0; i--) {
         if (count >= params[pitching ? "coach.recent_outs" : "coach.recent_pa"]) break;
-        mergeRecord(r, a);
-        count += pitching ? a.pitching.outs : a.batting.PA;
+        const a = p.recentAppearances[i];
+        mergeRecentRecord(r, a);
+        count += recentSample(a, pitching);
       }
       return r;
     });
@@ -517,6 +519,9 @@ export function updateReputation(s: GameState) {
 export { draftBoard, draftPlayers, draftForecast, draftProjection, draftClubs,draftClubOrder } from "./draft";
 export function promote(s: GameState) {
   capturePlayerEvaluations(s,"season-end");
+  // Grade 1/2 careers also have graduating NPC seniors. Evaluate their draft
+  // with a private stream so recruitment does not consume the live draft RNG.
+  updateSchoolPrestige(s, selectSchoolDraft({ ...s, rngStates: { ...s.rngStates } }));
   for (const p of s.players) {
     p.career.push({
       year: s.calendar.seasonYear,

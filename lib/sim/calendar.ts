@@ -1,4 +1,5 @@
 import type { Calendar, Competition, Game } from "./types";
+import {advanceLeagueTiebreakers,leagueStandings} from "./league-standings";
 
 export const calendarSource = "https://g1.sports.or.kr/schedule/year.do";
 export const resultsSource = "https://result.sports.or.kr/BA/";
@@ -66,19 +67,7 @@ export function buildCalendar(year: number, teamCount = 100): Calendar {
     events, draftDate, seasonEnd: `${year}-12-31` };
 }
 
-export function leagueTable(calendar: Calendar, competitionId: string, group: number) {
-  const teams = calendar.competitions.find(c => c.id === competitionId)?.participantTeamIds.filter(t => Math.floor(t / 10) === group) ?? [];
-  return teams.map(teamId => {
-    let wins = 0, losses = 0, draws = 0, difference = 0;
-    for (const game of calendar.events.filter(g => g.competitionId === competitionId && (g.status === "completed" || g.status === "forfeit") && (g.homeTeamId === teamId || g.awayTeamId === teamId))) {
-      const side = game.homeTeamId === teamId ? 0 : 1;
-      const diff = game.status === "forfeit" ? game.forfeitTeamId === teamId ? -1 : 1 : game.score[side] - game.score[1 - side];
-      if (diff > 0) wins++; else if (diff < 0) losses++; else draws++;
-      difference += diff;
-    }
-    return { teamId, wins, losses, draws, difference, points: wins * 2 + draws };
-  }).sort((a, b) => b.points - a.points || b.difference - a.difference || a.teamId - b.teamId);
-}
+export function leagueTable(calendar: Calendar, competitionId: string, group?: number) {return leagueStandings(calendar,competitionId,group);}
 
 function entrants(calendar: Calendar, competition: Competition) {
   if (competition.id === "emart" || competition.id === "phoenix") return calendar.competitions[0].participantTeamIds;
@@ -104,25 +93,33 @@ function scheduleRound(calendar: Calendar, competition: Competition, remaining: 
   const byeCount = size - remaining.length;
   competition.byes = remaining.slice(0, byeCount);
   const playing = remaining.slice(byeCount);
-  const date = competition.roundDates[competition.round - 1];
-  for (let i = 0; i < playing.length; i += 2) calendar.events.push(fixture(
-    `${calendar.seasonYear}-${competition.id}-r${competition.round}-${i / 2}`, date, competition.id, playing[i], playing[i + 1], competition.round,
-  ));
+  const previous=calendar.events.filter(g=>g.competitionId===competition.id&&g.round===competition.round-1).map(g=>g.date).sort().at(-1);
+  const date = [competition.roundDates[competition.round - 1],previous?add(previous,1):competition.startDate].sort().at(-1)!;
+  for (let i = 0; i < playing.length; i += 2){let actual=date;while(calendar.events.some(g=>g.date===actual&&[g.homeTeamId,g.awayTeamId].some(id=>id===playing[i]||id===playing[i+1])))actual=add(actual,1);
+    calendar.events.push(fixture(`${calendar.seasonYear}-${competition.id}-r${competition.round}-${i / 2}`,actual,competition.id,playing[i],playing[i+1],competition.round));
+    if(actual>competition.endDate)competition.endDate=actual;if(actual>calendar.seasonEnd)calendar.seasonEnd=actual;
+  }
   calendar.events.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
 }
 export function prepareCompetitions(calendar: Calendar, date: string, seed: string) {
   for (const competition of calendar.competitions) {
-    if (competition.kind !== "tournament" || competition.initialized || date !== competition.startDate) continue;
+    if (competition.kind !== "tournament" || competition.initialized || date < competition.startDate) continue;
+    const source=competition.id==="president"?"summer":"spring";
+    if(!["emart","phoenix"].includes(competition.id)&&calendar.competitions.find(c=>c.id===source)?.tiebreaks?.some(t=>!t.done))continue;
     competition.participantTeamIds = [...entrants(calendar, competition)];
     competition.initialized = true;
+    if(date>competition.startDate)competition.startDate=date;
     const rounds = Math.ceil(Math.log2(competition.participantTeamIds.length));
-    const span = Math.round((Date.parse(competition.endDate) - Date.parse(competition.startDate)) / 86400000);
+    const span = Math.max(rounds-1,Math.round((Date.parse(competition.endDate) - Date.parse(competition.startDate)) / 86400000));
     competition.roundDates = Array.from({ length: rounds }, (_, i) => add(competition.startDate, Math.round(span * i / (rounds - 1))));
+    if(competition.roundDates.at(-1)!>competition.endDate)competition.endDate=competition.roundDates.at(-1)!;
+    if(competition.endDate>calendar.seasonEnd)calendar.seasonEnd=competition.endDate;
     competition.round = 1;
     scheduleRound(calendar, competition, drawOrder(competition.participantTeamIds, `${seed}:${calendar.seasonYear}:${competition.id}`));
   }
 }
 export function finishCompetitionDay(calendar: Calendar, date: string) {
+  for(const competition of calendar.competitions.filter(c=>c.kind==="league"))advanceLeagueTiebreakers(calendar,competition.id,date);
   for (const competition of calendar.competitions.filter(c => c.kind === "tournament" && c.initialized && c.championTeamId === null)) {
     const games = calendar.events.filter(g => g.competitionId === competition.id && g.round === competition.round);
     if (!games.length || games.some(g => g.date > date || g.status === "scheduled" || g.status === "inProgress")) continue;

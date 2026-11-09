@@ -3,6 +3,9 @@ import {updateEvaluationReputations} from "./evaluation-reputation";
 import {initializeProTwoWay} from "./pro-two-way";
 import type {GameState,Player,Position} from "./types";
 import type {SalaryContract} from "./pro-types";
+import {discardRetiredPlayers} from "./retired-records";
+import {syncProClubNames} from "./club-names";
+import {ensureProSquadTeams,proSquad,reorganizeProSquads,reservePromotionCandidates,setProSquad,squadLabel} from "./pro-squads";
 
 export const BASE_SALARY=50_000_000;
 export function contractFor(club:number,year:number,salary:number,years=1,source:SalaryContract["source"]="rookie"):SalaryContract {
@@ -32,14 +35,17 @@ export function initializeProfessional(s:GameState,p:Player,club:number,entry="v
   initializeProTwoWay(s,p);
 }
 export function ensureProWorld(s:GameState) {
+  syncProClubNames(s);
   if(s.careerMode!=="pro")return;
+  discardRetiredPlayers(s);
   const year=s.calendar.seasonYear,p=getPlayer(s),info=s.postSchool?.pro;
   s.proWorld??={version:1,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
     clubs:Array.from({length:10},(_,id)=>({id,direction:"balanced",budget:(220+hash(`${s.seed}:club-budget:${id}`)%81)*BASE_SALARY,deadMoney:{},nextReview:`${year}-03-15`})),
-    seasons:[],archive:[],news:[],goal:p.proContract?.status==="developmental"?"정식 선수 전환":"1군 정착",longGoal:"1군 데뷔와 꾸준한 출전",draftedYears:[year]};
+    seasons:[],archive:[],news:[],squadsVersion:s.teams.length>=40?1:undefined,goal:p.proContract?.status==="developmental"?"정식 선수 전환":"1군 정착",longGoal:"1군 데뷔와 꾸준한 출전",draftedYears:[year]};
   const drafted=new Set([...s.draft,...s.postSchool?.collegeDraft??[]].map(pick=>pick.playerId));
   for(const q of s.players)initializeProfessional(s,q,q.teamId<0?-1:q.teamId%10,q.id===p.id?info?.entry??"draft":drafted.has(q.id)?"draft":"veteran");
   if(info&&p.professional){p.professional.rookieYear=info.rookieYear;if(info.debutDate)p.professional.firsts.debut??=info.debutDate;}
+  ensureProSquadTeams(s);reorganizeProSquads(s);
 }
 export function clubName(s:GameState,club:number|null) {return club===null||club<0?"무소속":s.teams[club]?.name.replace(/ [12]군$/,"")??`구단 ${club+1}`;}
 export function recordProfessionalDay(s:GameState) {
@@ -84,19 +90,37 @@ export function reviewLeagueRegistrations(s:GameState) {
           else {up.teamId=club.id;up.professional!.lastRegistration=s.date;proNews(s,`${up.name} · ${clubName(s,club.id)}의 비어 있는 1군 자리를 보충했습니다.`);if(up.id===s.playerId){s.postSchool!.pro!.level="first";proNotice(s,`vacancy:${s.date}`,"1군 승격 통보","구단의 비어 있는 포지션을 보충하기 위해 등록됐습니다.","promoted");}}
         }continue;
       }
-      const injured=first.find(p=>p.forcedRest||!!p.injury&&p.injury.unavailableUntil>=addDays(s.date,14));
+      const injured=first.find(p=>!!p.injury&&p.injury.unavailableUntil>=addDays(s.date,14));
       if(!regular&&!injured)continue;
-      const down=injured??first[0];if(!down)continue;
+      const down=injured??first.find(p=>!p.forcedRest);if(!down)continue;
       const farm=s.players.filter(p=>p.teamId===club.id+10&&p.position===pos&&p.proContract?.status!=="developmental"&&available(p,s.date)&&(!p.professional?.lastRegistration||s.date>=addDays(p.professional.lastRegistration,14)))
         .sort((a,b)=>selectionScore(b)-selectionScore(a)||a.id.localeCompare(b.id));
       const up=farm[0];if(!up)continue;
-      if(!injured&&(s.date<addDays(down.professional?.lastRegistration??"1900-01-01",14)||selectionScore(up)<=selectionScore(down)+1))continue;
-      exchange(s,up,down,injured?"장기 부상·활동 불가로 명단을 보충했습니다.":"현재 역할 능력·최근 성적·컨디션을 반영한 등록 평가입니다.");
+      const firstRecord=down.seasonByLevel?.first,b=firstRecord?.batting;
+      const established=selectionScore(down)>=79||!!b&&b.PA>=40&&b.AB>0&&b.H/b.AB>=.3;
+      const margin=established?8:3;
+      if(!injured&&(s.date<addDays(down.professional?.lastRegistration??"1900-01-01",14)||selectionScore(up)<=selectionScore(down)+margin))continue;
+      exchange(s,up,down,injured?"장기 부상 회복을 위한 명단 조정입니다.":`같은 포지션의 출전평가 차이를 확인했습니다. 승격 ${selectionScore(up).toFixed(1)} / 조정 ${selectionScore(down).toFixed(1)} · 기존 1군의 성적과 등록 안정성을 함께 반영했습니다.`);
     }
   }
   balanceSquadDepth(s);
+  reviewReserveRegistrations(s);
   if(s.postSchool?.pro)s.postSchool.pro.nextReviewDate=w.clubs[s.postSchool.pro.club].nextReview??s.postSchool.pro.nextReviewDate;
   return !!s.careerNotice&&s.careerNotice.id!==previous;
+}
+export function reviewReserveRegistrations(s:GameState){
+  const w=s.proWorld;if(!w||!["camp","regular"].includes(w.stage))return;
+  for(const club of w.clubs){
+    if(s.date<`${w.year}-03-15`)continue;
+    for(const up of reservePromotionCandidates(s,club.id)){
+      if(up.professional?.lastRegistration&&s.date<addDays(up.professional.lastRegistration,14))continue;
+      const second=s.players.filter(p=>p.teamId===club.id+10),same=second.filter(p=>p.position===up.position&&(!p.professional?.lastRegistration||s.date>=addDays(p.professional.lastRegistration,14))).sort((a,b)=>selectionScore(a)-selectionScore(b)||a.id.localeCompare(b.id));
+      const down=same[0];if(second.length>=30&&(!down||selectionScore(up)<=selectionScore(down)+3))continue;
+      const from=proSquad(up.teamId)!;setProSquad(s,up,"second");if(down&&second.length>=30)setProSquad(s,down,down.proContract?.status==="developmental"?"developmental":"third");
+      proNews(s,`${up.name} · 2군 승격 · 출전평가 ${selectionScore(up).toFixed(1)}`,`${s.date}:reserve:${up.id}`);
+      if(up.id===s.playerId||down?.id===s.playerId){const mine=getPlayer(s),to=proSquad(mine.teamId)!;s.postSchool!.pro!.level=to;s.postSchool!.pro!.transactions.push({date:s.date,from:mine.id===up.id?from:"second",to,reason:"출전평가와 잔류군 우선순위를 반영한 2군 등록 심사",exchangedPlayerId:mine.id===up.id?down?.id??"":up.id});proNotice(s,`reserve:${s.date}:${mine.id}`,mine.id===up.id?"2군 승격 통보":"잔류·육성군 조정",`${squadLabel(mine.teamId)}에서 다음 출전 기회를 준비합니다. 같은 평가에서는 잔류군이 육성선수보다 우선합니다.`,mine.id===up.id?"promoted":"demoted");}
+    }
+  }
 }
 export function balanceSquadDepth(s:GameState){
   if(!s.proWorld)return;
@@ -108,7 +132,7 @@ export function balanceSquadDepth(s:GameState){
       while(s.players.filter(p=>p.teamId===target&&p.position===pos&&p.proContract?.status!=="developmental").length<needed){
         const candidates=s.players.filter(p=>p.teamId===source&&p.position===pos&&p.proContract?.status!=="developmental");if(candidates.length<=needed)break;
         const move=[...candidates].sort((a,b)=>target<10?selectionScore(b)-selectionScore(a)||a.id.localeCompare(b.id):selectionScore(a)-selectionScore(b)||a.id.localeCompare(b.id))[0];
-        const targets=s.players.filter(p=>p.teamId===target),capacity=target<10?30:45;
+        const targets=s.players.filter(p=>p.teamId===target),capacity=30;
         if(targets.length>=capacity){const back=targets.filter(p=>targets.filter(q=>q.position===p.position&&q.proContract?.status!=="developmental").length>minimum(p.position)).sort((a,b)=>selectionScore(a)-selectionScore(b)||a.id.localeCompare(b.id))[0];if(!back)break;move.teamId=target;back.teamId=source;if(back.professional)back.professional.lastRegistration=s.date;}
         else move.teamId=target;
         if(move.professional)move.professional.lastRegistration=s.date;
@@ -123,7 +147,8 @@ export function prepareEvaluationOpportunities(s:GameState,gameIds:string[]){
   if(!s.proWorld||s.proWorld.stage==="postseason")return;
   for(const id of gameIds){const game=s.calendar.events.find(g=>g.id===id)!;if(game.competitionId!=="pro-second"||game.evaluationPlayers)continue;
     game.evaluationPlayers=[];
-    for(const team of [game.homeTeamId,game.awayTeamId]){const roster=s.players.filter(p=>p.teamId===team),candidates=evaluationCandidates(s,roster,s.date),positions=new Set<Position>();let batters=0,pitchers=0;
+    for(const team of [game.homeTeamId,game.awayTeamId]){const roster=s.players.filter(p=>p.teamId===team),reserves=reservePromotionCandidates(s,team%10).filter(p=>(!p.professional?.lastEvaluation||s.date>=addDays(p.professional.lastEvaluation,14))&&(!isPitcher(p.primaryRole)||p.fatigue<65&&(!p.lastPitched||s.date>=addDays(p.lastPitched,5))));
+      const candidates=[...reserves,...evaluationCandidates(s,roster,s.date)].sort((a,b)=>(a.professional?.lastEvaluation??"1900-01-01").localeCompare(b.professional?.lastEvaluation??"1900-01-01")||selectionScore(b)-selectionScore(a)||Number(a.proContract?.status==="developmental")-Number(b.proContract?.status==="developmental")||a.id.localeCompare(b.id)),positions=new Set<Position>();let batters=0,pitchers=0;
       for(const p of candidates){const pitching=isPitcher(p.primaryRole);if(pitching?pitchers>=1:batters>=2||positions.has(p.position))continue;
         if(pitching)pitchers++;else {batters++;positions.add(p.position);}game.evaluationPlayers.push(p.id);if(p.professional){p.professional.lastEvaluation=s.date;delete p.professional.requestedEvaluationUntil;}
       }
@@ -143,7 +168,7 @@ export function professionalLineup(s:GameState,roster:Player[],date:string,ids:s
   result.order=[...result.field];return result;
 }
 export function evaluationCandidates(s:GameState,roster:Player[],date:string) {
-  return roster.filter(p=>p.teamId>=10&&p.professional?.employment==="active"&&((p.age??19)<=25||s.calendar.seasonYear-p.professional.rookieYear<3||!!p.professional.requestedEvaluationUntil&&date<=p.professional.requestedEvaluationUntil)&&available(p,date)
+  return roster.filter(p=>p.teamId>=10&&p.teamId<20&&p.professional?.employment==="active"&&((p.age??19)<=25||s.calendar.seasonYear-p.professional.rookieYear<3||!!p.professional.requestedEvaluationUntil&&date<=p.professional.requestedEvaluationUntil)&&available(p,date)
     &&(!p.professional.managedUntil||date>p.professional.managedUntil)&&(date>=addDays(p.professional.lastAppearance??`${s.calendar.seasonYear}-03-01`,14)||!!p.professional.requestedEvaluationUntil&&date<=p.professional.requestedEvaluationUntil)
     &&(isPitcher(p.primaryRole)?p.fatigue<65&&(!p.lastPitched||date>=addDays(p.lastPitched,5)):true))
     .sort((a,b)=>(a.professional!.lastAppearance??"1900").localeCompare(b.professional!.lastAppearance??"1900")||roleScore(b)-roleScore(a)||a.id.localeCompare(b.id));

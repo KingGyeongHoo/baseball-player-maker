@@ -53,7 +53,7 @@ export default function PlayerSetup({ onStart }: { onStart: (state: GameState) =
           {error && <p role="alert" className="error">{error}</p>}
           <div className="creation-start"><div className="career-mode-picker" role="group" aria-label="시작할 커리어 선택">
             <button type="button" className={mode==="school"?"selected":""} aria-pressed={mode==="school"} disabled={busy} onClick={()=>{setMode("school");setJerseyNumber(randomJerseyNumber("school",jerseyNumber));}}><b>고교 선수로 시작하기</b><span>3년 동안 성장시켜 더 높은 능력치로 프로 입성을 노릴 수 있습니다.</span></button>
-            <button type="button" className={mode==="pro"?"selected":""} aria-pressed={mode==="pro"} disabled={busy} onClick={()=>{setMode("pro");setJerseyNumber(randomJerseyNumber("pro",jerseyNumber));}}><b>프로 선수로 시작하기</b><span>바로 프로에 입단하지만, 고교에서 성장한 선수보다 낮은 능력치로 시작할 수 있습니다.</span></button>
+            <button type="button" className={mode==="pro"?"selected":""} aria-pressed={mode==="pro"} disabled={busy} onClick={()=>{setMode("pro");setJerseyNumber(randomJerseyNumber("pro",jerseyNumber));}}><b>프로 선수로 시작하기</b><span>무작위 능력치로 프로에 도전합니다. 현재 보직 기량에 따라 정식선수 또는 신고선수로 입단합니다.</span></button>
           </div><button className="primary start-button" type="submit" disabled={busy || !name.trim() || !position}><span>{busy ? "나의 선수와 소속을 배정하는 중…" : "나의 커리어 시작하기"}</span><span aria-hidden="true">→</span></button>
             <p className="micro muted center">커리어는 이 브라우저에 자동 저장됩니다. 저장·불러오기에서 이어갈 수 있습니다.</p>
           </div>

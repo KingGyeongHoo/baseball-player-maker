@@ -6,14 +6,20 @@ import type { Game, GameState, Player, Position } from "./types";
 import {recordEvaluationEnvironment} from "./evaluation-lifecycle";
 import {openProMatchEvent,openProPreparation} from "./pro-event-runtime";
 import type {ProAppearance} from "./pro-event-types";
+import {packRecentRecord,recentSample} from "./recent-records";
+import {finishGameRecords,pitcherEntered,recordLeadChange} from "./game-records";
 
 // Every cursor and runner is serializable: returning at a choice never replays
 // an inning, consumes a match draw early, or commits a partial game twice.
 export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boolean {
   if(game.status==="completed"||game.status==="forfeit")return true;
+  if(game.competitionId==="pro-second"&&game.evaluationPlayers?.length){
+    const selected=new Set(game.evaluationPlayers);
+    rosters=rosters.map((roster,side)=>{const team=side===0?game.homeTeamId:game.awayTeamId,ids=new Set(roster.map(p=>p.id));return [...roster,...s.players.filter(p=>p.teamId>=20&&p.teamId<40&&p.teamId%10===team%10&&selected.has(p.id)&&!ids.has(p.id))];});
+  }
   rosters=rosters.map(roster=>playoffRosterFor(s,game,roster));
   const players = new Map(rosters.flat().map(p => [p.id, p]));
-  const player = (id: string) => players.get(id)!;
+  const player = (id: string) => {const p=players.get(id);if(!p)throw new Error(`경기 명단 누락: ${id} / ${game.id} / 소속 ${s.players.find(p=>p.id===id)?.teamId}`);return p;};
   if (!s.matchProgress) {
     recordEvaluationEnvironment(s,game,rosters);
     const prepared=game.proPreparedLineup;
@@ -37,7 +43,9 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       defense: sides.map(side => side.field.slice(0, 8).reduce((sum, p) => sum + effective(p).defense, 0) / 8),
       arm: sides.map(side => [side.field[2], side.field[6], side.field[7]].reduce((sum, p) => sum + effective(p).arm / 3, 0)),
       inning: 1, battingSide: 1, outs: 0, pa: 0, runs: 0, bases: [null, null, null], ready: false, eventFatigue: 0,
+      scoring:{stints:[]},
     };
+    sides.forEach((side,index)=>pitcherEntered(s.matchProgress!,game,side.starter!.id,index,true));
     if(s.careerMode==="pro"){
       const starts:Record<string,ProAppearance>={},positions:Position[]=["C","SS","CF","2B","1B","3B","LF","RF","DH"];
       sides.forEach((side,index)=>{const teamId=index===0?game.homeTeamId:game.awayTeamId,level=game.competitionId.startsWith("pro-playoffs-")?"postseason":game.competitionId==="pro-first"?"first":"second";
@@ -65,7 +73,8 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     } else m.battingSide = 0;
     m.outs = 0; m.pa = 0; m.runs = 0; m.bases = [null, null, null]; m.ready = false;
   };
-  while (m.inning <= params["match.max_innings"] && !ended) {
+  const maxInnings=game.competitionId.startsWith("pro-playoffs-")?15:params["match.max_innings"];
+  while (m.inning <= maxInnings && !ended) {
     const side = m.battingSide, pitchingSide = 1 - side;
     if (side === 0 && m.inning >= params["match.regular_innings"] && game.score[0] > game.score[1] && m.pa === 0) break;
     if (m.outs >= 3) { finishHalf(); continue; }
@@ -78,7 +87,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
         const lead = game.score[pitchingSide] - game.score[side];
         const next = m.sides[pitchingSide].pitchers.map(player).filter(p => !m.usedPitchers[pitchingSide].includes(p.id) && !m.sides[pitchingSide].field.includes(p.id) && available(p, game.date) && p.fatigue < params["coach.replace_fatigue"])
           .sort((a, b) => Number(game.evaluationPlayers?.includes(b.id)??false)-Number(game.evaluationPlayers?.includes(a.id)??false) || (m.inning >= 9 && lead >= 1 && lead <= 3 ? Number(pitchingRole(b) === "마무리") - Number(pitchingRole(a) === "마무리") : 0) || selectionScore(b, pitchingRole(b)) - selectionScore(a, pitchingRole(a)) || a.id.localeCompare(b.id))[0];
-        if (next) { m.pitchers[pitchingSide] = next.id; m.usedPitchers[pitchingSide].push(next.id); m.pitchOuts[pitchingSide] = 0; }
+        if (next) { pitcherEntered(m,game,next.id,pitchingSide);m.pitchers[pitchingSide] = next.id; m.usedPitchers[pitchingSide].push(next.id); m.pitchOuts[pitchingSide] = 0; }
         else return forfeit(pitchingSide);
       }
       m.ready = true;
@@ -110,6 +119,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     const score = (runner: { playerId: string; pitcherId: string }, hr = false) => {
       if (walkoff && !hr) return;
       game.score[side]++; m.runs++; line(player(runner.playerId)).batting.R++;
+      recordLeadChange(m,game,side,runner.pitcherId);
       line(player(runner.pitcherId)).pitching.R++; line(player(runner.pitcherId)).pitching.ER++; bat.RBI++;
       if (side === 0 && m.inning >= 9 && game.score[0] > game.score[1]) walkoff = true;
     };
@@ -136,11 +146,13 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     const batRecent = emptyRecord(), pitRecent = emptyRecord();
     for (const key of Object.keys(bat)) (batRecent.batting as Record<string, number>)[key] = (bat as Record<string, number>)[key] - (batBefore as Record<string, number>)[key];
     for (const key of Object.keys(pit)) (pitRecent.pitching as Record<string, number>)[key] = (pit as Record<string, number>)[key] - (pitBefore as Record<string, number>)[key];
-    m.recentEvents.push({ playerId: batter.id, record: batRecent }, { playerId: pitcher.id, record: pitRecent });
+    m.recentEvents.push({ playerId: batter.id, record: packRecentRecord(batRecent) }, { playerId: pitcher.id, record: packRecentRecord(pitRecent) });
     m.ready = false;
     if (walkoff) { game.innings[side].push(m.runs); ended = true; }
   }
   game.status = "completed";
+  for(const side of game.lineup)for(const id of [...side.slice(0,9),...side.slice(10)])line(player(id));
+  finishGameRecords(game,m);
   if(s.careerMode==="pro")game.proAppearanceComplete=!!m.proStarts;
   for (let side = 0; side < 2; side++) {
     const outs = m.sides[side].pitchers.reduce((sum, id) => sum + (game.boxScore[id]?.pitching.outs ?? 0), 0);
@@ -148,7 +160,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   }
   for (const [id, record] of Object.entries(game.boxScore)) {
     if(s.careerMode==="pro"&&(record.batting.PA||record.pitching.BF)){const p=player(id),side=m.sides.findIndex(row=>row.field.includes(id)||row.pitchers.includes(id));(game.proAppearances??={})[id]=m.proStarts?.[id]??{teamId:side===0?game.homeTeamId:game.awayTeamId,level:game.competitionId.startsWith("pro-playoffs-")?"postseason":game.competitionId==="pro-first"?"first":"second",position:p.position,startedField:false,startedPitching:false};}
-    if(game.evaluationEnvironment)(game.evaluationEnvironment.playerTeams??={})[id]=player(id).teamId;
+    if(game.evaluationEnvironment)(game.evaluationEnvironment.playerTeams??={})[id]=game.proAppearances?.[id]?.teamId??player(id).teamId;
     const p=player(id),postseason=game.competitionId.startsWith("pro-playoffs-");
     if(!postseason)mergeRecord(p.seasonStats,record);
     if(s.careerMode==="pro") {
@@ -172,7 +184,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     if (p.twoWay) p.twoWay.nextAssignment = p.twoWay.nextAssignment === "pitching" ? "batting" : "pitching";
     let batting = 0, outs = 0, keepFrom = p.recentAppearances.length;
     for (let i = p.recentAppearances.length - 1; i >= 0; i--) {
-      batting += p.recentAppearances[i].batting.PA; outs += p.recentAppearances[i].pitching.outs; keepFrom = i;
+      batting += recentSample(p.recentAppearances[i], false); outs += recentSample(p.recentAppearances[i], true); keepFrom = i;
       if (isPitcher(p.primaryRole) ? outs >= params["coach.recent_outs"] : batting >= params["coach.recent_pa"]) break;
     }
     p.recentAppearances = p.recentAppearances.slice(keepFrom);

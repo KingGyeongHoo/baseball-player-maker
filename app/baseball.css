@@ -59,10 +59,10 @@
 .overview-position > span { background: #ffffff18; padding: 1px 6px; border-radius: 2px; }
 .overview-position small { color: #b5c4dc; font-size: 10px; }
 .overview-ovr { display: grid; text-align: right; }
-.overview-ovr > span { font: 9px Arial,sans-serif; letter-spacing: 1px; color: #aebfda; }
+.overview-ovr > span:not(.player-grade):not(.tooltip-trigger) { font: 9px Arial,sans-serif; letter-spacing: 1px; color: #aebfda; }
 .overview-ovr strong { font: 700 35px/1.15 Arial,sans-serif; }
-.overview-dual { display: flex; flex-wrap: wrap; gap: 6px 20px; border-top: 1px solid #ffffff20; padding-top: 9px; margin-top: 10px; color: #c1cee2; font-size: 10px; }
-.overview-dual b { font: 700 14px Arial,sans-serif; color: white; margin-left: 5px; }
+.overview-grade { justify-items:center; gap:6px; }
+.overview-grade .player-grade { min-width:42px; height:38px; font-size:24px; }
 .overview-value { font: 700 32px/1.2 Arial,sans-serif; margin: 15px 0 9px; }
 .overview-value small { font: 10px Arial,sans-serif; margin-left: 5px; color: #9eafcb; }
 .overview-condition { font-size: 10px; color: #c6dfd7; }
@@ -71,6 +71,9 @@
 .overview-track i { display: block; height: 100%; background: #8bbdac; }
 .overview-track .warm { background: #e9b16d; }
 .overview-caption { color: #a6b7d1; font-size: 9px; margin-top: 9px; }
+.overview-reputation > .overview-condition { font-size:14px; }
+.overview-ovr-split { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:14px; line-height:1.6; }
+.overview-ovr-split b { font:700 18px Arial,sans-serif; color:#fff; margin-left:3px; }
 .overview-team-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .overview-team-heading button { color: #bdcce3; font-size: 10px; padding: 0; }
 .overview-team h3 { font-size: 16px; margin: 12px 0 5px; }
@@ -149,8 +152,7 @@
   .overview-identity { align-items: start; gap: 7px; }
   .overview-identity h1 { font-size: 20px; }
   .overview-ovr strong { font-size: 28px; }
-  .overview-ovr > span { font-size: 8px; }
-  .overview-dual { gap: 6px 12px; }
+  .overview-ovr > span:not(.player-grade):not(.tooltip-trigger) { font-size: 8px; }
   .overview-team h3 { font-size: 14px; }
   .overview-team-record { flex-wrap: wrap; gap: 5px; }
   .overview-team-power > strong { font-size: 23px; }
@@ -817,7 +819,7 @@ h3 {
   text-align: center;
   color: var(--navy);
 }
-.ovr>span {
+.ovr>span:not(.player-grade) {
   display: block;
   font: 700 9px Arial,sans-serif;
   letter-spacing: 1px;
@@ -1162,6 +1164,9 @@ body:has(.week-control) .site-footer {
   grid-template-columns: repeat(4,1fr);
   padding: 24px 8px;
 }
+.dashboard-records-display .record-stats { grid-template-columns:repeat(7,minmax(0,1fr)); gap:14px 0; }
+.dashboard-records-display .record-stats b { font-size:20px; }
+@media(max-width:700px) { .dashboard-records-display .record-stats { grid-template-columns:repeat(4,minmax(0,1fr)); } }
 .record-stats>div {
   display: flex;
   flex-direction: column;
@@ -2122,9 +2127,21 @@ tbody tr:last-child td {
   font-size: 10px;
   color: #a0a8b6;
 }
-.detail-role>b {
+.detail-position {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.detail-position>b {
   font-size: 13px;
   color: #526680;
+}
+.player-detail-panel .profile-ovrs {
+  justify-content: flex-start;
+  gap: 8px 20px;
+}
+.player-detail-panel .profile-ovrs>span {
+  white-space: nowrap;
 }
 .all-stats {
   padding: 13px 23px;
@@ -3250,6 +3267,66 @@ tbody tr:last-child td {
 .jersey-setting p { flex-basis:100%; color:var(--muted); font-size:10px; line-height:1.8; }
 .overview-jersey { margin-left:8px; color:#b8c9e2; font:10px Arial,sans-serif; white-space:nowrap; }
 .roster-number { margin-left:6px; color:#8290a5; font:10px Arial,sans-serif; }
+.postseason-bracket { margin:0 0 22px; }
+.postseason-badge { padding:5px 9px; border-radius:5px; background:#edf3ff; color:#295991; font-size:11px; font-weight:700; }
+.postseason-rounds { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:22px; padding:0 22px 18px; }
+.postseason-rounds.legacy-bracket { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.postseason-round { position:relative; border:1px solid #dde4ed; border-radius:8px; background:#fafbfd; padding:14px 12px; min-width:0; }
+.postseason-round:not(:last-child)::after { content:'→'; position:absolute; top:47%; right:-19px; color:#a2afc1; font-size:16px; }
+.postseason-round.playing { border-color:#658dbd; background:#f2f7ff; }
+.postseason-round.decided { border-color:#bed5c8; background:#f4faf6; }
+.postseason-round-heading { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.postseason-round-heading h3 { margin:0; font-size:13px; color:#243a58; }
+.postseason-round-heading>span { font-size:9px; color:#73829a; white-space:nowrap; }
+.postseason-format { margin:7px 0 12px; color:#697a91; font-size:10px; }
+.postseason-team { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 0; }
+.postseason-team+.postseason-team { border-top:1px solid #e3e8ef; }
+.postseason-team>span { min-width:0; display:grid; gap:3px; }
+.postseason-team small { font-size:9px; color:#8190a3; }
+.postseason-team b { font-size:12px; overflow-wrap:anywhere; color:#4e6077; }
+.postseason-team>strong { font:700 22px Arial,sans-serif; color:#344c6c; }
+.postseason-team.winner b,.postseason-team.winner>strong { color:#237452; }
+.postseason-round-status { margin:12px 0 0; min-height:14px; font-size:10px; color:#6a7e96; }
+.postseason-note { padding:0 22px 18px; margin:0; font-size:11px; line-height:1.8; color:#77869b; }
+.postseason-champion { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; border-top:1px solid #e7dfbd; background:#fff9e9; padding:16px; color:#886c22; }
+.postseason-champion span { font-size:11px; }
+.postseason-champion b { font-size:16px; }
+@media(max-width:1000px) {
+  .postseason-rounds,.postseason-rounds.legacy-bracket { grid-template-columns:1fr; gap:20px; padding:0 16px 18px; }
+  .postseason-round:not(:last-child)::after { content:'↓'; right:50%; top:auto; bottom:-20px; }
+  .postseason-note { padding:0 16px 16px; }
+}
+.roster-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:0 20px; margin-bottom:16px; }
+.roster-controls input { flex:1; min-width:160px; }
+.roster-controls select { max-width:180px; }
+.roster-controls .roster-squad-filter { flex-wrap:wrap; max-width:100%; }
+.roster-records-table table { min-width:980px; }
+.roster-records-table th,.roster-records-table td { white-space:nowrap; }
+.roster-sort { padding:0; border:0; background:transparent; color:inherit; font:inherit; font-weight:700; cursor:pointer; }
+.roster-sort:focus-visible { outline:2px solid #1d67b2; outline-offset:4px; }
+.roster-records-table td:first-child { position:sticky; left:0; background:#fff; }
+.roster-records-table .my-player-row td:first-child { background:#edf4ff; }
+.player-grade { display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:28px; border-radius:6px; background:#eef1f6; color:#536176; font:bold 16px Arial,sans-serif; }
+.tooltip-trigger { display:inline-flex; align-items:center; cursor:help; }
+.tooltip-trigger:focus-visible { outline:2px solid #729bd0; outline-offset:3px; border-radius:6px; }
+.app-tooltip { position:fixed; z-index:10000; padding:11px 13px; border:1px solid #455b7b; border-radius:8px; background:#182b49; color:#fff; box-shadow:0 5px 20px #0003; font:12px/1.6 KBO,sans-serif; text-align:left; white-space:normal; pointer-events:none; }
+.app-tooltip strong { display:block; font-size:14px; font-weight:700; }
+.app-tooltip span { display:block; color:#c5d3e7; margin-top:3px; }
+.grade-s { background:#fff0c8; color:#8c5b00; box-shadow:inset 0 0 0 1px #e9c866; }
+.grade-a { background:#f0e6ff; color:#743eae; }
+.grade-b { background:#dfedff; color:#235c9f; }
+.grade-c { background:#e0f3ec; color:#22634e; }
+.grade-d { background:#e9eff3; color:#485e70; }
+.grade-e { background:#f1ede7; color:#77634c; }
+.grade-f,.grade-unknown { background:#f0f1f3; color:#697383; }
+.roster-grade-guide { margin-top:12px; color:#657086; font-size:12px; line-height:1.8; }
+.roster-grade-guide summary { cursor:pointer; font-weight:700; }
+.roster-grade-guide p { margin:8px 0; }
+@media(max-width:700px) {
+  .roster-controls { gap:8px; padding:0 14px; }
+  .roster-controls input { min-width:0; width:100%; flex-basis:100%; }
+  .roster-controls select { max-width:none; width:100%; }
+}
 @media(max-width:430px) { .career-mode-picker { gap:7px; } .career-mode-picker>button { padding:12px 10px; } .career-mode-picker b { font-size:11px; } }
 .creation-hero {
   min-height: 245px;

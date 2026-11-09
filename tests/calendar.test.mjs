@@ -55,7 +55,7 @@ test('every future season finishes all brackets, respects windows, eliminates lo
     const { calendar } = playCalendar(year, 'calendar-season');
     assert.ok(calendar.events.every(g => g.status === 'completed'));
     for (const competition of calendar.competitions) {
-      const games = calendar.events.filter(g => g.competitionId === competition.id);
+      const games = calendar.events.filter(g => g.competitionId === competition.id&&!g.tiebreaker);
       assert.ok(games.every(g => g.date >= competition.startDate && g.date <= competition.endDate));
       if (competition.kind === 'league') {
         assert.equal(games.length, 450);
@@ -110,6 +110,6 @@ test('league standings count wins, draws, forfeits and provide deterministic tie
   g.status = 'forfeit'; g.forfeitTeamId = g.awayTeamId;
   const table = c.leagueTable(calendar, 'spring', Math.floor(g.homeTeamId / 10));
   assert.equal(table[0].teamId, g.homeTeamId);
-  assert.equal(table[0].points, 2);
+  assert.equal(table[0].percentage, 1);
   assert.equal(table.at(-1).teamId, g.awayTeamId);
 });

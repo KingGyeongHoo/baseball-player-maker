@@ -6,6 +6,7 @@ import {performanceEvidence,weightedRecords} from "./evaluation-metrics";
 import {reputationBreakdown} from "./evaluation-reputation";
 import {statKeys,type GameState,type Player,type RecordLine,type Role,type Stat} from "./types";
 import type {EvaluationField,EvaluationReason,EvaluationSnapshot,EvaluationObservation,EvaluationContextArchive,PerformanceEvidence} from "./player-evaluation-types";
+import {gameCounterKeys} from "./game-records";
 
 const battingKeys:Stat[]=["contact","power","speed","defense"],pitchingKeys:Stat[]=["velocity","control","movement"];
 const count=(r:RecordLine,field:EvaluationField)=>field==="batting"?r.batting.PA:r.pitching.BF;
@@ -16,6 +17,7 @@ export function recordsForYear(s:GameState,p:Player,year:number,level:"first"|"s
 }
 export function evaluationLeague(s:GameState,year:number,level:"first"|"second"|"school") {
   const result=emptyRecord(),seen=new Set<string>();
+  const retired=s.proWorld?.retiredRecords?.[`${year}:${level}`];if(retired)mergeRecord(result,retired);
   for(const p of [...s.players,...(s.proWorld?.archive??[])])if(!seen.has(p.id)){seen.add(p.id);mergeRecord(result,recordsForYear(s,p,year,level));}
   return result;
 }
@@ -86,8 +88,8 @@ export function evaluationSummary(report:EvaluationSnapshot){
 
 // Keep shared baselines once and store only the inputs needed to recreate a report.
 // Numeric record arrays avoid repeating 30+ JSON keys for every NPC every month.
-export function packEvaluationRecord(record:RecordLine){const template=emptyRecord();return [...Object.keys(template.batting).map(k=>record.batting[k as keyof typeof record.batting]),...Object.keys(template.pitching).map(k=>record.pitching[k as keyof typeof record.pitching])];}
-export function unpackEvaluationRecord(values:number[]|null|undefined){const record=emptyRecord();let index=0;for(const group of ["batting","pitching"] as const)for(const key of Object.keys(record[group]))(record[group] as Record<string,number>)[key]=values?.[index++]??0;return record;}
+export function packEvaluationRecord(record:RecordLine){const template=emptyRecord();return [...Object.keys(template.batting).map(k=>record.batting[k as keyof typeof record.batting]),...Object.keys(template.pitching).map(k=>record.pitching[k as keyof typeof record.pitching]),...gameCounterKeys.map(key=>record.games?.[key]??-1)];}
+export function unpackEvaluationRecord(values:number[]|null|undefined){const record=emptyRecord();let index=0;for(const group of ["batting","pitching"] as const)for(const key of Object.keys(record[group]))(record[group] as Record<string,number>)[key]=values?.[index++]??0;for(const key of gameCounterKeys){const value=values?.[index++];if(value!==undefined&&value>=0)(record.games??={})[key]=value;}return record;}
 export function archiveEvaluationContext(s:GameState,context:Context,reason:EvaluationReason):EvaluationContextArchive {
   const league=Object.fromEntries(Object.entries(context.league).map(([key,r])=>[key,packEvaluationRecord(r)])) as EvaluationContextArchive["league"];
   return {id:`${EVALUATION_MODEL}:${context.reference.mode}:${s.calendar.seasonYear}:${s.date}:${reason}`,date:s.date,year:s.calendar.seasonYear,mode:context.reference.mode,referenceId:context.reference.id,league,leagueSeasons:context.leagueSeasons,history:Object.fromEntries([...context.history].map(([key,r])=>[key,packEvaluationRecord(r)])),parameters:{...context.reference.parameters}};

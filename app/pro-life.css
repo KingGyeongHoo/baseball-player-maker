@@ -7,6 +7,20 @@
 .pro-brand { color:var(--navy); font:700 22px Arial,sans-serif; letter-spacing:-1px; }
 .pro-header>.text-button { margin-left:auto; }
 .pro-main { min-height:75vh; }
+.pro-league>.panel { margin-bottom:28px; }
+.league-leaders-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:30px; }
+.league-leaders-heading h2 { color:var(--navy); font-size:20px; }
+.league-individual>.draft-board-note { padding:14px 0; line-height:1.8; }
+.league-leader-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.league-leader-card { min-width:0; }
+.league-leader-card .panel-heading { padding:18px; }
+.league-leader-card h3 { font-size:14px; color:var(--navy); }
+.league-leader-card h3 span,.league-leader-card .panel-heading small { font-size:9px; font-weight:400; color:var(--muted); }
+.league-leader-card table { min-width:310px; font-size:11px; }
+.league-leader-card td,.league-leader-card th { padding:12px 10px; }
+.league-leader-card .player-name-button { font-size:11px; }
+@media(max-width:1100px) { .league-leader-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) { .league-leader-grid { grid-template-columns:minmax(0,1fr); } }
 .pro-registration-badge { display:inline-block; vertical-align:middle; margin-left:8px; padding:3px 6px; border-radius:2px; background:#ffffff18; color:#c8d6eb; font-size:9px; font-weight:400; letter-spacing:0; }
 .pro-registration-badge.first { background:#f5e8bf; color:#765820; }
 .pro-career-dashboard .overview-identity>div:first-child { min-width:0; overflow-wrap:anywhere; }

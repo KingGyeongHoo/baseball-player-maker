@@ -21,9 +21,9 @@ export function capturePlayerEvaluations(s:GameState,reason?:EvaluationReason,id
     report.id+=`:${hash(JSON.stringify([report.stats,report.records,report.role,report.position,report.teamId,report.eligiblePositions,report.twoWay,report.health]))}`;
     const history=p.evaluationHistory??=[];
     if(history.some(row=>row.id===report.id))continue;
-    history.push(compactEvaluation(report,archive.id));
-    const recent=history.filter(row=>!protectedReasons.has(row.reason)).slice(-2),keep=new Set(recent.map(r=>r.id));
-    p.evaluationHistory=history.filter(row=>protectedReasons.has(row.reason)||keep.has(row.id));
+    const updated=[...history,compactEvaluation(report,archive.id)];
+    const recent=updated.filter(row=>!protectedReasons.has(row.reason)).slice(-2),keep=new Set(recent.map(r=>r.id));
+    p.evaluationHistory=updated.filter(row=>protectedReasons.has(row.reason)||keep.has(row.id));
   }
   if(!ids)system.lastMonthly=month;
   const contexts=new Set([...s.players,...(s.proWorld?.archive??[])].flatMap(p=>p.evaluationHistory?.map(row=>row.contextId)??[]));

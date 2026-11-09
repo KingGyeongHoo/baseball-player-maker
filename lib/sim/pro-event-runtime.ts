@@ -1,3 +1,4 @@
+import {proSquad} from "./pro-squads";
 import {addDays,available,getPlayer,isPitcher,ovr,params,random,roleFor,roleScore,ticketsUsed} from "./engine";
 import {professionalLineup} from "./pro-world";
 import {createProEvent,proMainField} from "./pro-event-catalog";
@@ -7,7 +8,7 @@ import type {ProEventContext} from "./pro-event-types";
 import type {EventScene,Game,GameState,Player,Position} from "./types";
 
 const onceIds=new Set(["PE08","PE09","PE10","PE11","PE28","PE29","PE30"]);
-function context(s:GameState,id:string,date:string,extra:Partial<ProEventContext>={}):ProEventContext {const p=getPlayer(s);return {version:1,catalogId:id,channel:"general",year:s.calendar.seasonYear,playerId:p.id,teamId:p.teamId,level:p.teamId<10?"first":"second",field:proMainField(s),openedAt:date,...extra};}
+function context(s:GameState,id:string,date:string,extra:Partial<ProEventContext>={}):ProEventContext {const p=getPlayer(s);return {version:1,catalogId:id,channel:"general",year:s.calendar.seasonYear,playerId:p.id,teamId:p.teamId,level:proSquad(p.teamId)??"third",field:proMainField(s),openedAt:date,...extra};}
 const active=(p:Player)=>p.professional?.employment==="active"&&p.teamId>=0;
 function once(s:GameState,id:string){return !ensureProEvents(s).history.some(row=>row.season===s.calendar.seasonYear&&equivalentProId(row,id));}
 export function proGeneralCandidates(s:GameState,date=s.date){

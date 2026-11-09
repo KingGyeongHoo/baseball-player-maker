@@ -1,0 +1,81 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {createElement} from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js'),life=require('../.test-build/lib/sim/pro-season.js');
+const {encodeCareerSave,decodeCareerSave}=require('../.test-build/lib/career-save.js');
+const Bracket=require('../.test-build/app/components/postseason-bracket.js').default,Dashboard=require('../.test-build/app/components/pro-dashboard.js').default,League=require('../.test-build/app/components/pro-league.js').default;
+e.params['pro_events.enabled']=0;
+const template=pc.acknowledgeCareer(pc.createProfessionalDemo('postseason-ladder','가을선수','SS'));
+function fixture(){const s=structuredClone(template);s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';life.finishProfessionalDay(s);return s;}
+const round=(s,id)=>s.proWorld.postseason.series.find(v=>v.id===id);
+const next=(s,id)=>{const r=round(s,id);return s.calendar.events.find(g=>g.id===`${s.proWorld.year}:${id}:${r.game-1}`);};
+function play(s,id,winner,{tie=false,forfeit=false}={}){const g=next(s,id);s.date=g.date;g.status=forfeit?'forfeit':'completed';if(forfeit)g.forfeitTeamId=[g.homeTeamId,g.awayTeamId].find(id=>id!==winner);g.score=tie?[2,2]:g.homeTeamId===winner?[3,1]:[1,3];life.finishProfessionalDay(s);return g;}
+function sweep(s,id,winner){while(round(s,id).winner===undefined)play(s,id,winner);}
+
+test('top five enter the stepladder, only ranks four and five start, and the advantage schedules no fake game',()=>{
+ const before=structuredClone(template),s=fixture(),p=s.proWorld.postseason;
+ assert.equal(p.format,'kbo-v1');assert.deepEqual(p.seeds,[0,1,2,3,4]);assert.equal(p.series.length,1);assert.deepEqual(round(s,'wildcard').clubs,[3,4]);assert.deepEqual(round(s,'wildcard').wins,[1,0]);assert.equal(round(s,'wildcard').target,2);
+ assert.equal(s.calendar.events.filter(g=>g.competitionId.startsWith('pro-playoffs-')).length,1);assert.equal(next(s,'wildcard').homeTeamId,3);assert.deepEqual(s.rngStates,before.rngStates);assert.deepEqual(template,before);
+});
+test('rank four advances on one actual win or tie and cannot get credited twice',()=>{
+ for(const tie of [false,true]){const s=fixture();play(s,'wildcard',3,{tie});assert.equal(round(s,'wildcard').winner,3);assert.deepEqual(round(s,'wildcard').wins,tie?[1,0]:[2,0]);assert.deepEqual(round(s,'semi').clubs,[2,3]);
+  const before=structuredClone(s.proWorld.postseason),count=s.calendar.events.length;life.finishProfessionalDay(s);assert.deepEqual(s.proWorld.postseason,before);assert.equal(s.calendar.events.length,count);
+  assert.equal(s.calendar.events.filter(g=>g.competitionId==='pro-playoffs-wildcard').length,1);
+ }
+});
+test('rank five must win both road games, including forfeits, and a second-game loss eliminates it',()=>{
+ for(const fifthWins of [false,true]){const s=fixture();play(s,'wildcard',4);assert.deepEqual(round(s,'wildcard').wins,[1,1]);assert.equal(round(s,'semi'),undefined);assert.equal(next(s,'wildcard').homeTeamId,3);assert.equal(next(s,'wildcard').round,2);
+  play(s,'wildcard',fifthWins?4:3,{forfeit:true});assert.equal(round(s,'wildcard').winner,fifthWins?4:3);assert.deepEqual(round(s,'semi').clubs,[2,fifthWins?4:3]);
+ }
+});
+test('a fifth-place run meets third, second and first in order and closes the season exactly once',()=>{
+ const s=fixture();sweep(s,'wildcard',4);assert.equal(round(s,'playoff'),undefined);sweep(s,'semi',4);assert.deepEqual(round(s,'playoff').clubs,[1,4]);assert.equal(round(s,'playoff').target,3);assert.equal(round(s,'final'),undefined);
+ sweep(s,'playoff',4);assert.deepEqual(round(s,'final').clubs,[0,4]);assert.equal(round(s,'final').target,4);sweep(s,'final',4);
+ assert.equal(s.proWorld.postseason.champion,4);assert.equal(s.proWorld.stage,'summary');assert.equal(s.phase,'ended');assert.equal(s.proWorld.seasons.at(-1).champion,4);assert.equal(s.calendar.events.filter(g=>g.competitionId.startsWith('pro-playoffs-')).length,12);
+ const archive=JSON.stringify(s.proWorld.seasons),careers=s.players.map(p=>p.career.length);life.finishProfessionalDay(s);assert.equal(JSON.stringify(s.proWorld.seasons),archive);assert.deepEqual(s.players.map(p=>p.career.length),careers);
+});
+test('five-game and seven-game rounds follow 2-2-1 and 2-3-2 home orders with travel days',()=>{
+ const s=fixture();play(s,'wildcard',3);let homes=[];for(const winner of [2,3,2,3,2]){const g=next(s,'semi');homes.push(g.homeTeamId);const date=g.date;play(s,'semi',winner);if(round(s,'semi').winner===undefined){const n=next(s,'semi');assert.equal(n.date,e.addDays(date,n.homeTeamId===g.homeTeamId?1:2));}}
+ assert.deepEqual(homes,[2,2,3,3,2]);sweep(s,'playoff',2);homes=[];for(const winner of [0,2,0,2,0,2,0]){homes.push(next(s,'final').homeTeamId);play(s,'final',winner);}assert.deepEqual(homes,[0,0,2,2,2,0,0]);
+});
+test('tied games remain recorded and replay after the normal last game at the original home park',()=>{
+ const s=fixture();play(s,'wildcard',3);const rng={...s.rngStates};const tied=play(s,'semi',null,{tie:true});assert.deepEqual(round(s,'semi').wins,[0,0]);assert.deepEqual(round(s,'semi').drawHomes,[2]);
+ for(const winner of [2,3,2,3])play(s,'semi',winner);assert.equal(next(s,'semi').round,6);assert.equal(next(s,'semi').homeTeamId,tied.homeTeamId);assert.equal(tied.status,'completed');assert.deepEqual(tied.score,[2,2]);
+ play(s,'semi',null,{tie:true});assert.equal(next(s,'semi').homeTeamId,2);play(s,'semi',3);assert.equal(round(s,'semi').winner,3);assert.deepEqual(s.rngStates,rng);
+});
+test('each new round freezes its own roster and new players do not enter an existing series roster',()=>{
+ const s=fixture(),r=round(s,'wildcard'),late=s.players.find(p=>p.teamId===13);assert.ok(!r.rosters['3'].includes(late.id));const outgoing=s.players.find(p=>p.teamId===3&&p.position===late.position);outgoing.teamId=13;late.teamId=3;
+ assert.equal(life.playoffRosterFor(s,next(s,'wildcard'),[late]).length,0);play(s,'wildcard',3);assert.ok(round(s,'semi').rosters['3'].includes(late.id));assert.ok(Object.values(round(s,'semi').rosters).every(ids=>ids.length<=30));
+});
+test('postseason games allow fifteen innings and keep regular records separate',()=>{
+ const s=fixture(),game=next(s,'wildcard'),keys=['match.bb_base','match.bb_min','match.bb_max','match.hit_base','match.hit_min','match.hit_max'],old=Object.fromEntries(keys.map(k=>[k,e.params[k]]));
+ try{for(const k of keys)e.params[k]=0;const before=structuredClone(s.players.map(p=>p.seasonStats));s.date=game.date;e.simulateGame(s,game,[game.homeTeamId,game.awayTeamId].map(id=>s.players.filter(p=>p.teamId===id)));
+  assert.equal(game.status,'completed');assert.deepEqual(game.score,[0,0]);assert.deepEqual(game.innings.map(v=>v.length),[15,15]);assert.deepEqual(s.players.map(p=>p.seasonStats),before);assert.ok(s.players.some(p=>p.seasonPostseason?.pitching.outs>0));
+ }finally{Object.assign(e.params,old);}
+});
+test('saving and resuming midway preserves advantage, match cursor, RNG and advancement',()=>{
+ const s=fixture();play(s,'wildcard',4);const loaded=decodeCareerSave(JSON.stringify(encodeCareerSave(s,false))).state;
+ assert.deepEqual(loaded.proWorld.postseason,s.proWorld.postseason);play(s,'wildcard',4);play(loaded,'wildcard',4);assert.deepEqual(loaded.proWorld.postseason,s.proWorld.postseason);assert.deepEqual(loaded.rngStates,s.rngStates);
+});
+test('the same four-round bracket appears on the home and league pages, including waiting seeds',()=>{
+ const s=fixture(),before=structuredClone(s);const html=renderToStaticMarkup(createElement(Bracket,{state:s}));
+ assert.equal((html.match(/class="postseason-round /g)??[]).length,4);for(const word of ['와일드카드','준플레이오프','플레이오프','한국시리즈','4위 1승 선취','실제 최대 2경기'])assert.ok(html.includes(word));
+ for(const Component of [Dashboard,League]){const page=renderToStaticMarkup(createElement(Component,{state:s,onRecords(){},onTab(){},onTraining(){},trainingDisabled:false,records:null}));assert.ok(page.includes('포스트시즌 대진표'));}
+ assert.deepEqual(s,before);s.proWorld.stage='regular';assert.equal(renderToStaticMarkup(createElement(Bracket,{state:s})), '');
+});
+test('an active old 1-v-4 bracket migrates immediately, backing up old postseason records and keeping regular data',()=>{
+ const s=fixture(),post=s.proWorld.postseason,p=e.getPlayer(s);delete post.format;post.seeds=[0,1,2,3];post.series=[{...post.series[0],id:'semi-1',stage:'semi',clubs:[0,3],wins:[1,0],target:3},{...post.series[0],id:'semi-2',stage:'semi',clubs:[1,2],wins:[0,0],target:3}];
+ const old=s.calendar.events.find(g=>g.competitionId==='pro-playoffs-wildcard');old.id=`${s.proWorld.year}:semi-1:0`;old.competitionId='pro-playoffs-semi-1';old.homeTeamId=0;old.awayTeamId=3;old.status='completed';old.score=[3,1];old.boxScore[p.id]=e.emptyRecord();old.boxScore[p.id].batting.PA=4;p.seasonPostseason=structuredClone(old.boxScore[p.id]);
+ p.seasonStats.batting.PA=100;p.seasonByLevel.first.batting.PA=100;p.seasonByClub={'0':{first:structuredClone(p.seasonStats),second:e.emptyRecord(),postseason:structuredClone(p.seasonPostseason)}};
+ const regular=structuredClone(p.seasonStats),stats={...p.stats},career=structuredClone(p.career),rng={...s.rngStates},before=structuredClone(s);
+ const upgraded=life.upgradeProfessionalState(s),q=e.getPlayer(upgraded);
+ assert.deepEqual(s,before);assert.equal(upgraded.proWorld.postseason.format,'kbo-v1');assert.deepEqual(round(upgraded,'wildcard').clubs,[3,4]);assert.deepEqual(round(upgraded,'wildcard').wins,[1,0]);assert.equal(upgraded.proWorld.postseason.series.length,1);
+ assert.ok(!upgraded.calendar.events.some(g=>g.id===old.id));assert.ok(upgraded.proWorld.replacedPostseason.games.some(g=>g.id===old.id));assert.equal(upgraded.proWorld.replacedPostseason.records.find(r=>r.playerId===p.id).records.batting.PA,4);
+ assert.equal(q.seasonPostseason.batting.PA,0);assert.equal(q.seasonByClub['0'].postseason.batting.PA,0);assert.deepEqual(q.seasonStats,regular);assert.deepEqual(q.stats,stats);assert.deepEqual(q.career,career);assert.deepEqual(upgraded.rngStates,rng);assert.equal(life.upgradeProfessionalState(upgraded),upgraded);
+ const resumed=e.advanceWeek(s,p.trainingPolicy,p.stance);assert.equal(resumed.proWorld.postseason.format,'kbo-v1');assert.ok(resumed.careerNotice);assert.equal(resumed.weekProgress,undefined);
+});
+test('completed old seasons remain historical records rather than restarting a settled season',()=>{
+ const s=fixture();delete s.proWorld.postseason.format;s.proWorld.stage='summary';s.proWorld.seasonClosed=true;s.phase='ended';assert.equal(life.needsPostseasonUpgrade(s),false);assert.equal(life.upgradeProfessionalState(s),s);
+});

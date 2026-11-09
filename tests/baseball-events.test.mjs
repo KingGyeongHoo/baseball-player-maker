@@ -109,10 +109,30 @@ test('multiple stat rewards use the same pre-choice basis and only modify declar
 test('awakening is one result-level draw that replaces every positive effect and preserves other effects',()=>{
   const s=fixture(),p=e.getPlayer(s);for(const key of Object.keys(p.stats))p.stats[key]=40;
   const n=answer(s,'T10',0,[0,.05],true),after=e.getPlayer(n),out=n.careerEventHistory.at(-1);
-  assert.equal(out.awakened.length,11);for(const key of Object.keys(p.stats)){const gain=system.eventTrainingReward(p,key,12);close(after.stats[key],40+gain);close(out.stats[key],gain);assert.ok(gain<5);}
+  assert.equal(out.awakened.length,11);for(const key of Object.keys(p.stats)){const gain=system.eventAwakeningReward(p,key,8);close(after.stats[key],40+gain);close(out.stats[key],gain);assert.ok(gain>=4.5&&gain<5);}
   assert.deepEqual(after.talent,p.talent);
   const ordinary=answer(fixture(),'T10',0,[.05,1],true).careerEventHistory.at(-1);
-  assert.equal(ordinary.awakened.length,4);for(const key of Object.keys(ordinary.stats))close(ordinary.stats[key],system.eventTrainingReward(e.getPlayer(fixture()),key,8));close(ordinary.fatigue,10);
+  assert.equal(ordinary.awakened.length,4);for(const key of Object.keys(ordinary.stats))close(ordinary.stats[key],system.eventAwakeningReward(e.getPlayer(fixture()),key,4));close(ordinary.fatigue,10);
+});
+
+test('awakening gives all abilities at least three points at 60 and tapers smoothly toward the cap',()=>{
+  const s=fixture(),p=e.getPlayer(s);
+  for(const [ability,gain] of [[40,4.5],[60,3],[80,1.5],[90,.75],[99,.075],[100,0]]){
+    for(const key of Object.keys(p.stats))p.stats[key]=ability;
+    const before=structuredClone(p);
+    for(const key of Object.keys(p.stats)){
+      close(system.eventAwakeningReward(p,key,3),gain);
+      assert.ok(system.eventAwakeningReward(p,key,8)>=system.eventTrainingReward(p,key,12));
+      assert.ok(system.eventAwakeningReward(p,key,8)<=100-ability);
+    }
+    assert.deepEqual(p,before);
+  }
+  for(const key of Object.keys(p.stats))p.stats[key]=60;
+  const next=answer(s,'T10',0,[0,.05],true),out=next.careerEventHistory.at(-1);
+  assert.equal(out.awakened.length,11);
+  for(const key of Object.keys(p.stats)){close(e.getPlayer(next).stats[key],63);close(out.stats[key],3);}
+  const capped=fixture();for(const key of Object.keys(e.getPlayer(capped).stats))e.getPlayer(capped).stats[key]=100;
+  assert.deepEqual(answer(capped,'T10',0,[0,.05],true).careerEventHistory.at(-1).awakened,[]);
 });
 test('declines, injuries and fatigue-only outcomes never draw awakening; actual limits and one-time application are preserved',()=>{
   const s=fixture();e.getPlayer(s).stats.contact=1;
@@ -122,7 +142,7 @@ test('declines, injuries and fatigue-only outcomes never draw awakening; actual 
   assert.equal(n.rngStates.events,expected.rngStates.events);assert.equal(out.awakened.length,0);close(out.stats.contact,0);
   assert.throws(()=>e.answerCareerEvent(n,'choice-1'),/없습니다/);assert.throws(()=>e.answerCareerEvent(s,'invalid'),/유효하지/);
   const capped=fixture();for(const key of Object.keys(e.getPlayer(capped).stats))e.getPlayer(capped).stats[key]=98;
-  const cap=answer(capped,'T10',0,[0,.05],true).careerEventHistory.at(-1);for(const [key,amount] of Object.entries(cap.stats)){close(amount,system.eventTrainingReward(e.getPlayer(capped),key,12));assert.ok(amount>=0&&amount<.2);}
+  const cap=answer(capped,'T10',0,[0,.05],true).careerEventHistory.at(-1);for(const [key,amount] of Object.entries(cap.stats)){close(amount,system.eventAwakeningReward(e.getPlayer(capped),key,8));assert.ok(amount>=0&&amount<.2);}
   const rest=fixture();e.getPlayer(rest).fatigue=1;close(answer(rest,'P07',1,[0,.5]).careerEventHistory.at(-1).fatigue,-1);
 });
 test('event effects and reward calculation use only the event RNG and preserve state inputs',()=>{
@@ -224,7 +244,7 @@ test('match probability changes are percentage points with valid conditional hit
   const base={bb:.2,hit:.3,hr:.1,k:.4,double:.2,triple:.1};const changed=system.applyMatchEffect(base,{hit:.02,bb:-.025,hr:.04,k:-.02});close(changed.hit,.32);close(changed.bb,.175);close(changed.hr,.14);close(changed.k,.38);
   const bounded=system.applyMatchEffect(base,{hit:2,bb:-2,hr:2,k:2});assert.equal(bounded.hit,1);assert.equal(bounded.bb,0);assert.equal(bounded.k,1);close(bounded.hr+bounded.double+bounded.triple,1);assert.deepEqual(base,{bb:.2,hit:.3,hr:.1,k:.4,double:.2,triple:.1});
 });
-test('MVP gives eight weeks of growth while awakening extends it to twelve without changing the award',()=>{
+test('MVP gives eight weeks of growth while awakening applies its floor without changing the award',()=>{
   for(const position of ['SS','SP']) {
     const s=fixture(position),p=e.getPlayer(s);
     const n=answer(s,'P08',0,[0,.05]),out=n.careerEventHistory.at(-1);
@@ -233,16 +253,17 @@ test('MVP gives eight weeks of growth while awakening extends it to twelve witho
     const core=position==='SP'?['velocity','control','movement']:['contact','power','speed','defense'];
     for(const key of core)close(out.stats[key],system.eventTrainingReward(p,key,8));
     const awake=answer(s,'P08',0,[0,.05],true).careerEventHistory.at(-1);
-    assert.match(awake.message,/MVP/);assert.equal(awake.awakened.length,core.length);for(const key of core)close(awake.stats[key],system.eventTrainingReward(p,key,12));
+    assert.match(awake.message,/MVP/);assert.equal(awake.awakened.length,core.length);for(const key of core)close(awake.stats[key],system.eventAwakeningReward(p,key,8));
   }
 });
-test('high-skill MVP, center and awakening respect the original slowdown instead of jumping into the next professional tier',()=>{
+test('MVP and center retain normal training rewards while awakening tapers at high skills',()=>{
   for(const ability of [40,60,70,80,90,100])for(const id of ['P08','T10'])for(const awake of [false,true]) {
     const s=fixture(),p=e.getPlayer(s);for(const key of Object.keys(p.stats))p.stats[key]=ability;
     const out=answer(s,id,0,[0,.05],awake).careerEventHistory.at(-1);
     for(const [key,gain] of Object.entries(out.stats)){
-      close(gain,system.eventTrainingReward(p,key,awake?12:8));
-      if(ability>=80)assert.ok(gain<.3);if(ability>=90)assert.ok(gain<.13);if(ability===100)close(gain,0);
+      close(gain,awake?system.eventAwakeningReward(p,key,8):system.eventTrainingReward(p,key,8));
+      if(awake&&ability>=60)close(gain,3*(100-ability)/40);
+      if(!awake&&ability>=80)assert.ok(gain<.3);if(!awake&&ability>=90)assert.ok(gain<.13);if(ability===100)close(gain,0);
     }
   }
 });

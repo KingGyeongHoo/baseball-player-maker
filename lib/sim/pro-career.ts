@@ -1,4 +1,4 @@
-import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, positions, previewPlayer, random, recovery, reputationScore, roleScore } from "./engine";
+import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, pitchingRole, positions, previewPlayer, random, recovery, reputationScore, roleScore } from "./engine";
 import { careerLeagueTable, developmentCalendar } from "./pro-calendar";
 import { developmentalOffer, revealDraftResult } from "./draft-outcome";
 import { ensureProWorld,proNews,reviewLeagueRegistrations,BASE_SALARY } from "./pro-world";
@@ -7,11 +7,12 @@ import type { GameState, Player, Position, ProLevel, Team } from "./types";
 import {syncJerseyNumbers} from "../jersey-numbers";
 import {capturePlayerEvaluations} from "./evaluation-lifecycle";
 import {tryProNationalInvitation} from "./pro-national-events";
+import {syncProClubNames,proTeamName} from "./club-names";
+import {seededPlayerName} from "./player-names";
+import {rookieDevelopmentalIds} from "./pro-squads";
 
 export type CareerChoice = "join" | "tryout" | "college" | "developmental" | "direct";
 const slots: Position[] = ["C","C","C","1B","1B","2B","2B","3B","3B","SS","SS","LF","LF","CF","CF","RF","RF","DH","SP","SP","SP","SP","SP","SP","RP","RP","RP","RP","CP","CP"];
-const firstNames = ["도현","민준","서준","지훈","현우","우진","건우","성민","승현","재윤","준혁","정우","동현","유찬","태민"];
-const surnames = ["김","이","박","최","정","강","조","윤","장","임","한","송","서","오"];
 const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind"], title: string, message: string) => {
   s.careerNotice = { id: `${s.date}:${s.week}:${kind}`, date: s.date, kind, title, message };
 };
@@ -38,7 +39,7 @@ function offSeason(p: Player, from: string, to: string) {
   p.roleOffer = null; p.offerCandidate = null; p.offerWeeks = 0; delete p.transferAdaptation;
 }
 function npc(seed: string, teamId: number, index: number, mode: "pro" | "college", first = false) {
-  const n = hash(`${seed}:name`), p = previewPlayer(seed, surnames[n % surnames.length] + firstNames[Math.floor(n / surnames.length) % firstNames.length], slots[index]);
+  const n = hash(`${seed}:name`), p = previewPlayer(seed, seededPlayerName(`${seed}:player-name`), slots[index]);
   p.id = `${mode}-npc-${teamId}-${index}`; p.teamId = teamId; p.grade = mode === "pro" ? 0 : 4;
   p.careerMode = mode; p.age = mode === "pro" ? (first ? 24 : 20) + n % 10 : 19 + n % 4;
   // Same absolute scale as high school. Veterans are stronger; entry itself
@@ -66,7 +67,8 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   if (input.phase !== "ended" || input.careerEvent || input.careerNotice) throw new Error("시즌 결과와 알림을 확인한 뒤 진로를 선택해 주세요.");
   if (input.careerMode === "pro") throw new Error("프로의 다음 시즌은 계약 화면에서 선택해 주세요.");
   if (!input.careerMode && !input.draftOutcome?.revealed) throw new Error("드래프트 결과를 먼저 확인해 주세요.");
-  const s = structuredClone(input), p = getPlayer(s), info = path(s);
+  const s = structuredClone(input);syncProClubNames(s);
+  const p = getPlayer(s), info = path(s);
   const board = choice==="direct"?[]:s.careerMode === "college" ? info.collegeDraft ?? [] : s.draft;
   const pick = board.find(row => row.playerId === p.id);
   let club = pick ? draftClubs.indexOf(pick.club) : -1;
@@ -102,32 +104,36 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   for (const row of rookies) archiveCareerSeason(s,row.player!);
   if(choice!=="direct")archiveCareerSeason(s,p);
   const year = s.calendar.seasonYear + 1, oldDate = s.date;
-  const teams: Team[] = Array.from({ length:20 },(_,id) => ({ id,name:`${draftClubs[id%10]} ${id<10?"1군":"2군"}`,shortName:`${draftClubs[id%10].split(" ")[0]} ${id<10?"1군":"2군"}`,wins:0,losses:0,draws:0 }));
-  s.teams = teams; s.players = teams.flatMap(t => slots.map((_,i) => npc(`${s.seed}:pro:${year}:${t.id}:${i}`,t.id,i,"pro",t.id<10)));
+  const teams: Team[] = Array.from({ length:40 },(_,id) => ({ id,name:proTeamName(id),shortName:proTeamName(id),wins:0,losses:0,draws:0 }));
+  s.teams = teams; s.players = teams.filter(t=>t.id<20).flatMap(t => slots.map((_,i) => npc(`${s.seed}:pro:${year}:${t.id}:${i}`,t.id,i,"pro",t.id<10)));
+  const developmentalRookies=rookieDevelopmentalIds(s.seed,year,rookies.filter(row=>row.player!.id!==p.id).map(row=>row.player!.id));
   for (const row of rookies) {
-    const rookie = row.player!; rookie.teamId = draftClubs.indexOf(row.pick.club) + 10;
+    const rookie = row.player!,developmental=developmentalRookies.has(rookie.id);rookie.teamId = draftClubs.indexOf(row.pick.club) + (developmental?30:20);rookie.proContract={status:developmental?"developmental":"regular",joinedDate:`${year}-03-01`};
     if(rookie.id!==p.id)offSeason(rookie,oldDate,`${year}-03-01`); rookie.age = 19 + info.collegeYears; rookie.grade = 0; rookie.careerMode = "pro"; rookie.seasonByLevel = { first:emptyRecord(),second:emptyRecord() };
     s.players.push(rookie);
   }
-  p.teamId = club + 10; if (!s.players.some(other => other.id === p.id)) s.players.push(p);
-  info.pro = { club,rookieYear:year,level:"second",nextReviewDate:`${year}-03-15`,entry,firstTeamWeeks:0,secondTeamWeeks:0,transactions:[] };
+  p.teamId = club + 20; if (!s.players.some(other => other.id === p.id)) s.players.push(p);
+  info.pro = { club,rookieYear:year,level:"third",nextReviewDate:`${year}-03-15`,entry,firstTeamWeeks:0,secondTeamWeeks:0,transactions:[] };
   resetWorld(s,p,year,true);
-  if (entry === "developmental") p.proContract = {status:"developmental",joinedDate:s.date};
+  const developmentalEntry=entry==="developmental"||choice==="direct"&&roleScore(p)<params["pro.second_mean"];
+  p.proContract={status:developmentalEntry?"developmental":"regular",joinedDate:s.date};
+  if(developmentalEntry){p.teamId=club+30;info.pro.level="developmental";}
   ensureProWorld(s);
   syncJerseyNumbers(s);
   capturePlayerEvaluations(s,"entry");
-  notice(s,"entry",entry === "developmental" ? "신고선수로 프로에 입단했습니다" : "프로 유니폼을 입었습니다",entry === "developmental"
-    ? `${draftClubs[club]} 2군에서 시작합니다. 성장은 일반 선수의 90%이며 출전 경쟁에서 불리합니다. 2군 경기 성과로 정식 선수 전환 조건을 달성하면 성장과 출전 제한이 해제됩니다.`
-    : `${draftClubs[club]} 2군에서 신인 시즌을 시작합니다. 훈련과 실제 출전 성적, 포지션 경쟁과 컨디션에 따라 1군 승격·2군 조정이 결정됩니다. ${entry==="direct"?"배정된 능력치로 프로 커리어를 시작합니다.":"고교 능력치와 개인 기록은 그대로 이어집니다."}`);
+  notice(s,"entry",developmentalEntry ? "신고선수로 프로에 입단했습니다" : "프로 유니폼을 입었습니다",developmentalEntry
+    ? `${draftClubs[club]} 육성선수로 시작합니다. ${choice==="direct"?"현재 보직 기량을 평가받아 신고선수로 입단했습니다. ":""}성장은 일반 선수의 90%입니다. 출전평가로 2군 출전 기회를 얻고 실제 경기 성과로 정식 선수 전환에 도전합니다.`
+    : `${draftClubs[club]} 잔류군(3군)에서 신인 시즌을 시작합니다. 성장 효율은 처음부터 100%이며, 같은 평가에서는 육성선수보다 먼저 2군 승격 기회를 얻습니다. ${entry==="direct"?"배정된 능력치로 프로 커리어를 시작합니다.":"고교 능력치와 개인 기록은 그대로 이어집니다."}`);
   if(p.professional?.twoWayHistory?.some(row=>row.action==="단일 역할 입단"))s.careerNotice!.message+=` 프로 겸업은 투수·타자 OVR이 모두 75 이상이어야 하므로 ${positions[p.position]}에 집중합니다. 양쪽 능력을 키워 겸업에 다시 도전할 수 있습니다.`;
   return s;
 }
 export function developmentProgress(p: Player) {
   const records = p.seasonByLevel?.second ?? emptyRecord(), b = records.batting, pitch = records.pitching;
+  const pitchingInningsRequired = pitchingRole(p) === "선발" ? 20 : 8;
   const batting = b.PA >= 80 && b.AB > 0 && (b.H + b.BB) / b.PA + (b.H + b["2B"] + 2*b["3B"] + 3*b.HR) / b.AB >= .75;
-  const pitching = pitch.outs >= 60 && pitch.BF > 0 && pitch.ER * 27 / pitch.outs <= 4 && pitch.SO / pitch.BF >= .18;
+  const pitching = pitch.outs >= pitchingInningsRequired * 3 && pitch.BF > 0 && pitch.ER * 27 / pitch.outs <= 4 && pitch.SO / pitch.BF >= .18;
   const qualified = p.twoWay ? batting || pitching : isPitcher(p.primaryRole) ? pitching : batting;
-  return {qualified,batting,pitching,PA:b.PA,outs:pitch.outs};
+  return {qualified,batting,pitching,PA:b.PA,outs:pitch.outs,pitchingInningsRequired};
 }
 export function reviewDevelopmentContract(s: GameState) {
   const p = getPlayer(s);
@@ -163,7 +169,7 @@ export function reviewProRoster(s: GameState) {
   } else {
     const best = s.players.filter(other => other.teamId === second && eligible(other) && !other.forcedRest && !(other.injury && s.date < other.injury.unavailableUntil)).sort((a,b) => score(b)-score(a)||a.id.localeCompare(b.id))[0];
     const longInjury = !!p.injury && p.injury.unavailableUntil >= addDays(s.date,14);
-    if (best && (longInjury || p.forcedRest || score(best)>score(p)+1)) {
+    if (best && (longInjury || !p.forcedRest&&score(best)>score(p)+3)) {
       exchange=best;reason=longInjury?"장기 부상 회복을 위해 2군에서 몸을 만들기로 했습니다.":p.forcedRest?"컨디션 회복을 위해 2군에서 재정비합니다.":"최근 성적과 포지션 경쟁을 반영해 2군에서 다시 기회를 준비합니다.";
     }
   }

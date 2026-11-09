@@ -6,7 +6,7 @@ import path from 'node:path';
 const require = createRequire(import.meta.url);
 const e = require('../.test-build/lib/sim/engine.js');
 const { pitchingPositions } = require('../.test-build/lib/player-creation.js');
-const base = process.env.APP_URL || 'http://localhost:3000';
+const base = process.env.APP_URL || 'http://localhost:3001';
 const response = await fetch(base);
 assert.equal(response.status, 200);
 const html = await response.text();
@@ -28,17 +28,17 @@ for (const asset of new Set(assets)) {
 }
 const chunks = readdirSync('.next/static/chunks').filter(f => f.endsWith('.js'));
 const bootstrap = chunks.find(f => readFileSync('.next/static/chunks/' + f, 'utf8').includes('Worker entrypoint must be loaded'));
-const ui = chunks.map(f => readFileSync('.next/static/chunks/' + f, 'utf8')).find(s => s.includes(bootstrap) && s.includes('onmessage'));
-assert.ok(ui, 'worker factory in client bundle');
-const configMatch = ui.match(/default\("static\/chunks\/turbopack-worker-[^"]+",(\[[^\]]+\])\)/);
-assert.ok(configMatch, 'worker chunks');
+// Autosave and simulation both use workers; select the simulation entrypoint.
+const configs = chunks.flatMap(f => [...readFileSync('.next/static/chunks/' + f, 'utf8').matchAll(/default\("static\/chunks\/turbopack-worker-[^"]+",(\[[^\]]+\])\)/g)]);
+const configMatch = configs.find(match => JSON.parse(match[1]).some(file => readFileSync(path.join('.next',file),'utf8').includes('주간 계산에 실패했습니다.')));
+assert.ok(configMatch, 'simulation worker chunks');
 const scripts = JSON.parse(configMatch[1]).map(p => '/_next/' + p).reverse();
 const bootstrapPath = path.resolve('.next/static/chunks', bootstrap);
 const code = `
 const {parentPort}=require('node:worker_threads');const fs=require('node:fs');const vm=require('node:vm');const path=require('node:path');
 globalThis.self=globalThis;
 globalThis.WorkerGlobalScope=class {static [Symbol.hasInstance](obj){return obj===globalThis}};
-globalThis.location=new URL('http://localhost:3000/_next/static/chunks/bootstrap?params='+encodeURIComponent(JSON.stringify([${JSON.stringify(scripts)},'', '/_next/'])));
+globalThis.location=new URL(${JSON.stringify(new URL('/_next/static/chunks/bootstrap',base).href)}+'?params='+encodeURIComponent(JSON.stringify([${JSON.stringify(scripts)},'', '/_next/'])));
 globalThis.importScripts=(...urls)=>{for(const url of urls){const relative=new URL(url).pathname.replace(/^\\/_next\\//,'');vm.runInThisContext(fs.readFileSync(path.join(${JSON.stringify(path.resolve('.next'))},relative),'utf8'),{filename:url});}};
 globalThis.postMessage=data=>parentPort.postMessage(data);
 vm.runInThisContext(fs.readFileSync(${JSON.stringify(bootstrapPath)},'utf8'));
@@ -213,6 +213,7 @@ try {
   assert.ok(regularWeek.result,regularWeek.error);delete regularWeek.result.report.processingMs;
   assert.deepEqual(regularWeek.result,e.advanceWeek(regular,fp.trainingPolicy,fp.stance));assert.notEqual(regularWeek.result.careerNotice?.kind,'registered');
   const postseason=structuredClone(rookie);postseason.date=postseason.proWorld.regularEnd;postseason.proWorld.stage='regular';postseason.calendar.events=[];
+  for(const player of postseason.players)if(player.professional)player.professional.lastRegistration=postseason.date;
   require('../.test-build/lib/sim/pro-event-ledger.js').ensureProEvents(postseason).plannedWeek=postseason.week;
   for(const club of postseason.proWorld.clubs)club.nextReview=e.addDays(postseason.date,14);
   const playoffStart=await request({requestId:70,state:postseason,policy:rp.trainingPolicy,stance:rp.stance});
