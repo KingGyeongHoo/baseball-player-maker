@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   draftProjection,
   getPlayer,
@@ -209,7 +209,7 @@ export function RosterTable({
   );
 }
 
-export default function PlayerRoster({
+function PlayerRoster({
   state,
   onSelect,
   selectedId,
@@ -414,3 +414,4 @@ export default function PlayerRoster({
     </section>
   );
 }
+export default memo(PlayerRoster);

@@ -1,5 +1,5 @@
 import {available,hash,ovr} from "./engine";
-import {archiveEvaluationContext,buildEvaluationContext,compactEvaluation,createPlayerEvaluation} from "./player-evaluation";
+import {archiveEvaluationContext,buildEvaluationContext,createPlayerObservation} from "./player-evaluation";
 import type {EvaluationReason} from "./player-evaluation-types";
 import type {Game,GameState,Player} from "./types";
 
@@ -17,11 +17,10 @@ export function capturePlayerEvaluations(s:GameState,reason?:EvaluationReason,id
   if(!system.contexts.some(c=>c.id===archive.id))system.contexts.push(archive);
   const protectedReasons=new Set<EvaluationReason>(["entry","season-end","draft","contract","role-change","team-change"]);
   for(const p of s.players){if(selected&&!selected.has(p.id))continue;
-    const report=createPlayerEvaluation(s,p,context,actualReason);
-    report.id+=`:${hash(JSON.stringify([report.stats,report.records,report.role,report.position,report.teamId,report.eligiblePositions,report.twoWay,report.health]))}`;
+    const report=createPlayerObservation(s,p,context,actualReason,archive.id);
     const history=p.evaluationHistory??=[];
     if(history.some(row=>row.id===report.id))continue;
-    const updated=[...history,compactEvaluation(report,archive.id)];
+    const updated=[...history,report];
     const recent=updated.filter(row=>!protectedReasons.has(row.reason)).slice(-2),keep=new Set(recent.map(r=>r.id));
     p.evaluationHistory=updated.filter(row=>protectedReasons.has(row.reason)||keep.has(row.id));
   }

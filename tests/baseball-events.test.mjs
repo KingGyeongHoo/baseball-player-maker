@@ -51,8 +51,8 @@ function fullWeek(s){
 }
 function withParams(changes,fn){const before={};for(const key of Object.keys(changes)){before[key]=e.params[key];e.params[key]=changes[key];}try{return fn();}finally{Object.assign(e.params,before);}}
 
-test('document catalog contains exactly 30 events, 2-3 actions each, and branch sums of 100%',()=>{
-  assert.equal(eventIds.length,30);assert.equal(new Set(eventIds).size,30);
+test('document catalog contains exactly 60 events, 2-3 actions each, and branch sums of 100%',()=>{
+  assert.equal(eventIds.length,60);assert.equal(new Set(eventIds).size,60);
   for(const role of ['SS','SP'])for(const id of eventIds){
     const s=fixture(role),event=createCareerEvent(id,e.getPlayer(s),s.date,s.week,{targetRole:'선발'});
     assert.ok([2,3].includes(event.choices.length));

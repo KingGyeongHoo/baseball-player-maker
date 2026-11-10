@@ -19,9 +19,10 @@ import ProDashboard from "./pro-dashboard";
 import {ScoutingReportContent} from "./scouting-report";
 import SeasonRecords from "./season-records";
 import CareerStorage from "./career-storage";
-import {ProGoals,ProContractPanel,ProRetirement,salaryText} from "./pro-career-panels";
+import {ProAllstarHonors,ProGoals,ProContractPanel,ProRetirement,salaryText} from "./pro-career-panels";
 import {actOnProCareer,needsContractUpgrade,needsPostseasonUpgrade,upgradeProfessionalState,type ProAction} from "../../lib/sim/pro-season";
 import {needsProScheduleUpgrade} from "../../lib/sim/pro-schedule";
+import {needsAllstarScheduleUpgrade} from "../../lib/sim/pro-allstar-calendar";
 import {needsProSquadUpgrade,squadLabel} from "../../lib/sim/pro-squads";
 import { DraftRoundTable } from "./draft-board";
 
@@ -53,7 +54,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const worker=useRef<Worker|null>(null),locked=useRef(false),request=useRef(0),timer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const [autoProgress]=useState(()=>new AutoProgress());
   useEffect(()=>{
-    if(state.careerMode!=="pro"||state.proWorld&&state.proClubNamesVersion===1&&!needsPostseasonUpgrade(state)&&!needsProScheduleUpgrade(state)&&!needsProSquadUpgrade(state)&&!needsContractUpgrade(state))return;
+    if(state.careerMode!=="pro"||state.proWorld&&state.proClubNamesVersion===1&&!needsPostseasonUpgrade(state)&&!needsProScheduleUpgrade(state)&&!needsProSquadUpgrade(state)&&!needsContractUpgrade(state)&&!needsAllstarScheduleUpgrade(state))return;
     const scheduled=setTimeout(()=>{
       autoProgress.pause();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);setAuto(false);setOutcome(null);
       const next=upgradeProfessionalState(state);onChange(next);setPolicy(structuredClone(getPlayer(next).trainingPolicy));setStance({...getPlayer(next).stance});
@@ -95,7 +96,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
     if(!auto||busy||ended)return;
     autoProgress.schedule(advance);return ()=>autoProgress.cancelScheduled();
   },[auto,busy,ended,state,outcome,advance,autoProgress]);
-  const openRecords=(id=state.playerId)=>{setRecordId(id);setTab("records");};
+  const openRecords=useCallback((id=state.playerId)=>{setRecordId(id);setTab("records");},[state.playerId]);
   const openTraining=()=>setTab("training");
   const saveTraining=()=>{if(editing||!validPolicy(policy))return;const next=structuredClone(state);getPlayer(next).trainingPolicy=structuredClone(policy);getPlayer(next).stance={...stance};onChange(next);setTrainingMessage("훈련 설정을 저장했습니다.");};
   const rivals=tab!=="roster"||p.teamId<0?[]:state.players.filter(q=>q.teamId>=0&&q.eligiblePositions.includes(p.position)&&(pro?q.teamId%10===pro.club:q.teamId===p.teamId)).sort((a,b)=>overall(b)-overall(a)||a.id.localeCompare(b.id));
@@ -113,6 +114,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
       {tab==="league"&&<ProLeague state={state} onRecords={openRecords}/>}
       {tab==="career"&&<>
         <ProGoals state={state} onAction={onAction} disabled={careerDisabled}/>
+        <ProAllstarHonors state={state}/>
         {state.proWorld&&<ProContractPanel state={state} onAction={onAction} onRetire={()=>setRetireConfirm(true)} disabled={careerDisabled}/>}
         <DevelopmentContract player={p}/>
         {ended&&state.careerMode==="college"&&<CareerContinuation state={state} onChange={onChange}/>}

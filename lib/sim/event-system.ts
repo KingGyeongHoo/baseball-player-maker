@@ -2,6 +2,8 @@ import { addDays, assignRole, available, clamp, overall, focusGrowth, getPlayer,
 import {applyProTwoWayChoice} from "./pro-two-way";
 import {beginProRoleTrial,decideProRoleTrial} from "./pro-role-evaluation";
 import {recordProChoice} from "./pro-event-ledger";
+import {eligibleStory} from "./event-stories";
+import {schoolEventCatalog} from "./event-catalog";
 import type {ProEventResult} from "./pro-event-types";
 import { teamStrength } from "../team-strength";
 import { professionalGrowth,limitPhysicalGrowth } from "./pro-growth";
@@ -32,6 +34,11 @@ export function eventCandidates(s: GameState, date: string): EventOpportunity[] 
   const add = (id: string, context: Partial<EventOpportunity> = {}) => {
     if (!ledger.recent.slice(-5).includes(id)) pool.push({ definitionId: id, date, ...context });
   };
+  for(const definition of schoolEventCatalog){
+    if(!definition.rule)continue;
+    const story=eligibleStory(s,definition.id,definition.rule,date);
+    if(story)add(definition.id,{story});
+  }
   if (canTrain) {
     for (const id of ["T04", "T08"]) add(id);
     if (!pitching) { add("T01"); if (p.position !== "DH") add("T02"); if (p.trainingPolicy.tickets.speed > 0) add("T07"); }
@@ -72,12 +79,14 @@ export function planEventWeek(s: GameState): EventOpportunity | null {
   if(s.careerMode)return null;
   if (s.week - (s.lastCareerEventWeek ?? 0) < params["events.gap_weeks"] || random(s, "events") >= params["events.weekly_chance"]) return null;
   const pool = Array.from({ length: 7 }, (_, i) => eventCandidates(s, addDays(s.date, i))).flat();
-  const kinds = [...new Set(pool.map(item => eventKind(item.definitionId)))];
+  const continuations=pool.filter(item=>item.story?.sourceId);
+  const candidates=continuations.length&&random(s,"events")<.5?continuations:pool;
+  const kinds = [...new Set(candidates.map(item => eventKind(item.definitionId)))];
   if (!kinds.length) return null;
   const kind = kinds[Math.floor(random(s, "events") * kinds.length)];
-  const ids = [...new Set(pool.filter(item => eventKind(item.definitionId) === kind).map(item => item.definitionId))];
+  const ids = [...new Set(candidates.filter(item => eventKind(item.definitionId) === kind).map(item => item.definitionId))];
   const id = ids[Math.floor(random(s, "events") * ids.length)];
-  const times = pool.filter(item => item.definitionId === id);
+  const times = candidates.filter(item => item.definitionId === id);
   return times[Math.floor(random(s, "events") * times.length)];
 }
 function open(s: GameState, opportunity: EventOpportunity, scene?: EventScene) {
@@ -179,7 +188,8 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   else if (outcome.reputation !== undefined || p.reputationBonus !== undefined) p.reputationBonus = (p.reputationBonus ?? 0) + (outcome.reputation ?? 0);
   p.reputation = reputationScore(p);
   const recoveryPercent = outcome.recoveryPercent ? outcome.recoveryPercent.min + Math.floor(random(s, "events") * (outcome.recoveryPercent.max - outcome.recoveryPercent.min + 1)) : 0;
-  p.fatigue = clamp((p.fatigue + (outcome.fatigue ?? 0)) * (1 - recoveryPercent / 100));
+  const fatigueChange=outcome.fatigueRange?outcome.fatigueRange.min+Math.floor(random(s,"events")*(outcome.fatigueRange.max-outcome.fatigueRange.min+1)):outcome.fatigue??0;
+  p.fatigue = clamp((p.fatigue + fatigueChange) * (1 - recoveryPercent / 100));
   if(outcome.skipTraining && s.weekProgress?.day)s.weekProgress.day.skipPlayerTraining=true;
   if (outcome.injury) {
     const previous = p.injury, prefix = `injury.${outcome.injury.severity}`;
@@ -199,12 +209,13 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   s.careerEventHistory ??= [];
   recordProChoice(s,event,Object.values(changes).some(n=>(n??0)>0));
   s.careerEventHistory.push({ id: event.id, definitionId: event.definitionId, kind: event.kind, title: event.title, date: event.date,
-    choice: selected.label, message: outcome.message, awakened:awakened.filter(key=>(changes[key]??0)>0), stats: changes, reputation: p.reputation - oldReputation, fatigue,
+    choice: selected.label, choiceId:selected.id, ...(event.story?{story:{...event.story}}:{}), message: outcome.message, awakened:awakened.filter(key=>(changes[key]??0)>0), stats: changes, reputation: p.reputation - oldReputation, fatigue,
     ...(event.proEvent?{proEvent:{version:1 as const,catalogId:event.proEvent.catalogId,channel:event.proEvent.channel,year:event.proEvent.year,branchId:outcome.proResultId??selected.id,chainId:event.proEvent.chainId,...(proAction?{action:proAction}:{})}}:{}),
     ...(outcome.injury ? { injury: structuredClone(p.injury!) } : {}), ...(p.position !== oldPosition ? { positionChange: { from: oldPosition, to: p.position } } : {}),
     ...(outcome.match ? { match: { ...outcome.match } } : {}), ...(event.scene ? { scene: event.scene } : {}) });
   Object.assign(s.careerEventHistory.at(-1)!, opportunityChanges);
   if(event.proEvent?.catalogId==="PE27"){const invitation=s.proEvents?.national[String(event.proEvent.year)];if(invitation)invitation.settled=true;}
+  if(event.proEvent?.wbcYear){const entry=s.proEvents?.wbc?.[event.proEvent.wbcYear];if(entry){entry.settled=true;entry.participated=selected.id==="participate";entry.result=outcome.proResultId;}}
   observeTwoWayQualification(s);
   s.careerEvent = null;
   if (s.weekProgress) {

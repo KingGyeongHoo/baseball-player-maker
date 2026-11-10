@@ -1,9 +1,12 @@
 import definitions from "./event-definitions.json";
+import type {EventRule} from "./event-stories";
 import type { CareerEvent, CareerEventBranch, EventOpportunity, EventRewardWeeks, EventScene, Player, Role, Stat } from "./types";
 
-export const eventIds = definitions.events.map(event => event.id);
+type Definition={id:string;title:string;description:string;rule?:EventRule;choices:{id:string;label:string;outcomes:{weight:number;message:string;effect:string;fatigueRange?:{min:number;max:number};recoveryPercent?:{min:number;max:number}}[]}[]};
+export const schoolEventCatalog=definitions.events as Definition[];
+export const eventIds = schoolEventCatalog.map(event => event.id);
 export function eventKind(id: string): CareerEvent["kind"] {
-  return id === "P08" ? "special" : id.startsWith("T") ? "training" : id.startsWith("P") ? "person" : id.startsWith("C") ? "tournament" : "game";
+  return id === "P08" ? "special" : id.startsWith("T") ? "training" : id.startsWith("P") || id.startsWith("L") ? "person" : id.startsWith("C") ? "tournament" : "game";
 }
 const rolePosition: Record<Role, string> = { "코너 야수": "1루수", "센터라인": "유격수", "포수": "포수", "선발": "선발투수", "중간계투": "중간계투", "마무리": "마무리" };
 const statNames: Record<string, Stat> = { "컨택": "contact", "파워": "power", "스피드": "speed", "수비": "defense", "구속": "velocity", "제구": "control", "변화구": "movement", "스태미나": "stamina", "회복력": "recovery", "어깨": "arm", "야구 지능": "bq" };
@@ -44,13 +47,14 @@ export function decodeEffects(effect: string, player: Player, targetRole?: Role)
 }
 
 export function createCareerEvent(definitionId: string, player: Player, date: string, week: number, context: Partial<EventOpportunity> & { scene?: EventScene } = {}): CareerEvent {
-  const definition = definitions.events.find(event => event.id === definitionId);
+  const definition = schoolEventCatalog.find(event => event.id === definitionId);
   if (!definition) throw new Error("알 수 없는 이벤트입니다.");
   return {
     id: `${player.id}:${week}:${date}:${definitionId}`, rewardVersion: 2, definitionId, kind: eventKind(definitionId), date, title: definition.title,
     description: definition.description.replace("{제안 포지션}", context.targetRole ? rolePosition[context.targetRole] : "새로운 포지션"),
     choices: definition.choices.map(choice => ({ id: choice.id, label: choice.label,
-      outcomes: choice.outcomes.map(outcome => ({ weight: outcome.weight, message: outcome.message, ...decodeEffects(outcome.effect, player, context.targetRole) })) })),
+      outcomes: choice.outcomes.map(outcome => ({ weight: outcome.weight, message: outcome.message, ...decodeEffects(outcome.effect, player, context.targetRole),...(outcome.fatigueRange?{fatigueRange:outcome.fatigueRange}:{}),...(outcome.recoveryPercent?{recoveryPercent:outcome.recoveryPercent}:{}) })) })),
+    ...(context.story ? {story:context.story} : {}),
     ...(context.competitionId ? { competitionId: context.competitionId } : {}),
     ...(context.targetRole ? { targetRole: context.targetRole } : {}), ...(context.scene ? { scene: context.scene } : {}),
   };

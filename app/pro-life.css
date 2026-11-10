@@ -87,6 +87,40 @@
 .career-save-list > div { display:flex; align-items:center; justify-content:space-between; gap:16px; border-top:1px solid #edf0f5; padding:13px 0; }
 .career-save-list b,.career-save-list span { display:block; font-size:12px; }
 .career-save-list span { color:#8794a8; font-size:10px; margin-top:5px; }
+.career-save-list > div { flex-wrap:wrap; }
+.career-save-list > div > div:first-child { min-width:0; overflow-wrap:anywhere; }
+.career-save-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.career-save-actions button { white-space:nowrap; }
+.career-save-actions .career-save-delete { color:#ab0419; }
+.allstar-entry { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 22px; margin-bottom:22px; border:1px solid #bfd1ec; border-radius:8px; background:linear-gradient(110deg,#edf4ff,#fff); }
+.allstar-entry>div { display:grid; gap:5px; }
+.allstar-entry span { color:#426ba2; font:700 10px Arial,sans-serif; letter-spacing:2px; }
+.allstar-entry b { color:#183555; font-size:18px; }
+.allstar-entry small { color:#687d98; font-size:11px; }
+.modal.allstar-modal { width:min(1000px,calc(100vw - 28px)); }
+.allstar-modal-body { padding:20px 24px 26px; }
+.allstar-dates,.allstar-update { color:#6c7e98; font-size:11px; line-height:1.9; margin:0 0 16px; }
+.allstar-controls { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+.allstar-team-label { margin:0 0 16px; padding:12px 14px; border-radius:6px; font-size:12px; line-height:1.7; }
+.allstar-team-label.blue { color:#255ca4; background:#edf4ff; }
+.allstar-team-label.white { color:#4e5b70; background:#f2f3f6; }
+.allstar-view-tabs { margin-bottom:18px; flex-wrap:wrap; }
+.allstar-ballot-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.allstar-ballot-card { border:1px solid #dfe6ef; border-radius:7px; overflow:hidden; }
+.allstar-ballot-card h3 { padding:11px 13px; margin:0; background:#f5f8fc; color:#324c70; font-size:12px; }
+.allstar-ballot-card ol { margin:0; padding:0 12px; list-style:none; }
+.allstar-ballot-card li { display:flex; align-items:center; gap:10px; padding:12px 0; border-top:1px solid #edf1f6; }
+.allstar-ballot-card li>b { color:#8292a9; font:700 13px Arial,sans-serif; }
+.allstar-ballot-card li>span { flex:1; min-width:0; }
+.allstar-ballot-card li>span>small { display:block; margin-top:4px; font-size:10px; color:#8290a5; }
+.allstar-ballot-card li>strong { color:#2f4e76; font:700 12px Arial,sans-serif; white-space:nowrap; }
+.allstar-ballot-card li>strong small { margin-left:3px; font-size:9px; font-weight:400; }
+.allstar-mine { background:#f0f5ff; }
+.allstar-my-vote { padding:10px 12px; margin:0; background:#edf4ff; color:#345b8c; font-size:11px; }
+.allstar-score { display:flex; justify-content:center; flex-wrap:wrap; align-items:center; gap:18px; padding:24px 12px; color:#476c9e; font-size:13px; }
+.allstar-score strong { color:#233f64; font:700 32px Arial,sans-serif; }
+.allstar-mvp { text-align:center; padding:12px; border:1px solid #eedca8; background:#fff9e8; color:#8a6a1b; margin-bottom:18px; font-size:12px; }
+@media(max-width:650px) { .allstar-ballot-grid { grid-template-columns:minmax(0,1fr); } .allstar-modal-body { padding:16px; } .allstar-entry { padding:16px; } .allstar-entry b { font-size:16px; } .allstar-controls .segmented { flex-wrap:wrap; } }
 .pro-goals { display:grid; grid-template-columns:1.1fr 1.2fr 1fr; align-items:center; gap:20px; border:1px solid #dce3ed; background:#fff; padding:20px 24px; margin:18px 0; color:#102147; }
 .pro-goals h3 { margin:6px 0; font-size:16px; }
 .pro-goals b { font-size:12px; }

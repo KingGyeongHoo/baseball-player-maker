@@ -1,15 +1,17 @@
 import type {Game,GameState} from "./types";
+import {allstarSeriesDate} from "./pro-allstar-calendar";
 const add=(date:string,n:number)=>new Date(Date.parse(date)+n*86400000).toISOString().slice(0,10);
 const weekday=(date:string)=>new Date(date+"T00:00:00Z").getUTCDay();
 function seriesDate(date:string){while(![2,5].includes(weekday(date)))date=add(date,1);return date;}
-export function threeGameSchedule(year:number,ids:number[],cycles:number,start:string,id:string){
+export function threeGameSchedule(year:number,ids:number[],cycles:number,start:string,id:string,allstar=false){
   const games:Game[]=[],ring=[...ids],blocks=cycles*(ids.length-1)/3;let date=seriesDate(`${year}-${start}`);
   for(let block=0;block<blocks;block++){
+    if(allstar)date=allstarSeriesDate(date,year);
     const cycle=Math.floor(block/(ids.length-1)),round=block%(ids.length-1);
     for(let pair=0;pair<ids.length/2;pair++){const clubs=[ring[pair],ring[ids.length-1-pair]];if((cycle+round)%2)clubs.reverse();
       for(let day=0;day<3;day++)games.push({id:`${year}-${id}-series-${block}-${pair}-${day}`,date:add(date,day),homeTeamId:clubs[0],awayTeamId:clubs[1],competitionId:id,round:block+1,rulesetId:"pro-three-game-series-v1",status:"scheduled",score:[0,0],innings:[[],[]],lineup:[],boxScore:{}});
     }
-    ring.splice(1,0,ring.pop()!);date=seriesDate(add(date,3));
+    ring.splice(1,0,ring.pop()!);date=allstar&&id==="pro-second"?add(date,7):seriesDate(add(date,3));
   }
   // Orient the even-degree series graph so every club has exactly half its
   // three-game blocks at home, while retaining the Tuesday/Friday pairings.
@@ -21,6 +23,7 @@ export function threeGameSchedule(year:number,ids:number[],cycles:number,start:s
 export function needsProScheduleUpgrade(s:GameState){return s.careerMode==="pro"&&!!s.proWorld&&["camp","regular"].includes(s.proWorld.stage)&&s.calendar.proSeriesVersion!==1&&!s.weekProgress&&!s.matchProgress;}
 export function upgradeProSchedule(s:GameState){
   if(!needsProScheduleUpgrade(s))return false;
+  delete s.calendar.proAllstarScheduleVersion;
   const removed=new Set<string>();
   for(const competition of s.calendar.competitions.filter(c=>["pro-first","pro-second"].includes(c.id))){
     const pending=s.calendar.events.filter(g=>g.competitionId===competition.id&&!g.tiebreaker&&g.status==="scheduled"),remaining=new Map(competition.participantTeamIds.map(id=>[id,0]));

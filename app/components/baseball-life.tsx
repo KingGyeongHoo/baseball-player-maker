@@ -391,10 +391,10 @@ export default function BaseballLife({initialState=null}:{initialState?:GameStat
 
   const player = state ? getPlayer(state) : null;
   const recordPlayer = state ? state.players.find(p => p.id === recordPlayerId) ?? player! : null;
-  const openRecords = (playerId: string | null = null) => {
+  const openRecords = useCallback((playerId: string | null = null) => {
     setRecordPlayerId(playerId);
     setTab("records");
-  };
+  },[]);
   const toggleAuto = () => {
     if (autoProgress.active) {
       pauseAuto(busy ? "자동 진행을 일시정지합니다. 계산 중인 한 주를 마친 뒤 멈춥니다." : "자동 진행을 일시정지했습니다.");

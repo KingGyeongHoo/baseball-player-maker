@@ -26,10 +26,10 @@ function completed(s,{PA=0,BF=0,days=1,started=false,level,known=true}={}){const
  const g={id:'observed-'+s.calendar.events.length,date:e.addDays(s.date,-days),homeTeamId:p.teamId,awayTeamId:(p.teamId+1)%10,competitionId:level??(p.teamId<10?'pro-first':'pro-second'),rulesetId:'test',status:'completed',score:[0,0],innings:[[],[]],lineup:[[p.id],[]],boxScore:{[p.id]:record},proAppearanceComplete:known};if(known)g.proAppearances={[p.id]:{teamId:p.teamId,level:p.teamId<10?'first':'second',position:p.position,startedField:!e.isPitcher(p.primaryRole),startedPitching:started}};s.calendar.events.push(g);return g;}
 function ids(s){return runtime.proGeneralCandidates(s).map(c=>c.id);}
 
-test('the catalog contains exactly PE01-PE30, two or three choices, and 100 percent per choice',()=>{
- assert.deepEqual(catalog.proEventCatalog.map(c=>c.id),Array.from({length:30},(_,i)=>'PE'+String(i+1).padStart(2,'0')));
+test('the catalog contains exactly PE01-PE75, two or three choices, and 100 percent per choice',()=>{
+ assert.deepEqual(catalog.proEventCatalog.map(c=>c.id),Array.from({length:75},(_,i)=>'PE'+String(i+1).padStart(2,'0')));
  for(const definition of catalog.proEventCatalog){assert.ok(definition.choices.length>=2&&definition.choices.length<=3);for(const choice of definition.choices)assert.equal(choice.outcomes.reduce((n,o)=>n+o.weight,0),100);}
- assert.equal(catalog.proEventCatalog.reduce((n,c)=>n+c.choices.length,0),73);
+ assert.equal(catalog.proEventCatalog.reduce((n,c)=>n+c.choices.length,0),163);
 });
 test('opening freezes stat aliases and shows only actions before a choice',()=>{
  const s=fixture(),p=e.getPlayer(s);p.stats.contact=10;p.stats.power=20;const event=open(s,'PE03');assert.equal(event.choices[0].outcomes[0].weeks.contact,4);p.stats.contact=90;p.stats.power=5;assert.equal(event.choices[0].outcomes[0].weeks.contact,4);
@@ -118,7 +118,7 @@ test('every general catalog event has a reachable eligible situation',()=>{
  const rest=fixture();for(const k of Object.keys(e.getPlayer(rest).trainingPolicy.tickets))e.getPlayer(rest).trainingPolicy.tickets[k]=0;collect(rest);
  const bench=fixture(),b=e.getPlayer(bench);b.teamId%=10;for(let i=1;i<=5;i++)completed(bench,{days:i});collect(bench);
  const vet=fixture('SP'),v=e.getPlayer(vet);v.age=34;vet.proWorld.stage='camp';const mate=vet.players.find(q=>q.id!==v.id&&q.teamId%10===v.teamId%10&&e.isPitcher(q.primaryRole));mate.professional.rookieYear=2028;collect(vet);
- const expected=Array.from({length:30},(_,i)=>'PE'+String(i+1).padStart(2,'0')).filter(id=>Number(id.slice(2))<=19&&id!=='PE13'||Number(id.slice(2))>=28);assert.deepEqual([...seen].sort(),expected);
+ const expected=Array.from({length:30},(_,i)=>'PE'+String(i+1).padStart(2,'0')).filter(id=>Number(id.slice(2))<=19&&id!=='PE13'||Number(id.slice(2))>=28);assert.deepEqual([...seen].filter(id=>Number(id.slice(2))<=30).sort(),expected);
 });
 function matchFixture(pitching=false){
  const s=fixture(pitching?'SP':'SS'),p=e.getPlayer(s),opponent=s.players.find(q=>q.id!==p.id);cursor(s);const batter=pitching?opponent:p,pitcher=pitching?p:opponent;batter.stats.contact=40;pitcher.stats.velocity=70;

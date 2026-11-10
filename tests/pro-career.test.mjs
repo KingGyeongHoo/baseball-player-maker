@@ -53,7 +53,7 @@ test('joining the drafted club retains the same player, stats, talent, policy, r
   assert.equal(q.id,p.id);assert.deepEqual(q.stats,p.stats);assert.deepEqual(q.initialStats,p.initialStats);assert.deepEqual(q.talent,p.talent);
   assert.deepEqual(q.trainingPolicy,p.trainingPolicy);assert.equal(q.reputation,p.reputation);assert.deepEqual(q.seasonStats,e.emptyRecord());
   assert.equal(q.career[0].schoolName,old.teams[p.teamId].name);assert.equal(q.career[0].records.batting.H,30);assert.deepEqual(next.draft,old.draft);
-  assert.equal(next.date,'2028-03-01');assert.equal(q.age,19);assert.equal(next.careerNotice.kind,'entry');
+  assert.equal(next.date,'2028-02-01');assert.equal(q.age,19);assert.equal(next.careerNotice.kind,'entry');
   assert.equal(q.professional.entry,'draft');
   assert.throws(()=>advance(next),/알림/);assert.throws(()=>pc.continueCareer(next,'join'),/결과와 알림/);
 });
@@ -107,7 +107,7 @@ test('college season records are archived separately and a college draft pick ca
   assert.equal(careerLeagueTable(s.calendar,'college').length,12);
   for(const key of Object.keys(p.stats))p.stats[key]=95;p.reputationBonus=100;s.date=s.calendar.seasonEnd;
   s=advance(s);assert.equal(s.phase,'ended');assert.equal(s.careerNotice.kind,'seasonComplete');assert.ok(s.postSchool.collegeDraft.some(p=>p.playerId===s.playerId));
-  s=pc.continueCareer(pc.acknowledgeCareer(s),'join');assert.equal(s.careerMode,'pro');assert.equal(s.postSchool.pro.entry,'collegeDraft');assert.equal(s.date,'2029-03-01');
+  s=pc.continueCareer(pc.acknowledgeCareer(s),'join');assert.equal(s.careerMode,'pro');assert.equal(s.postSchool.pro.entry,'collegeDraft');assert.equal(s.date,'2029-02-01');
   const q=e.getPlayer(s);assert.deepEqual(q.career.map(r=>[r.year,r.careerMode??'highSchool']),[[2027,'highSchool'],[2028,'college']]);assert.equal(q.age,20);assert.deepEqual(s.draft,[]);
 });
 

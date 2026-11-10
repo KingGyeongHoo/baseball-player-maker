@@ -6,13 +6,18 @@ import PlayerAbilities from "./player-abilities";
 import {salaryText} from "./pro-career-panels";
 import PostseasonBracket from "./postseason-bracket";
 import {squadLabel} from "../../lib/sim/pro-squads";
+import {allstarDates} from "../../lib/sim/pro-allstar-calendar";
 
 function ProWeekSchedule({state}:{state:GameState}) {
   const player=getPlayer(state);
   return <div className="week-schedule">{Array.from({length:7},(_,i)=>{
     const date=addDays(state.date,i),game=state.calendar.events.find(g=>g.date===date&&[g.homeTeamId,g.awayTeamId].includes(player.teamId));
     const opponent=game?state.teams[game.homeTeamId===player.teamId?game.awayTeamId:game.homeTeamId]:undefined;
-    const label=game?`${game.homeTeamId===player.teamId?"홈":"원정"} · ${opponent?.shortName??opponent?.name??"대진 미정"}`:state.calendar.trainingDays.includes(date)?"훈련":"휴식";
+    const allstar=state.careerMode==="pro"?allstarDates(state.calendar.seasonYear):undefined;
+    const selected=player.professional?.allstarHistory?.find(row=>row.year===state.calendar.seasonYear&&!row.withdrawn);
+    const allstarLabel=allstar&&(date===allstar.second||date===allstar.first)?`${date===allstar.first?"1군":"2군"} 올스타${selected&&allstar[selected.level]===date?" · 출전":""}`:allstar&&date>=allstar.restStart&&date<=allstar.restEnd?"올스타 휴식기":null;
+    const stove=state.proWorld?.stove;
+    const label=stove?(stove.closed?"계약 마무리·휴식":date===stove.nextUpdate?"시장 갱신":"스토브리그"):allstarLabel??(game?`${game.homeTeamId===player.teamId?"홈":"원정"} · ${opponent?.shortName??opponent?.name??"대진 미정"}`:state.calendar.trainingDays.includes(date)?"훈련":"휴식");
     const dow=new Date(date+"T00:00:00Z").getUTCDay();
     return <div key={date} className={`schedule-day ${i===0?"today":""} ${game?"game-day":""}`} title={`${date} · ${label}`}><span>{["SUN","MON","TUE","WED","THU","FRI","SAT"][dow]}</span><b>{Number(date.slice(-2))}</b><small>{label}</small><i/></div>;
   })}</div>;
@@ -25,7 +30,7 @@ export default function ProDashboard({state,onTab,onTraining,trainingDisabled,re
   const level=squadLabel(p.teamId);
   const year=pro?Math.max(1,(world?.year??state.calendar.seasonYear)-pro.rookieYear+1):null;
   const registration=state.careerMode==="pro"?level:"대학";
-  const stages={camp:"스프링캠프",regular:"정규 시즌",postseason:"포스트시즌",summary:"시즌 결산",offseason:"비시즌",retired:"은퇴"};
+  const stages={camp:"스프링캠프",regular:"정규 시즌",postseason:"포스트시즌",summary:"시즌 결산",offseason:world?.stove?.closed?"1월 계약 마무리":"스토브리그",retired:"은퇴"};
   return <div className="pro-career-dashboard"><CareerDashboard state={state}
     onTab={tab=>onTab(tab==="team"?"roster":tab==="games"?"league":tab)} onTraining={onTraining} trainingDisabled={trainingDisabled}
     profileMeta={<>{state.teams[p.teamId]?.name??"무소속"} · {p.age??19}세{year?` · 프로 ${year}년차`:""}</>}

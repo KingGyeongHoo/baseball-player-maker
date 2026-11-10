@@ -73,7 +73,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     } else m.battingSide = 0;
     m.outs = 0; m.pa = 0; m.runs = 0; m.bases = [null, null, null]; m.ready = false;
   };
-  const maxInnings=game.competitionId.startsWith("pro-playoffs-")?15:params["match.max_innings"];
+  const maxInnings=game.exhibition?9:game.competitionId.startsWith("pro-playoffs-")?15:params["match.max_innings"];
   while (m.inning <= maxInnings && !ended) {
     const side = m.battingSide, pitchingSide = 1 - side;
     if (side === 0 && m.inning >= params["match.regular_innings"] && game.score[0] > game.score[1] && m.pa === 0) break;
@@ -82,7 +82,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     if (!m.ready) {
       if (++m.pa > params["match.max_pa"]) throw new Error(`타석 안전 한도 초과: seed=${s.seed}, game=${game.id}`);
       const current = player(m.pitchers[pitchingSide]);
-      const limit = m.usedPitchers[pitchingSide].length === 1 ? params["coach.starter_outs"] : pitchingRole(current) === "마무리" ? params["coach.closer_outs"] : params["coach.relief_outs"];
+      const limit = game.exhibition?(m.usedPitchers[pitchingSide].length<=3?3:6):m.usedPitchers[pitchingSide].length === 1 ? params["coach.starter_outs"] : pitchingRole(current) === "마무리" ? params["coach.closer_outs"] : params["coach.relief_outs"];
       if (m.pitchOuts[pitchingSide] >= limit || current.fatigue >= params["coach.replace_fatigue"] || !available(current, game.date)) {
         const lead = game.score[pitchingSide] - game.score[side];
         const next = m.sides[pitchingSide].pitchers.map(player).filter(p => !m.usedPitchers[pitchingSide].includes(p.id) && !m.sides[pitchingSide].field.includes(p.id) && available(p, game.date) && p.fatigue < params["coach.replace_fatigue"])
@@ -95,6 +95,15 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     const orderIndex = m.battingIndex[side] % 9;
     let batter = player(m.sides[side].order[orderIndex]);
     const pitcher = player(m.pitchers[pitchingSide]);
+    if(game.exhibition&&m.inning>=4){
+      const fieldIndex=m.sides[side].field.indexOf(batter.id),position=(["C","SS","CF","2B","1B","3B","LF","RF","DH"] as Position[])[fieldIndex];
+      const substitute=rosters[side].filter(p=>!isPitcher(p.primaryRole)&&available(p,game.date)&&!game.lineup[side].includes(p.id)&&p.eligiblePositions.includes(position))
+        .sort((a,b)=>selectionScore(b,roleFor(position))-selectionScore(a,roleFor(position))||a.id.localeCompare(b.id))[0];
+      if(substitute){m.sides[side].field[fieldIndex]=substitute.id;m.sides[side].order[orderIndex]=substitute.id;game.lineup[side].push(substitute.id);batter=substitute;
+        m.defense[side]=m.sides[side].field.slice(0,8).reduce((sum,id)=>sum+effective(player(id)).defense,0)/8;
+        m.arm[side]=[2,6,7].reduce((sum,i)=>sum+effective(player(m.sides[side].field[i])).arm/3,0);
+      }
+    }
     if (!available(batter, game.date)) {
       const fieldIndex = m.sides[side].field.indexOf(batter.id);
       const position = (["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH"] as Position[])[fieldIndex];

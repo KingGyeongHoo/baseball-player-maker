@@ -8,7 +8,7 @@ import {developmentCalendar,careerLeagueTable} from "./pro-calendar";
 import {applyAging} from "./pro-growth";
 import {regularAwards,contractValue} from "./pro-evaluation";
 import {BASE_SALARY,clubName,contractFor,ensureProWorld,initializeProfessional,proNews,proNotice} from "./pro-world";
-import {upgradeContractRules,needsContractUpgrade,applySeasonExitPolicies,offerFor,canRemove,careerRequest,clubRoster,negotiateOffer,openContractMarket,releasePlayer,renewNPCs,reviewNPCTrades,signContract,trimForRookies,waitForOffers} from "./pro-market";
+import {upgradeContractRules,needsContractUpgrade,applySeasonExitPolicies,offerFor,canRemove,careerRequest,clubRoster,negotiateOffer,openContractMarket,refreshOffers,releasePlayer,renewNPCs,reviewNPCTrades,reviewStoveReleases,signContract,trimForRookies} from "./pro-market";
 import {type GameState,type Game,type Player,type Position} from "./types";
 import type {ProSeries} from "./pro-types";
 import {freezeProNational,tryProNationalInvitation} from "./pro-national-events";
@@ -16,6 +16,8 @@ import {postseasonRound,postseasonRounds} from "../pro-postseason";
 import {advanceLeagueTiebreakers} from "./league-standings";
 import {needsProScheduleUpgrade,upgradeProSchedule} from "./pro-schedule";
 import {needsProSquadUpgrade,rookieDevelopmentalIds} from "./pro-squads";
+import {needsAllstarScheduleUpgrade,upgradeAllstarSchedule} from "./pro-allstar-calendar";
+import {ensureAllstarSeason} from "./pro-allstar";
 
 export function archiveProfessionalSeason(s:GameState,p:Player){
   const year=s.calendar.seasonYear;if(p.career.some(r=>r.year===year))return;
@@ -150,7 +152,7 @@ export function closeProfessionalSeason(s:GameState){
   applySeasonExitPolicies(s);
   freezeProNational(s);
   for(const p of s.players){if(!p.professional)continue;p.professional.proBonus*=.8;if(p.professional.employment==="freeAgent")p.professional.unattachedYears++;}
-  const awards=regularAwards(s);w.seasons.push({year:w.year,endDate:s.date,standings:careerLeagueTable(s.calendar,"pro-first"),farmStandings:careerLeagueTable(s.calendar,"pro-second"),champion:w.postseason?.champion??null,awards,draft:[]});
+  const awards=regularAwards(s);w.seasons.push({year:w.year,endDate:s.date,standings:careerLeagueTable(s.calendar,"pro-first"),farmStandings:careerLeagueTable(s.calendar,"pro-second"),champion:w.postseason?.champion??null,awards,draft:[],...(w.allstar?{allstar:structuredClone(w.allstar)}:{})});
   const p=getPlayer(s),mine=awards.filter(a=>a.playerId===p.id).map(a=>a.kind).join(" · ");
   proNotice(s,`season:${w.year}`,`${w.year} 프로 시즌 결산`,`${clubName(s,w.postseason?.champion??null)} 우승 · 정규·2군·포스트시즌 기록을 보관했습니다.${mine?` 수상: ${mine}.`:""} 계약과 다음 시즌, 은퇴를 선택할 수 있습니다.`,"seasonComplete");
   if((p.age??19)>=45||p.professional!.unattachedYears>=2)retireProfessional(s,(p.age??19)>=45?"45세 시즌을 마쳐 장기 커리어를 마무리했습니다.":"무소속으로 두 시즌을 마쳐 도전을 마무리했습니다.");
@@ -179,19 +181,49 @@ function retireNPC(s:GameState,p:Player,reason:string){
   proNews(s,`${p.name} 은퇴 · ${reason}`,`retirement:${p.id}`);
 }
 export function prepareOffseason(s:GameState){
+  const w=s.proWorld!,year=w.year+1;if(w.stove?.year===year)return;
+  if(!w.seasonClosed)throw new Error("시즌 결산 후 스토브리그를 시작할 수 있습니다.");
+  const legacy=w.market?.year===year,opening=`${w.year}-11-01`,closing=`${year}-01-01`;
+  const before=s.date;s.date=[s.date,opening].sort().at(-1)!;
+  for(const p of s.players)recoverOffseason(p,before,s.date);
+  w.stove={version:1,year,openedAt:s.date,closesAt:closing,nextUpdate:[addDays(s.date,7),closing].sort()[0],round:0,closed:s.date>=closing,movedIds:[]};
+  w.stage="offseason";
+  // Adopt an already opened market without repeating signings, the rookie
+  // class or a pending negotiation from an older save.
+  if(legacy)return;
   capturePlayerEvaluations(s,"season-end");
-  const w=s.proWorld!,year=w.year+1;if(w.market?.year===year)return;
-  s.date=`${w.year}-11-01`;
   for(const club of w.clubs){const rank=w.seasons.at(-1)?.standings.findIndex(r=>r.teamId===club.id)??5;club.direction=rank<3?"contend":rank>6?"rebuild":"balanced";}
   for(const p of [...s.players])if(p.id!==s.playerId&&p.professional&&canRemove(s,p)&&((p.age??19)>=42||(p.age??19)>=37&&contractValue(p,w.year)<44||p.professional.unattachedYears>=2))retireNPC(s,p,"나이·최근 실적과 다음 계약을 고려했습니다.");
-  applySeasonExitPolicies(s);discardRetiredPlayers(s);addRookieClass(s,year);renewNPCs(s,year);reviewNPCTrades(s);openContractMarket(s);
+  applySeasonExitPolicies(s);discardRetiredPlayers(s);addRookieClass(s,year);openContractMarket(s);processStoveRound(s);w.stage="offseason";
+  proNews(s,"스토브리그 개장 · 11~12월 매주 FA 제안·방출·트레이드를 검토합니다.",`${year}:stove-open`);
+}
+function processStoveRound(s:GameState){
+  const w=s.proWorld!,stove=w.stove!,before=new Set(w.news.map(row=>row.id));
+  reviewStoveReleases(s,stove.year);renewNPCs(s,stove.year,stove.closed?9:stove.round);
+  // The player's offers get priority over NPC free-agent signings in this
+  // round. An offer is revalidated on acceptance against actual capacity.
+  if(w.market&&!w.market.settled)refreshOffers(s);
+  settleNPCFreeAgents(s,stove.year);
+  reviewNPCTrades(s,stove.round);
+  if(w.market&&!w.market.settled)refreshOffers(s);
+  proNews(s,`스토브리그 ${stove.round+1}차 · 구단 소식 ${w.news.filter(row=>!before.has(row.id)).length}건 · ${stove.closed?"시장 마감, 1월 계약 마무리":"다음 주 제안과 전력 재편을 기다립니다."}`,`${stove.year}:stove:${stove.round}`);
+}
+export function advanceStoveLeague(s:GameState){
+  prepareOffseason(s);const w=s.proWorld!,stove=w.stove!;
+  if(stove.closed)throw new Error("스토브리그가 마감됐습니다. 최종 계약을 결정한 뒤 2월 캠프로 이동하세요.");
+  const before=s.date;s.date=stove.nextUpdate;
+  for(const p of s.players)recoverOffseason(p,before,s.date);
+  stove.round++;stove.closed=s.date>=stove.closesAt;stove.nextUpdate=[addDays(s.date,7),stove.closesAt].sort()[0];
+  if(w.market)w.market.round=stove.round;
+  processStoveRound(s);
 }
 export function settleNPCFreeAgents(s:GameState,year:number){
   const agents=s.players.filter(p=>p.id!==s.playerId&&p.professional?.employment==="freeAgent").sort((a,b)=>contractValue(b,year-1)-contractValue(a,year-1)||a.id.localeCompare(b.id));
   for(const p of agents){const value=contractValue(p,year-1);if(value<43&&!requiresDevelopmentalOffer(p,year-1))continue;
     const clubs=s.proWorld!.clubs.map(c=>({id:c.id,count:clubRoster(s,c.id).filter(q=>q.position===p.position).length})).sort((a,b)=>a.count-b.count||a.id-b.id);
     for(const club of clubs){
-      if(clubRoster(s,club.id).length>=74||clubRoster(s,club.id).filter(q=>q.teamId>=10).length>=44)continue;
+      const pending=s.proWorld!.market;
+      if(pending&&!pending.settled&&pending.offers.some(offer=>offer.club===club.id))continue;
       const offer=offerFor(s,p,club.id,year,"released");if(!offer)continue;
       signContract(s,p,offer);break;
     }
@@ -206,19 +238,21 @@ function recoverOffseason(p:Player,from:string,to:string){
 export function startNextProSeason(s:GameState,unattached=false){
   const w=s.proWorld!,p=getPlayer(s),year=w.year+1;if(w.stage==="retired")throw new Error("은퇴한 커리어입니다.");
   if(!w.seasonClosed)throw new Error("시즌 결산을 먼저 완료해야 합니다.");
+  if(w.stove&&!w.stove.closed)throw new Error("스토브리그를 1월 마감까지 진행한 뒤 스프링캠프에 참가할 수 있습니다.");
   if(!unattached&&(!p.professional!.contract||p.professional!.contract!.endYear<year||p.professional!.employment!=="active"))throw new Error("다음 시즌 계약을 먼저 선택해 주세요.");
   if(unattached&&p.professional!.employment==="active")releasePlayer(s,p,"원소속 구단과 계약 종료 후 개인 훈련",year);
-  settleNPCFreeAgents(s,year);const oldDate=w.seasons.at(-1)?.endDate??s.date;
-  for(const q of s.players){const pro=q.professional!;recoverOffseason(q,oldDate,`${year}-03-01`);
+  settleNPCFreeAgents(s,year);const oldDate=w.stove?s.date:w.seasons.at(-1)?.endDate??s.date;
+  const campDate=[s.date,`${year}-02-01`].sort().at(-1)!;
+  for(const q of s.players){const pro=q.professional!;recoverOffseason(q,oldDate,campDate);
     if(pro.agedYear<year){q.age=(q.age??19)+1;applyAging(q,year);}
     q.seasonStats=emptyRecord();q.seasonByLevel={first:emptyRecord(),second:emptyRecord()};q.seasonPostseason=emptyRecord();q.seasonByClub={};q.lastPitched=null;q.recentAppearances=[];q.recentZ=0;
     pro.registration={year,days:0};if(pro.twoWayReview){pro.twoWayReview.qualifiedDays=pro.twoWayReview.belowDays=0;delete pro.twoWayReview.lastDate;}const stint=pro.service.at(-1);if(stint&&pro.employment==="active")stint.to=year;
   }
-  for(const club of w.clubs){club.nextReview=`${year}-03-01`;const rank=w.seasons.at(-1)?.standings.findIndex(r=>r.teamId===club.id)??5;club.direction=rank<3?"contend":rank>6?"rebuild":"balanced";}
-  s.calendar=developmentCalendar(year,true);s.date=`${year}-03-01`;s.phase="weekStart";s.report=null;s.records=emptyRecord();delete s.weekProgress;delete s.matchProgress;delete s.matchEffect;s.careerEvent=null;delete s.pendingEventOutcome;s.pendingEvents=[];
+  for(const club of w.clubs){club.nextReview=campDate;const rank=w.seasons.at(-1)?.standings.findIndex(r=>r.teamId===club.id)??5;club.direction=rank<3?"contend":rank>6?"rebuild":"balanced";}
+  s.calendar=developmentCalendar(year,true);s.date=campDate;s.phase="weekStart";s.report=null;s.records=emptyRecord();delete s.weekProgress;delete s.matchProgress;delete s.matchEffect;s.careerEvent=null;delete s.pendingEventOutcome;s.pendingEvents=[];
   for(const team of s.teams){team.wins=0;team.losses=0;team.draws=0;}
   w.year=year;w.stage="camp";w.regularEnd=s.calendar.competitions.find(c=>c.id==="pro-first")!.endDate;w.seasonClosed=false;delete w.postseason;delete w.market;
-  delete w.monthly;delete w.lastMonthly;
+  delete w.monthly;delete w.lastMonthly;delete w.allstar;delete w.stove;
   w.goal=p.proContract?.status==="developmental"?"정식 선수 전환":p.teamId<0?"새 구단 계약":p.teamId>=10?"1군 승격":"1군 정착과 시즌 성과";w.longGoal=(p.age??19)>=33?"몸 관리와 통산 기록":p.professional!.faEligible?"우승과 좋은 계약":"FA 공헌일 900일";
   capturePlayerEvaluations(s,"season-start");
   proNotice(s,`camp:${year}`,`${year} 캠프 시작`,`${p.age}세 · ${clubName(s,p.teamId<0?null:p.teamId%10)} · 지난 시즌 기록과 계약을 유지합니다. 노화는 이번 시즌 나이에 따라 한 번 적용했습니다.${unattached?" 무소속 훈련은 성장 60%, 공식 경기와 FA 공헌일은 없습니다.":" 개막 등록은 경쟁·컨디션에 따라 평가합니다."}`);
@@ -243,13 +277,13 @@ export function actOnProCareer(input:GameState,action:ProAction):GameState{
   if(action.type==="retire"){retireProfessional(s);return finish();}
   if(action.type==="market"){prepareOffseason(s);return finish();}
   if(action.type==="negotiate"){negotiateOffer(s,action.id);return finish();}
-  if(action.type==="wait"){waitForOffers(s);return finish();}
+  if(action.type==="wait"){advanceStoveLeague(s);return finish();}
   if(action.type==="accept"){
     const offer=w.market?.offers.find(v=>v.id===action.id);if(!offer||w.market!.settled)throw new Error("유효한 계약 제안이 아닙니다.");
     signContract(s,p,offer);w.market!.settled=true;proNotice(s,`contract:${offer.id}`,"계약을 체결했습니다",`${clubName(s,offer.club)} · ${offer.years}년 · 연봉 ${Math.trunc(offer.salary/10_000).toLocaleString()}만 원. 예상 역할은 계획이며 출전 보장은 아닙니다.`);return finish();
   }
-  if(action.type==="unattached"){if(w.market?.kind==="renewal"&&p.professional!.employment==="active")throw new Error("FA 전에는 구단 동의 없이 계약을 해제할 수 없습니다.");startNextProSeason(s,true);return finish();}
-  if(action.type==="nextSeason"){if(!w.market)prepareOffseason(s);if(!s.careerNotice)startNextProSeason(s);return finish();}
+  if(action.type==="unattached"){prepareOffseason(s);if(w.market?.kind==="renewal"&&p.professional!.employment==="active")throw new Error("FA 전에는 구단 동의 없이 계약을 해제할 수 없습니다.");startNextProSeason(s,true);return finish();}
+  if(action.type==="nextSeason"){if(!w.stove){prepareOffseason(s);return finish();}if(!s.careerNotice)startNextProSeason(s);return finish();}
   return finish();
 }
 export function advanceUnattachedMonth(input:GameState,advance:(s:GameState)=>GameState){
@@ -260,10 +294,11 @@ export function advanceUnattachedMonth(input:GameState,advance:(s:GameState)=>Ga
   }return s;
 }
 export function upgradeProfessionalState(input:GameState){
-  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===1&&!needsPostseasonUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input))return input;
+  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===1&&!needsPostseasonUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input))return input;
   const s=structuredClone(input);ensureProWorld(s);upgradeContractRules(s);
   migrateActivePostseason(s);
   upgradeProSchedule(s);
+  upgradeAllstarSchedule(s);ensureAllstarSeason(s);
   if(!input.proWorld&&s.phase==="ended"){s.proWorld!.stage="regular";s.phase="weekStart";finishProfessionalDay(s);s.date=addDays(s.date,1);}
   return s;
 }

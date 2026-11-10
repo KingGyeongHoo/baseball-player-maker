@@ -1,4 +1,4 @@
-import {available,clamp,emptyRecord,isPitcher,labels,mergeRecord,params,roleFor,roleScore,selectionScore,talentLabel} from "./engine";
+import {available,clamp,emptyRecord,hash,isPitcher,labels,mergeRecord,params,roleFor,roleScore,selectionScore,talentLabel} from "./engine";
 import {contractValue} from "./pro-evaluation";
 import {draftAssessment} from "./draft";
 import {evaluationReference,EVALUATION_MODEL,gradeTool,standardMatchup} from "./evaluation-reference";
@@ -39,6 +39,12 @@ export function buildEvaluationContext(s:GameState) {
   return {reference,league,games,cohorts,history,leagueSeasons};
 }
 type Context=ReturnType<typeof buildEvaluationContext>;
+// Cohort values are already descending; tied values share the first rank.
+function cohortRank(values:number[],value:number){
+  let low=0,high=values.length;
+  while(low<high){const middle=(low+high)>>>1;if(values[middle]>value)low=middle+1;else high=middle;}
+  return low+1;
+}
 const referencePrior=(context:Context,school=false)=>{const stage=school?"school":"pro",config=context.reference.parameters;return {events:config[`evaluation.${stage}.events`]??(school?60:100),hits:config[`evaluation.${stage}.hits`]??(school?90:180),extraBases:config[`evaluation.${stage}.extraBases`]??(school?150:300)};};
 const fields=(record:RecordLine,league:RecordLine,context:Context,school=false,first=false)=>{const prior=referencePrior(context,school),season=context.leagueSeasons[school?"school":first?"first":"second"];return {batting:{...performanceEvidence(record,league,"batting",school,first,prior),leagueSeason:season},pitching:{...performanceEvidence(record,league,"pitching",school,first,prior),leagueSeason:season}};};
 export function multiyearEvidence(s:GameState,p:Player,level:"first"|"second"|"school",field:EvaluationField,history?:Map<string,RecordLine>,prior?:PerformanceEvidence["prior"]):PerformanceEvidence {
@@ -55,10 +61,10 @@ function publicTalent(p:Player,field:EvaluationField){
   return {label,min:p.talent[field],max:p.talent[field]};
 }
 function roleTools(role:Role):Stat[]{return role==="선발"?[...pitchingKeys,"stamina","recovery"]:isPitcher(role)?[...pitchingKeys,"recovery"]:role==="포수"?["defense","arm","bq","contact","power"]:role==="센터라인"?["defense","speed","arm","contact"]:["contact","power","defense","arm"];}
-export function createPlayerEvaluation(s:GameState,p:Player,context:Context=buildEvaluationContext(s),reason:EvaluationReason="introduced"):EvaluationSnapshot {
+type EvaluationInputs=Omit<EvaluationSnapshot,"performance"|"multiyear"|"model"|"roles">;
+function createEvaluationInputs(s:GameState,p:Player,context:Context,reason:EvaluationReason):EvaluationInputs {
   const pro=s.careerMode==="pro",reference=context.reference,school=!s.careerMode,records={school:school?structuredClone(p.seasonStats):null,first:pro?structuredClone(p.seasonByLevel?.first??emptyRecord()):null,second:pro?structuredClone(p.seasonByLevel?.second??emptyRecord()):null,postseason:pro?structuredClone(p.seasonPostseason??emptyRecord()):null};
-  const performance={school:records.school?fields(records.school,context.league.school,context,true):null,first:records.first?fields(records.first,context.league.first,context,false,true):null,second:records.second?fields(records.second,context.league.second,context):null};
-  const prior=referencePrior(context),multiyear=pro?{first:{batting:multiyearEvidence(s,p,"first","batting",context.history,prior),pitching:multiyearEvidence(s,p,"first","pitching",context.history,prior)},second:{batting:multiyearEvidence(s,p,"second","batting",context.history,prior),pitching:multiyearEvidence(s,p,"second","pitching",context.history,prior)}}:null;
+  const prior=referencePrior(context);
   const games=context.games.get(p.id)??[],competitions=new Map<string,EvaluationSnapshot["evidence"]["competitions"][number]>(),opponents=new Set<number>();
   const recent={from:null as string|null,to:null as string|null,first:emptyRecord(),second:emptyRecord(),school:emptyRecord(),games:0};
   for(const game of games){const team=game.evaluationEnvironment?.playerTeams?.[p.id]??(game.lineup[0]?.includes(p.id)?game.homeTeamId:game.lineup[1]?.includes(p.id)?game.awayTeamId:undefined);if(team!==undefined)opponents.add(game.homeTeamId===team?game.awayTeamId:game.homeTeamId);
@@ -66,18 +72,30 @@ export function createPlayerEvaluation(s:GameState,p:Player,context:Context=buil
   }
   const recentGames=games.filter(g=>!g.competitionId.startsWith("pro-playoffs-")&&Date.parse(s.date)-Date.parse(g.date)<=30*86400000).slice(-10);
   for(const game of recentGames){const level=school?"school":game.competitionId==="pro-first"?"first":"second";mergeRecord(recent[level],game.boxScore[p.id]);recent.from??=game.date;recent.to=game.date;recent.games++;}
-  const tools=statKeys.map(stat=>{const ref=reference.tools[stat],field=pitchingKeys.includes(stat)?"pitching":battingKeys.includes(stat)?"batting":isPitcher(p.primaryRole)?"pitching":"batting",member=!!p.twoWay||isPitcher(p.primaryRole)===(field==="pitching"),cohort=member?context.cohorts.get(`${p.grade}:${field}`)?.get(stat):undefined;return {stat,value:p.stats[stat],...gradeTool(p.stats[stat],ref),mean:ref.mean,sd:ref.sd,population:ref.size,fallback:ref.fallback,...(cohort?.size?{cohortRank:1+cohort.values.filter(v=>v>p.stats[stat]).length,cohortSize:cohort.size}:{})};});
-  const eligibleRoles=[...new Set(p.eligiblePositions.map(roleFor))],roleRatings=eligibleRoles.map(role=>{const keys=roleTools(role),sorted=[...keys].sort((a,b)=>p.stats[b]-p.stats[a]||a.localeCompare(b));const score=Object.entries(reference.roleWeights[role]).reduce((n,[key,weight])=>n+p.stats[key as Stat]*weight!,0);return {role,score,...gradeTool(score,reference.roles[role]),strengths:sorted.slice(0,2),needs:sorted.slice(-2).reverse()};}).sort((a,b)=>b.score-a.score||a.role.localeCompare(b.role));
+  const tools=statKeys.map(stat=>{const ref=reference.tools[stat],field=pitchingKeys.includes(stat)?"pitching":battingKeys.includes(stat)?"batting":isPitcher(p.primaryRole)?"pitching":"batting",member=!!p.twoWay||isPitcher(p.primaryRole)===(field==="pitching"),cohort=member?context.cohorts.get(`${p.grade}:${field}`)?.get(stat):undefined;return {stat,value:p.stats[stat],...gradeTool(p.stats[stat],ref),mean:ref.mean,sd:ref.sd,population:ref.size,fallback:ref.fallback,...(cohort?.size?{cohortRank:cohortRank(cohort.values,p.stats[stat]),cohortSize:cohort.size}:{})};});
   const previous=p.evaluationHistory?.filter(r=>r.date<s.date).at(-1),changes=previous?Object.fromEntries(statKeys.filter(k=>Math.abs(p.stats[k]-previous.stats[k])>1e-8).map(k=>[k,p.stats[k]-previous.stats[k]])):null;
-  const model={batting:standardMatchup(p,reference),pitching:standardMatchup(p,reference,true)};
-  const roleField=isPitcher(p.primaryRole)?"pitching":"batting",first=performance.first?.[roleField],recentFirst=performanceEvidence(recent.first,context.league.first,roleField,false,true,prior);
+  const roleField=isPitcher(p.primaryRole)?"pitching":"batting",firstSample=records.first?count(records.first,roleField):0,recentFirst=performanceEvidence(recent.first,context.league.first,roleField,false,true,prior);
   const candidate=pro?roleScore(p)-params["coach.fatigue_penalty"]*p.fatigue-(p.proContract?.status==="developmental"?6:0)-(p.professional?.managedUntil?12:0)+(recentFirst.score===null?0:params["coach.recent_max"]*clamp((recentFirst.score-50)/20,-1,1)*recentFirst.reliability):null;
   return {id:`${EVALUATION_MODEL}:${p.id}:${s.calendar.seasonYear}:${s.date}:${reason}`,version:1,modelVersion:EVALUATION_MODEL,balanceVersion:s.balanceVersion,playerId:p.id,playerName:p.name,date:s.date,season:s.calendar.seasonYear,reason,mode:pro?"pro":"school",grade:p.grade,graduationYear:school?s.calendar.seasonYear+3-p.grade:null,age:p.age??null,teamId:p.teamId,teamName:s.teams[p.teamId]?.name??"무소속",position:p.position,role:p.primaryRole,eligiblePositions:[...p.eligiblePositions],twoWay:!!p.twoWay,
-    referenceId:reference.id,referenceSource:reference.source,referenceCreatedAt:reference.createdAt,stats:{...p.stats},stance:{...p.stance},tools,publicTalent:{batting:publicTalent(p,"batting"),pitching:publicTalent(p,"pitching")},records,performance,multiyear,recent,
-    evidence:{games:games.length,opponents:opponents.size,from:games[0]?.date??null,to:games.at(-1)?.date??null,competitions:[...competitions.values()],opponentSnapshotGames:games.filter(g=>g.evaluationEnvironment).length},model,roles:roleRatings,growth:previous&&changes?{from:previous.date,to:s.date,changes}:null,
+    referenceId:reference.id,referenceSource:reference.source,referenceCreatedAt:reference.createdAt,stats:{...p.stats},stance:{...p.stance},tools,publicTalent:{batting:publicTalent(p,"batting"),pitching:publicTalent(p,"pitching")},records,recent,
+    evidence:{games:games.length,opponents:opponents.size,from:games[0]?.date??null,to:games.at(-1)?.date??null,competitions:[...competitions.values()],opponentSnapshotGames:games.filter(g=>g.evaluationEnvironment).length},growth:previous&&changes?{from:previous.date,to:s.date,changes}:null,
     health:{fatigue:p.fatigue,forcedRest:p.forcedRest,injuryUntil:p.injury?.unavailableUntil??null,penalty:p.injury?.penaltyRemaining??0,available:available(p,s.date),developmental:p.proContract?.status==="developmental",transferWeeks:p.transferAdaptation?.weeksRemaining??0,unattached:p.professional?.employment==="freeAgent",unattachedYears:p.professional?.unattachedYears??0},availability:p.evaluationAvailability?{...p.evaluationAvailability}:null,
     comparison:{draftScore:school&&reason==="draft"?draftAssessment(p):null,legacyContract:pro?contractValue(p,s.calendar.seasonYear):null,legacyRegistration:selectionScore(p),candidateRegistration:candidate},reputation:reputationBreakdown(p),
-    missing:["수비·주루 실측 자료 없음","구종·타구 질·좌우 상대 자료 없음",...(games.some(g=>!g.evaluationEnvironment)?["일부 경기의 당시 상대 수준 자료 없음"]:[]),...(!previous?["날짜가 있는 이전 성장 관찰 없음"]:[]),...(pro&&!first?.sample?["1군 실전 검증 전"]:[])]};
+    missing:["수비·주루 실측 자료 없음","구종·타구 질·좌우 상대 자료 없음",...(games.some(g=>!g.evaluationEnvironment)?["일부 경기의 당시 상대 수준 자료 없음"]:[]),...(!previous?["날짜가 있는 이전 성장 관찰 없음"]:[]),...(pro&&!firstSample?["1군 실전 검증 전"]:[])]};
+}
+// Automatic snapshots need observation inputs, not the fixed-opponent and
+// multiyear projections which are reconstructed when someone opens a report.
+export function createPlayerObservation(s:GameState,p:Player,context:Context,reason:EvaluationReason,contextId:string){
+  const report=createEvaluationInputs(s,p,context,reason);
+  report.id+=`:${hash(JSON.stringify([report.stats,report.records,report.role,report.position,report.teamId,report.eligiblePositions,report.twoWay,report.health]))}`;
+  return compactEvaluation(report,contextId);
+}
+export function createPlayerEvaluation(s:GameState,p:Player,context:Context=buildEvaluationContext(s),reason:EvaluationReason="introduced"):EvaluationSnapshot {
+  const input=createEvaluationInputs(s,p,context,reason),{records}=input,reference=context.reference,prior=referencePrior(context);
+  const performance={school:records.school?fields(records.school,context.league.school,context,true):null,first:records.first?fields(records.first,context.league.first,context,false,true):null,second:records.second?fields(records.second,context.league.second,context):null};
+  const multiyear=s.careerMode==="pro"?{first:{batting:multiyearEvidence(s,p,"first","batting",context.history,prior),pitching:multiyearEvidence(s,p,"first","pitching",context.history,prior)},second:{batting:multiyearEvidence(s,p,"second","batting",context.history,prior),pitching:multiyearEvidence(s,p,"second","pitching",context.history,prior)}}:null;
+  const eligibleRoles=[...new Set(p.eligiblePositions.map(roleFor))],roles=eligibleRoles.map(role=>{const keys=roleTools(role),sorted=[...keys].sort((a,b)=>p.stats[b]-p.stats[a]||a.localeCompare(b));const score=Object.entries(reference.roleWeights[role]).reduce((n,[key,weight])=>n+p.stats[key as Stat]*weight!,0);return {role,score,...gradeTool(score,reference.roles[role]),strengths:sorted.slice(0,2),needs:sorted.slice(-2).reverse()};}).sort((a,b)=>b.score-a.score||a.role.localeCompare(b.role));
+  return {...input,performance,multiyear,model:{batting:standardMatchup(p,reference),pitching:standardMatchup(p,reference,true)},roles};
 }
 export function playerEvaluationFor(s:GameState,p:Player){const observation=p.evaluationHistory?.at(-1);return observation?restoreEvaluation(s,p,observation):createPlayerEvaluation(s,p);}
 export function evaluationSummary(report:EvaluationSnapshot){
@@ -94,7 +112,7 @@ export function archiveEvaluationContext(s:GameState,context:Context,reason:Eval
   const league=Object.fromEntries(Object.entries(context.league).map(([key,r])=>[key,packEvaluationRecord(r)])) as EvaluationContextArchive["league"];
   return {id:`${EVALUATION_MODEL}:${context.reference.mode}:${s.calendar.seasonYear}:${s.date}:${reason}`,date:s.date,year:s.calendar.seasonYear,mode:context.reference.mode,referenceId:context.reference.id,league,leagueSeasons:context.leagueSeasons,history:Object.fromEntries([...context.history].map(([key,r])=>[key,packEvaluationRecord(r)])),parameters:{...context.reference.parameters}};
 }
-export function compactEvaluation(report:EvaluationSnapshot,contextId:string):EvaluationObservation {
+export function compactEvaluation(report:EvaluationInputs,contextId:string):EvaluationObservation {
   const excluded=new Set(["records","recent","evidence","performance","multiyear","model","roles","tools"]);
   const base=Object.fromEntries(Object.entries(report).filter(([key])=>!excluded.has(key))) as Omit<EvaluationObservation,"contextId"|"records"|"recent"|"evidence"|"cohort">;
   return {...base,contextId,records:{school:report.records.school?packEvaluationRecord(report.records.school):null,first:report.records.first?packEvaluationRecord(report.records.first):null,second:report.records.second?packEvaluationRecord(report.records.second):null,postseason:report.records.postseason?packEvaluationRecord(report.records.postseason):null},

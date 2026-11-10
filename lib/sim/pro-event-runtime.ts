@@ -1,7 +1,8 @@
 import {proSquad} from "./pro-squads";
 import {addDays,available,getPlayer,isPitcher,ovr,params,random,roleFor,roleScore,ticketsUsed} from "./engine";
 import {professionalLineup} from "./pro-world";
-import {createProEvent,proMainField} from "./pro-event-catalog";
+import {createProEvent,proMainField,proEventCatalog} from "./pro-event-catalog";
+import {eligibleStory} from "./event-stories";
 import {cancelProReservation,ensureProEvents,equivalentProId,proChannelFree,proDayFree,proEventsEnabled,proIdFree,recordProChoice} from "./pro-event-ledger";
 import {proFieldTarget,recentProEvidence} from "./pro-event-evidence";
 import type {ProEventContext} from "./pro-event-types";
@@ -23,6 +24,11 @@ export function proGeneralCandidates(s:GameState,date=s.date){
   if(injured){const injuryKey=`${p.id}:${p.injury!.startDate}`;if(p.injury!.unavailableUntil<=addDays(date,7)&&!ledger.history.some(row=>row.injuryKey===injuryKey))add("PE18",{injuryKey});return pool;}
   if(!ownGames.length&&(!s.calendar.trainingDays.includes(date)||!ticketsUsed(p.trainingPolicy))&&teammate)add("PE19",{partnerId:teammate.id});
   if(p.forcedRest)return pool;
+  for(const definition of proEventCatalog){
+    if(!definition.rule)continue;
+    const story=eligibleStory(s,definition.id,definition.rule,date);
+    if(story)add(definition.id,{story,...(definition.rule.field?{field:definition.rule.field}:{})});
+  }
   if(training){
     if(batting)add("PE01",{field:"batting"});if(throwing)add("PE02",{field:"pitching"});
     const season=p.seasonByLevel?.[p.teamId<10?"first":"second"];
@@ -60,12 +66,14 @@ export function planProEventWeek(s:GameState){
   if(params["pro_events.general_chance"]<=0)return;
   const options=Array.from({length:7},(_,day)=>{const date=addDays(s.date,day);return proChannelFree(s,"general",date)?proGeneralCandidates(s,date).map(c=>({...c,date})):[];}).flat();
   let ids=[...new Set(options.map(c=>c.id))];const stages=ids.filter(id=>onceIds.has(id)||id==="PE18");if(stages.length)ids=stages;if(!ids.length||random(s,"events")>=params["pro_events.general_chance"])return;
+  const continuations=ids.filter(id=>options.some(c=>c.id===id&&c.context.story?.sourceId));
+  if(continuations.length&&random(s,"events")<.5)ids=continuations;
   const id=ids[Math.floor(random(s,"events")*ids.length)],dates=options.filter(c=>c.id===id),chosen=dates[Math.floor(random(s,"events")*dates.length)];ledger.reservation={week:s.week,date:chosen.date,id,context:chosen.context};
 }
 export function openProGeneralEvent(s:GameState){
   if(!proEventsEnabled(s)||s.careerEvent||s.careerNotice)return false;const reservation=ensureProEvents(s).reservation;if(!reservation||reservation.date!==s.date)return false;
   const candidate=proGeneralCandidates(s).find(c=>c.id===reservation.id&&c.context.target===reservation.context.target&&c.context.partnerId===reservation.context.partnerId&&c.context.injuryKey===reservation.context.injuryKey);
-  if(!candidate||getPlayer(s).teamId!==reservation.context.teamId||!proChannelFree(s,"general")){cancelProReservation(s,"발생 시점의 소속·몸 상태·자격 또는 선택 간격이 바뀌었습니다.");return false;}
+  if(!candidate||candidate.context.story?.sourceId!==reservation.context.story?.sourceId||getPlayer(s).teamId!==reservation.context.teamId||!proChannelFree(s,"general")){cancelProReservation(s,"발생 시점의 소속·몸 상태·자격 또는 선택 간격이 바뀌었습니다.");return false;}
   const event=createProEvent(s,reservation.id,{...reservation.context,openedAt:s.date});delete s.proEvents!.reservation;s.careerEvent=event;recordProChoice(s,event);return true;
 }
 function debuted(s:GameState){const p=getPlayer(s);return !!p.professional?.firsts.debut||!!p.seasonByLevel?.first.batting.PA||!!p.seasonByLevel?.first.pitching.BF||!!p.seasonPostseason?.batting.PA||!!p.seasonPostseason?.pitching.BF||p.career.some(row=>row.careerMode==="pro"&&((row.byLevel?.first.batting.PA??0)+(row.byLevel?.first.pitching.BF??0)+(row.postseason?.batting.PA??0)+(row.postseason?.pitching.BF??0)>0));}

@@ -18,6 +18,10 @@ import {openProGeneralEvent,planProEventWeek,proMajorDueToday} from "./pro-event
 import {recordProRoleTraining,reviewProRoleTrial} from "./pro-role-evaluation";
 import {packRecentRecord} from "./recent-records";
 import {upgradeProSchedule} from "./pro-schedule";
+import type {RecentReputationCache} from "./engine";
+import {upgradeAllstarSchedule,allstarDates} from "./pro-allstar-calendar";
+import {allstarGameOn,allstarRules,finishAllstarDay,playAllstarDay,prepareAllstarDay} from "./pro-allstar";
+import {tryWbcInvitation} from "./pro-wbc";
 
 export function refreshWeekReport(s: GameState) {
   const progress = s.weekProgress;
@@ -58,8 +62,10 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
   }
   ensureProWorld(s);
   upgradeProSchedule(s);
+  upgradeAllstarSchedule(s);
   tickProEvents(s);
-  updateReputation(s);
+  const reputationCache:RecentReputationCache=new Map();
+  updateReputation(s,reputationCache);
   syncJerseyNumbers(s,true);
   if(!s.evaluationSystem)capturePlayerEvaluations(s,"introduced");
   if (!s.weekProgress) {
@@ -111,6 +117,12 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
     if (day.phase === "beforeGames") {
       // Registration reviews can move NPCs without opening a user notice.
       rosters=s.teams.map(()=>[]);for(const p of s.players)if(p.teamId>=0)rosters[p.teamId].push(p);
+      if(tryWbcInvitation(s))return pause();
+      if(prepareAllstarDay(s))return pause();
+      const beforeAllstar=player.fatigue,allstarPaused=playAllstarDay(s);
+      day.fatigue.game+=player.fatigue-beforeAllstar;
+      for(const [id,line] of Object.entries(allstarGameOn(s)?.boxScore??{}))if(line.batting.PA||line.pitching.BF){if(!day.active.includes(id))day.active.push(id);if(!day.appearances.includes(id))day.appearances.push(id);}
+      if(allstarPaused)return pause();
       reviewProMilestones(s);if(s.careerNotice)return pause();
       if(reviewProTwoWay(s))return pause();
       prepareEvaluationOpportunities(s,day.gameIds);if(s.careerNotice)return pause();
@@ -139,7 +151,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       }
       finishCompetitionDay(s.calendar, date);
       day.phase = "players";
-      if (day.gameIds.length) updateReputation(s);
+      if (day.gameIds.length) updateReputation(s,reputationCache);
       if (tryNationalEvent(s)) return pause();
     }
     if (day.phase === "players") {
@@ -148,6 +160,8 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       const active = new Set(day.active), appearances = new Set(day.appearances);
       const playingTeams = new Set(day.gameIds.flatMap(id => { const g = s.calendar.events.find(game => game.id === id)!; return [g.homeTeamId, g.awayTeamId]; }));
       const evaluationPlayers=new Set(day.gameIds.flatMap(id=>s.calendar.events.find(game=>game.id===id)?.evaluationPlayers??[]));
+      const exhibitionPlayers=new Set(Object.entries(allstarGameOn(s)?.boxScore??{}).filter(([,r])=>r.batting.PA||r.pitching.BF).map(([id])=>id));
+      const allstarRest=s.careerMode==="pro"&&date>=allstarDates(s.calendar.seasonYear).restStart&&date<=allstarDates(s.calendar.seasonYear).restEnd;
       while (day.playerIndex < s.players.length) {
         const p = s.players[day.playerIndex];
         if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
@@ -156,7 +170,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
         let trained = false;
         if (p.id === s.playerId && injured) s.injuryDays++;
         if (training && available(p, date) && ticketsUsed(p.trainingPolicy) && !(p.id===s.playerId && day.skipPlayerTraining)) {
-          const hasGame = playingTeams.has(p.teamId)||evaluationPlayers.has(p.id);
+          const hasGame = playingTeams.has(p.teamId)||evaluationPlayers.has(p.id)||exhibitionPlayers.has(p.id);
           const a = hasGame ? appearances.has(p.id) ? params["training.game_fraction"] : params["training.bench_fraction"] : 1;
           train(p, a);
           if (p.id === s.playerId && p.transferAdaptation?.weeksRemaining) progress.adaptationTrained = true;
@@ -164,13 +178,14 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
           trained = true;
           if(s.careerMode==="pro")recordProRoleTraining(s,p);
         }
-        const allocation=p.forcedRest||injured||p.trainingPolicy.mode==="rest"||!trainingCycle||p.id===s.playerId&&day.skipPlayerTraining?0:p.trainingPolicy;
+        const allocation=p.forcedRest||injured||p.trainingPolicy.mode==="rest"||!trainingCycle||allstarRest||p.id===s.playerId&&day.skipPlayerTraining?0:p.trainingPolicy;
         const beforeFatigue=p.fatigue,fatigueDay=trainingFatigueDay(p.fatigue,fatigueRecoveryStats.get(p.id)??p.stats.recovery,allocation);
         p.fatigue=fatigueDay.end;
         if(p.id===s.playerId){day.fatigue.training+=fatigueDay.training;day.fatigue.recovered+=fatigueDay.recovered;day.fatigue.peak=Math.max(day.fatigue.peak,beforeFatigue,p.fatigue);day.fatigue.end=p.fatigue;}
         if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
         else if(p.forcedRest&&p.fatigue<params["fatigue.ready_return"])p.forcedRest=false;
-        if (active.has(p.id) && !injured && random(s, "injury") < injuryRisk(p.fatigue, trained)) {
+        const risk=exhibitionPlayers.has(p.id)?Math.min(1,injuryRisk(p.fatigue,trained)*allstarRules.injuryMultiplier+allstarRules.injuryExtra):injuryRisk(p.fatigue,trained);
+        if (active.has(p.id) && !injured && random(s, "injury") < risk) {
           const roll = random(s, "injury"), severity = roll < params["injury.mild.weight"] ? "mild" : roll < params["injury.mild.weight"] + params["injury.moderate.weight"] ? "moderate" : "severe", prefix = `injury.${severity}`;
           const duration = params[`${prefix}.min_days`] + Math.floor(random(s, "injury") * (params[`${prefix}.max_days`] - params[`${prefix}.min_days`] + 1));
           p.injury = { severity, startDate: date, unavailableUntil: addDays(date, duration + 1), originalPenalty: Math.max(p.injury?.originalPenalty ?? 0, params[`${prefix}.penalty`]),
@@ -194,9 +209,10 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       recordProfessionalDay(s);recordProTwoWayDay(s);reviewDevelopmentContract(s);
     }
     recordEvaluationDay(s);capturePlayerEvaluations(s);
+    finishAllstarDay(s);
     if (finishDevelopmentSeason(s)) {if(s.phase==="ended")capturePlayerEvaluations(s,"season-end");break;}
     if (!s.careerMode && player.grade === 3 && date >= s.calendar.draftDate) {
-      updateReputation(s);
+      updateReputation(s,reputationCache);
       capturePlayerEvaluations(s,"draft",s.players.filter(p=>p.grade===3).map(p=>p.id));
       s.draft = draftPlayers(s); s.phase = "ended";
       s.draftOutcome = {revealed:false,offer:developmentalOffer(s)};
@@ -225,7 +241,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
     if (player.fatigue >= params["fatigue.force_rest"]) player.forcedRest = true;
     if (extra > 0) report.messages.push(`투타 양쪽 출전으로 추가 피로 ${extra.toFixed(2)}가 쌓였습니다.`);
   }
-  updateReputation(s);
+  updateReputation(s,reputationCache);
   for (const key of statKeys) report.growth[key] = player.stats[key] - progress.beforeStats[key];
   report.fatigueAfter = player.fatigue; report.reputationAfter = player.reputation;
   if (!Object.values(report.growth).some(n => n > 0)) report.messages.push(player.injury && s.date < player.injury.unavailableUntil ? "부상으로 훈련에 참가하지 못했습니다." : progress.policy.mode === "rest" ? "회복 방침으로 훈련과 출전을 쉬었습니다." : ticketsUsed(progress.policy) === 0 ? "사용한 티켓이 없어 성장하지 않았습니다." : "비시즌으로 정규 훈련이 없습니다.");

@@ -2,8 +2,9 @@ import data from "./pro-event-catalog.json";
 import {getPlayer,isPitcher,positions} from "./engine";
 import type {CareerEvent,CareerEventBranch,EventRewardWeeks,GameState,Stat} from "./types";
 import type {ProEventContext} from "./pro-event-types";
+import type {EventRule} from "./event-stories";
 
-type Definition={id:string;title:string;description:string;choices:{id:string;label:string;outcomes:(Omit<CareerEventBranch,"weeks">&{weeks?:Record<string,number>;trial?:boolean;requestChance?:boolean})[]}[]};
+type Definition={id:string;title:string;description:string;rule?:EventRule;choices:{id:string;label:string;outcomes:(Omit<CareerEventBranch,"weeks">&{weeks?:Record<string,number>;trial?:boolean;requestChance?:boolean})[]}[]};
 export const proEventCatalog=data as Definition[];
 export const proBattingStats:Stat[]=["contact","power","speed","defense"],proPitchingStats:Stat[]=["velocity","control","movement"];
 export function createProEvent(s:GameState,id:string,context:ProEventContext):CareerEvent {
@@ -21,6 +22,6 @@ export function createProEvent(s:GameState,id:string,context:ProEventContext):Ca
   const title=context.channel==="followup"?"보직 평가 후 결정":definition.title;
   let description=definition.description.replaceAll("{현재 포지션}",positions[p.position]).replaceAll("{목표 포지션}",positions[context.target??p.position]).replaceAll("{목표 역할}",positions[context.target??p.position]);
   if(context.partnerId){const partner=s.players.find(q=>q.id===context.partnerId);if(partner)description=`${partner.name} 선수와 함께합니다. ${description}`;}
-  return {id:`${p.id}:${context.year}:${s.date}:${id}:${context.channel}`,rewardVersion:3,definitionId:id,kind:context.channel==="game"?"game":"special",date:s.date,title,description,choices,proEvent:frozen};
+  return {id:`${p.id}:${context.year}:${s.date}:${id}:${context.channel}`,rewardVersion:3,definitionId:id,kind:context.channel==="game"?"game":"special",date:s.date,title,description,choices,proEvent:frozen,...(context.story?{story:context.story}:{})};
 }
 export const proMainField=(s:GameState)=>isPitcher(getPlayer(s).primaryRole)?"pitching" as const:"batting" as const;

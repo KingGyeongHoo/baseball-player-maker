@@ -160,7 +160,9 @@ export function prepareEvaluationOpportunities(s:GameState,gameIds:string[]){
   }
 }
 export function professionalLineup(s:GameState,roster:Player[],date:string,ids:string[]=[]){
-  const result=lineup(roster,date);if(!s.proWorld||!ids.length)return result;
+  // lineup compacts missing positions. Writing an evaluation player at a fixed
+  // position in that shortened array would create holes and hide a forfeit.
+  const result=lineup(roster,date);if(!s.proWorld||!ids.length||result.field.length!==9)return result;
   const positions:Position[]=["C","SS","CF","2B","1B","3B","LF","RF","DH"];
   for(const id of ids){const p=roster.find(q=>q.id===id);if(!p||!available(p,date))continue;
     if(isPitcher(p.primaryRole)){if(p.primaryRole==="선발"&&p.fatigue<65&&(!p.lastPitched||date>=addDays(p.lastPitched,5)))result.starter=p;continue;}

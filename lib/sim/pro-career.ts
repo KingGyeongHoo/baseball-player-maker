@@ -58,7 +58,8 @@ function npc(seed: string, teamId: number, index: number, mode: "pro" | "college
 }
 function resetWorld(s: GameState, p: Player, year: number, pro: boolean) {
   const oldDate = s.date;
-  offSeason(p,oldDate,`${year}-03-01`); s.date = `${year}-03-01`; s.careerMode = pro ? "pro" : "college";
+  const campDate=`${year}-${pro?"02":"03"}-01`;
+  offSeason(p,oldDate,campDate); s.date = campDate; s.careerMode = pro ? "pro" : "college";
   p.careerMode = s.careerMode; p.grade = pro ? 0 : 4; p.age = 18 + year - path(s).graduationYear;
   p.seasonByLevel = pro ? { first: emptyRecord(), second: emptyRecord() } : undefined;
   s.calendar = developmentCalendar(year,pro); s.phase = "weekStart"; s.report = null; s.records = emptyRecord(); s.pendingEvents = [];
@@ -109,8 +110,8 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   s.teams = teams; s.players = teams.filter(t=>t.id<20).flatMap(t => slots.map((_,i) => npc(`${s.seed}:pro:${year}:${t.id}:${i}`,t.id,i,"pro",t.id<10)));
   const developmentalRookies=rookieDevelopmentalIds(s.seed,year,rookies.filter(row=>row.player!.id!==p.id).map(row=>row.player!.id));
   for (const row of rookies) {
-    const rookie = row.player!,developmental=developmentalRookies.has(rookie.id);rookie.teamId = draftClubs.indexOf(row.pick.club) + (developmental?30:20);rookie.proContract={status:developmental?"developmental":"regular",joinedDate:`${year}-03-01`};
-    if(rookie.id!==p.id)offSeason(rookie,oldDate,`${year}-03-01`); rookie.age = 19 + info.collegeYears; rookie.grade = 0; rookie.careerMode = "pro"; rookie.seasonByLevel = { first:emptyRecord(),second:emptyRecord() };
+    const rookie = row.player!,developmental=developmentalRookies.has(rookie.id);rookie.teamId = draftClubs.indexOf(row.pick.club) + (developmental?30:20);rookie.proContract={status:developmental?"developmental":"regular",joinedDate:`${year}-02-01`};
+    if(rookie.id!==p.id)offSeason(rookie,oldDate,`${year}-02-01`); rookie.age = 19 + info.collegeYears; rookie.grade = 0; rookie.careerMode = "pro"; rookie.seasonByLevel = { first:emptyRecord(),second:emptyRecord() };
     s.players.push(rookie);
   }
   p.teamId = club + 20; if (!s.players.some(other => other.id === p.id)) s.players.push(p);

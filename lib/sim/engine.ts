@@ -157,7 +157,11 @@ export const dateLabel = (s: string) => s.replaceAll("-", ".");
 export const calendar = (year: number): Calendar => buildCalendar(year, params["world.teams"]);
 export const focusGrowth = (n: number) => n === 0 ? 0 : params["training.focus_min"] + params["training.focus_span"] * Math.log(n) / Math.log(params["training.max_each"]);
 export function slowdown(s: number) {
-  for (let i = 1; i <= 5; i++) if (s < params[`growth.break${i}`]) return params[`growth.factor${i - 1}`];
+  if(s<params["growth.break1"])return params["growth.factor0"];
+  if(s<params["growth.break2"])return params["growth.factor1"];
+  if(s<params["growth.break3"])return params["growth.factor2"];
+  if(s<params["growth.break4"])return params["growth.factor3"];
+  if(s<params["growth.break5"])return params["growth.factor4"];
   return params["growth.factor5"];
 }
 export const interpolate = (s: number, a: number, b: number, c: number) => s <= 50 ? a + (b - a) * (s - 1) / 49 : b + (c - b) * (s - 50) / 50;
@@ -468,19 +472,24 @@ export function npcPolicy(p: Player, date: string, hasGame: boolean) {
   }
   p.trainingPolicy = policy;
 }
-export function updateReputation(s: GameState) {
+// Scoped to one synchronous advance: event resumes and edited states start fresh.
+export type RecentReputationCache=Map<Player,{source:Player["recentAppearances"];length:number;last:Player["recentAppearances"][number]|undefined;pitching:boolean;limit:number;record:RecordLine}>;
+export function updateReputation(s: GameState,cache?:RecentReputationCache) {
   for (const recent of [false, true]) {
     const records = s.players.map(p => {
       if (!recent) return p.seasonStats;
+      const pitching = isPitcher(p.primaryRole);
+      const source=p.recentAppearances,limit=params[pitching?"coach.recent_outs":"coach.recent_pa"],last=source.at(-1),previous=cache?.get(p);
+      if(previous&&previous.source===source&&previous.length===source.length&&previous.last===last&&previous.pitching===pitching&&previous.limit===limit)return previous.record;
       const r = emptyRecord();
       let count = 0;
-      const pitching = isPitcher(p.primaryRole);
       for (let i = p.recentAppearances.length - 1; i >= 0; i--) {
-        if (count >= params[pitching ? "coach.recent_outs" : "coach.recent_pa"]) break;
+        if (count >= limit) break;
         const a = p.recentAppearances[i];
         mergeRecentRecord(r, a);
         count += recentSample(a, pitching);
       }
+      cache?.set(p,{source,length:source.length,last,pitching,limit,record:r});
       return r;
     });
     const total = emptyRecord();

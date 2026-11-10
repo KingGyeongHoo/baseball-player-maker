@@ -62,6 +62,6 @@ export function reputationBreakdown(p:Player):ReputationBreakdown {
   const performanceWeight=parts.reduce((n,p)=>n+p.performanceWeight,0)/parts.length;
   const performance=parts.length===1?parts[0].performance:performanceWeight?parts.reduce((n,p)=>n+(p.performance??0)*p.performanceWeight,0)/(parts.length*performanceWeight):null;
   const ability=parts.reduce((n,p)=>n+p.ability,0)/parts.length,base=parts.reduce((n,p)=>n+p.score,0)/parts.length;
-  const bonus=(p.reputationBonus??0)+(p.professional?.proBonus??0)+twoWayReputation(p);
+  const bonus=(p.reputationBonus??0)+(p.professional?.proBonus??0)+(p.professional?.allstarBonus??0)+twoWayReputation(p);
   return {modelVersion:REPUTATION_MODEL,assessedAt:assessment?.date??null,ability,performance,performanceWeight,base,bonus,total:clamp(base+bonus),fields:parts};
 }

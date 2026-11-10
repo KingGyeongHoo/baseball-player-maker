@@ -156,6 +156,7 @@ export type Game = {
   advancingTeamId?: number;
   evaluationPlayers?:string[];
   tiebreaker?:boolean;
+  exhibition?:"allstar";
 };
 export type Competition = {
   id: string;
@@ -175,6 +176,7 @@ export type Competition = {
 export type LeagueTiebreak={key:string;group:number;teams:number[];ordered:number[];next:number;low:number;high:number;gameCount:number;gameId?:string;done:boolean};
 export type Calendar = {
   proSeriesVersion?:1;
+  proAllstarScheduleVersion?:1;
   seasonYear: number;
   sourceKind: "reference" | "fictional";
   sourceUrl: string;
@@ -250,6 +252,7 @@ export type CareerEventBranch = {
   reputation?: number; fatigue?: number; injury?: { severity: Injury["severity"]; days: number };
   role?: Role; match?: MatchEffect;
   recoveryPercent?: { min: number; max: number };
+  fatigueRange?: { min: number; max: number };
   skipTraining?: boolean;
   proRoleTrial?:Position;
   proChanceRequest?:boolean;
@@ -264,13 +267,14 @@ export type CareerOpportunityState = {
   rng: number; qualifiedWeeks: number; lastCountedWeek?: number; twoWayOfferedGrades: number[];
   transferRollYears: number[]; transferOffered: boolean; pendingTransfer?: PendingTransfer;
 };
-export type EventOpportunity = { definitionId: string; date: string; competitionId?: string; gameId?: string; targetRole?: Role };
+export type EventOpportunity = { definitionId: string; date: string; competitionId?: string; gameId?: string; targetRole?: Role; story?:import("./event-stories").EventStory };
 export type EventScene = {
   gameId: string; inning: number; battingSide: number; outs: number; bases: (string | null)[];
   score: number[]; batting: boolean; batterName: string; pitcherName: string;
   batterId?:string;pitcherId?:string;
 };
 export type CareerEvent = {
+  story?:import("./event-stories").EventStory;
   proEvent?:ProEventContext;
   id: string;
   rewardVersion?: number;
@@ -285,6 +289,8 @@ export type CareerEvent = {
   transferOffers?: TransferOffer[];
 };
 export type CareerEventOutcome = {
+  choiceId?:string;
+  story?:import("./event-stories").EventStory;
   proEvent?:ProEventResult;
   id: string; kind: CareerEvent["kind"]; title: string; date: string; choice: string;
   stats: Partial<Stats>; reputation: number; fatigue: number;

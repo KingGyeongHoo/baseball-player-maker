@@ -10,6 +10,32 @@ const {StateTransferCache}=require('../.test-build/lib/sim/state-transfer.js');
 const {workerStateInput,restoreWorkerState}=require('../.test-build/lib/sim/worker-state.js');
 const {LatestSaveQueue}=require('../.test-build/lib/latest-save-queue.js');
 
+test('recent evaluation reuse invalidates after real appearances, capped histories and role changes',()=>{
+  const state=e.createGame('recent-cache-validation','평가확인','SS'),cache=new Map();state.players=state.players.slice(0,8);
+  const check=()=>{const expected=structuredClone(state);e.updateReputation(expected);e.updateReputation(state,cache);assert.deepEqual(state,expected);};
+  check();check();
+  const p=state.players[0],record=e.emptyRecord();record.batting.PA=record.batting.AB=4;record.batting.H=2;record.pitching.BF=4;record.pitching.outs=3;
+  p.recentAppearances.push(packRecentRecord(record));check();
+  p.recentAppearances.shift();p.recentAppearances.push(packRecentRecord({...record,batting:{...record.batting,H:4}}));check();
+  p.primaryRole='선발';check();p.recentAppearances=structuredClone(p.recentAppearances);check();
+});
+
+test('lightweight stored evaluations preserve full-report inputs and tied cohort ranks',()=>{
+  const evaluation=require('../.test-build/lib/sim/player-evaluation.js'),pc=require('../.test-build/lib/sim/pro-career.js');
+  for(const state of [e.createGame('light-report-school','평가확인','SS'),pc.acknowledgeCareer(pc.createProfessionalDemo('light-report-pro','평가확인','SP'))]){
+    const p=e.getPlayer(state),peer=state.players.find(q=>q.id!==p.id&&q.grade===p.grade&&q.primaryRole===p.primaryRole);if(peer)peer.stats={...p.stats};
+    const context=evaluation.buildEvaluationContext(state),full=evaluation.createPlayerEvaluation(state,p,context,'monthly');
+    full.id+=`:${e.hash(JSON.stringify([full.stats,full.records,full.role,full.position,full.teamId,full.eligiblePositions,full.twoWay,full.health]))}`;
+    const observation=evaluation.createPlayerObservation(state,p,context,'monthly','test-context');
+    assert.deepEqual(observation,evaluation.compactEvaluation(full,'test-context'));
+    if(!state.careerMode)for(const tool of full.tools.filter(t=>t.cohortRank!==undefined)){
+      const field=['velocity','control','movement'].includes(tool.stat)?'pitching':['contact','power','speed','defense'].includes(tool.stat)?'batting':e.isPitcher(p.primaryRole)?'pitching':'batting';
+      const values=context.cohorts.get(`${p.grade}:${field}`).get(tool.stat).values;
+      assert.equal(tool.cohortRank,1+values.filter(v=>v>tool.value).length);
+    }
+  }
+});
+
 test('recent records retain every stat and read legacy, packed and mixed records identically',()=>{
   const old=e.emptyRecord();let value=0;
   for(const group of Object.values(old))for(const key of Object.keys(group))group[key]=++value;
