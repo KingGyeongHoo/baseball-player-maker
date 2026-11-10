@@ -3,6 +3,7 @@ import {statKeys,type GameState,type Player,type Stats} from "./types";
 import type {EvaluationReference,ExpectedMatchup} from "./player-evaluation-types";
 import balance from "../../baseball_balance_v0_4.json";
 import {evaluationPriors} from "./evaluation-metrics";
+import {PRO_BALANCE_VERSION,proMatchParameters} from './pro-balance';
 
 export const EVALUATION_MODEL="scouting-v1";
 export function normalStats(player:Player,configuration=params):Stats{return effective({...player,fatigue:0,injury:null,forcedRest:false},configuration);}
@@ -15,10 +16,10 @@ export function makeEvaluationReference(s:GameState):EvaluationReference {
   const baseline=Object.fromEntries(statKeys.map(key=>[key,params["pro.first_mean"]])) as Stats;
   const sample=(pool:Player[])=>{const sorted=[...pool].sort((a,b)=>a.id.localeCompare(b.id)),size=Math.min(64,sorted.length);return size>=20?Array.from({length:size},(_,i)=>normalStats({...sorted[Math.floor(i*sorted.length/size)],stance:{batting:"level",pitching:"command"}})):[{...baseline}];};
   const source=players.length>=20?s.date.slice(5)==="03-01"?"season-start":"introduced":"default";
-  const parameters={...params,...Object.fromEntries(Object.entries(evaluationPriors).flatMap(([stage,prior])=>Object.entries(prior).map(([key,n])=>[`evaluation.${stage}.${key}`,n])))};
-  return {id:`${EVALUATION_MODEL}:${s.careerMode==="pro"?"pro":"school"}:${s.calendar.seasonYear}:${source}`,version:1,year:s.calendar.seasonYear,mode:s.careerMode==="pro"?"pro":"school",createdAt:s.date,source,population:{batting:batting.length,pitching:pitching.length},tools,roles:roleDistributions,opponents:{batting:sample(batting),pitching:sample(pitching)},defense:tools.defense.mean,arm:tools.arm.mean,parameters,roleWeights:structuredClone(balance.roleWeights)};
+  const parameters={...(s.careerMode==='pro'?proMatchParameters(params):params),...Object.fromEntries(Object.entries(evaluationPriors).flatMap(([stage,prior])=>Object.entries(prior).map(([key,n])=>[`evaluation.${stage}.${key}`,n])))};
+  return {id:`${EVALUATION_MODEL}:${s.careerMode==="pro"?`pro-balance-v${PRO_BALANCE_VERSION}`:"school"}:${s.calendar.seasonYear}:${source}`,version:1,year:s.calendar.seasonYear,mode:s.careerMode==="pro"?"pro":"school",createdAt:s.date,source,population:{batting:batting.length,pitching:pitching.length},tools,roles:roleDistributions,opponents:{batting:sample(batting),pitching:sample(pitching)},defense:tools.defense.mean,arm:tools.arm.mean,parameters,roleWeights:structuredClone(balance.roleWeights)};
 }
-export function evaluationReference(s:GameState) {return s.evaluationSystem?.references.find(r=>r.year===s.calendar.seasonYear&&r.mode===(s.careerMode==="pro"?"pro":"school"))??makeEvaluationReference(s);}
+export function evaluationReference(s:GameState) {return s.evaluationSystem?.references.find(r=>r.year===s.calendar.seasonYear&&r.mode===(s.careerMode==="pro"?"pro":"school")&&(s.careerMode!=='pro'||r.parameters['pro.balance.version']===PRO_BALANCE_VERSION))??makeEvaluationReference(s);}
 export function gradeTool(value:number,reference:{mean:number;sd:number}){const continuous=50+10*(value-reference.mean)/reference.sd;return {continuous,grade:clamp(5*Math.round(continuous/5),20,80)};}
 export function standardMatchup(player:Player,reference:EvaluationReference,pitching=false):ExpectedMatchup {
   const own=normalStats(player,reference.parameters),opponents=pitching?reference.opponents.batting:reference.opponents.pitching;

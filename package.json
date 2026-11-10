@@ -14,6 +14,7 @@
     "test:fatigue": "npm run test:compile && node --test tests/fatigue.test.mjs",
     "test:auto": "npm run test:compile && node --test tests/auto-progress.test.mjs",
     "test:balance": "npm run test:compile && node scripts/balance.mjs",
+    "test:pro-balance": "npm run test:compile && node --test tests/pro-balance.test.mjs",
     "test:build": "npm run test:compile && node scripts/check-build.mjs"
   },
   "dependencies": {

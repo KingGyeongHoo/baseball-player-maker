@@ -1,5 +1,5 @@
 import {firstTeamDemotionMargin,hydrateAssessments,recordAssessmentDay} from "./pro-assessment";
-import {addDays,available,emptyRecord,getPlayer,hash,isPitcher,lineup,ovr,roleScore,selectionScore} from "./engine";
+import {addDays,available,emptyRecord,getPlayer,hash,isPitcher,lineup,ovr,roleFor,roleScore,selectionScore} from "./engine";
 import {updateEvaluationReputations} from "./evaluation-reputation";
 import {initializeProTwoWay} from "./pro-two-way";
 import {initializeAgingProfile} from "./pro-growth";
@@ -7,6 +7,7 @@ import type {GameState,Player,Position} from "./types";
 import type {SalaryContract} from "./pro-types";
 import {discardRetiredPlayers} from "./retired-records";
 import {syncProClubNames} from "./club-names";
+import {proRotationStarter} from './pro-balance';
 import {ensureProSquadTeams,proSquad,reorganizeProSquads,reservePromotionCandidates,setProSquad,squadLabel} from "./pro-squads";
 
 export const BASE_SALARY=50_000_000;
@@ -162,7 +163,25 @@ export function prepareEvaluationOpportunities(s:GameState,gameIds:string[]){
 export function professionalLineup(s:GameState,roster:Player[],date:string,ids:string[]=[]){
   // lineup compacts missing positions. Writing an evaluation player at a fixed
   // position in that shortened array would create holes and hide a forfeit.
-  const result=lineup(roster,date);if(!s.proWorld||!ids.length||result.field.length!==9)return result;
+  const result=lineup(roster,date);
+  if(s.careerMode==='pro'&&!ids.length)result.starter=proRotationStarter(s,result.pitchers,date)??result.starter;
+  if(s.careerMode==='pro'&&result.field.length===9&&!ids.length){
+    const slots:Position[]=['C','SS','CF','2B','1B','3B','LF','RF','DH'];
+    const starters=new Set(result.field.map(p=>p.id));
+    // Rest days give bench hitters real plate appearances, including at DH.
+    for(let i=0;i<slots.length;i++){
+      const current=result.field[i];
+      const restChance=Math.max(15,Math.min(60,53-((current.stats.contact+current.stats.power)/2-65)*2.5));
+      if(hash(`${s.seed}:${date}:${current.id}:rest`)%100>=restChance)continue;
+      const replacement=roster.filter(p=>available(p,date)&&!isPitcher(p.primaryRole)&&p.twoWay?.nextAssignment!=='pitching'&&!starters.has(p.id)&&!result.field.includes(p)&&p.eligiblePositions.includes(slots[i]))
+        .sort((a,b)=>(selectionScore(b,roleFor(slots[i]))+hash(`${s.seed}:${date}:${b.id}:bench`)%24)-(selectionScore(a,roleFor(slots[i]))+hash(`${s.seed}:${date}:${a.id}:bench`)%24)||a.id.localeCompare(b.id))[0];
+      if(replacement){result.field[i]=replacement;result.order=result.order.map(p=>p===current?replacement:p);}
+    }
+    const middle=[...result.field].sort((a,b)=>b.stats.power-a.stats.power||a.id.localeCompare(b.id)).slice(0,3);
+    const top=result.field.filter(p=>!middle.includes(p)).sort((a,b)=>b.stats.contact+b.stats.bq-a.stats.contact-a.stats.bq||a.id.localeCompare(b.id)).slice(0,2);
+    result.order=[...top,...middle,...result.field.filter(p=>!top.includes(p)&&!middle.includes(p)).sort((a,b)=>b.stats.contact-a.stats.contact||a.id.localeCompare(b.id))];
+  }
+  if(!s.proWorld||!ids.length||result.field.length!==9)return result;
   const positions:Position[]=["C","SS","CF","2B","1B","3B","LF","RF","DH"];
   for(const id of ids){const p=roster.find(q=>q.id===id);if(!p||!available(p,date))continue;
     if(isPitcher(p.primaryRole)){if(p.primaryRole==="선발"&&p.fatigue<65&&(!p.lastPitched||date>=addDays(p.lastPitched,5)))result.starter=p;continue;}

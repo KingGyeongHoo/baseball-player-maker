@@ -8,10 +8,12 @@ import {openProMatchEvent,openProPreparation} from "./pro-event-runtime";
 import type {ProAppearance} from "./pro-event-types";
 import {packRecentRecord,recentSample} from "./recent-records";
 import {finishGameRecords,pitcherEntered,recordLeadChange} from "./game-records";
+import {proBullpenPlan,proMatchParameters,proPitcherOutLimit,proReliefPriority,proReliefReady} from './pro-balance';
 
 // Every cursor and runner is serializable: returning at a choice never replays
 // an inning, consumes a match draw early, or commits a partial game twice.
 export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boolean {
+  const pro=s.careerMode==='pro',configuration=pro?proMatchParameters(params):params;
   if(game.status==="completed"||game.status==="forfeit")return true;
   if(game.competitionId==="pro-second"&&game.evaluationPlayers?.length){
     const selected=new Set(game.evaluationPlayers);
@@ -55,6 +57,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   }
   const m = s.matchProgress;
   if (m.gameId !== game.id) throw new Error("다른 경기가 진행 중입니다.");
+  const bullpenPlans=pro?m.sides.map((side,index)=>proBullpenPlan(side.pitchers.map(player),s.seed,game.date,index)):[];
   const line = (p: Player) => game.boxScore[p.id] ??= emptyRecord();
   const forfeit = (side: number) => {
     game.status = "forfeit"; game.forfeitTeamId = side === 0 ? game.homeTeamId : game.awayTeamId;
@@ -82,13 +85,18 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     if (!m.ready) {
       if (++m.pa > params["match.max_pa"]) throw new Error(`타석 안전 한도 초과: seed=${s.seed}, game=${game.id}`);
       const current = player(m.pitchers[pitchingSide]);
-      const limit = game.exhibition?(m.usedPitchers[pitchingSide].length<=3?3:6):m.usedPitchers[pitchingSide].length === 1 ? params["coach.starter_outs"] : pitchingRole(current) === "마무리" ? params["coach.closer_outs"] : params["coach.relief_outs"];
-      if (m.pitchOuts[pitchingSide] >= limit || current.fatigue >= params["coach.replace_fatigue"] || !available(current, game.date)) {
-        const lead = game.score[pitchingSide] - game.score[side];
-        const next = m.sides[pitchingSide].pitchers.map(player).filter(p => !m.usedPitchers[pitchingSide].includes(p.id) && !m.sides[pitchingSide].field.includes(p.id) && available(p, game.date) && p.fatigue < params["coach.replace_fatigue"])
-          .sort((a, b) => Number(game.evaluationPlayers?.includes(b.id)??false)-Number(game.evaluationPlayers?.includes(a.id)??false) || (m.inning >= 9 && lead >= 1 && lead <= 3 ? Number(pitchingRole(b) === "마무리") - Number(pitchingRole(a) === "마무리") : 0) || selectionScore(b, pitchingRole(b)) - selectionScore(a, pitchingRole(a)) || a.id.localeCompare(b.id))[0];
+      const starter=m.usedPitchers[pitchingSide].length===1;
+      const lead = game.score[pitchingSide] - game.score[side];
+      const {closerId,longReliefId,setupId,bridgeId}=bullpenPlans[pitchingSide]??{};
+      const limit = game.exhibition?(m.usedPitchers[pitchingSide].length<=3?3:6):pro?proPitcherOutLimit(current,starter,s.seed,game.date,closerId,bridgeId,lead):starter ? params["coach.starter_outs"] : pitchingRole(current) === "마무리" ? params["coach.closer_outs"] : params["coach.relief_outs"];
+      const saveEntry=pro&&!game.exhibition&&!starter&&current.id!==closerId&&m.inning>=9&&m.pa===1&&m.outs===0&&game.score[pitchingSide]>game.score[side]&&game.score[pitchingSide]-game.score[side]<=3;
+      if (saveEntry || m.pitchOuts[pitchingSide] >= limit || current.fatigue >= params["coach.replace_fatigue"] || !available(current, game.date)) {
+        const unused=m.sides[pitchingSide].pitchers.map(player).filter(p=>!m.usedPitchers[pitchingSide].includes(p.id)&&!m.sides[pitchingSide].field.includes(p.id)&&available(p,game.date)&&p.fatigue<params['coach.replace_fatigue']);
+        const rested=unused.filter(p=>!pro||proReliefReady(p,game.date,longReliefId));
+        const next = (rested.length?rested:unused)
+          .sort((a, b) => Number(game.evaluationPlayers?.includes(b.id)??false)-Number(game.evaluationPlayers?.includes(a.id)??false) || (pro&&!game.exhibition?proReliefPriority(b,game.date,m.inning,lead,closerId,longReliefId,setupId,bridgeId)-proReliefPriority(a,game.date,m.inning,lead,closerId,longReliefId,setupId,bridgeId):(m.inning >= 9 && lead >= 1 && lead <= 3 ? Number(pitchingRole(b) === "마무리") - Number(pitchingRole(a) === "마무리") : 0) || selectionScore(b, pitchingRole(b)) - selectionScore(a, pitchingRole(a))) || a.id.localeCompare(b.id))[0];
         if (next) { pitcherEntered(m,game,next.id,pitchingSide);m.pitchers[pitchingSide] = next.id; m.usedPitchers[pitchingSide].push(next.id); m.pitchOuts[pitchingSide] = 0; }
-        else return forfeit(pitchingSide);
+        else if(!saveEntry)return forfeit(pitchingSide);
       }
       m.ready = true;
     }
@@ -120,7 +128,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     m.battingIndex[side]++;
     const bat = line(batter).batting, pit = line(pitcher).pitching, b = effective(batter), p = effective(pitcher);
     const effect = s.matchEffect?.gameId === game.id && s.matchEffect.batterId === batter.id && s.matchEffect.pitcherId === pitcher.id ? s.matchEffect : undefined;
-    const probs = applyMatchEffect(probabilities(b, p, m.defense[pitchingSide], m.arm[pitchingSide]), effect);
+    const probs = applyMatchEffect(probabilities(b, p, m.defense[pitchingSide], m.arm[pitchingSide],configuration), effect);
     if (s.matchEffect?.gameId === game.id) delete s.matchEffect;
     const batBefore = { ...bat }, pitBefore = { ...pit };
     bat.PA++; pit.BF++; pitcher.lastPitched = game.date;

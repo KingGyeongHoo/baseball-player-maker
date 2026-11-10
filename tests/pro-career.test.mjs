@@ -174,6 +174,9 @@ test('pro recovery still applies daily to hitters and pitchers with zero allocat
 });
 test('pro recovery forecast is training-only and actual game costs can outweigh a small recovery allocation',()=>{
   const s=recoveryState(),p=e.getPlayer(s);for(const key of ['contact','power','speed','defense'])p.stats[key]=100;const policy=e.defaultPolicy(p.primaryRole),forecast=e.fatigueForecast(p,policy,s.date);assert.ok(forecast.end<p.fatigue);
+  // Exercise continuous game participation, independent of scheduled bench rest.
+  p.teamId=0;p.professional.lastRegistration=s.date;s.postSchool.pro.club=0;s.postSchool.pro.level='first';
+  for(const q of s.players)if(q.teamId%10===0&&q.id!==p.id)q.eligiblePositions=q.eligiblePositions.filter(pos=>pos!=='SS');
   const next=recoveryWeek(s,policy),f=next.report.fatigue;assert.ok(f.recovered>0);assert.ok(f.game>f.recovered);assert.ok(e.getPlayer(next).fatigue>p.fatigue);
   const copy=JSON.stringify(next),html=renderToStaticMarkup(createElement(TrainingEditor,{player:e.getPlayer(next),policy,setPolicy(){},date:next.date,context:next}));
   assert.match(html,/훈련 기준/);assert.match(html,/훈련만 반영한 예상 피로/);assert.match(html,/경기 피로는 별도/);assert.match(html,/최근 실제 피로/);assert.match(html,/경기 출전 피로가 더 크면/);assert.equal(JSON.stringify(next),copy);
