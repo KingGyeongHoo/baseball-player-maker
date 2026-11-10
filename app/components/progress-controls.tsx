@@ -2,14 +2,18 @@ import {dateLabel,getPlayer,ticketsUsed,validPolicy} from "../../lib/sim/engine"
 import type {GameState,Policy} from "../../lib/sim/types";
 import {trainingLabel} from "./training-editor";
 
-export default function ProgressControls({state,policy,busy,auto,autoStartWeek,onAdvance,onToggleAuto,pendingOutcome=false}:{
+export default function ProgressControls({state,policy,busy,auto,autoStartWeek,onAdvance,onToggleAuto,pendingOutcome=false,onContinue}:{
   state:GameState;policy:Policy;busy:boolean;auto:boolean;autoStartWeek:number;
-  onAdvance:()=>void;onToggleAuto:()=>void;pendingOutcome?:boolean;
+  onAdvance:()=>void;onToggleAuto:()=>void;pendingOutcome?:boolean;onContinue?:()=>void;
 }) {
   const player=getPlayer(state);
   const pendingDecision=!!player.roleOffer||!!state.careerEvent||!!state.careerNotice||pendingOutcome;
   const pro=!!state.careerMode,month=player.professional?.employment==="freeAgent";
   const pauseEvents=pro?"시즌 종료":"드래프트 종료";
+  if(state.phase==="ended"){
+    const retired=state.proWorld?.stage==="retired";
+    return <div className="week-control"><div><div className="week-control-info"><span className="week-label">{retired?"CAREER END":"SEASON END"}</span><div><b>{dateLabel(state.date)}</b><span>{retired?"커리어 기록을 보관했습니다.":state.careerMode==="pro"?"시즌 결산과 다음 계약을 확인하세요.":"시즌 결과와 다음 진로를 확인하세요."}</span></div></div><div className="progress-actions"><button className="primary" disabled={!onContinue} onClick={onContinue}>{retired?"은퇴 기록 보기":state.careerMode==="pro"?"계약·다음 시즌":state.careerMode?"시즌 결과·진로 선택":"드래프트·진로 선택"}</button></div></div></div>;
+  }
   return <div className="week-control"><div>
     <div className="week-control-info">
       <span className="week-label">WEEK {String(state.week).padStart(2,"0")}</span>

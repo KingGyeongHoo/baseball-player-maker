@@ -11,6 +11,7 @@ export const proContractRules = {
   reviewYearsMax: 5,
   firstGamesLimit: 20,
   rookieGraceSeasons: 3,
+  retentionMargins: {F:0,E:1,D:2,C:4,B:6,A:9,S:12} as Record<string,number>,
   veteranAge: 33,
   youngAge: 25,
   growthGrace: 0.5,

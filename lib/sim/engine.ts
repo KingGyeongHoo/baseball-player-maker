@@ -5,7 +5,7 @@ import { draftPlayers as selectSchoolDraft } from "./draft";
 import { simulateGame } from "./match-engine";
 import { advanceWeek, refreshWeekReport } from "./week-engine";
 import { resolveCareerEvent } from "./event-system";
-import { professionalGrowth } from "./pro-growth";
+import { professionalGrowth,limitPhysicalGrowth } from "./pro-growth";
 import {syncJerseyNumbers} from "../jersey-numbers";
 import {captureEvaluationChange,capturePlayerEvaluations} from "./evaluation-lifecycle";
 import {reputationBreakdown,updateEvaluationReputations} from "./evaluation-reputation";
@@ -205,19 +205,19 @@ export function fatigueForecast(player: Player, policy: Policy, date?:string) {
 export function train(p: Player, a: number) {
   const policy = p.trainingPolicy;
   if (!ticketsUsed(policy) || a <= 0) return;
-  const growthDays = a * professionalGrowth(p) * growthMultiplier(p) * (p.transferAdaptation && p.transferAdaptation.weeksRemaining > 0 ? .9 : 1);
+  const growthDays = a * growthMultiplier(p) * (p.transferAdaptation && p.transferAdaptation.weeksRemaining > 0 ? .9 : 1);
   for (const key of ticketKeys) {
     const g = focusGrowth(policy.tickets[key]);
     if (key === "physical") {
-      for (const k of ["stamina", "recovery", "arm"] as const) p.stats[k] = clamp(p.stats[k] + g / 3 * slowdown(p.stats[k]) * growthDays / params["training.days"], 1);
+      for (const k of ["stamina", "recovery", "arm"] as const) p.stats[k] = clamp(limitPhysicalGrowth(p,k,p.stats[k] + g / 3 * slowdown(p.stats[k]) * growthDays * professionalGrowth(p,k) / params["training.days"]), 1);
       continue;
     }
     const pitching = ["velocity", "control", "movement"].includes(key);
     const talent = p.talent[pitching ? "pitching" : "batting"];
     const mult = params["talent.min_mult"] + (talent - 1) / 9 * (params["talent.max_mult"] - params["talent.min_mult"]);
-    p.stats[key] = clamp(p.stats[key] + (params["training.base"] + g) * mult * slowdown(p.stats[key]) * growthDays / params["training.days"], 1);
+    p.stats[key] = clamp(limitPhysicalGrowth(p,key,p.stats[key] + (params["training.base"] + g) * mult * slowdown(p.stats[key]) * growthDays * professionalGrowth(p,key) / params["training.days"]), 1);
   }
-  p.stats.bq = clamp(p.stats.bq + params["training.bq"] * slowdown(p.stats.bq) * growthDays / params["training.days"], 1);
+  p.stats.bq = clamp(p.stats.bq + params["training.bq"] * slowdown(p.stats.bq) * growthDays * professionalGrowth(p,"bq") / params["training.days"], 1);
   if (ticketKeys.slice(0, 4).some(k => policy.tickets[k])) p.talentExposure.batting += a / params["training.days"];
   if (ticketKeys.slice(4, 7).some(k => policy.tickets[k])) p.talentExposure.pitching += a / params["training.days"];
 }

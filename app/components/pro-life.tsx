@@ -47,7 +47,7 @@ export function ProSeasonStats({ player }: {player:Player}) {
   return <DashboardRecords records={player.seasonStats} levels={player.seasonByLevel?[{label:"1군",records:player.seasonByLevel.first},{label:"2군",records:player.seasonByLevel.second}]:undefined}/>;
 }
 export default function ProLife({state,onChange,onReset}:{state:GameState;onChange:(s:GameState)=>void;onReset:()=>void}) {
-  const [tab,setTab]=useState("home"),[policy,setPolicy]=useState(()=>structuredClone(getPlayer(state).trainingPolicy)),[stance,setStance]=useState(()=>({...getPlayer(state).stance}));
+  const [tab,setTab]=useState(state.proWorld?.stage==="retired"?"home":state.phase==="ended"?"career":"home"),[policy,setPolicy]=useState(()=>structuredClone(getPlayer(state).trainingPolicy)),[stance,setStance]=useState(()=>({...getPlayer(state).stance}));
   const [busy,setBusy]=useState(false),[auto,setAuto]=useState(false),[error,setError]=useState(""),[outcome,setOutcome]=useState<CareerEventOutcome|null>(state.pendingEventOutcome??null),[recordId,setRecordId]=useState(state.playerId);
   const [trainingMessage,setTrainingMessage]=useState(""),[draftPick,setDraftPick]=useState<DraftPick|null>(null),[reset,setReset]=useState(false);
   const worker=useRef<Worker|null>(null),locked=useRef(false),request=useRef(0),timer=useRef<ReturnType<typeof setTimeout>|null>(null);
@@ -68,7 +68,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const [retireConfirm,setRetireConfirm]=useState(false);
   const careerDisabled=busy||auto||!!state.weekProgress||!!state.careerNotice||!!state.careerEvent||!!outcome;
   const onAction=(action:ProAction)=>{if(locked.current||careerDisabled)return;stop();try{const next=actOnProCareer(state,action);onChange(next);if(next.phase!=="ended")setTab("home");}catch(error){setError(error instanceof Error?error.message:"커리어 선택에 실패했습니다.");}};
-  const load=(next:GameState)=>{if(locked.current)return;stop();worker.current?.terminate();worker.current=null;request.current++;onChange(next);setOutcome(next.pendingEventOutcome??null);setPolicy(structuredClone(getPlayer(next).trainingPolicy));setStance({...getPlayer(next).stance});setTab("home");};
+  const load=(next:GameState)=>{if(locked.current)return;stop();worker.current?.terminate();worker.current=null;request.current++;onChange(next);setOutcome(next.pendingEventOutcome??null);setPolicy(structuredClone(getPlayer(next).trainingPolicy));setStance({...getPlayer(next).stance});setTab(next.proWorld?.stage==="retired"?"home":next.phase==="ended"?"career":"home");};
   const advance=useCallback(()=>{
     if(locked.current||state.phase==="ended"||state.careerEvent||state.careerNotice||outcome||!validPolicy(policy))return;
     locked.current=true;setBusy(true);setError("");const id=++request.current;
@@ -120,7 +120,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
         {!!state.draft.length&&<details className="panel pro-archive"><summary>{state.postSchool?.graduationYear} 고교 드래프트 기록</summary><DraftRoundTable picks={state.draft} playerId={p.id} year={state.postSchool?.graduationYear??state.calendar.seasonYear} onSelect={setDraftPick}/></details>}
       </>}
     </main><footer className="site-footer"><div><span className="footer-brand">BASEBALL LIFE.</span><span>고교에서 프로까지, 나의 야구 인생</span><span>가상 구단·게임용 일정</span></div></footer>
-    {!ended&&<ProgressControls state={state} policy={policy} busy={busy} auto={auto} autoStartWeek={autoStartWeek} pendingOutcome={!!outcome} onAdvance={advance} onToggleAuto={()=>{if(auto)stop();else{setAutoStartWeek(state.week);autoProgress.start();setAuto(true);}}}/>}
+    {<ProgressControls state={state} policy={policy} busy={busy} auto={auto} autoStartWeek={autoStartWeek} pendingOutcome={!!outcome} onContinue={()=>setTab(state.proWorld?.stage==="retired"?"home":"career")} onAdvance={advance} onToggleAuto={()=>{if(auto)stop();else{setAutoStartWeek(state.week);autoProgress.start();setAuto(true);}}}/>}
     {state.careerNotice&&!(tab==="career"&&state.careerMode==="college"&&ended)&&<CareerNoticeDialog state={state} onChange={onChange}/>}
     {(state.careerEvent||outcome)&&<CareerEventDialog event={state.careerEvent??null} outcome={outcome} disabled={busy} onRecover={()=>{autoProgress.cancelScheduled();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);}} onDone={()=>{setOutcome(null);const next={...state};delete next.pendingEventOutcome;onChange(next);}} onChoose={id=>{if(locked.current||!state.careerEvent)return false;const next=answerCareerEvent(state,id);next.pendingEventOutcome=next.careerEventHistory!.at(-1)!;onChange(next);setOutcome(next.pendingEventOutcome);return true;}}/>}
 

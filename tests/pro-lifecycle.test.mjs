@@ -11,14 +11,14 @@ const acknowledge=s=>{while(s.careerNotice)s=pc.acknowledgeCareer(s);return s;};
 function summary(){const s=fixture();s.date=s.proWorld.regularEnd;life.closeProfessionalSeason(s);return acknowledge(s);}
 
 test('age growth factors and developmental/free-agent factors apply exactly once to normal and event growth',()=>{
-  for(const [age,factor] of [[19,1.2],[22,1.2],[23,1.1],[26,1.1],[27,1],[29,1],[30,.8],[33,.6],[36,.4],[39,.25]]){const p=e.getPlayer(fixture());p.age=age;assert.equal(growth.ageEfficiency(p),factor);}
+  for(const [age,factor] of [[19,1.3],[22,1.3],[23,1.2],[26,1.2],[27,1.2],[29,1],[30,1],[33,.8],[36,.6],[39,.4]]){const p=e.getPlayer(fixture());p.age=age;assert.equal(growth.ageEfficiency(p),factor);}
   const p=e.getPlayer(fixture()),regular=structuredClone(p);for(const key of Object.keys(p.stats))p.stats[key]=regular.stats[key]=40;p.proContract.status='developmental';p.professional.employment='freeAgent';
   const before={...p.stats};e.train(p,1);e.train(regular,1);for(const key of Object.keys(p.stats))close(p.stats[key]-before[key],.9*.6*(regular.stats[key]-before[key]));
   p.stats.power=regular.stats.power=40;close(eventTrainingReward(p,'power',4),.9*.6*eventTrainingReward(regular,'power',4));
 });
-test('aging is a separate once-per-year deduction with fixed offset, minimum one and no developmental discount',()=>{
-  const p=e.getPlayer(fixture());p.age=35;p.professional.agingOffset=0;p.proContract.status='developmental';const before={...p.stats};growth.applyAging(p,2029);
-  close(before.speed-p.stats.speed,.7);close(before.power-p.stats.power,.45);close(before.control-p.stats.control,.1);const copy={...p.stats};assert.deepEqual(growth.applyAging(p,2029),{});assert.deepEqual(p.stats,copy);assert.equal(p.age,35);
+test('aging starts after the fixed physical prime and applies once per year with a minimum of one',()=>{
+  const p=e.getPlayer(fixture());p.age=35;p.professional.agingOffset=0;p.professional.agingProfile={version:1,physical:50,peakStart:28,declineStart:32,loss:{}};p.proContract.status='developmental';const before={...p.stats};growth.applyAging(p,2029);
+  close(before.speed-p.stats.speed,.45);close(before.power-p.stats.power,.325);close(before.control-p.stats.control,.05);const copy={...p.stats};assert.deepEqual(growth.applyAging(p,2029),{});assert.deepEqual(p.stats,copy);assert.equal(p.age,35);
   p.stats.speed=1;growth.applyAging(p,2030);assert.equal(p.stats.speed,1);assert.equal(p.professional.agingOffset,0);
 });
 test('season transition preserves IDs, skill fractions, contracts, pending long injuries, old records and registration where valid',()=>{

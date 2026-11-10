@@ -1,6 +1,6 @@
 import ProAssessments from "./pro-assessments";
 import {overall,getPlayer,positionLabel} from "../../lib/sim/engine";
-import {ageEfficiency} from "../../lib/sim/pro-growth";
+import {ageEfficiency,agingProfile} from "../../lib/sim/pro-growth";
 import {clubName} from "../../lib/sim/pro-world";
 import type {ProAction} from "../../lib/sim/pro-season";
 import type {GameState} from "../../lib/sim/types";
@@ -13,7 +13,8 @@ export const salaryText=(n:number)=>`${Math.trunc(n/10_000).toLocaleString()}만
 function Panel({title,children}:{title:string;children:React.ReactNode}){return <section className="panel"><div className="panel-heading"><h2>{title}</h2></div><div className="career-panel-body">{children}</div></section>;}
 export function ProGoals({state,onAction,disabled}:{state:GameState;onAction:(a:ProAction)=>void;disabled:boolean}){
   const p=getPlayer(state),w=state.proWorld,pro=p.professional;if(!w||!pro)return null;
-  return <section className="pro-goals"><div><span className="eyebrow">NEXT STEP</span><h3>{w.customGoal??w.goal}</h3><p>{w.longGoal}</p></div><div><b>프로 {Math.max(1,w.year-pro.rookieYear+1)}년차 · 성장 기준 {Math.trunc(ageEfficiency(p)*100)}%</b><p>{pro.faEligible?"FA 자격 취득":`FA 공헌일 ${pro.faDays}/900일 · 올해 ${pro.registration.days}/150일`}</p><p>{pro.contract?`${clubName(state,pro.contract.club)} · ${pro.contract.endYear}년까지 · ${salaryText(pro.contract.salary)}`:"무소속 · 성장 60% · 무소속 2시즌 종료 시 커리어 마무리"}</p></div>
+  const curve=agingProfile(p);
+  return <section className="pro-goals"><div><span className="eyebrow">NEXT STEP</span><h3>{w.customGoal??w.goal}</h3><p>{w.longGoal}</p></div><div><b>프로 {Math.max(1,w.year-pro.rookieYear+1)}년차 · 기술 성장 기준 {Math.trunc(ageEfficiency(p)*100)}%</b><p>신체 전성기 {curve.peakStart}~{curve.declineStart}세 · {curve.declineStart}세부터 완만한 하락</p><p>{pro.faEligible?"FA 자격 취득":`FA 공헌일 ${pro.faDays}/900일 · 올해 ${pro.registration.days}/150일`}</p><p>{pro.contract?`${clubName(state,pro.contract.club)} · ${pro.contract.endYear}년까지 · ${salaryText(pro.contract.salary)}`:"무소속 · 성장 60% · 무소속 2시즌 종료 시 커리어 마무리"}</p></div>
     <label className="pro-goal-select">관심 목표<select disabled={disabled} value={w.customGoal??""} onChange={e=>onAction({type:"goal",goal:e.target.value})}><option value="">현재 단계의 기본 목표</option>{["정식 선수 전환","1군 승격","꾸준한 1군 출전","타이틀과 우승","FA와 좋은 계약","몸 관리와 통산 기록"].map(goal=><option key={goal}>{goal}</option>)}</select></label>
   </section>;
 }

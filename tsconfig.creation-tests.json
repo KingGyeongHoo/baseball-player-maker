@@ -11,6 +11,7 @@
     "plugins": []
   },
   "include": [
+    "app/components/progress-controls.tsx",
     "app/components/position-picker.tsx",
     "app/components/player-setup.tsx",
     "app/components/career-event.tsx",

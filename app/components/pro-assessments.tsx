@@ -2,6 +2,7 @@ import { getPlayer } from "../../lib/sim/engine";
 import {
   assessmentValue,
   renewalAssessment,
+  firstTeamRetention,
 } from "../../lib/sim/pro-assessment";
 import { proContractRules } from "../../lib/sim/pro-contract-rules";
 import { salaryQuote } from "../../lib/sim/pro-market";
@@ -15,6 +16,7 @@ export default function ProAssessments({ state }: { state: GameState }) {
     year = state.calendar.seasonYear,
     value = assessmentValue(p, year),
     renewal = renewalAssessment(p, year),
+    retention = firstTeamRetention(p, year),
     frozen = rows.some((row) => row.year === year);
   return (
     <section
@@ -65,6 +67,13 @@ export default function ProAssessments({ state }: { state: GameState }) {
           ? "평가 대기"
           : `${scoreText(renewal.score)} · ${renewal.grade} · ${renewal.seasons}개 평가 시즌`}
       </p>
+      {retention.bonus > 0 && (
+        <p className="micro muted">
+          1군 잔류 보호 · 누적 {retention.grade} 등급 · 경쟁자가 기본 교체
+          기준보다 {retention.bonus}점 더 앞서야 강등을 검토합니다. 장기 부상과
+          필수 명단 조정은 별도 적용합니다.
+        </p>
+      )}
       {p.professional?.nonRenewal && (
         <p className="contract-assessment-notice">
           {p.professional.nonRenewal.year} 판정 ·{" "}

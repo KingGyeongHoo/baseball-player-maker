@@ -1,3 +1,4 @@
+import {firstTeamRetention} from "./pro-assessment";
 import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, pitchingRole, positions, previewPlayer, random, recovery, reputationScore, roleScore } from "./engine";
 import { careerLeagueTable, developmentCalendar } from "./pro-calendar";
 import { developmentalOffer, revealDraftResult } from "./draft-outcome";
@@ -163,13 +164,13 @@ export function reviewProRoster(s: GameState) {
   if (p.teamId === second) {
     const weakest = s.players.filter(other => other.teamId === first && eligible(other)).sort((a,b) => score(a)-score(b)||a.id.localeCompare(b.id))[0];
     const best = s.players.filter(other => other.teamId === second && eligible(other)).sort((a,b) => score(b)-score(a)||a.id.localeCompare(b.id))[0];
-    if (!p.forcedRest && !(p.injury && s.date < p.injury.unavailableUntil) && (!best || score(p)>=score(best)) && weakest && score(p)>score(weakest)+1) {
+    if (!p.forcedRest && !(p.injury && s.date < p.injury.unavailableUntil) && (!best || score(p)>=score(best)) && weakest && score(p)>score(weakest)+1+firstTeamRetention(weakest,s.calendar.seasonYear).bonus) {
       exchange=weakest; reason="현재 능력과 최근 성적이 포지션 경쟁 선수를 앞서 1군 기회를 얻었습니다.";
     }
   } else {
     const best = s.players.filter(other => other.teamId === second && eligible(other) && !other.forcedRest && !(other.injury && s.date < other.injury.unavailableUntil)).sort((a,b) => score(b)-score(a)||a.id.localeCompare(b.id))[0];
     const longInjury = !!p.injury && p.injury.unavailableUntil >= addDays(s.date,14);
-    if (best && (longInjury || !p.forcedRest&&score(best)>score(p)+3)) {
+    if (best && (longInjury || !p.forcedRest&&score(best)>score(p)+3+firstTeamRetention(p,s.calendar.seasonYear).bonus)) {
       exchange=best;reason=longInjury?"장기 부상 회복을 위해 2군에서 몸을 만들기로 했습니다.":p.forcedRest?"컨디션 회복을 위해 2군에서 재정비합니다.":"최근 성적과 포지션 경쟁을 반영해 2군에서 다시 기회를 준비합니다.";
     }
   }

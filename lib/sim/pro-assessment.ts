@@ -323,6 +323,21 @@ export function assessmentValue(p: Player, year: number) {
       rules.cumulativeWeight * (cumulative ?? basis),
   };
 }
+export function firstTeamRetention(p: Player, year: number) {
+  const rows = (p.professional?.assessments ?? []).filter(
+    (r) => r.year <= year,
+  );
+  const cumulative = average(rows),
+    grade = rosterGrade(cumulative, true);
+  return { cumulative, grade, bonus: rules.retentionMargins[grade] ?? 0 };
+}
+export function firstTeamDemotionMargin(p: Player, year: number) {
+  const b = p.seasonByLevel?.first.batting;
+  const established =
+    selectionScore(p) >= 79 ||
+    (!!b && b.PA >= 40 && b.AB > 0 && b.H / b.AB >= 0.3);
+  return (established ? 8 : 3) + firstTeamRetention(p, year).bonus;
+}
 export function seasonExit(
   p: Player,
   year: number,

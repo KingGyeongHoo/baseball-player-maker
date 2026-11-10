@@ -4,7 +4,7 @@ import {beginProRoleTrial,decideProRoleTrial} from "./pro-role-evaluation";
 import {recordProChoice} from "./pro-event-ledger";
 import type {ProEventResult} from "./pro-event-types";
 import { teamStrength } from "../team-strength";
-import { professionalGrowth } from "./pro-growth";
+import { professionalGrowth,limitPhysicalGrowth } from "./pro-growth";
 import { applyOpportunityChoice, observeTwoWayQualification } from "./career-opportunities";
 import { createCareerEvent, eventKind } from "./career-events";
 import { statKeys, type CareerEventBranch, type EventOpportunity, type EventScene, type GameState, type MatchEffect, type Player, type Stat } from "./types";
@@ -125,7 +125,7 @@ export function eventTrainingReward(player: Player, key: Stat, weeks: number) {
   const multiplier = params["talent.min_mult"] + (talent - 1) / 9 * (params["talent.max_mult"] - params["talent.min_mult"]);
   const rate = key === "bq" ? params["training.bq"] : physical ? focusGrowth(5) / 3
     : (focusGrowth(5) + params["training.base"]) * multiplier;
-  for (let i = 0; i < weeks * days; i++) value = clamp(value + rate * professionalGrowth(player) * growthMultiplier(player) * slowdown(value) / days, 1);
+  for (let i = 0; i < weeks * days; i++) value = clamp(limitPhysicalGrowth(player,key,value + rate * professionalGrowth(player,key) * growthMultiplier(player) * slowdown(value) / days), 1);
   return value - start;
 }
 export function eventAwakeningReward(player: Player, key: Stat, baseWeeks: number) {
@@ -134,7 +134,7 @@ export function eventAwakeningReward(player: Player, key: Stat, baseWeeks: numbe
   // A breakthrough has its own floor, including BQ and physical abilities.
   // Training modifiers still affect the training reward, not this floor.
   const minimum = params["events.awakening_reference_gain"] * room / (100 - params["events.awakening_reference_stat"]);
-  return Math.min(room, Math.max(minimum, eventTrainingReward(player, key, weeks)));
+  return limitPhysicalGrowth(player,key,player.stats[key]+Math.min(room, Math.max(minimum, eventTrainingReward(player, key, weeks))))-player.stats[key];
 }
 export function weightedOutcome(outcomes: CareerEventBranch[], roll: number) {
   let threshold = 0;
@@ -157,7 +157,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   const s = structuredClone(input), p = getPlayer(s), event = s.careerEvent!;
   const outcome = weightedOutcome(selected.outcomes, random(s, "events"));
   const deltas = { ...outcome.stats };
-  for (const key of statKeys) if ((deltas[key] ?? 0) > 0) deltas[key]! *= professionalGrowth(p)*growthMultiplier(p);
+  for (const key of statKeys) if ((deltas[key] ?? 0) > 0) deltas[key]! *= professionalGrowth(p,key)*growthMultiplier(p);
   for (const [key, weeks] of Object.entries(outcome.weeks ?? {}) as [Stat, number][]) deltas[key] = eventTrainingReward(p, key, weeks);
   const positive = statKeys.filter(key => (deltas[key] ?? 0) > 0 || (outcome.weeks?.[key] ?? 0) > 0);
   const awakened = positive.length && random(s, "events") < params["events.awakening_chance"] ? positive : [];
@@ -165,7 +165,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
     deltas[key] = Math.max(deltas[key] ?? 0, eventAwakeningReward(p, key, outcome.weeks?.[key] ?? 4));
   }
   const changes: typeof deltas = {}, oldReputation = p.reputation ?? reputationScore(p), oldFatigue = p.fatigue;
-  for (const [key, delta] of Object.entries(deltas) as [Stat, number][]) { const before = p.stats[key]; p.stats[key] = clamp(before + delta, 1); changes[key] = p.stats[key] - before; }
+  for (const [key, delta] of Object.entries(deltas) as [Stat, number][]) { const before = p.stats[key]; p.stats[key] = clamp(limitPhysicalGrowth(p,key,before + delta), 1); changes[key] = p.stats[key] - before; }
   const oldPosition = p.position;
   const opportunityChanges = applyOpportunityChoice(s, outcome);
   Object.assign(opportunityChanges,applyProTwoWayChoice(s,outcome));

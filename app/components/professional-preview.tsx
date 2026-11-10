@@ -4,9 +4,7 @@ import Link from "next/link";
 import { createProfessionalDemo } from "../../lib/sim/pro-career";
 import type { GameState } from "../../lib/sim/types";
 import ProLife from "./pro-life";
-import CareerContinuation from "./career-continuation";
-import { getPlayer } from "../../lib/sim/engine";
-import DraftResultGate from "./draft-result-gate";
+import BaseballLife from "./baseball-life";
 import CareerStorage from "./career-storage";
 
 export default function ProfessionalPreview() {
@@ -22,7 +20,7 @@ export default function ProfessionalPreview() {
     window.addEventListener("message",listener);const ready=()=>window.opener?.postMessage({type:"BASEBALL_PRO_READY"},source),timer=setInterval(ready,500);ready();
     return ()=>{window.removeEventListener("message",listener);clearInterval(timer);};
   },[]);
-  if(state&&!state.careerMode)return <main className="app-main pro-demo"><CareerStorage state={state} onLoad={setState}/><div className="pro-demo-intro"><span className="eyebrow">YOUR NEXT CHAPTER</span><h1>{getPlayer(state).name}의<br/>야구 인생은 계속됩니다.</h1><p>고교 커리어와 능력치·재능을 전달받았습니다. 원래 창의 기록도 유지됩니다.</p></div>{state.draftOutcome?.revealed ? <CareerContinuation state={state} onChange={setState} onRetire={()=>setState(null)}/> : <DraftResultGate state={state} onChange={setState}/>}</main>;
+  if(state&&!state.careerMode)return <BaseballLife key={`${state.seed}:${state.playerId}`} initialState={state}/>;
   if(state)return <ProLife state={state} onChange={setState} onReset={()=>setState(null)}/>;
   return <main className="app-main pro-demo"><CareerStorage state={state} onLoad={setState}/><div className="pro-demo-intro"><span className="eyebrow">PRO LIFE · ROOKIE SEASON</span><h1>다음 무대에서,<br/>다시 시작하는 나의 야구.</h1><p>상위 지명 유망주 샘플로 프로 신인 시즌을 바로 체험합니다.<br/>고교에서 직접 키운 선수는 드래프트 결과에서 구단 입단을 선택해 이어갈 수 있습니다.</p></div>
     <section className="panel"><div className="panel-heading"><h2>프로 라이프 체험</h2></div><form className="guide-content" onSubmit={e=>{e.preventDefault();if(busy||!name.trim())return;setBusy(true);setError("");setTimeout(()=>{try{setState(createProfessionalDemo(`pro-demo-${position}`,name,position));}catch(error){setError(error instanceof Error?error.message:"체험을 시작하지 못했습니다.");}finally{setBusy(false);}},30);}}>

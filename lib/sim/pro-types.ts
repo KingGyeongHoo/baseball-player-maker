@@ -4,13 +4,14 @@ import type {LeagueStanding} from "./league-standings";
 
 export type ProStage = "camp" | "regular" | "postseason" | "summary" | "offseason" | "retired";
 export type SalaryContract = { id:string; club:number; startYear:number; endYear:number; salary:number; segments:{from:string;salary:number}[]; source:"rookie"|"renewal"|"fa"|"released" };
+export type AgingProfile={version:1;physical:number;peakStart:number;declineStart:number;loss:Partial<Stats>};
 export type ProfessionalPlayer = {
   assessments?:ProSeasonAssessment[];
   assessmentUsage?:{year:number;activeDays:number;lowerDays:number;upperDays:number;firstDays?:number;lastDate?:string};
   nonRenewal?:{year:number;kind:"reserve"|"limited-appearances"|"post-rookie-evaluation"|"second-team"|"low-evaluation";reason:string;club:number};
   developmentalRetry?:{year:number;deadlineYear:number;club:number};
   rookieYear:number; firstClub:number; entry:string; employment:"active"|"freeAgent"|"retired";
-  contract:SalaryContract|null; agingOffset:number; agedYear:number; ageChanges?:Partial<Stats>;
+  contract:SalaryContract|null; agingOffset:number; agingProfile?:AgingProfile; agedYear:number; ageChanges?:Partial<Stats>;
   faDays:number; faEligible:boolean; registration:{year:number;days:number;lastDate?:string};
   lastAppearance?:string; lastRegistration?:string; lastEvaluation?:string; requestAfter?:string;
   managedUntil?:string; roleTrial?:ProRoleTrial; unattachedYears:number;
