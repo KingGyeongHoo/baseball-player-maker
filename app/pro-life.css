@@ -92,13 +92,7 @@
 .career-save-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
 .career-save-actions button { white-space:nowrap; }
 .career-save-actions .career-save-delete { color:#ab0419; }
-.allstar-entry { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 22px; margin-bottom:22px; border:1px solid #bfd1ec; border-radius:8px; background:linear-gradient(110deg,#edf4ff,#fff); }
-.allstar-entry>div { display:grid; gap:5px; }
-.allstar-entry span { color:#426ba2; font:700 10px Arial,sans-serif; letter-spacing:2px; }
-.allstar-entry b { color:#183555; font-size:18px; }
-.allstar-entry small { color:#687d98; font-size:11px; }
-.modal.allstar-modal { width:min(1000px,calc(100vw - 28px)); }
-.allstar-modal-body { padding:20px 24px 26px; }
+.allstar-content { padding:20px 24px 26px; }
 .allstar-dates,.allstar-update { color:#6c7e98; font-size:11px; line-height:1.9; margin:0 0 16px; }
 .allstar-controls { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
 .allstar-team-label { margin:0 0 16px; padding:12px 14px; border-radius:6px; font-size:12px; line-height:1.7; }
@@ -120,7 +114,7 @@
 .allstar-score { display:flex; justify-content:center; flex-wrap:wrap; align-items:center; gap:18px; padding:24px 12px; color:#476c9e; font-size:13px; }
 .allstar-score strong { color:#233f64; font:700 32px Arial,sans-serif; }
 .allstar-mvp { text-align:center; padding:12px; border:1px solid #eedca8; background:#fff9e8; color:#8a6a1b; margin-bottom:18px; font-size:12px; }
-@media(max-width:650px) { .allstar-ballot-grid { grid-template-columns:minmax(0,1fr); } .allstar-modal-body { padding:16px; } .allstar-entry { padding:16px; } .allstar-entry b { font-size:16px; } .allstar-controls .segmented { flex-wrap:wrap; } }
+@media(max-width:650px) { .allstar-ballot-grid { grid-template-columns:minmax(0,1fr); } .allstar-content { padding:16px; } .allstar-controls .segmented { flex-wrap:wrap; } }
 .pro-goals { display:grid; grid-template-columns:1.1fr 1.2fr 1fr; align-items:center; gap:20px; border:1px solid #dce3ed; background:#fff; padding:20px 24px; margin:18px 0; color:#102147; }
 .pro-goals h3 { margin:6px 0; font-size:16px; }
 .pro-goals b { font-size:12px; }
@@ -142,6 +136,50 @@
 .contract-offers .modal-actions { flex-wrap:wrap; justify-content:flex-start; }
 .contract-offers .primary,.contract-offers .secondary { font-size:11px; padding:12px; }
 .career-pay-history { margin-top:20px; }
+.career-lifetime,.career-honors { margin-bottom:22px; }
+.career-lifetime table { min-width:620px; }
+.career-lifetime table.both-fields { min-width:1000px; }
+.career-lifetime th,.career-lifetime td { padding:13px 12px; text-align:center; font-size:12px; }
+.career-lifetime thead tr:first-child th[colspan] { text-align:left; padding-left:14px; }
+.career-lifetime tfoot { background:#edf2f8; color:#172344; font-weight:700; }
+.career-summary-note { margin:0; padding:10px 20px; font-size:11px; color:#7b8ba2; }
+.career-honor-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
+.career-honor-category { min-width:0; padding:18px; }
+.career-honor-category+.career-honor-category { border-left:1px solid var(--line); }
+.career-honor-category h3 { display:flex; justify-content:space-between; gap:10px; font-size:13px; color:var(--navy); margin:0 0 14px; }
+.career-honor-category h3>span { font-size:11px; color:var(--muted); font-weight:400; }
+.career-honor-category ul { list-style:none; margin:0; padding:0; max-height:300px; overflow-y:auto; }
+.career-honor-category li { display:flex; align-items:baseline; gap:10px; padding:10px 0; border-top:1px solid #edf0f5; font-size:12px; }
+.career-honor-category time { color:#8290a5; font-size:11px; }
+.career-honor-category small { display:block; color:#8290a5; margin-top:5px; font-size:10px; line-height:1.6; }
+.career-honor-category .empty-note { padding:8px 0; text-align:left; }
+.compact-contract-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:16px; }
+.compact-contract-metrics span { display:block; color:#7b8ba2; font-size:11px; margin-bottom:7px; }
+.compact-contract-metrics b { display:block; color:#172344; font-size:19px; }
+.contract-season-evaluations { border-top:1px solid var(--line); }
+.contract-season-evaluations>summary { cursor:pointer; padding:12px 0; font-size:12px; color:#60728d; }
+.contract-season-evaluations table { min-width:300px; table-layout:fixed; }
+.contract-season-evaluations th,.contract-season-evaluations td { padding:12px 5px; font-size:11px; white-space:nowrap; }
+.contract-season-evaluations th:nth-child(4),.contract-season-evaluations td:nth-child(4) { width:28%; }
+@media(max-width:900px){.career-honor-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.career-honor-category:nth-child(3){border-left:0}.career-honor-category:nth-child(n+3){border-top:1px solid var(--line)}}
+@media(max-width:600px){.compact-contract-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 14px}.compact-contract-metrics b{font-size:17px}.career-honor-category{padding:16px 12px}.career-honor-category li{gap:6px;font-size:11px}}
+.awards-mvp { padding:22px; margin:18px 0 24px; background:#172344; border:1px solid #cbb477; color:#fff; }
+.awards-mvp>span { color:#e7cf94; font-size:11px; letter-spacing:2px; }
+.awards-mvp h3 { color:inherit; margin:10px 0; font-size:25px; }
+.awards-mvp h3 small { font-size:11px; margin-left:12px; color:#e7cf94; }
+.awards-mvp p { color:#e0e5ef; font-size:12px; line-height:1.8; }
+.season-awards th,.season-awards td { font-size:12px; }
+.season-awards td:last-child { min-width:270px; line-height:1.8; white-space:normal; }
+.awards-season>summary,.awards-rules>summary { cursor:pointer; font-size:13px; padding:12px 0; }
+.awards-category-tabs { margin-bottom:22px; }
+.awards-filters { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
+.awards-year { display:grid; gap:6px; font-size:11px; color:var(--muted); }
+.awards-year select { padding:9px 14px; border:1px solid var(--line); background:#fff; color:var(--navy); }
+.pro-awards-hub>.section-intro { display:flex; align-items:center; justify-content:space-between; gap:18px; }
+.allstar-panel { margin-bottom:22px; }
+.pro-awards-hub .segmented>button { white-space:nowrap; }
+.pro-awards-hub .table-scroll { margin-top:12px; }
+.awards-rules p { font-size:12px; color:#738099; line-height:1.8; }
 .career-pay-history summary,.pro-history-seasons summary { cursor:pointer; font-size:12px; color:#102147; padding:13px 0; }
 .pro-history-seasons > details { border-top:1px solid #e2e8f0; }
 .pro-history-seasons p { font-size:11px; line-height:1.8; color:#7b8ba2; }

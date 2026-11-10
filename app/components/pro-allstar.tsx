@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useId,useRef,useState} from "react";
+import {useState} from "react";
 import {allstarBallot,allstarLevels,allstarSeasonView,allstarSideLabels,allstarSides,allstarSlots,nextAllstarVoteDate} from "../../lib/sim/pro-allstar";
 import {allstarDates} from "../../lib/sim/pro-allstar-calendar";
 import type {AllstarLevel,AllstarSide} from "../../lib/sim/pro-allstar-types";
@@ -8,15 +8,14 @@ import {formatInnings} from "../../lib/player-records";
 
 const slotLabels:Record<Position,string>={SP:"선발투수",RP:"중간계투",CP:"마무리",C:"포수",'1B':"1루수",'2B':"2루수",'3B':"3루수",SS:"유격수",LF:"좌익수",CF:"중견수",RF:"우익수",DH:"지명타자"};
 const methods={vote:"투표 선발",manager:"감독 추천",replacement:"대체 선발"};
-function AllstarDialog({state,onClose,onRecords}:{state:GameState;onClose:()=>void;onRecords:(id:string)=>void}){
-  const ref=useRef<HTMLDialogElement>(null),heading=useRef<HTMLHeadingElement>(null),id=useId();
+export default function ProAllstar({state,onRecords}:{state:GameState;onRecords:(id:string)=>void}){
   const [level,setLevel]=useState<AllstarLevel>("first"),[side,setSide]=useState<AllstarSide>("blue");
   const season=allstarSeasonView(state),[view,setView]=useState(season.finalizedAt?"roster":"votes"),dates=allstarDates(season.year),entry=season.levels[level],target=entry[side];
-  useEffect(()=>{const dialog=ref.current;dialog?.showModal();heading.current?.focus();return()=>dialog?.close();},[]);
-  const openRecords=(playerId:string)=>{onClose();onRecords(playerId);};
-  return <dialog className="modal allstar-modal" ref={ref} aria-labelledby={id} onCancel={event=>{event.preventDefault();onClose();}}>
-    <div className="modal-header"><h2 id={id} ref={heading} tabIndex={-1}>{season.year} 올스타</h2><button type="button" className="text-button" aria-label="올스타 닫기" onClick={onClose}>닫기</button></div>
-    <div className="allstar-modal-body">
+  const openRecords=onRecords;
+  if(state.date<`${season.year}-05-01`)return <section className="panel"><div className="panel-heading"><h2>{season.year} 올스타</h2></div><p className="empty-note">5월 1일부터 누적 투표 현황을 확인할 수 있습니다.</p></section>;
+  return <section className="panel allstar-panel">
+    <div className="panel-heading"><h2>{season.year} 올스타</h2></div>
+    <div className="allstar-content">
       <p className="allstar-dates">2군 {dates.second} (금) · 1군 {dates.first} (토)<br/>{dates.restStart}~{dates.restEnd} 휴식 · {dates.resume} 정규경기 재개</p>
       <div className="allstar-controls"><div className="segmented" aria-label="올스타 리그">{allstarLevels.map(key=><button key={key} className={level===key?"selected":""} aria-pressed={level===key} onClick={()=>setLevel(key)}>{key==="first"?"1군":"2군"}</button>)}</div>
         <div className="segmented" aria-label="올스타 진영">{allstarSides.map(key=><button key={key} className={side===key?"selected":""} aria-pressed={side===key} onClick={()=>setSide(key)}>{allstarSideLabels[key]}</button>)}</div>
@@ -35,10 +34,5 @@ function AllstarDialog({state,onClose,onRecords}:{state:GameState;onClose:()=>vo
       {view==="result"&&(entry.cancelled?<p className="empty-note">{entry.cancelled}</p>:entry.game?<><div className="allstar-score"><span>BLUE Team</span><strong>{entry.game.score[0]} : {entry.game.score[1]}</strong><span>WHITE Team</span></div><p className="allstar-mvp">미스터 올스타 · <b>{entry.mvp?.name??"선정 대기"}</b>{entry.mvp?` (${allstarSideLabels[entry.mvp.side]})`:""}</p><p className="allstar-update">올스타 기록은 정규·포스트시즌 성적에 합산하지 않습니다.</p><div className="table-scroll"><table><thead><tr><th>선수</th><th>타석</th><th>안타</th><th>홈런</th><th>타점</th><th>이닝</th><th>탈삼진</th></tr></thead><tbody>{target.roster.filter(row=>{const r=entry.game!.boxScore[row.playerId];return r&&(r.batting.PA||r.pitching.BF);}).map(row=>{const r=entry.game!.boxScore[row.playerId];return <tr key={row.playerId}><td>{row.name}</td><td>{r.batting.PA}</td><td>{r.batting.H}</td><td>{r.batting.HR}</td><td>{r.batting.RBI}</td><td>{formatInnings(r.pitching.outs)}</td><td>{r.pitching.SO}</td></tr>;})}</tbody></table></div></>:<p className="empty-note">아직 경기가 열리지 않았습니다.</p>)}
       </>}
     </div>
-  </dialog>;
-}
-export default function ProAllstar({state,onRecords}:{state:GameState;onRecords:(id:string)=>void}){
-  const [open,setOpen]=useState(false);if(state.careerMode!=="pro"||state.date<`${state.calendar.seasonYear}-05-01`)return null;
-  const season=allstarSeasonView(state);
-  return <><section className="allstar-entry"><div><span>ALL-STAR</span><b>{season.year} 별들의 무대</b><small>{season.skipped?"다음 시즌부터 참여":season.finalizedAt?"1·2군 최종 명단과 경기 결과":"1·2군 누적 투표 · 2주 간격 집계"}</small></div><button type="button" className="primary" onClick={()=>setOpen(true)}>올스타</button></section>{open&&<AllstarDialog state={state} onClose={()=>setOpen(false)} onRecords={onRecords}/>}</>;
+  </section>;
 }

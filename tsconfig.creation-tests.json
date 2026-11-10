@@ -24,6 +24,8 @@
     "app/components/draft-result-gate.tsx",
     "lib/career-save.ts",
     "app/components/pro-career-panels.tsx",
+    "app/components/pro-career-summary.tsx",
+    "app/components/pro-awards-hub.tsx",
     "app/components/player-evaluation.tsx",
     "app/components/pro-league.tsx",
     "app/components/dashboard-records.tsx",

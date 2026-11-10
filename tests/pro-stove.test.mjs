@@ -8,6 +8,7 @@ const e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/l
 const life=require('../.test-build/lib/sim/pro-season.js'),market=require('../.test-build/lib/sim/pro-market.js');
 const calendar=require('../.test-build/lib/sim/pro-calendar.js'),storage=require('../.test-build/lib/career-save.js');
 const {ProContractPanel}=require('../.test-build/app/components/pro-career-panels.js');
+const ProgressControls=require('../.test-build/app/components/progress-controls.js').default;
 let template;
 function acknowledge(s){for(let i=0;i<40&&s.careerNotice;i++)s=pc.acknowledgeCareer(s);return s;}
 function fixture(){
@@ -40,7 +41,7 @@ test('weekly stove flow retains accepted contracts and closes January 1 before t
  let s=fixture();const year=s.proWorld.year+1,stats={...e.getPlayer(s).stats},record=structuredClone(e.getPlayer(s).seasonStats);
  s=clear(life.actOnProCareer(clear(s),{type:'market'}));assert.equal(s.date,`${year-1}-11-01`);assert.equal(s.proWorld.stage,'offseason');
  const offer=s.proWorld.market.offers[0];assert.ok(offer);s=clear(life.actOnProCareer(s,{type:'accept',id:offer.id}));const contract=structuredClone(e.getPlayer(s).professional.contract);
- assert.throws(()=>life.actOnProCareer(s,{type:'nextSeason'}),/스토브리그/);
+ assert.equal(life.canEnterNextProCamp(s),true);
  const dates=[s.date];let guard=0;
  while(!s.proWorld.stove.closed){assert.ok(++guard<=10);s=clear(life.actOnProCareer(s,{type:'wait'}));dates.push(s.date);assert.deepEqual(e.getPlayer(s).professional.contract,contract);assert.deepEqual(e.getPlayer(s).seasonStats,record);assert.deepEqual(e.getPlayer(s).stats,stats);}
  assert.equal(dates.length,10);assert.equal(s.date,`${year}-01-01`);assert.throws(()=>life.actOnProCareer(s,{type:'wait'}),/마감/);
@@ -69,11 +70,37 @@ test('offseason roster reviews release only removable NPCs with expired contract
  assert.ok(released.length>0);assert.ok(released.every(p=>p.id!==s.playerId&&original.get(p.id).end<year));
  const t=fixture();market.reviewStoveReleases(t,year);assert.deepEqual(t.proWorld.news,s.proWorld.news);
 });
-test('stove UI exposes progression after signing and final decisions only at closing',()=>{
+test('stove UI offers immediate camp entry after signing and keeps unsigned decisions at closing',()=>{
  const s=fixture();life.prepareOffseason(s);const render=()=>renderToStaticMarkup(createElement(ProContractPanel,{state:s,disabled:false,onAction(){},onRetire(){}}));
  assert.ok(render().includes('다음 주 스토브리그'));assert.ok(!render().includes('무소속으로 다음 시즌 준비'));
- s.proWorld.market.settled=true;assert.ok(render().includes('내 계약은 확정됐습니다'));assert.ok(render().includes('다음 주 스토브리그'));
- s.proWorld.stove.closed=true;assert.ok(render().includes('2월 스프링캠프 시작'));assert.ok(!render().includes('다음 주 스토브리그'));
+ assert.ok(!render().includes('다음 캠프로 바로 가기'));
+ s.proWorld.market.settled=true;e.getPlayer(s).professional.contract.endYear=s.proWorld.year+1;assert.ok(render().includes('내 계약은 확정됐습니다'));assert.ok(render().includes('다음 캠프로 바로 가기'));assert.ok(render().includes('다음 주 스토브리그'));
+ s.proWorld.stove.closed=true;assert.ok(render().includes('다음 캠프로 바로 가기'));assert.ok(!render().includes('다음 주 스토브리그'));
+});
+
+test('immediate camp entry processes exactly the same remaining stove transactions as weekly progression',()=>{
+ let s=fixture();s=clear(life.actOnProCareer(s,{type:'market'}));const offer=s.proWorld.market.offers[0];s=clear(life.actOnProCareer(s,{type:'accept',id:offer.id}));
+ const p=e.getPlayer(s),contract=structuredClone(p.professional.contract),career=structuredClone(p.career),before=JSON.stringify(s),year=s.proWorld.year+1;
+ const direct=life.actOnProCareer(s,{type:'nextSeason'});assert.equal(JSON.stringify(s),before);assert.equal(direct.date,`${year}-02-01`);assert.equal(direct.proWorld.stage,'camp');assert.equal(direct.proWorld.stove,undefined);assert.equal(direct.careerNotice.title,`${year} 캠프 시작`);assert.deepEqual(e.getPlayer(direct).professional.contract,contract);assert.deepEqual(e.getPlayer(direct).career,career);
+ let weekly=structuredClone(s);while(!weekly.proWorld.stove.closed)weekly=clear(life.actOnProCareer(weekly,{type:'wait'}));weekly=life.actOnProCareer(weekly,{type:'nextSeason'});
+ const players=state=>state.players.map(p=>({id:p.id,team:p.teamId,age:p.age,stats:p.stats,records:p.seasonStats,career:p.career,contract:p.professional.contract,employment:p.professional.employment,fa:p.professional.faDays,injury:p.injury,fatigue:p.fatigue}));
+ assert.deepEqual(players(direct),players(weekly));assert.deepEqual(direct.proWorld.news,weekly.proWorld.news);assert.deepEqual(direct.rngStates,weekly.rngStates);assert.deepEqual(direct.calendar,weekly.calendar);
+});
+
+test('ongoing multi-year contracts can enter camp directly before opening the market and after restoring a partial winter',()=>{
+ const s=fixture(),p=e.getPlayer(s),year=s.proWorld.year+1;p.professional.contract.endYear=year+1;const contract=structuredClone(p.professional.contract);
+ const next=life.actOnProCareer(s,{type:'nextSeason'});assert.equal(next.date,`${year}-02-01`);assert.deepEqual(e.getPlayer(next).professional.contract,contract);assert.ok(next.proWorld.news.some(row=>row.id===`${year}:stove:9`));assert.equal(next.proWorld.draftedYears.filter(y=>y===year).length,1);
+ let partial=clear(life.actOnProCareer(s,{type:'market'}));partial=clear(life.actOnProCareer(partial,{type:'wait'}));partial=clear(life.actOnProCareer(partial,{type:'wait'}));
+ const restored=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(partial))).state;
+ const resumed=life.actOnProCareer(restored,{type:'nextSeason'});assert.equal(resumed.date,next.date);assert.deepEqual(resumed.proWorld.news,next.proWorld.news);assert.deepEqual(e.getPlayer(resumed).professional.contract,contract);assert.equal(new Set(resumed.players.map(p=>p.id)).size,resumed.players.length);
+});
+
+test('immediate camp entry requires a signed next-season contract and the footer waits for pending decisions',()=>{
+ const s=fixture();life.prepareOffseason(s);clear(s);const before=JSON.stringify(s);assert.equal(life.canEnterNextProCamp(s),false);assert.throws(()=>life.actOnProCareer(s,{type:'nextSeason'}),/계약/);assert.equal(JSON.stringify(s),before);
+ const p=e.getPlayer(s),props={state:s,policy:p.trainingPolicy,busy:false,auto:false,autoStartWeek:s.week,onAdvance(){},onToggleAuto(){},onContinue(){},onNextCamp(){}};
+ let html=renderToStaticMarkup(createElement(ProgressControls,props));assert.ok(html.includes('다음 캠프로 바로 가기'));assert.ok(html.includes('남은 스토브리그를 자동으로 진행'));
+ html=renderToStaticMarkup(createElement(ProgressControls,{...props,pendingOutcome:true}));assert.match(html,/<button[^>]*disabled/);
+ p.professional.contract.endYear=s.proWorld.year+1;p.professional.employment='freeAgent';assert.equal(life.canEnterNextProCamp(s),false);
 });
 test('new pro careers and leap-year calendars include February training and late-March games',()=>{
  const s=pc.createProfessionalDemo('february-camp','캠프검증','SP');assert.equal(s.date.slice(5),'02-01');

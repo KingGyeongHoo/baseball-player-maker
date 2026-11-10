@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { positionLabel } from "../../lib/sim/engine";
+import {handednessLabel} from "../../lib/player-handedness";
 import { formatInnings, playerSeasons, recordRates, totalRecords, type PlayerSeason } from "../../lib/player-records";
 import type { Player, RecordLine } from "../../lib/sim/types";
 import { careerLabel } from "../../lib/sim/pro-career";
@@ -55,7 +56,7 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
   return <div className="season-records">
     <div className="section-intro">
       <div><span className="eyebrow">PLAYER CAREER RECORDS</span><h1>{player.name}의 연도별 기록</h1>
-        <p>{school} · {positionLabel(player)} · {careerLabel(player)}{mine ? " · 나의 선수" : ""}</p></div>
+        <p>{school} · {positionLabel(player)} · {handednessLabel(player)} · {careerLabel(player)}{mine ? " · 나의 선수" : ""}</p></div>
       {!mine && <button className="secondary" onClick={onMyRecords}>내 기록 보기</button>}
     </div>
     <div className="records-toolbar">

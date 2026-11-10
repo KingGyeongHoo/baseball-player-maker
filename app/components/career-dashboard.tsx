@@ -1,3 +1,4 @@
+import {handednessLabel} from "../../lib/player-handedness";
 import { scoreText } from "../../lib/display";
 import {useMemo, type ReactNode} from "react";
 import { competitionName } from "../../lib/sim/calendar";
@@ -29,7 +30,7 @@ export default function CareerDashboard({ state, onTab, onTraining, records, sch
     <section className="dashboard-overview" aria-label="선수와 팀 요약">
       <div className="overview-profile">
         <div className="overview-profile-heading"><span className="overview-label">PLAYER PROFILE</span><PlayerEvaluationButton state={state}/></div>
-        <div className="overview-identity"><div><p className="overview-school">{profileMeta ?? <>{team?.name ?? "무소속"} · {player.grade}학년</>}</p><h1>{player.name}{player.jerseyNumber!==undefined&&<small className="overview-jersey">NO. {player.jerseyNumber}</small>}{profileBadge}</h1><div className="overview-position"><span>{positionLabel(player)}</span><small>우투우타</small></div></div><div className="overview-ovr overview-grade"><span>{state.careerMode==="pro"?"출전 등급":"평판 등급"}</span><PlayerGrade player={player} pro={state.careerMode==="pro"}/></div></div>
+        <div className="overview-identity"><div><p className="overview-school">{profileMeta ?? <>{team?.name ?? "무소속"} · {player.grade}학년</>}</p><h1>{player.name}{player.jerseyNumber!==undefined&&<small className="overview-jersey">NO. {player.jerseyNumber}</small>}{profileBadge}</h1><div className="overview-position"><span>{positionLabel(player)}</span><small>{handednessLabel(player)}</small></div></div><div className="overview-ovr overview-grade"><span>{state.careerMode==="pro"?"출전 등급":"평판 등급"}</span><PlayerGrade player={player} pro={state.careerMode==="pro"}/></div></div>
         {player.transferAdaptation && <p className="overview-caption">전학 적응 · 훈련 효율 90% · {player.transferAdaptation.weeksRemaining}훈련 주 남음</p>}
         {state.careerOpportunities?.pendingTransfer && <p className="overview-caption">{state.teams[state.careerOpportunities.pendingTransfer.toTeamId].name} · {dateLabel(state.careerOpportunities.pendingTransfer.effectiveDate)} 합류 예정</p>}
       </div>

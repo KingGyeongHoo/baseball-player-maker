@@ -2,7 +2,7 @@ import ProAssessments from "./pro-assessments";
 import {overall,getPlayer,positionLabel} from "../../lib/sim/engine";
 import {ageEfficiency,agingProfile} from "../../lib/sim/pro-growth";
 import {clubName} from "../../lib/sim/pro-world";
-import type {ProAction} from "../../lib/sim/pro-season";
+import {canEnterNextProCamp,type ProAction} from "../../lib/sim/pro-season";
 import type {GameState} from "../../lib/sim/types";
 import {statKeys} from "../../lib/sim/types";
 import {labels} from "../../lib/sim/engine";
@@ -18,29 +18,26 @@ function Panel({title,children}:{title:string;children:React.ReactNode}){return 
 export function ProGoals({state,onAction,disabled}:{state:GameState;onAction:(a:ProAction)=>void;disabled:boolean}){
   const p=getPlayer(state),w=state.proWorld,pro=p.professional;if(!w||!pro)return null;
   const curve=agingProfile(p);
-  return <section className="pro-goals"><div><span className="eyebrow">NEXT STEP</span><h3>{w.customGoal??w.goal}</h3><p>{w.longGoal}</p></div><div><b>프로 {Math.max(1,w.year-pro.rookieYear+1)}년차 · 기술 성장 기준 {Math.trunc(ageEfficiency(p)*100)}%</b><p>신체 전성기 {curve.peakStart}~{curve.declineStart}세 · {curve.declineStart}세부터 완만한 하락</p><p>{pro.faEligible?"FA 자격 취득":`FA 공헌일 ${pro.faDays}/900일 · 올해 ${pro.registration.days}/150일`}</p><p>{pro.contract?`${clubName(state,pro.contract.club)} · ${pro.contract.endYear}년까지 · ${salaryText(pro.contract.salary)}`:"무소속 · 성장 60% · 무소속 2시즌 종료 시 커리어 마무리"}</p></div>
+  return <section className="pro-goals"><div><span className="eyebrow">NEXT STEP</span><h3>{w.customGoal??w.goal}</h3><p>{w.longGoal}</p></div><div><b>프로 {Math.max(1,w.year-pro.rookieYear+1)}년차 · 기술 성장 기준 {Math.trunc(ageEfficiency(p)*100)}%</b><p>신체 전성기 {curve.peakStart}~{curve.declineStart}세 · {curve.declineStart}세부터 완만한 하락</p><p>{pro.faEligible?"FA 자격 취득":`FA 공헌일 ${pro.faDays}/900일 · 올해 ${pro.registration.days}/150일`}</p></div>
     <label className="pro-goal-select">관심 목표<select disabled={disabled} value={w.customGoal??""} onChange={e=>onAction({type:"goal",goal:e.target.value})}><option value="">현재 단계의 기본 목표</option>{["정식 선수 전환","1군 승격","꾸준한 1군 출전","타이틀과 우승","FA와 좋은 계약","몸 관리와 통산 기록"].map(goal=><option key={goal}>{goal}</option>)}</select></label>
   </section>;
 }
 export function ProContractPanel({state,onAction,onRetire,disabled}:{state:GameState;onAction:(a:ProAction)=>void;onRetire:()=>void;disabled:boolean}){
   const p=getPlayer(state),w=state.proWorld,pro=p.professional;if(!w||!pro)return null;
-  const market=w.market,contract=pro.contract,closed=w.seasonClosed,stove=w.stove;
-  return <Panel title="계약과 다음 시즌"><div className="contract-current"><div><span>현재 계약</span><h3>{contract?clubName(state,contract.club):"무소속"}</h3><p>{contract?`${contract.startYear}~${contract.endYear} · 연봉 ${salaryText(contract.salary)}`:"새 구단에서 기회를 찾거나 개인 훈련으로 다음 시장을 준비할 수 있습니다."}</p></div><div><span>커리어 수령액</span><b>{salaryText(pro.earnings)}</b><p>최고 연봉 {salaryText(pro.highestSalary)}</p></div></div>
+  const market=w.market,closed=w.seasonClosed,stove=w.stove,campReady=canEnterNextProCamp(state);
+  return <Panel title="계약과 시즌 평가">
     <ProAssessments state={state}/>
-    <p className="micro muted">예상 역할은 구단의 계획이며 출전 보장이 아닙니다. 연봉은 가치·성취 지표이며 성장 배율을 추가하지 않습니다.</p>
-    {stove&&<div className="info-box"><b>{stove.closed?"스토브리그 마감 · 1월 계약 마무리":"스토브리그 진행 중"}</b><p>{state.date} · {stove.openedAt}~{stove.closesAt} · {stove.round+1}차</p><p>{stove.closed?"최종 제안을 결정한 뒤 2월 1일 스프링캠프로 이동합니다. 정규리그는 3월 말 개막합니다.":`다음 시장 갱신 ${stove.nextUpdate} · 매주 FA·트레이드·방출 소식과 계약 제안을 확인하세요.`}</p>{market?.settled&&<p>내 계약은 확정됐습니다. 다른 구단의 전력 재편을 지켜보며 시장을 진행할 수 있습니다.</p>}</div>}
+    {stove&&<div className="info-box"><b>{stove.closed?"스토브리그 마감 · 1월 계약 마무리":"스토브리그 진행 중"}</b><p>{state.date} · {stove.openedAt}~{stove.closesAt} · {stove.round+1}차</p><p>{stove.closed?"최종 제안을 결정한 뒤 2월 1일 스프링캠프로 이동합니다. 정규리그는 3월 말 개막합니다.":`다음 시장 갱신 ${stove.nextUpdate} · 매주 FA·트레이드·방출 소식과 계약 제안을 확인하세요.`}</p>{campReady&&<p>내 계약은 확정됐습니다. 남은 스토브리그를 자동으로 진행하고 다음 캠프로 바로 이동할 수 있습니다.</p>}</div>}
     {market&&!market.settled&&<><h3>{market.kind==="renewal"?"원소속 구단 갱신 협상":market.kind==="fa"?"FA 계약 시장":"새 구단 제안"} · {market.round+1}차</h3>
-      <div className="contract-offers">{market.offers.map(offer=><article key={offer.id}><span className="eyebrow">{offer.kind==="renewal"?"RENEWAL":"NEW OPPORTUNITY"}</span><h3>{clubName(state,offer.club)}</h3><strong>{salaryText(offer.salary)} <small>/ 연</small></strong><p>{offer.year}년부터 {offer.years}시즌 · 총 {salaryText(offer.salary*offer.years)}</p><p>{offer.role}</p>{offer.assessment&&<p>연봉 기준: 올해 {scoreText(offer.assessment.current)} · 누적 {scoreText(offer.assessment.cumulative)} · 합산 {scoreText(offer.assessment.score)}</p>}<p>경쟁자: {offer.competition.join(" · ")||"새 역할 경쟁"}</p><p>구단 방향: {directionText(state.proWorld!.clubs[offer.club].direction)}</p><div className="modal-actions"><button className="primary" disabled={disabled} onClick={()=>onAction({type:"accept",id:offer.id})}>조건 수락</button><button className="secondary" disabled={disabled||offer.negotiated} onClick={()=>onAction({type:"negotiate",id:offer.id})}>{offer.negotiated?"최종안":"재협상 1회"}</button></div></article>)}</div>
+      <div className="contract-offers">{market.offers.map(offer=><article key={offer.id}><h3>{clubName(state,offer.club)}</h3><strong>{salaryText(offer.salary)} <small>/ 연</small></strong><p>{offer.year}년부터 {offer.years}시즌</p><div className="modal-actions"><button className="primary" disabled={disabled} onClick={()=>onAction({type:"accept",id:offer.id})}>조건 수락</button><button className="secondary" disabled={disabled||offer.negotiated} onClick={()=>onAction({type:"negotiate",id:offer.id})}>{offer.negotiated?"최종안":"재협상 1회"}</button></div></article>)}</div>
       {!market.offers.length&&<p>현재 조건에 맞는 제안이 없습니다. 기다려도 다음 제안이 보장되지는 않습니다.</p>}
       <div className="modal-actions">{market.kind!=="renewal"&&stove?.closed&&<button className="secondary" disabled={disabled} onClick={()=>onAction({type:"unattached"})}>무소속으로 다음 시즌 준비</button>}
         {market.kind==="renewal"&&<><button className="secondary" disabled={disabled} onClick={()=>onAction({type:"request",kind:"trade"})}>이적 검토 요청</button><button className="secondary" disabled={disabled} onClick={()=>onAction({type:"request",kind:"release"})}>구단에 계약 해제 요청</button></>}
       </div><p className="micro muted">FA 전에는 계약 만료만으로 자유계약 시장에 나가지 않습니다. 요청에는 구단 동의가 필요하며 반복 요청은 4주 간격입니다.</p></>}
-    {closed&&w.stage!=="retired"&&<div className="modal-actions">{!stove?<button className="primary" disabled={disabled} onClick={()=>onAction({type:"market"})}>스토브리그 시작 →</button>:!stove.closed?<button className="primary" disabled={disabled} onClick={()=>onAction({type:"wait"})}>다음 주 스토브리그 →</button>:market?.settled&&<button className="primary" disabled={disabled} onClick={()=>onAction({type:"nextSeason"})}>2월 스프링캠프 시작 →</button>}<button className="secondary" disabled={disabled} onClick={onRetire}>은퇴 검토</button></div>}
-    {stove&&<details open className="career-pay-history"><summary>스토브리그 소식</summary><div className="pro-transactions">{w.news.filter(row=>row.date>=stove.openedAt).slice(-12).reverse().map(row=><div key={row.id}><time>{row.date}</time><p>{row.text}</p></div>)}</div></details>}
-    {pro.salaries.length>0&&<details className="career-pay-history"><summary>연도별 수령액</summary><div className="table-scroll"><table><thead><tr><th>연도</th><th>구단</th><th>수령액</th></tr></thead><tbody>{pro.salaries.map((row,i)=><tr key={i}><td>{row.year}</td><td>{clubName(state,row.club)}</td><td>{salaryText(row.amount)}</td></tr>)}</tbody></table></div></details>}
+    {closed&&w.stage!=="retired"&&<div className="modal-actions">{campReady&&<button className="primary" disabled={disabled} onClick={()=>onAction({type:"nextSeason"})}>다음 캠프로 바로 가기 →</button>}{!stove?<button className={campReady?"secondary":"primary"} disabled={disabled} onClick={()=>onAction({type:"market"})}>스토브리그 시작 →</button>:!stove.closed&&<button className={campReady?"secondary":"primary"} disabled={disabled} onClick={()=>onAction({type:"wait"})}>다음 주 스토브리그 →</button>}<button className="secondary" disabled={disabled} onClick={onRetire}>은퇴 검토</button></div>}
+    {stove&&<details className="career-pay-history"><summary>스토브리그 소식</summary><div className="pro-transactions">{w.news.filter(row=>row.date>=stove.openedAt).slice(-12).reverse().map(row=><div key={row.id}><time>{row.date}</time><p>{row.text}</p></div>)}</div></details>}
   </Panel>;
 }
-const directionText=(direction:string)=>direction==="contend"?"우승 경쟁":direction==="rebuild"?"재건":"중위권 보강";
 export function ProRetirement({state,onRecords,onNew}:{state:GameState;onRecords:()=>void;onNew:()=>void}){
   const p=getPlayer(state),w=state.proWorld!,pro=p.professional!,retired=w.retired;if(!retired)return null;
   const entry=p.career.filter(row=>row.careerMode!=="pro").at(-1)?.stats??p.initialStats;

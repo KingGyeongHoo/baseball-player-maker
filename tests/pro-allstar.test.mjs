@@ -6,6 +6,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js');
 const a=require('../.test-build/lib/sim/pro-allstar.js'),c=require('../.test-build/lib/sim/pro-allstar-calendar.js'),calendar=require('../.test-build/lib/sim/pro-calendar.js');
 const save=require('../.test-build/lib/career-save.js'),League=require('../.test-build/app/components/pro-league.js').default;
+const Allstar=require('../.test-build/app/components/pro-allstar.js').default;
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('allstar-rules','올스타선수','SS'));
 function fixture(){const s=structuredClone(template);s.date='2028-05-01';s.careerNotice=undefined;s.noticeQueue=[];s.proWorld.stage='regular';
  const mine=e.getPlayer(s);mine.teamId=0;s.postSchool.pro.club=0;s.postSchool.pro.level='first';for(const k of Object.keys(mine.stats))mine.stats[k]=95;
@@ -82,8 +83,8 @@ test('calendar upgrade moves only future games, retains completed records and co
  assert.equal(c.upgradeAllstarSchedule(s),true);assert.deepEqual(s.calendar.events.find(g=>g.id===before.id),before);for(const t of s.teams)assert.equal(s.calendar.events.filter(g=>[g.homeTeamId,g.awayTeamId].includes(t.id)).length,counts.get(t.id));assert.ok(s.calendar.events.filter(g=>g.status==='scheduled'&&g.date>=s.date).every(g=>!c.allstarBreak(g.date,2028)));assert.equal(c.upgradeAllstarSchedule(s),false);
 });
 
-test('league exposes the allstar button from May, and late adoption does not replay past games',()=>{
- const s=fixture();s.date='2028-04-30';assert.doesNotMatch(renderToStaticMarkup(createElement(League,{state:s,onRecords(){}})),/>올스타<\/button>/);s.date='2028-05-01';assert.match(renderToStaticMarkup(createElement(League,{state:s,onRecords(){}})),/>올스타<\/button>/);
+test('awards allstar page opens voting from May without a league modal, and late adoption does not replay games',()=>{
+ const s=fixture();s.date='2028-04-30';assert.match(renderToStaticMarkup(createElement(Allstar,{state:s,onRecords(){}})),/5월 1일부터/);s.date='2028-05-01';const html=renderToStaticMarkup(createElement(Allstar,{state:s,onRecords(){}}));assert.match(html,/투표 현황/);assert.match(html,/BLUE Team/);assert.doesNotMatch(html,/<dialog/);assert.doesNotMatch(renderToStaticMarkup(createElement(League,{state:s,onRecords(){}})),/>올스타<\/button>/);
  delete s.proWorld.allstar;s.date='2028-08-01';a.prepareAllstarDay(s);assert.equal(s.proWorld.allstar.skipped,true);assert.equal(s.proWorld.allstar.levels.first.game,undefined);
 });
 

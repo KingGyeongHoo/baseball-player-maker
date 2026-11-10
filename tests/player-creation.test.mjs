@@ -21,6 +21,7 @@ const picker = (kind, value) => renderToStaticMarkup(createElement(Picker, { kin
 test('initial creation asks only for name, type and position without revealing a school or ability', () => {
   const html = renderToStaticMarkup(createElement(Setup, { onStart() { assert.fail('SSR must not generate a player'); } }));
   assert.ok(html.includes('선수 이름')); assert.ok(html.includes('어떤 선수로 시작할까요?'));
+  assert.ok(html.indexOf('투구 손')<html.indexOf('타격 손'));assert.ok(html.indexOf('value="pitcher"')<html.indexOf('value="batter"'));assert.ok(html.indexOf('타격 손')<html.indexOf('value="pitcher"'));
   assert.ok(html.includes('먼저 타자 또는 투수를 선택해 주세요.'));
   for (const forbidden of ['커리어 시드', 'MY-FIRST-SEASON', '능력 재추첨', '서울중앙고', 'PLAYER PROFILE', '<select']) assert.ok(!html.includes(forbidden), forbidden);
   assert.match(html, /type="submit"[^>]*disabled/);
@@ -83,4 +84,17 @@ test('school sampling rejects biased overflow and validates the required user ch
   assert.throws(() => createRandomCareer('   ', 'SP', source), /이름/);
   assert.throws(() => createRandomCareer('테스트', 'unknown', source), /포지션/);
   for (const team of [-1, 100, .5]) assert.throws(() => e.createGame('invalid', '테스트', 'SP', team), /학교/);
+});
+
+test('throwing and batting hands are independent choices, persist into pro careers and saves, and do not reroll skills',()=>{
+  const {createRandomProCareer}=require('../.test-build/lib/player-creation.js'),{handednessLabel}=require('../.test-build/lib/player-handedness.js'),storage=require('../.test-build/lib/career-save.js');
+  const baseline=createRandomCareer('손선택','SS',entropy(2,'hands-test')),before=e.getPlayer(baseline);
+  for(const throwing of ['R','L'])for(const batting of ['R','L']){
+    const state=createRandomCareer('손선택','SS',entropy(2,'hands-test'),undefined,{throws:throwing,bats:batting}),p=e.getPlayer(state);
+    assert.equal(p.throws,throwing);assert.equal(p.bats,batting);assert.deepEqual(p.stats,before.stats);assert.deepEqual(p.talent,before.talent);assert.deepEqual(state.rngStates,baseline.rngStates);
+    const restored=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(state))).state;assert.equal(e.getPlayer(restored).throws,throwing);assert.equal(e.getPlayer(restored).bats,batting);
+  }
+  const pro=createRandomProCareer('왼손선수','SP',17,entropy(2,'pro-hands'),{throws:'L',bats:'R'});assert.equal(handednessLabel(e.getPlayer(pro)),'좌투우타');assert.equal(handednessLabel({}),'우투우타');
+  const html=renderToStaticMarkup(createElement(Setup,{onStart(){}}));for(const label of ['투구 손','타격 손','우투','좌투','우타','좌타'])assert.ok(html.includes(label),label);
+  const invalid=structuredClone(baseline);e.getPlayer(invalid).throws='both';assert.throws(()=>storage.encodeCareerSave(invalid),/투구·타격/);
 });

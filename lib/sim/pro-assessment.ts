@@ -289,6 +289,7 @@ export function recordSeasonAssessment(
     {
       year: s.calendar.seasonYear,
       date: s.date,
+      salary:pro.contract&&pro.contract.startYear<=s.calendar.seasonYear&&pro.contract.endYear>=s.calendar.seasonYear?pro.contract.salary:null,
       score,
       grade: rosterGrade(score, true),
       ability: roleScore(p),

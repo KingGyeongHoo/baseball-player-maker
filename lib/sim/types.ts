@@ -12,6 +12,8 @@ export type ProLevel = "first" | "second";
 export type ProSquad = ProLevel | "third" | "developmental";
 export type Role = "코너 야수" | "센터라인" | "포수" | "선발" | "중간계투" | "마무리";
 export type Position = "C" | "1B" | "2B" | "3B" | "SS" | "LF" | "CF" | "RF" | "DH" | "SP" | "RP" | "CP";
+export type Hand = "R" | "L";
+export type PlayerHands = {throws:Hand;bats:Hand};
 export type Policy = {
   mode: Mode;
   tickets: Record<Ticket, number>;
@@ -64,6 +66,8 @@ export type Injury = {
 export type Player = {
   id: string;
   name: string;
+  throws?: Hand;
+  bats?: Hand;
   teamId: number;
   grade: number;
   jerseyNumber?: number;

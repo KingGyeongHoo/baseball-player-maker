@@ -4,15 +4,17 @@ import { developmentalOffer } from "../../lib/sim/draft-outcome";
 import { acknowledgeCareer, continueCareer, type CareerChoice } from "../../lib/sim/pro-career";
 import type { GameState } from "../../lib/sim/types";
 import ScoutingReportButton from "./scouting-report";
+import {SeasonAwards} from "./pro-awards";
 
 export function CareerNoticeDialog({ state, onChange }: { state: GameState; onChange: (state: GameState) => void }) {
   const dialog=useRef<HTMLDialogElement>(null),title=useRef<HTMLHeadingElement>(null);
   useEffect(()=>{const el=dialog.current;el?.showModal();title.current?.focus();return ()=>el?.close();},[]);
   const notice=state.careerNotice;
   if(!notice)return null;
+  const awards=notice.code?.startsWith('awards:')?state.proWorld?.seasons.find(row=>row.year===Number(notice.code!.split(':')[1])):undefined;
   return <dialog ref={dialog} className="modal career-event-modal" aria-labelledby="career-notice-title" onCancel={e=>{e.preventDefault();onChange(acknowledgeCareer(state));}}>
     <div className="modal-header"><h2 id="career-notice-title" tabIndex={-1} ref={title}>{notice.title}</h2><span className="position-tag">CAREER LIFE</span></div>
-    <div className="guide-content"><p>{notice.message}</p><div className="modal-actions"><button className="primary" onClick={()=>onChange(acknowledgeCareer(state))}>확인</button></div></div>
+    <div className="guide-content"><p>{notice.message}</p>{awards&&<SeasonAwards state={state} season={awards}/>}<div className="modal-actions"><button className="primary" onClick={()=>onChange(acknowledgeCareer(state))}>{awards&&state.proWorld?.resumeCampAfterAwards?'시상식 마치고 캠프로':'확인'}</button></div></div>
   </dialog>;
 }
 export default function CareerContinuation({ state, onChange, onRetire }: { state:GameState;onChange:(state:GameState)=>void;onRetire?:()=>void }) {

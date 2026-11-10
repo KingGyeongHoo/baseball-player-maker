@@ -16,6 +16,7 @@ export function validateCareerState(value:unknown):asserts value is GameState {
   if(typeof s.seed!=="string"||typeof s.playerId!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(s.date)||!["weekStart","ended"].includes(s.phase)||!Array.isArray(s.players)||!Array.isArray(s.teams)||!Array.isArray(s.calendar?.events))throw new Error("필수 커리어 데이터가 누락됐습니다.");
   const ids=new Set<string>();for(const p of s.players){
     if(!p||typeof p.id!=="string"||ids.has(p.id)||!Number.isInteger(p.teamId)||p.teamId>=s.teams.length||p.teamId< -1||statKeys.some(k=>!Number.isFinite(p.stats?.[k])||p.stats[k]<1||p.stats[k]>100)||!p.trainingPolicy?.tickets||!Array.isArray(p.career))throw new Error("선수·소속·능력 데이터가 손상됐습니다.");ids.add(p.id);
+    if(p.throws!==undefined&&!["R","L"].includes(p.throws)||p.bats!==undefined&&!["R","L"].includes(p.bats))throw new Error("투구·타격 손 정보를 복원할 수 없습니다.");
     const assessments=p.professional?.assessments;
     if(assessments!==undefined&&(!Array.isArray(assessments)||new Set(assessments.map(row=>row.year)).size!==assessments.length||assessments.some(row=>!Number.isInteger(row.year)||typeof row.date!=="string"||row.score!==null&&!Number.isFinite(row.score)||row.cumulative!==null&&!Number.isFinite(row.cumulative)||!Number.isFinite(row.ability)||typeof row.reserveSeason!=="boolean"||typeof row.developmental!=="boolean"||row.firstTeam!==undefined&&typeof row.firstTeam!=="boolean"||row.secondOnly!==undefined&&typeof row.secondOnly!=="boolean"||row.firstGames!==undefined&&row.firstGames!==null&&(!Number.isInteger(row.firstGames)||row.firstGames<0)||!["season-end","reconstructed"].includes(row.source))))throw new Error("시즌 출전평가 기록을 복원할 수 없습니다.");
     const usage=p.professional?.assessmentUsage;
@@ -36,6 +37,8 @@ export function validateCareerState(value:unknown):asserts value is GameState {
   if(s.careerEvent?.proEvent&&s.careerEvent.proEvent.version!==1)throw new Error("지원하지 않는 프로 이벤트 버전입니다.");
   if(s.calendar.events.some(game=>game.proPreparedLineup?.some(side=>[...side.field,...side.order,...side.pitchers,side.starter].some(id=>!ids.has(id)))))throw new Error("경기 준비 명단의 선수를 복원할 수 없습니다.");
   const allstar=s.proWorld?.allstar;
+  for(const season of s.proWorld?.seasons??[]){const ceremony=season.awardsCeremony;if(ceremony&&(ceremony.version!==1||ceremony.scheduledAt!==`${season.year}-12-06`||ceremony.presentedAt!==undefined&&(typeof ceremony.presentedAt!=="string"||ceremony.presentedAt<ceremony.scheduledAt)))throw new Error("시상식 일정을 복원할 수 없습니다.");}
+  if(s.proWorld?.resumeCampAfterAwards!==undefined&&(s.proWorld.resumeCampAfterAwards!==true||!s.proWorld.seasonClosed))throw new Error("시상식 후 캠프 이동 상태를 복원할 수 없습니다.");
   if(allstar){
     if(allstar.version!==1||allstar.year!==s.calendar.seasonYear||!["first","second"].every(level=>!!allstar.levels?.[level as "first"|"second"]))throw new Error("올스타 시즌 자료를 복원할 수 없습니다.");
     const selected=new Set<string>();

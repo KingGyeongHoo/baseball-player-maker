@@ -506,7 +506,7 @@ test("an incomplete game archive cannot reduce a known appearance total below th
   p.seasonByLevel.first.games.batting = 21;
   assert.equal(a.recordSeasonAssessment(s, p).firstGames, 21);
 });
-test("contract history displays first-team games and a distinct post-rookie renewal average without mutating ratings", () => {
+test("compact contract history keeps five requested columns without mutating ratings", () => {
   const { createElement } = require("react"),
     { renderToStaticMarkup } = require("react-dom/server");
   const ProAssessments =
@@ -519,10 +519,10 @@ test("contract history displays first-team games and a distinct post-rookie rene
     season(s, year, 71, { firstGames: 21 });
   const before = structuredClone(p.professional.assessments),
     html = renderToStaticMarkup(createElement(ProAssessments, { state: s }));
-  assert.match(html, /1군 출전경기/);
-  assert.match(html, /최초 3시즌 제외/);
-  assert.match(html, /71\.0 · E · 3개 평가 시즌/);
+  assert.match(html, /<th>시즌<\/th><th>출전평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);
+  assert.match(html, /올해 예상 누적 평가/);
+  assert.doesNotMatch(html, /1군 출전경기|최초 3시즌 제외|기준 연봉/);
   assert.match(html, /85\.5 · S/);
-  assert.match(html, /<td>21<\/td>/);
+  assert.match(html, /<td>71\.0<\/td>/);
   assert.deepEqual(p.professional.assessments, before);
 });

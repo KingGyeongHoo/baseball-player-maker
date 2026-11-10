@@ -3,7 +3,7 @@ import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getP
 import { careerLeagueTable, developmentCalendar } from "./pro-calendar";
 import { developmentalOffer, revealDraftResult } from "./draft-outcome";
 import { ensureProWorld,proNews,reviewLeagueRegistrations,BASE_SALARY } from "./pro-world";
-import { finishProfessionalDay } from "./pro-season";
+import { continueToNextProCamp,finishProfessionalDay } from "./pro-season";
 import type { GameState, Player, Position, ProLevel, Team } from "./types";
 import {syncJerseyNumbers} from "../jersey-numbers";
 import {capturePlayerEvaluations} from "./evaluation-lifecycle";
@@ -17,7 +17,7 @@ const slots: Position[] = ["C","C","C","1B","1B","2B","2B","3B","3B","SS","SS","
 const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind"], title: string, message: string) => {
   s.careerNotice = { id: `${s.date}:${s.week}:${kind}`, date: s.date, kind, title, message };
 };
-export const acknowledgeCareer = (input: GameState): GameState => { const s = structuredClone(input); delete s.careerNotice;const next=s.noticeQueue?.shift();if(next)s.careerNotice=next;else tryProNationalInvitation(s); return s; };
+export const acknowledgeCareer = (input: GameState): GameState => { const s = structuredClone(input); delete s.careerNotice;const next=s.noticeQueue?.shift();if(next)s.careerNotice=next;else if(s.proWorld?.resumeCampAfterAwards&&!s.careerEvent)continueToNextProCamp(s);else tryProNationalInvitation(s); return s; };
 function path(s: GameState) {
   const p = getPlayer(s);
   return s.postSchool ??= { graduationYear: s.calendar.seasonYear, graduationSchool: s.teams[p.teamId].name, collegeYears: 0, tryouts: [] };

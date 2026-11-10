@@ -3256,6 +3256,11 @@ tbody tr:last-child td {
   }
 }
 .career-mode-picker { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:18px; }
+.creation-hands { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; margin-bottom:18px; }
+.creation-hands fieldset { border:0; padding:0; margin:0; min-width:0; }
+.creation-hands legend { font-size:12px; font-weight:700; margin-bottom:10px; color:var(--navy); }
+.creation-hands .segmented { display:flex; }
+.creation-hands button { flex:1; padding:12px; }
 .career-mode-picker>button { padding:15px; border:1px solid var(--line); border-radius:3px; background:white; text-align:left; color:var(--navy); }
 .career-mode-picker>button.selected { border-color:var(--navy); background:#eef2f8; box-shadow:inset 0 0 0 1px var(--navy); }
 .career-mode-picker b { display:block; font-size:13px; }

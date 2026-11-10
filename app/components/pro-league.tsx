@@ -5,7 +5,6 @@ import {formatInnings} from "../../lib/player-records";
 import {leagueLeaders,type LeaderField,type LeaderMetric} from "../../lib/league-leaders";
 import type {GameState} from "../../lib/sim/types";
 import PostseasonBracket from "./postseason-bracket";
-import ProAllstar from "./pro-allstar";
 
 function metricText(value:number,metric:LeaderMetric){
   if(metric.format==="innings")return formatInnings(value);
@@ -23,7 +22,6 @@ export default function ProLeague({state,onRecords}:{state:GameState;onRecords:(
   const table=useMemo(()=>careerLeagueTable(state.calendar,id),[state.calendar,id]);
   const boards=useMemo(()=>leagueLeaders(state,id,field),[state,id,field]);
   return <div className="pro-league">
-    <ProAllstar state={state} onRecords={onRecords}/>
     <div className="section-intro"><div><span className="eyebrow">LEAGUE LEADERS</span><h1>{state.calendar.seasonYear} 리그</h1><p>팀 순위와 개인 기록 TOP 10</p></div></div>
     <PostseasonBracket state={state}/>
     <div className="segmented pro-level-filter" aria-label="리그 선택">{(pro?[["pro-first","1군"],["pro-second","2군"]]:[["college","대학"]]).map(([key,label])=><button key={key} className={id===key?"selected":""} aria-pressed={id===key} onClick={()=>setLevel(key)}>{label}</button>)}</div>

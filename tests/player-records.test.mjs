@@ -7,6 +7,9 @@ const { opportunityState } = require('../.test-build/lib/sim/career-opportunitie
 e.params['events.weekly_chance'] = 0;
 function recordsGame(...args) {
   const s = e.createGame(...args);
+  // These tests jump across December to inspect archives, without playing
+  // unfinished competitions whose catch-up schedule can extend the old season.
+  s.calendar.events=[];s.calendar.competitions=[];
   // These fixtures isolate record archiving from separately tested call-ups.
   s.eventLedger = { recent: [], centerGrades: [], nationalGrades: [2,3], competitions: [], games: [] };
   const opportunities = opportunityState(s);
@@ -14,6 +17,7 @@ function recordsGame(...args) {
   opportunities.twoWayOfferedGrades = [1,2,3];
   return s;
 }
+function archiveWeek(s){s.calendar.events=[];s.calendar.competitions=[];return e.advanceWeek(s,e.getPlayer(s).trainingPolicy,e.getPlayer(s).stance);}
 const { playerSeasons, totalRecords, recordRates, formatInnings } = require('../.test-build/lib/player-records.js');
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-10, `${a} != ${b}`);
 
@@ -65,7 +69,7 @@ test('actual yearly promotion preserves each season and exposes all three years'
   let state = recordsGame('annual-records', '기록검증', 'SS');
   const first = record(10, 4, 2, 17, 2), second = record(20, 5, 1, 18, 3);
   e.getPlayer(state).seasonStats = structuredClone(first); state.date = '2027-12-27';
-  const step = s => e.advanceWeek(s, e.getPlayer(s).trainingPolicy, e.getPlayer(s).stance);
+  const step = archiveWeek;
   state = step(state);
   assert.deepEqual(e.getPlayer(state).career[0].records, first);
   assert.deepEqual(e.getPlayer(state).seasonStats, e.emptyRecord());
@@ -86,7 +90,7 @@ test('promotion preserves observed reputation while freshmen have no invented pe
   player.reputation = 78;
   player.seasonStats = record(10, 4, 2, 0, 0);
   state.date = '2027-12-27';
-  const step = s => e.advanceWeek(s, e.getPlayer(s).trainingPolicy, e.getPlayer(s).stance);
+  const step = archiveWeek;
   state = step(state);
   assert.equal(e.getPlayer(state).grade, 2);
   assert.equal(e.getPlayer(state).reputation, 78);
