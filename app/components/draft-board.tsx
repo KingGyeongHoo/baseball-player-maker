@@ -1,6 +1,6 @@
 import { scoreText } from "../../lib/display";
 import { useMemo } from "react";
-import { draftClubs, draftForecast, positionLabel,roleLabel } from "../../lib/sim/engine";
+import { draftClubs, draftForecast, positionLabel,draftRoleLabel } from "../../lib/sim/engine";
 import type { DraftPick, GameState } from "../../lib/sim/types";
 
 export function DraftForecast({ state }: { state: GameState }) {
@@ -42,7 +42,7 @@ export function DraftRoundTable({ picks, playerId, year, onSelect }: { picks: Dr
             const pick = cells.get(`${round}:${index + 1}`);
             return <td key={club} className={pick ? pick.playerId === playerId ? "draft-cell-my" : "" : "draft-cell-ended"}>
               {pick ? <button onClick={() => onSelect(pick)} aria-label={`${club} ${round}라운드 ${index + 1}순번, 전체 ${pick.overall}순위 ${pick.playerName} 지명 평가 보기`}>
-                <small>전체 {pick.overall}순위</small><b>{pick.playerName}</b><span>{pick.teamName}</span><em>{roleLabel(pick.role)}</em>
+                <small>전체 {pick.overall}순위</small><b>{pick.playerName}</b><span>{pick.teamName}</span><em>{draftRoleLabel(pick.role)}</em>
               </button> : <span>지명 종료</span>}
             </td>;
           })}

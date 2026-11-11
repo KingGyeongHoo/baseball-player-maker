@@ -12,7 +12,7 @@ const squad = (id: number): ProSquad | null =>
         Math.floor(id / 10)
       ] ?? null);
 const average = (rows: ProSeasonAssessment[]) => {
-  const values = rows.flatMap((r) => (r.score === null ? [] : [r.score]));
+  const values = rows.flatMap((r) => (r.score === null || r.clubGamesShortage ? [] : [r.score]));
   return values.length
     ? values.reduce((a, b) => a + b, 0) / values.length
     : null;
@@ -92,7 +92,7 @@ function firstGameCount(
 export function renewalAssessment(p: Player, year: number) {
   const start = (p.professional?.rookieYear ?? year) + rules.rookieGraceSeasons;
   const rows = (p.professional?.assessments ?? []).filter(
-    (r) => r.year >= start && r.year <= year,
+    (r) => r.year >= start && r.year <= year && !r.clubGamesShortage,
   );
   const score = average(rows);
   return {
@@ -295,12 +295,15 @@ export function recordSeasonAssessment(
       firstTeam,
       secondOnly,
       firstGames: firstGameCount(first, appearances.get(p.id)),
+      ...(clubGamesShortage(s,p)?{clubGamesShortage:true}:{}),
       source: "season-end",
     },
     rows,
   );
   rows.push(row);
   rows.sort((a, b) => a.year - b.year);
+  if(row.clubGamesShortage&&pro.developmentalRetry&&pro.developmentalRetry.deadlineYear<=row.year)
+    pro.developmentalRetry.deadlineYear=row.year+1;
   return row;
 }
 export function currentSeasonAssessment(s: GameState, p: Player, warContext?: ProWarContext) {
@@ -313,13 +316,30 @@ export function currentSeasonAssessment(s: GameState, p: Player, warContext?: Pr
   const war = proWarAssessment(p, warContext??createProWarContext(s));
   return { score: war.score, war };
 }
+// Do not make roster/schedule failures look like a player's refusal to play.
+// Only concluded games count, and the exception needs a substantial schedule
+// with most games forfeited. A normal bench season remains reviewable.
+export function clubGamesShortage(s:GameState,p:Player){
+  const club=p.professional?.contract?.club??(p.teamId>=0?p.teamId%10:undefined);
+  if(club===undefined)return false;
+  const usage=p.professional?.assessmentUsage;
+  const farmSeason=usage?.year===s.calendar.seasonYear&&usage.activeDays>0
+    ?usage.activeDays-(usage.firstDays??0)>usage.activeDays/2:p.teamId>=10;
+  if(!farmSeason)return false;
+  const farm=s.calendar.events.filter(g=>g.competitionId==="pro-second"&&g.date.startsWith(`${s.calendar.seasonYear}-`)
+    &&[g.homeTeamId,g.awayTeamId].includes(club+10)&&["completed","forfeit"].includes(g.status));
+  const completed=farm.filter(g=>g.status==="completed").length;
+  const first=p.seasonByLevel?.first;
+  const firstGames=Math.max(first?.games?.batting??0,first?.games?.pitching??0);
+  return farm.length>=24&&completed<farm.length/2&&firstGames<=rules.firstGamesLimit;
+}
 export function assessmentValue(p: Player, year: number) {
   const rows = (p.professional?.assessments ?? []).filter(
       (r) => r.year <= year,
     ),
     current = rows.find((r) => r.year === year);
   const cumulative = average(rows),
-    score = current ? current.score : proWarAssessment(p).score;
+    score = current ? current.clubGamesShortage?null:current.score : proWarAssessment(p).score;
   const basis = score ?? cumulative ?? proWarAssessment(p).score;
   return {
     current: score,
@@ -358,6 +378,7 @@ export function seasonExit(
       .sort((a, b) => b.year - a.year),
     latest = rows[0];
   if (!pro || pro.employment !== "active" || latest?.year !== year) return null;
+  if(latest.clubGamesShortage)return null;
   if (
     pro.developmentalRetry &&
     year >= pro.developmentalRetry.deadlineYear &&
@@ -370,7 +391,9 @@ export function seasonExit(
   let reserve = 0,
     expected = year;
   for (const row of rows) {
-    if (row.year !== expected-- || !row.reserveSeason) break;
+    if (row.year !== expected--) break;
+    if(row.clubGamesShortage)continue;
+    if(!row.reserveSeason)break;
     reserve++;
   }
   if (reserve >= rules.reserveSeasons)
@@ -401,7 +424,7 @@ export function seasonExit(
       expectedYear = year;
     for (const row of rows) {
       if (row.year !== expectedYear-- || row.year < reviewStart) break;
-      if (row.score === null) continue;
+      if (row.score === null||row.clubGamesShortage) continue;
       if (!qualifies(row)) break;
       count++;
     }
@@ -439,6 +462,8 @@ export function requiresDevelopmentalOffer(p: Player, year: number) {
     return false;
   const rows = (pro.assessments ?? []).filter((r) => r.year <= year),
     latest = rows.at(-1);
+  if(pro.employment==="active"&&pro.developmentalRetry&&latest?.clubGamesShortage
+    &&latest.year>=pro.developmentalRetry.year&&pro.developmentalRetry.club===pro.contract?.club)return false;
   const converted =
     !!pro.developmentalRetry &&
     !!latest &&

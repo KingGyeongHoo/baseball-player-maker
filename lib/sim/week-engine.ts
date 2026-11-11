@@ -1,3 +1,4 @@
+import {proGameTeam} from "./pro-farm-roster";
 import { tryTrainingFocus } from "./training-focus";
 import { finishCompetitionDay, prepareCompetitions } from "./calendar";
 import { addDays, available, clamp, overall, draftPlayers, emptyRecord, emptyStats, getPlayer, injuryRisk, mergeRecord, npcPolicy, params, promote, random, reputationScore, simulateGame, ticketsUsed, train, trainingFatigueDay, updateReputation, validPolicy } from "./engine";
@@ -98,7 +99,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       prepareCompetitions(s.calendar, date, s.seed);
       const games = s.calendar.events.filter(g => g.date === date && g.status === "scheduled");
       const playingTeams = new Set(games.flatMap(g => [g.homeTeamId, g.awayTeamId]));
-      for (const p of s.players) if (p.id !== s.playerId) npcPolicy(p, date, playingTeams.has(p.teamId));
+      for (const p of s.players) if (p.id !== s.playerId) npcPolicy(p, date, playingTeams.has(s.careerMode==="pro"?proGameTeam(p):p.teamId));
       progress.day = { phase: "beforeGames", fatigue: { date, start: player.fatigue, training: 0, game: 0, recovered: 0, peak: player.fatigue, end: player.fatigue, events: 0 },
         recovery: [], active: [], appearances: [], gameIds: games.map(g => g.id), gameIndex: 0, playerIndex: 0 };
       if (joinPendingTransfer(s)) {
@@ -126,6 +127,9 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       reviewProMilestones(s);if(s.careerNotice)return pause();
       if(reviewProTwoWay(s))return pause();
       prepareEvaluationOpportunities(s,day.gameIds);if(s.careerNotice)return pause();
+      // Farm depth repair may register reserves or sign a missing pitcher.
+      // Build today's actual rosters after those registrations, not before.
+      if(s.careerMode==="pro"){rosters=s.teams.map(()=>[]);for(const p of s.players)if(p.teamId>=0)rosters[p.teamId].push(p);}
       if(s.careerMode==="pro"&&(reviewProRoleTrial(s,proMajorDueToday(s))||s.careerNotice))return pause();
       if (tryDevelopmentEvent(s)) return pause();
       if (tryCareerOpportunity(s)) return pause();
@@ -170,7 +174,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
         let trained = false;
         if (p.id === s.playerId && injured) s.injuryDays++;
         if (training && available(p, date) && ticketsUsed(p.trainingPolicy) && !(p.id===s.playerId && day.skipPlayerTraining)) {
-          const hasGame = playingTeams.has(p.teamId)||evaluationPlayers.has(p.id)||exhibitionPlayers.has(p.id);
+          const hasGame = playingTeams.has(s.careerMode==="pro"?proGameTeam(p):p.teamId)||evaluationPlayers.has(p.id)||exhibitionPlayers.has(p.id);
           const a = hasGame ? appearances.has(p.id) ? params["training.game_fraction"] : params["training.bench_fraction"] : 1;
           train(p, a);
           if (p.id === s.playerId && p.transferAdaptation?.weeksRemaining) progress.adaptationTrained = true;

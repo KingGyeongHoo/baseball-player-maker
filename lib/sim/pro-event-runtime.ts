@@ -1,3 +1,4 @@
+import {proGameTeam,farmGameRoster} from "./pro-farm-roster";
 import {proSquad} from "./pro-squads";
 import {addDays,available,getPlayer,isPitcher,ovr,params,random,roleFor,roleScore,ticketsUsed} from "./engine";
 import {professionalLineup} from "./pro-world";
@@ -20,7 +21,7 @@ export function proGeneralCandidates(s:GameState,date=s.date){
   const pro=p.professional!,ledger=ensureProEvents(s),healthy=available(p,date),injured=!!p.injury&&date<p.injury.unavailableUntil;
   const training=healthy&&s.calendar.trainingDays.includes(date)&&ticketsUsed(p.trainingPolicy)>0;
   const pitching=isPitcher(p.primaryRole),batting=(!pitching||!!p.twoWay)&&["contact","power","speed","defense"].some(key=>p.trainingPolicy.tickets[key as "contact"]>0),throwing=(pitching||!!p.twoWay)&&["velocity","control","movement"].some(key=>p.trainingPolicy.tickets[key as "velocity"]>0);
-  const evidence=recentProEvidence(s,p,date),stats=evidence.records,ownGames=s.calendar.events.filter(g=>g.date===date&&[g.homeTeamId,g.awayTeamId].includes(p.teamId));
+  const evidence=recentProEvidence(s,p,date),stats=evidence.records,ownGames=s.calendar.events.filter(g=>g.date===date&&[g.homeTeamId,g.awayTeamId].includes(proGameTeam(p)));
   const teammate=s.players.filter(q=>q.id!==p.id&&active(q)&&q.teamId%10===p.teamId%10).sort((a,b)=>a.id.localeCompare(b.id))[0];
   const recent=ledger.history.filter(row=>row.channel==="general").slice(-3);
   const add=(id:string,extra:Partial<ProEventContext>={})=>{if(recent.some(row=>equivalentProId(row,id))||!proIdFree(s,id,"general",date)||onceIds.has(id)&&!once(s,id))return;pool.push({id,context:context(s,id,date,extra)});};
@@ -40,7 +41,7 @@ export function proGeneralCandidates(s:GameState,date=s.date){
     if(p.trainingPolicy.tickets.defense>0&&p.eligiblePositions.some(pos=>!["SP","RP","CP","DH"].includes(pos)))add("PE06",{field:"batting"});
     if(batting&&p.fatigue<60)add("PE07",{field:"batting"});if(s.proWorld?.stage==="camp"&&p.fatigue<50)add("PE08");
     if(p.twoWay&&p.fatigue<60)add("PE14");
-    if(s.proWorld?.stage==="regular"&&p.fatigue>=20&&s.calendar.events.filter(g=>g.status==="scheduled"&&g.awayTeamId===p.teamId&&g.date>=date&&g.date<=addDays(date,6)).length>=2)add("PE15");
+    if(s.proWorld?.stage==="regular"&&p.fatigue>=20&&s.calendar.events.filter(g=>g.status==="scheduled"&&g.awayTeamId===proGameTeam(p)&&g.date>=date&&g.date<=addDays(date,6)).length>=2)add("PE15");
     const sample=pitching?stats.pitching.BF>=30:stats.batting.PA>=20;
     if(sample&&p.recentZ>=.3&&p.fatigue>=40&&p.fatigue<80)add("PE16");
     if(s.proWorld?.stage==="regular"&&sample&&p.recentZ<=-.3){add("PE17");const index=pool.findIndex(c=>c.id==="PE03");if(index>=0)pool.splice(index,1);}
@@ -85,8 +86,8 @@ export function openProGeneralEvent(s:GameState){
 function debuted(s:GameState){const p=getPlayer(s);return !!p.professional?.firsts.debut||!!p.seasonByLevel?.first.batting.PA||!!p.seasonByLevel?.first.pitching.BF||!!p.seasonPostseason?.batting.PA||!!p.seasonPostseason?.pitching.BF||p.career.some(row=>row.careerMode==="pro"&&((row.byLevel?.first.batting.PA??0)+(row.byLevel?.first.pitching.BF??0)+(row.postseason?.batting.PA??0)+(row.postseason?.pitching.BF??0)>0));}
 function majorSeen(s:GameState,id:string,seriesId?:string){const ledger=ensureProEvents(s);return ledger.history.some(row=>equivalentProId(row,id)&&(id==="PE13"||row.seriesId===seriesId||row.catalogId==="PRO11"&&row.season===s.calendar.seasonYear))||ledger.cancellations.some(row=>row.id===`${id}:${seriesId??"career"}`);}
 function preparationOptions(s:GameState,game:Game,sides:{field:string[];starter:string}[]){
-  const p=getPlayer(s),options:{id:string;context:ProEventContext}[]=[];if(!active(p)||!available(p,s.date)||![game.homeTeamId,game.awayTeamId].includes(p.teamId))return options;
-  const side=game.homeTeamId===p.teamId?0:1,playing=sides[side].field.includes(p.id)||sides[side].starter===p.id;
+  const p=getPlayer(s),options:{id:string;context:ProEventContext}[]=[];if(!active(p)||!available(p,s.date)||![game.homeTeamId,game.awayTeamId].includes(proGameTeam(p)))return options;
+  const side=game.homeTeamId===proGameTeam(p)?0:1,playing=sides[side].field.includes(p.id)||sides[side].starter===p.id;
   if(p.teamId<10&&p.proContract?.status!=="developmental"&&playing&&!debuted(s)&&!majorSeen(s,"PE13"))options.push({id:"PE13",context:context(s,"PE13",s.date,{channel:"major",gameId:game.id,field:sides[side].starter===p.id?"pitching":"batting"})});
   const series=s.proWorld?.postseason?.series.find(row=>game.competitionId===`pro-playoffs-${row.id}`);
   if(series&&series.rosters[String(p.teamId)]?.includes(p.id)){
@@ -97,7 +98,7 @@ function preparationOptions(s:GameState,game:Game,sides:{field:string[];starter:
 }
 export function proMajorDueToday(s:GameState){
   if(!proEventsEnabled(s)||!proDayFree(s))return false;
-  const mine=getPlayer(s);return s.calendar.events.filter(g=>g.date===s.date&&g.status==="scheduled"&&[g.homeTeamId,g.awayTeamId].includes(mine.teamId)).some(game=>{const series=s.proWorld?.postseason?.series.find(row=>game.competitionId===`pro-playoffs-${row.id}`);const sides=[game.homeTeamId,game.awayTeamId].map(team=>professionalLineup(s,s.players.filter(p=>p.teamId===team&&(!series||series.rosters[String(team)]?.includes(p.id))),s.date,game.evaluationPlayers));return sides.every(side=>side.field.length===9&&side.starter)&&preparationOptions(s,game,sides.map(side=>({field:side.field.map(p=>p.id),starter:side.starter!.id}))).length>0;});
+  const mine=getPlayer(s);return s.calendar.events.filter(g=>g.date===s.date&&g.status==="scheduled"&&[g.homeTeamId,g.awayTeamId].includes(proGameTeam(mine))).some(game=>{const series=s.proWorld?.postseason?.series.find(row=>game.competitionId===`pro-playoffs-${row.id}`);const sides=[game.homeTeamId,game.awayTeamId].map(team=>professionalLineup(s,game.competitionId==="pro-second"?farmGameRoster(s,team,game.evaluationPlayers):s.players.filter(p=>p.teamId===team&&(!series||series.rosters[String(team)]?.includes(p.id))),s.date,game.evaluationPlayers));return sides.every(side=>side.field.length===9&&side.starter)&&preparationOptions(s,game,sides.map(side=>({field:side.field.map(p=>p.id),starter:side.starter!.id}))).length>0;});
 }
 export function openProPreparation(s:GameState,game:Game,sides:{field:string[];starter:string}[]){
   if(!proEventsEnabled(s)||!s.weekProgress||s.careerEvent||s.careerNotice||!proDayFree(s))return false;

@@ -25,6 +25,8 @@
 
 # misc
 .DS_Store
+# Local exported careers used for diagnostics are not application source.
+/baseball-*.json
 *.pem
 
 # debug

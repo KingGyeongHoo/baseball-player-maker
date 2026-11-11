@@ -42,9 +42,9 @@ test('batter field contains all eight fielders and a separate designated hitter,
   assert.ok([p.LF, p.CF, p.RF].every(p => p.y < 40));
 });
 
-test('school selection unifies relievers as bullpen while pro retains three distinct pitcher roles', async () => {
+test('school and pro selection both retain starter, middle relief and closer roles', async () => {
   const school=picker('pitcher','RP');
-  assert.equal((school.match(/type="radio"/g)||[]).length,4);assert.ok(school.includes('value="SP"'));assert.ok(school.includes('value="RP"'));assert.ok(!school.includes('value="CP"'));assert.ok(school.includes('>불펜</b>'));assert.ok(school.includes('BULLPEN'));
+  assert.equal((school.match(/type="radio"/g)||[]).length,5);for(const pos of ['SP','RP','CP'])assert.ok(school.includes(`value="${pos}"`));assert.ok(school.includes('>중간계투</b>'));assert.ok(school.includes('>마무리</b>'));assert.ok(!school.includes('>불펜</b>'));
   const html = picker('pitcher', 'SP','pro');
   assert.equal((html.match(/type="radio"/g) || []).length, 5);
   assert.ok(!html.includes('selection-ballpark'));

@@ -30,7 +30,7 @@ import {careerSaveId} from "../../lib/career-save-key";
 import TrainingEditor from "./training-editor";
 import TrainingCenter from "./training-center";
 import ProgressControls from "./progress-controls";
-import { answerCareerEvent, answerOffer, overall, roleLabel, dateLabel, defaultPolicy, getPlayer, ops, positionLabel, talentLabel, validPolicy, calendar } from "@/lib/sim/engine";
+import { answerCareerEvent, answerOffer, overall, draftRoleLabel, dateLabel, defaultPolicy, getPlayer, ops, positionLabel, talentLabel, validPolicy, calendar } from "@/lib/sim/engine";
 import { type CareerEventOutcome, type DraftPick, type GameState, type Game, type Player, type Policy, type RecordLine, type Stance } from "@/lib/sim/types";
 type Tab = "home" | "training" | "team" | "roster" | "records" | "games" | "draft";
 const tabs: {
@@ -225,7 +225,7 @@ function DraftView({ state, onRecords, onChange, onRetire }: { state: GameState;
     <div className={`draft-grid ${ended ? "draft-grid-ended" : ""}`}>{ended ? <>{boardPanel}{careerPanel}</> : <>{careerPanel}{boardPanel}</>}</div>
     {ended && showOvr && <Modal title="고3 OVR TOP10" onClose={() => setShowOvr(false)}><DraftOvrTop10 state={state} /></Modal>}
     {selectedPick && <Modal title={`${selectedPick.playerName} 지명 평가`} onClose={() => setSelectedPick(null)}><div className="guide-content">
-      <p><b>{selectedPick.club} · 전체 {selectedPick.overall}순위</b></p><p>{selectedPick.round ?? Math.floor((selectedPick.overall - 1) / 10) + 1}라운드 · {selectedPick.slot ?? (selectedPick.overall - 1) % 10 + 1}순번 · {selectedPick.teamName} · {roleLabel(selectedPick.role)}</p>
+      <p><b>{selectedPick.club} · 전체 {selectedPick.overall}순위</b></p><p>{selectedPick.round ?? Math.floor((selectedPick.overall - 1) / 10) + 1}라운드 · {selectedPick.slot ?? (selectedPick.overall - 1) % 10 + 1}순번 · {selectedPick.teamName} · {draftRoleLabel(selectedPick.role)}</p>
       <div className="event-changes"><span>평판 <b>{scoreText(selectedPick.reputation)}</b></span><span>재능 <b>{selectedPick.talent} / 10</b></span><span>적합도 <b>{scoreText(selectedPick.fit)}</b></span><span>지명 점수 <b>{scoreText(selectedPick.score)}</b></span></div>
       <ScoutingReportContent state={state} pick={selectedPick} year={state.calendar.seasonYear}/><p className="micro muted">평판 80% · 재능 10% · 적합도 10%</p><div className="modal-actions"><button className="secondary" onClick={() => { const id = selectedPick.playerId; setSelectedPick(null); onRecords(id); }}>선수 기록 보기</button><button className="primary" onClick={() => setSelectedPick(null)}>확인</button></div>
     </div></Modal>}

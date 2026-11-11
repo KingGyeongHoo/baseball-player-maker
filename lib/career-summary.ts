@@ -18,7 +18,7 @@ export function lifetimeRecords(player:Player,year:number){
 export function careerContractSummary(state:GameState){
   const p=getPlayer(state),pro=p.professional,year=state.calendar.seasonYear;
   const rows=[...new Map((pro?.assessments??[]).filter(row=>row.year<=year).map(row=>[row.year,row])).values()];
-  const scores=rows.flatMap(row=>row.score===null?[]:[row.score]);
+  const scores=rows.flatMap(row=>row.score===null||row.clubGamesShortage?[]:[row.score]);
   const mean=(values:number[])=>values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
   const cumulative=mean(scores),current=rows.find(row=>row.year===year);
   const evaluation=!current&&pro?.employment==="active"&&p.teamId>=0?currentSeasonAssessment(state,p):undefined;

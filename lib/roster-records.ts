@@ -14,7 +14,7 @@ export function rosterLevelMember(p:Player,level:RosterLevel){
   if(level==="third")return p.teamId>=20&&p.teamId<30;
   if(level==="developmental")return p.teamId>=30&&p.teamId<40;
   const r=rosterRecords(p,level);
-  return (level==="first"?p.teamId>=0&&p.teamId<10:p.teamId>=10&&p.teamId<20)||r.batting.PA>0||r.pitching.BF>0||!!r.games?.batting||!!r.games?.pitching;
+  return (level==="first"?p.teamId>=0&&p.teamId<10:p.teamId>=10&&p.teamId<30)||r.batting.PA>0||r.pitching.BF>0||!!r.games?.batting||!!r.games?.pitching;
 }
 type Metric={id:string;label:string;ascending?:boolean;value:(r:RecordLine)=>number|null};
 const count=(r:RecordLine,key:keyof NonNullable<RecordLine["games"]>)=>r.games?.[key]??((key==="batting"?r.batting.PA:r.pitching.BF)>0?null:0);

@@ -1,0 +1,15 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const {decodeCareerSave,encodeCareerSave}=require('../.test-build/lib/career-save.js');
+const {repairFarmShortageRetirement}=require('../.test-build/lib/sim/pro-save-repair.js');
+const [source,destination]=process.argv.slice(2);
+if(!source||!destination)throw new Error('Usage: node scripts/repair-farm-shortage-save.mjs INPUT.json OUTPUT.json');
+if(resolve(source)===resolve(destination))throw new Error('원본과 다른 복구본 경로를 지정해 주세요.');
+const original=decodeCareerSave(readFileSync(source,'utf8'));
+const repaired=repairFarmShortageRetirement(original.state);
+const output=JSON.stringify(encodeCareerSave(repaired,true));
+decodeCareerSave(output);
+writeFileSync(destination,output,{flag:'wx'});
+console.log(`복구본 저장: ${destination}`);

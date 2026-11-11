@@ -70,7 +70,7 @@ test('FA offers are at most three and the weekly stove market ends in January wi
 test('release keeps identity and regular status, charges future guaranteed money once, and re-signing preserves records',()=>{
   const s=fixture(),p=e.getPlayer(s),id=p.id,club=p.professional.contract.club;p.professional.contract.endYear=2030;p.proContract.status='regular';p.seasonByLevel.second.batting.PA=80;
   market.releasePlayer(s,p,'test',2029);assert.equal(p.teamId,-1);assert.equal(p.professional.employment,'freeAgent');assert.equal(p.professional.guarantees.length,2);assert.equal(s.proWorld.clubs[club].deadMoney['2029'],world.BASE_SALARY);market.releasePlayer(s,p,'test',2029);assert.equal(p.professional.guarantees.length,2);
-  market.signContract(s,p,{id:'new-contract',club:1,year:2029,years:1,salary:world.BASE_SALARY,role:'경쟁',kind:'released',negotiated:false,final:true,competition:[]});assert.equal(p.id,id);assert.equal(p.proContract.status,'regular');assert.equal(p.seasonByLevel.second.batting.PA,80);assert.equal(p.teamId,21);
+  market.signContract(s,p,{id:'new-contract',club:1,year:2029,years:1,salary:world.BASE_SALARY,role:'경쟁',kind:'released',negotiated:false,final:true,competition:[]});assert.equal(p.id,id);assert.equal(p.proContract.status,'regular');assert.equal(p.seasonByLevel.second.batting.PA,80);assert.equal(p.teamId,11);
 });
 test('a trade changes both memberships atomically, keeps contracts/records/status and closes after the first half',()=>{
   const s=fixture(),p=e.getPlayer(s),ids=new Set(s.players.map(p=>p.id));p.seasonByLevel.second.batting.PA=30;

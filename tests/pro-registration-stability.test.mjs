@@ -13,28 +13,35 @@ test('fatigue-only forced rest keeps a high-grade hitter in the first team inste
  for(let i=0;i<3;i++){w.reviewLeagueRegistrations(s);assert.equal(p.teamId,0);s.date=e.addDays(s.date,14);}
 });
 
-test('a dominant season survives a terrible recent week and farm candidates need sustained evidence',()=>{
+test('season form is reflected in the displayed score, and a higher farm score needs no additional sample or ability hurdle',()=>{
  const s=fixture(),p=e.getPlayer(s),farm=s.players.filter(q=>q.teamId===10&&q.position==='SS'),up=farm[0];
  for(const q of farm){for(const k of Object.keys(q.stats))q.stats[k]=30;q.recentZ=0;q.seasonByLevel.second=e.emptyRecord();}
- for(const k of Object.keys(p.stats))p.stats[k]=76;
+ for(const k of Object.keys(p.stats))p.stats[k]=90;
  Object.assign(p.seasonByLevel.first.batting,{PA:600,AB:550,H:220,HR:100,RBI:200,BB:50});
  p.recentZ=0;const seasonScore=e.selectionScore(p);p.recentZ=-3;assert.ok(seasonScore-e.selectionScore(p)<=1.05+1e-9);
  for(const k of Object.keys(up.stats))up.stats[k]=80;
  Object.assign(up.seasonByLevel.second.batting,{PA:400,AB:350,H:145,HR:40,BB:50});up.recentZ=3;
- w.reviewLeagueRegistrations(s);assert.equal(p.teamId,0);
- // A few spectacular farm appearances cannot displace even a struggling incumbent.
+ assert.ok(e.selectionScore(p)>e.selectionScore(up));w.reviewLeagueRegistrations(s);assert.equal(p.teamId,0);
+ // A higher displayed score is sufficient, even with only a few farm appearances.
  for(const k of Object.keys(p.stats))p.stats[k]=70;
  Object.assign(p.seasonByLevel.first.batting,{PA:400,AB:380,H:50,HR:2,RBI:10,BB:20});p.recentZ=0;
  for(const k of Object.keys(up.stats))up.stats[k]=75;
  up.seasonByLevel.second=e.emptyRecord();Object.assign(up.seasonByLevel.second.batting,{PA:4,AB:4,H:4,HR:4});
- s.date=e.addDays(s.date,14);w.reviewLeagueRegistrations(s);assert.equal(p.teamId,0);
- // A substantial excellent farm season can earn that same challenger a real promotion.
- Object.assign(up.seasonByLevel.second.batting,{PA:400,AB:350,H:150,HR:50,BB:50});
- s.date=e.addDays(s.date,14);w.reviewLeagueRegistrations(s);assert.equal(up.teamId,0);assert.equal(p.teamId,10);
+ assert.ok(e.selectionScore(up)>e.selectionScore(p));s.date=e.addDays(s.date,14);w.reviewLeagueRegistrations(s);assert.equal(up.teamId,0);assert.equal(p.teamId,10);
 });
-test('an established .350 first-team hitter is retained against a small temporary selection-score gap',()=>{
+test('a higher farm selection score wins the same-position review even against an established first-team hitter',()=>{
  const s=fixture(),p=e.getPlayer(s);for(const q of s.players.filter(q=>q.teamId===10&&q.position==='SS')){for(const k of Object.keys(q.stats))q.stats[k]=76;q.recentZ=0;q.proContract.status='regular';}
- w.reviewLeagueRegistrations(s);assert.equal(p.teamId,0);
+ const rival=s.players.find(q=>q.teamId===10&&q.position==='SS');assert.ok(e.selectionScore(rival)>e.selectionScore(p));w.reviewLeagueRegistrations(s);assert.equal(p.teamId,10);
+});
+test('one review fills all earned places at a position instead of promoting only one farm candidate',()=>{
+ const s=fixture(),p=e.getPlayer(s),farm=s.players.filter(q=>q.teamId===10&&q.position==='SS');assert.ok(farm.length>=3);
+ for(const q of s.players)for(const key of Object.keys(q.stats))q.stats[key]=q.teamId===0?80:30;
+ p.seasonByLevel.first=e.emptyRecord();for(const key of Object.keys(p.stats))p.stats[key]=50;
+ const extra=farm.shift();extra.teamId=0;for(const key of Object.keys(extra.stats))extra.stats[key]=55;
+ const bench=s.players.find(q=>q.teamId===0&&q.id!==p.id&&q.id!==extra.id&&!e.isPitcher(q.primaryRole)&&s.players.filter(r=>r.teamId===0&&r.position===q.position).length>1);assert.ok(bench);bench.teamId=10;
+ farm.forEach((q,i)=>{q.proContract.status='regular';q.seasonByLevel.second=e.emptyRecord();for(const key of Object.keys(q.stats))q.stats[key]=90-i;});
+ w.reviewLeagueRegistrations(s);
+ assert.equal(p.teamId,10);assert.equal(extra.teamId,10);assert.equal(farm[0].teamId,0);assert.equal(farm[1].teamId,0);assert.equal(s.players.filter(q=>q.teamId===0).length,29);
 });
 test('a sustained large ability gap or a long injury can still justify a real registration change',()=>{
  for(const injury of [false,true]){const s=fixture(),p=e.getPlayer(s);for(const q of s.players.filter(q=>q.teamId===10&&q.position==='SS')){for(const k of Object.keys(q.stats))q.stats[k]=injury?60:85;q.recentZ=0;q.proContract.status='regular';}
@@ -47,11 +54,11 @@ test('higher cumulative ratings require increasingly larger gaps and do not chan
  for(const value of [60,71,73,75,77,79,82]){history(p,value);const bonus=assessment.firstTeamRetention(p,2028).bonus;assert.ok(bonus>=previous);previous=bonus;assert.equal(e.selectionScore(p),score);}
  history(p,82);assert.equal(assessment.firstTeamRetention(p,2026).bonus,0);p.professional.assessments[0].score=null;assert.equal(assessment.firstTeamRetention(p,2028).bonus,0);
 });
-test('an elite cumulative record retains a player through a gap that demotes a low-rated player, but a larger gap still demotes',()=>{
- for(const [past,rival,retained] of [[60,80,false],[82,80,true],[82,95,false]]){
+test('past cumulative ratings do not hide an additional hurdle when the current farm score is higher',()=>{
+ for(const [past,rival] of [[60,80],[82,80],[82,95]]){
   const s=fixture(),p=e.getPlayer(s);p.seasonByLevel.first=e.emptyRecord();history(p,past);
   for(const q of s.players.filter(q=>q.teamId===10&&q.position==='SS')){for(const k of Object.keys(q.stats))q.stats[k]=rival;q.recentZ=0;q.proContract.status='regular';}
-  w.reviewLeagueRegistrations(s);assert.equal(p.teamId,retained?0:10);
+  w.reviewLeagueRegistrations(s);assert.equal(p.teamId,10);
  }
 });
 test('elite history cannot block long-injury replacement and does not make a farm player automatically displace an incumbent',()=>{

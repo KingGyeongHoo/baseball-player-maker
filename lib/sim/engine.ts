@@ -1,3 +1,5 @@
+import {currentProPosition,guaranteedProStarter} from "./pro-positions";
+import {farmSelectionTier} from "./pro-farm-roster";
 import { buildCalendar } from "./calendar";
 import { seededPlayerName } from "./player-names";
 import { createSchool, recruitmentProfile, updateSchoolPrestige } from "./school-recruiting";
@@ -48,9 +50,9 @@ export const positions: Record<Position, string> = {
   CP: "마무리"
 };
 export const roles = Object.keys(balance.roleWeights) as Role[];
-export const schoolRole=(role:Role):Role=>role==="마무리"?"중간계투":role;
-export const roleLabel=(role:Role,mode?:Player["careerMode"])=>!mode&&schoolRole(role)==="중간계투"?"불펜":role;
-export const positionName=(position:Position,mode?:Player["careerMode"])=>!mode&&(position==="RP"||position==="CP")?"불펜":positions[position];
+export const roleLabel:(role:Role,mode?:Player["careerMode"])=>string=role=>role;
+export const draftRoleLabel=(role:Role)=>role==="중간계투"||role==="마무리"?"불펜":role;
+export const positionName:(position:Position,mode?:Player["careerMode"])=>string=position=>positions[position];
 export const isPitcher = (role: Role) => ["선발", "중간계투", "마무리"].includes(role);
 export const clamp = (x: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, x));
 export const budget = (mode: Mode) => mode === "rest" ? 0 : ticketKeys.length * params["training.max_each"];
@@ -235,11 +237,10 @@ export const ovr = (p: Player, pitching = isPitcher(p.primaryRole)) => (pitching
 export const combinedOvr = (p: Player) => ovr(p, true) + ovr(p, false);
 export const overall = (p: Player) => p.twoWay ? combinedOvr(p) / 2 : ovr(p);
 export const positionLabel = (p: Player) => {const mode=p.careerMode??(p.professional?"pro":undefined);return p.twoWay ? `${roleLabel(roleFor(p.twoWay.pitchingPosition),mode)}/${positions[p.twoWay.battingPosition]}` : positionName(p.position,mode);};
-export const pitchingRole = (p: Player) => {const role=p.twoWay?roleFor(p.twoWay.pitchingPosition):p.primaryRole;return !p.careerMode&&!p.professional?schoolRole(role):role;};
+export const pitchingRole = (p: Player) => p.twoWay?roleFor(p.twoWay.pitchingPosition):p.primaryRole;
 export const twoWayReputation = (p: Player) => p.twoWay ? Math.max(p.twoWay.reputationBonus, 3 * Math.min(1, p.seasonStats.batting.PA / 20, p.seasonStats.pitching.BF / 15)) : 0;
 const roleWeights=Object.fromEntries(Object.entries(balance.roleWeights).map(([role,weights])=>[role,Object.entries(weights)])) as Record<Role,[Stat,number][]>;
 export function roleScore(p:Player,role=p.primaryRole){
-  if(!p.careerMode&&!p.professional)role=schoolRole(role);
   let score=0;for(const [key,weight]of roleWeights[role])score+=p.stats[key]*weight;
   return score;
 }
@@ -450,7 +451,11 @@ export function lineup(roster: Player[], date: string) {
   const candidates = roster.filter(p => available(p, date));
   const field: Player[] = [];
   for (const pos of ["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH"] as Position[]) {
-    const p = candidates.filter(p => p.twoWay?.nextAssignment !== "pitching" && p.eligiblePositions.includes(pos) && !field.includes(p)).sort((a, b) => selectionScore(b, roleFor(pos)) - selectionScore(a, roleFor(pos)) || a.id.localeCompare(b.id))[0];
+    const eligible=candidates.filter(p=>p.twoWay?.nextAssignment!=="pitching"&&p.eligiblePositions.includes(pos)&&!field.includes(p));
+    const natural=professional?eligible.filter(p=>currentProPosition(p,pos)):[];
+    // Compete for the current job. Utility eligibility is only an emergency
+    // cover when no available player currently holds that position.
+    const p = (natural.length?natural:eligible).sort((a, b) => (professional?farmSelectionTier(a)-farmSelectionTier(b):0)||Number(professional&&guaranteedProStarter(b,pos,date))-Number(professional&&guaranteedProStarter(a,pos,date)) || selectionScore(b, roleFor(pos)) - selectionScore(a, roleFor(pos)) || a.id.localeCompare(b.id))[0];
     if (p) field.push(p);
   }
   const pitchers = candidates.filter(p => p.twoWay?.nextAssignment !== "batting" && p.eligiblePositions.includes("SP") && !field.includes(p) && p.fatigue < params["coach.replace_fatigue"]&&(!professional||isPitcher(pitchingRole(p))));

@@ -1,5 +1,6 @@
-import { hash, overall, isPitcher, params, random, reputationScore, roleFor, roleScore, roles,schoolRole } from "./engine";
-import type { DraftPick, GameState, Player, Role } from "./types";
+import { hash, overall, isPitcher, params, random, reputationScore, roleFor, roleScore, roles } from "./engine";
+import type { DraftPick, GameState, Player, Role,Position } from "./types";
+import {organizationMinimum} from "./pro-roster";
 import {createScoutingReport} from "./scouting-report";
 import {buildEvaluationContext,createPlayerEvaluation} from "./player-evaluation";
 import {proClubNames} from "./club-names";
@@ -22,8 +23,9 @@ export function draftAssessment(p: Player) {
   return params["draft.reputation_weight"] * (p.reputation ?? reputationScore(p) ?? 0)
     + params["draft.talent_weight"] * (talent - 1) / 9 * 100 + params["draft.fit_weight"] * fit;
 }
-function draftSlots(s: GameState) {
-  const order=draftClubOrder(s);
+export type DraftClubContext={roster:Player[];order?:number[]};
+function draftSlots(s: GameState,clubOrder?:number[]) {
+  const order=clubOrder??draftClubOrder(s);
   const total = params["draft.min_total"] + Math.floor(random(s, "draft") * (params["draft.max_total"] - params["draft.min_total"] + 1));
   const counts = draftClubs.map(() => params["draft.min_rounds"]);
   for (let extra = total - counts.reduce((sum, n) => sum + n, 0); extra > 0; extra--) {
@@ -33,24 +35,31 @@ function draftSlots(s: GameState) {
   return Array.from({ length: Math.max(...counts) }, (_, index) => index + 1)
     .flatMap(round => order.flatMap((club,index) => counts[club] >= round ? [{ round, club,slot:index+1 }] : []));
 }
-function selectDraft(s: GameState, limit = Infinity): DraftPick[] {
+function selectDraft(s: GameState, limit = Infinity,clubContext?:DraftClubContext): DraftPick[] {
   const evaluationState=s.careerMode?{...s,careerMode:undefined,calendar:{...s.calendar,seasonYear:Math.min(s.calendar.seasonYear,Number(s.date.slice(0,4)))}}:s;
   const evaluationContext=buildEvaluationContext(evaluationState);
   const candidates = draftBoard(s.players);
   const ranks = new Map(candidates.map((p, i) => [p.id, i + 1]));
   const selected = new Set<string>();
-  const needs = draftClubs.map(() => Object.fromEntries(roles.map(role => [role, random(s, "draft")]))) as Record<Role, number>[];
-  const slots = draftSlots(s).slice(0, Math.min(limit, candidates.length));
+  const needs = draftClubs.map(() => Object.fromEntries(roles.map(role => [role, clubContext ? 0.5 : random(s, "draft")]))) as Record<Role, number>[];
+  const counts=draftClubs.map((_,club)=>{
+    const roster=clubContext?.roster.filter(p=>p.teamId>=0&&p.teamId%10===club&&p.professional?.employment==="active")??[];
+    return Object.fromEntries((["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","RP","CP"] as Position[]).map(pos=>[pos,roster.filter(p=>p.position===pos).length])) as Record<Position,number>;
+  });
+  const targets=draftClubs.map((_,club)=>Object.fromEntries(Object.keys(counts[club]).map(pos=>[pos,organizationMinimum(s.seed,club,pos as Position)])) as Record<Position,number>);
+  const demand=(club:number,position:Position)=>Math.max(0,targets[club][position]-counts[club][position]);
+  const slots = draftSlots(s,clubContext?.order).slice(0, Math.min(limit, candidates.length));
   const picks: DraftPick[] = [];
   for (const { round, club,slot } of slots) {
     const remaining = candidates.filter(p => !selected.has(p.id));
     const best = remaining.map(p => {
-      const qualified = [...new Set(p.eligiblePositions.map(position=>{const role=roleFor(position);return !p.careerMode?schoolRole(role):role;}))].filter(role => isPitcher(role) === isPitcher(p.primaryRole));
+      const qualified = clubContext?[roleFor(p.position)]:[...new Set(p.eligiblePositions.map(roleFor))].filter(role => isPitcher(role) === isPitcher(p.primaryRole));
       return qualified.map(role => {
         const ability = overall(p);
         const talent = p.talent[isPitcher(role) ? "pitching" : "batting"];
         const reputation = p.reputation ?? reputationScore(p) ?? 0;
-        const fit = params["draft.fit_role_weight"] * roleScore(p, role) + params["draft.fit_need_weight"] * needs[club][role] * 100;
+        const need=clubContext?Math.min(1,.35+demand(club,p.position)/Math.max(1,targets[club][p.position])):needs[club][role];
+        const fit = params["draft.fit_role_weight"] * roleScore(p, role) + params["draft.fit_need_weight"] * need * 100;
         const components = {
           talent: params["draft.talent_weight"] * (talent - 1) / 9 * 100,
           reputation: params["draft.reputation_weight"] * reputation,
@@ -65,13 +74,15 @@ function selectDraft(s: GameState, limit = Infinity): DraftPick[] {
           reputation,
           fit,
           components,
-          score
+          score,
+          needTier:clubContext&&demand(club,p.position)>0?1:0
         };
       }).sort((a, b) => b.score - a.score || b.ability - a.ability || b.talent - a.talent || a.p.id.localeCompare(b.p.id))[0];
-    }).sort((a, b) => b.score - a.score || b.ability - a.ability || b.talent - a.talent || a.p.id.localeCompare(b.p.id))[0];
+    }).sort((a, b) => b.needTier-a.needTier||b.score - a.score || b.ability - a.ability || b.talent - a.talent || a.p.id.localeCompare(b.p.id))[0];
     selected.add(best.p.id);
-    const clubNeed=needs[club][best.role]*100;
-    needs[club][best.role] = Math.max(0, needs[club][best.role] - params["draft.need_decay"]);
+    const clubNeed=clubContext?Math.min(1,.35+demand(club,best.p.position)/Math.max(1,targets[club][best.p.position]))*100:needs[club][best.role]*100;
+    if(clubContext)counts[club][best.p.position]++;
+    else needs[club][best.role] = Math.max(0, needs[club][best.role] - params["draft.need_decay"]);
     const pick:DraftPick={
       playerId: best.p.id,
       playerName: best.p.name,
@@ -95,7 +106,7 @@ function selectDraft(s: GameState, limit = Infinity): DraftPick[] {
   }
   return picks;
 }
-export const draftPlayers = (s: GameState) => selectDraft(s);
+export const draftPlayers = (s: GameState,clubContext?:DraftClubContext) => selectDraft(s,Infinity,clubContext);
 export const draftProjection = (s: GameState) => selectDraft({ ...s, rngStates: { ...s.rngStates } });
 // The same selection model evaluated at today's abilities/reputation. Reading
 // the forecast never consumes the live draft stream or writes future results.

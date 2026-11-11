@@ -1,3 +1,4 @@
+import {currentProPosition} from "./pro-positions";
 import {firstTeamRetention} from "./pro-assessment";
 import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, pitchingRole, positions, random, recovery, reputationScore, roleScore } from "./engine";
 import { careerLeagueTable, developmentCalendar } from "./pro-calendar";
@@ -146,7 +147,7 @@ export function reviewProRoster(s: GameState) {
   const p = getPlayer(s), first = info.club, second = info.club + 10;
   if (p.proContract?.status === "developmental") return false;
   const score = (other: Player) => roleScore(other,p.primaryRole) + clamp(other.recentZ,-2,2) * 2 - other.fatigue * .05;
-  const eligible = (other: Player) => other.eligiblePositions.includes(p.position) && other.id !== p.id;
+  const eligible = (other: Player) => currentProPosition(other,p.position) && other.id !== p.id;
   let exchange: Player | undefined, reason = "";
   if (p.teamId === second) {
     const weakest = s.players.filter(other => other.teamId === first && eligible(other)).sort((a,b) => score(a)-score(b)||a.id.localeCompare(b.id))[0];

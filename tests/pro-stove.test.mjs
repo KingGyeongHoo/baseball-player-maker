@@ -65,6 +65,7 @@ test('the FA screen distinguishes staying from transferring, including older sav
 });
 test('FA offers can use a first-team vacancy when all 45 lower places are filled',()=>{
  const s=fixture(),p=e.getPlayer(s),club=(p.teamId%10+1)%10;
+ p.teamId%=10; // A first-team FA preserves first-team registration on transfer.
  const make=(i,team)=>{const q=structuredClone(p);q.id='capacity-'+i;q.teamId=team;q.professional.contract.club=club;return q;};
  s.players=[p,...Array.from({length:28},(_,i)=>make(i,club)),...Array.from({length:45},(_,i)=>make(i+28,club+10))];
  s.proWorld.clubs[club].budget=1e12;

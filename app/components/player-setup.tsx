@@ -26,8 +26,7 @@ export default function PlayerSetup({ onStart }: { onStart: (state: GameState) =
   const [hands,setHands]=useState<PlayerHands>({throws:"R",bats:"R"});
   useEffect(()=>{const timer=setTimeout(()=>setJerseyNumber(randomJerseyNumber("school")),0);return()=>clearTimeout(timer);},[]);
   const creating = useRef(false);
-  const chosen = kind ? choices[kind] : null;
-  const position=mode==="school"&&chosen==="CP"?"RP":chosen;
+  const position = kind ? choices[kind] : null;
   const start = () => {
     if (creating.current) return;
     if (!name.trim()) { setError("선수 이름을 입력해 주세요."); return; }

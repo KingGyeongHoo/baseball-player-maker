@@ -11,6 +11,10 @@ export function firstTeamSlots(seed:string,club:number):Position[]{
   const hitters:Position[]=['C','SS','CF','2B','1B','3B','LF','RF','DH','C','SS','CF','2B','LF','RF','1B','3B'];
   return [...hitters.slice(0,firstTeamCapacity-pitchers),...Array<Position>(starters).fill('SP'),...Array<Position>(pitchers-starters-1).fill('RP'),'CP'];
 }
+export function organizationMinimum(seed:string,club:number,position:Position){
+  return firstTeamSlots(seed,club).filter(pos=>pos===position).length
+    +proRosterPositions.filter(pos=>pos===position).length;
+}
 
 export function createCareerNPC(seed:string,teamId:number,index:number,mode:'pro'|'college',first:boolean,position:Position):Player {
   const n=hash(`${seed}:name`),p=previewPlayer(seed,seededPlayerName(`${seed}:player-name`),position);

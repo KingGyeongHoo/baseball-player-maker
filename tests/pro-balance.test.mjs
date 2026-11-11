@@ -55,6 +55,25 @@ test('bullpen plans keep one closer and assign setup and long relief to middle r
  assert.equal(closers.size,1);assert(reliefLengths.has(3));assert(reliefLengths.size>1);assert.deepEqual(roster,before);assert.deepEqual(s.rngStates,rng);
 });
 
+test('one middle reliever backs up the fixed main closer only on unavailable days, in school and pro',()=>{
+ for(const professional of [false,true]){
+  const s=pc.createProfessionalDemo('main-backup-closer','검증','SS'),roster=s.players.filter(p=>p.teamId===0),main=roster.find(p=>p.position==='CP');
+  if(!professional)for(const p of roster){delete p.careerMode;delete p.professional;}
+  const date='2028-04-10',normal=b.proBullpenPlan(roster,s.seed,date,0),backup=roster.find(p=>p.id===normal.backupCloserId);
+  assert.equal(normal.mainCloserId,main.id);assert.equal(normal.closerId,main.id);assert.equal(e.pitchingRole(backup),'중간계투');
+  const before=structuredClone(roster);
+  for(let i=0;i<30;i++)assert.equal(b.proBullpenPlan(roster,s.seed,e.addDays(date,i),0).closerId,main.id);
+  assert.deepEqual(roster,before);
+  main.injury={startDate:date,unavailableUntil:'2028-05-01',penaltyRemaining:0};
+  const replacement=b.proBullpenPlan(roster,s.seed,date,0);assert.equal(replacement.closerId,backup.id);assert.equal(replacement.mainCloserId,main.id);
+  assert.notEqual(replacement.setupId,backup.id);assert.equal(backup.position,'RP');
+  main.injury=null;main.lastPitched=e.addDays(date,-1);
+  const recent=[{date:e.addDays(date,-2),boxScore:{[main.id]:{pitching:{BF:4}}}}];
+  assert.equal(b.proBullpenPlan(roster,s.seed,date,0,recent).closerId,backup.id);
+  main.lastPitched=null;assert.equal(b.proBullpenPlan(roster,s.seed,date,0,recent).closerId,main.id);
+ }
+});
+
 test('short rest and accumulated workload lower priority, with inning-specific leverage roles',()=>{
  const s=pc.createProfessionalDemo('bullpen-rest-check','검증','SP'),rp=s.players.find(p=>p.position==='RP');
  rp.lastPitched='2028-04-01';const rested=b.proReliefPriority(rp,'2028-04-05',6,2,undefined,undefined,undefined,rp.id);
@@ -143,8 +162,11 @@ test('multi-seed regular seasons keep accounting identities and remove extreme p
  const results=[0,1,2].map(i=>runSeason(`pro-balance-${i}`));
  for(const s of results){assert.equal(s.games,720);assert.equal(s.forfeits,0);assert(s.K.max<300);assert(s.HR.max>=30&&s.HR.max<75);assert(s.AVG.mean>.24&&s.AVG.mean<.30);assert(s.roles.SP.IP.max<225);
   assert(s.workload.SP.games>=24&&s.workload.SP.games<=30);assert(s.workload.SP.perGame>5&&s.workload.SP.perGame<6);
-  assert(s.workload.RP.games>=45&&s.workload.RP.games<=66);assert(s.workload.RP.perGame>.8&&s.workload.RP.perGame<1.15);
-  assert(s.workload.CP.games>=48&&s.workload.CP.games<=72);assert(s.workload.CP.perGame>.85&&s.workload.CP.perGame<1.25);
+  // Current-score registration no longer rotates a better first-team reliever
+  // down solely for workload. The fixed closer is reserved for closing work.
+  assert(s.workload.RP.games>=45&&s.workload.RP.games<=72);assert(s.workload.RP.perGame>.8&&s.workload.RP.perGame<1.15);
+  assert(s.workload.CP.games>=30&&s.workload.CP.games<=72);assert(s.workload.CP.perGame>.85&&s.workload.CP.perGame<1.25);
+  assert(s.roles.CP.SV.mean>s.roles.RP.SV.mean);assert(s.roles.RP.HLD.mean>s.roles.CP.HLD.mean);
  }
  assert(results.some(s=>s.rareOutings.starterEightInnings>0));assert(results.some(s=>s.rareOutings.reliefThreeInnings>0));assert(results.some(s=>s.rareOutings.closerOneOutThenRelief>0));
 });

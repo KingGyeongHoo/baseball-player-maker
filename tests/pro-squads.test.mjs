@@ -20,13 +20,13 @@ test('annual intake is split 90/10, salaries and growth follow status, and repea
  for(const p of added){const d=p.proContract.status==='developmental';assert.equal(q.proSquad(p.teamId),d?'developmental':'third');assert.equal(e.growthMultiplier(p),d?.9:1);assert.equal(p.professional.contract.salary,d?30_000_000:50_000_000);}
  const ids=s.players.map(p=>p.id);life.addRookieClass(s,year);assert.deepEqual(s.players.map(p=>p.id),ids);life.settleNPCFreeAgents(s,year);assert.equal(s.players.filter(p=>!old.has(p.id)&&p.professional.rookieYear===year).length,added.length);
 });
-test('one-time current-roster organization uses role ability and selection score and preserves records and contracts',()=>{
+test('one-time organization respects the second-team promotion step and preserves records and contracts',()=>{
  const s=fixture();delete s.proWorld.squadsVersion;const club=0,members=s.players.filter(p=>p.teamId>=0&&p.teamId%10===club&&p.position==='SS');
  const high=members[0],low=members[1],dev=members[2];skills(high,90);skills(low,35);skills(dev,99);high.teamId=20;low.teamId=0;dev.teamId=0;dev.proContract.status='developmental';
- const before=new Map(s.players.map(p=>[p.id,{stats:structuredClone(p.stats),records:structuredClone(p.seasonStats),contract:structuredClone(p.professional.contract)}])),rng={...s.rngStates};
- assert.equal(q.reorganizeProSquads(s),true);assert.equal(q.proSquad(high.teamId),'first');assert.equal(q.proSquad(dev.teamId),'developmental');assert.notEqual(q.proSquad(low.teamId),'first');
+ const before=new Map(s.players.map(p=>[p.id,{team:p.teamId,stats:structuredClone(p.stats),records:structuredClone(p.seasonStats),contract:structuredClone(p.professional.contract)}])),rng={...s.rngStates};
+ assert.equal(q.reorganizeProSquads(s),true);assert.equal(q.proSquad(high.teamId),'second');assert.equal(q.proSquad(dev.teamId),'developmental');
  for(let club=0;club<10;club++){assert.ok(s.players.filter(p=>p.teamId===club).length<=30);assert.ok(s.players.filter(p=>p.teamId===club+10).length<=30);}
- for(const p of s.players){assert.deepEqual(p.stats,before.get(p.id).stats);assert.deepEqual(p.seasonStats,before.get(p.id).records);assert.deepEqual(p.professional.contract,before.get(p.id).contract);}
+ for(const p of s.players){if(p.teamId>=0&&p.teamId<10)assert.ok(before.get(p.id).team<20);assert.deepEqual(p.stats,before.get(p.id).stats);assert.deepEqual(p.seasonStats,before.get(p.id).records);assert.deepEqual(p.professional.contract,before.get(p.id).contract);}
  assert.deepEqual(s.rngStates,rng);assert.equal(q.reorganizeProSquads(s),false);
 });
 test('at equal selection scores third-squad players precede developmental players for promotion',()=>{
@@ -35,6 +35,7 @@ test('at equal selection scores third-squad players precede developmental player
 });
 test('a reserve can play a real second-team evaluation without changing squads and gets only real records',()=>{
  const s=fixture(),p=e.getPlayer(s),team=p.teamId,club=team%10;skills(p,80);const game=s.calendar.events.find(g=>g.competitionId==='pro-second'&&[g.homeTeamId,g.awayTeamId].includes(club+10));s.date=game.date;s.proWorld.stage='regular';
+ for(const other of s.players)if(other.id!==p.id&&other.teamId>=10&&other.teamId%10===club&&other.position===p.position)other.trainingPolicy.mode='rest';
  world.prepareEvaluationOpportunities(s,[game.id]);assert.ok(game.evaluationPlayers.includes(p.id));e.simulateGame(s,game,[game.homeTeamId,game.awayTeamId].map(team=>s.players.filter(p=>p.teamId===team)));
  assert.equal(game.status,'completed');assert.equal(p.teamId,team);assert.ok(p.seasonByLevel.second.batting.PA>0);assert.equal(p.seasonStats.games.batting,1);assert.equal(game.proAppearances[p.id].teamId,club+10);assert.equal(p.professional.faDays,0);
  const later=s.calendar.events.find(g=>g.competitionId==='pro-second'&&g.date>game.date&&[g.homeTeamId,g.awayTeamId].includes(club+10));s.date=later.date;world.prepareEvaluationOpportunities(s,[later.id]);assert.ok(!later.evaluationPlayers.includes(p.id));

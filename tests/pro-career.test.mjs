@@ -27,7 +27,9 @@ function graduate(drafted=true) {
   return revealDraftResult(s);
 }
 const entered=pc.continueCareer(graduate(),'join');
-const fixture=()=>{const s=pc.acknowledgeCareer(entered),p=e.getPlayer(s);p.teamId=s.postSchool.pro.club+10;s.postSchool.pro.level='second';return s;};
+const fixture=()=>{const s=pc.acknowledgeCareer(entered),p=e.getPlayer(s),team=s.postSchool.pro.club+10;
+  if(p.teamId!==team&&s.players.filter(q=>q.teamId===team).length>=30){const displaced=s.players.filter(q=>q.id!==p.id&&q.teamId===team&&q.position===p.position).at(-1);if(displaced)displaced.teamId=team+10;}
+  p.teamId=team;s.postSchool.pro.level='second';return s;};
 test('direct pro entry evaluates current role skills before assigning status, salary and conversion goal',()=>{
   for(const position of ['SS','SP','CP'])for(const [ability,expected] of [[54.99,'developmental'],[55,'regular']]){
     const source=graduate(),p=e.getPlayer(source);source.draft=[];
@@ -75,7 +77,7 @@ test('pro calendar has 144 first-team and 72 second-team games per club, balance
 });
 
 test('unqualified prospects remain in the farm team; call-up exchanges roster members once and preserves all personal records',()=>{
-  const s=fixture(),p=e.getPlayer(s);s.date='2028-03-15';assert.equal(pc.reviewProRoster(s),false);assert.equal(p.teamId,10);
+  const s=fixture(),p=e.getPlayer(s);s.date='2028-03-15';p.professional.lastRegistration=s.date;assert.equal(pc.reviewProRoster(s),false);assert.equal(p.teamId,10);
   s.date='2028-03-29';for(const key of Object.keys(p.stats))p.stats[key]=95;
   const before=s.players.length,record=structuredClone(p.seasonStats),first=s.players.filter(p=>p.teamId===0).length,farm=s.players.filter(p=>p.teamId===10).length;
   assert.equal(pc.reviewProRoster(s),true);assert.equal(p.teamId,0);assert.equal(s.careerNotice.kind,'promoted');assert.equal(s.players.length,before);
@@ -147,11 +149,14 @@ test('college keeps legacy development events with normal training-week rewards 
   assert.equal(tryDevelopmentEvent(resumed),false);assert.ok(e.getPlayer(resumed).stats.contact>=p.stats.contact);
 });
 
-test('full pro rookie season completes all 1080 games with stable population, level records and no extra draft/promotion years',{timeout:90000},()=>{
-  let s=pc.acknowledgeCareer(pc.createProfessionalDemo('full-rookie-test','신인','SP'));const count=s.players.length,stats={...e.getPlayer(s).stats},school=s.postSchool.graduationSchool;
+test('full pro rookie season completes all 1080 games with bounded depth recruitment, level records and no extra draft/promotion years',{timeout:90000},()=>{
+  let s=pc.acknowledgeCareer(pc.createProfessionalDemo('full-rookie-test','신인','SP'));const originalIds=new Set(s.players.map(p=>p.id)),stats={...e.getPlayer(s).stats},school=s.postSchool.graduationSchool;
   let guard=0;
   while(s.phase!=='ended'&&guard++<100){if(s.careerNotice)s=pc.acknowledgeCareer(s);if(s.careerEvent)s=e.answerCareerEvent(s,s.careerEvent.choices.at(-1).id);s=advance(s);}
-  assert.equal(s.phase,'ended');assert.equal(s.date,s.calendar.seasonEnd);assert.equal(s.players.length,count);assert.equal(s.calendar.events.filter(g=>!g.competitionId.startsWith('pro-playoffs-')&&!g.tiebreaker&&['completed','forfeit'].includes(g.status)).length,1080);assert.ok(s.calendar.events.some(g=>g.competitionId.startsWith('pro-playoffs-')));
+  assert.equal(s.phase,'ended');assert.equal(s.date,s.calendar.seasonEnd);assert.ok([...originalIds].every(id=>s.players.some(p=>p.id===id)));assert.ok(s.players.filter(p=>!originalIds.has(p.id)).every(p=>p.id.startsWith('farm-depth:')));assert.equal(s.calendar.events.filter(g=>!g.competitionId.startsWith('pro-playoffs-')&&!g.tiebreaker&&['completed','forfeit'].includes(g.status)).length,1080);assert.ok(s.calendar.events.some(g=>g.competitionId.startsWith('pro-playoffs-')));
+  for(let club=0;club<10;club++){const active=s.players.filter(p=>p.teamId>=0&&p.teamId%10===club);assert.ok(active.length<=75);assert.ok(active.filter(p=>p.teamId>=10).length<=45);assert.ok(active.filter(p=>p.teamId===club+10).length<=30);}
+  const farmGames=s.calendar.events.filter(g=>g.competitionId==='pro-second'&&!g.tiebreaker);
+  assert.equal(farmGames.length,360);assert.ok(farmGames.every(g=>g.status==='completed'),'all farm games need actual completed records, not forfeits');
   assert.ok(s.calendar.competitions.every(c=>c.championTeamId!==null));const p=e.getPlayer(s);assert.equal(p.career[0].schoolName,school);assert.ok(p.stats.velocity>=stats.velocity);
   const sum=e.emptyRecord();e.mergeRecord(sum,p.seasonByLevel.first);e.mergeRecord(sum,p.seasonByLevel.second);assert.deepEqual(p.seasonStats,sum);assert.ok(p.seasonStats.pitching.BF>0);
   assert.equal(s.careerNotice.kind,'seasonComplete');assert.throws(()=>advance(s),/종료/);assert.throws(()=>pc.continueCareer(pc.acknowledgeCareer(s),'join'),/계약 화면/);

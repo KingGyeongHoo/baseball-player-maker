@@ -1,6 +1,7 @@
 import {selectionScore} from './engine';
 import {firstTeamCapacity,firstTeamSlots,postseasonTeamCapacity} from './pro-roster';
-import {setProSquad} from './pro-squads';
+import {canPromoteToFirst,setProSquad} from './pro-squads';
+import {canAssignProSquad,guaranteedProStarter} from './pro-positions';
 import type {GameState,Player} from './types';
 
 export function needsPostseasonRosterUpgrade(s:GameState){
@@ -15,9 +16,9 @@ export function expandPostseasonRosters(s:GameState){
   const world=s.proWorld!,post=world.postseason!,calledUp:string[]=[];
   const healthy=(p:Player)=>!p.injury||s.date>=p.injury.unavailableUntil;
   for(const club of post.seeds){
-    const candidates=s.players.filter(p=>(p.teamId===club||p.teamId===club+10&&healthy(p))
+    const candidates=s.players.filter(p=>(p.teamId===club||p.teamId===club+10&&healthy(p)&&canPromoteToFirst(s,p))
       &&p.professional?.employment==='active'&&p.proContract?.status!=='developmental');
-    const ranked=candidates.sort((a,b)=>Number(healthy(b))-Number(healthy(a))
+    const ranked=candidates.sort((a,b)=>Number(b.teamId===club&&guaranteedProStarter(b,b.position,s.date))-Number(a.teamId===club&&guaranteedProStarter(a,a.position,s.date))||Number(healthy(b))-Number(healthy(a))
       ||selectionScore(b)-selectionScore(a)||Number(b.teamId===club)-Number(a.teamId===club)||a.id.localeCompare(b.id));
     const selected=new Set<string>();
     for(const position of firstTeamSlots(s.seed,club)){
@@ -49,7 +50,7 @@ export function trimPostseasonRostersForOpening(s:GameState){
   if(!world||!expansion||world.year<=expansion.year||!opening||s.date<opening||s.matchProgress)return [];
   const changes=expansion.clubs.map(club=>{
     const first=s.players.filter(p=>p.teamId===club).sort((a,b)=>selectionScore(a)-selectionScore(b)||a.id.localeCompare(b.id));
-    const players=first.slice(0,Math.max(0,first.length-firstTeamCapacity));
+    const players=first.filter(p=>canAssignProSquad(p,'second',s.date)).slice(0,Math.max(0,first.length-firstTeamCapacity));
     for(const p of players)setProSquad(s,p,'second');
     return {club,players};
   });

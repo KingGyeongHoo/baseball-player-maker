@@ -5,12 +5,12 @@ const require = createRequire(import.meta.url);
 const e = require('../.test-build/lib/sim/engine.js');
 const close = (a,b) => assert.ok(Math.abs(a-b) < 1e-8, a+' != '+b);
 
-test('school relievers share bullpen assessment and draft demand while professional roles stay distinct',()=>{
- const p=e.previewPlayer('school-bullpen','불펜선수','CP');p.grade=3;p.eligiblePositions=['RP','CP'];
+test('school and professional relievers keep distinct roles and assessments; only the draft label groups them',()=>{
+ const p=e.previewPlayer('school-bullpen','마무리선수','CP');p.grade=3;p.eligiblePositions=['CP'];
  Object.assign(p.stats,{velocity:90,control:20,movement:40,stamina:60,bq:50});
- assert.equal(e.positionLabel(p),'불펜');assert.equal(e.pitchingRole(p),'중간계투');assert.equal(e.roleScore(p,'중간계투'),e.roleScore(p,'마무리'));
+ assert.equal(e.positionLabel(p),'마무리');assert.equal(e.pitchingRole(p),'마무리');assert.notEqual(e.roleScore(p,'중간계투'),e.roleScore(p,'마무리'));
  const s=e.createGame('school-bullpen-pick','검증','SS');s.players=[p];const before=structuredClone(p),pick=e.draftPlayers(s)[0];
- assert.equal(pick.role,'중간계투');assert.equal(e.roleLabel(pick.role),'불펜');assert.deepEqual(p,before);
+ assert.equal(pick.role,'마무리');assert.equal(e.roleLabel(pick.role),'마무리');assert.equal(e.draftRoleLabel(pick.role),'불펜');assert.deepEqual(p,before);
  p.careerMode='pro';assert.equal(e.positionLabel(p),'마무리');assert.equal(e.pitchingRole(p),'마무리');assert.notEqual(e.roleScore(p,'중간계투'),e.roleScore(p,'마무리'));p.position='RP';p.primaryRole='중간계투';assert.equal(e.positionLabel(p),'중간계투');
 });
 
