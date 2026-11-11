@@ -22,6 +22,47 @@ function fixture(){
  const s=structuredClone(template),p=e.getPlayer(s);p.professional.faEligible=true;p.professional.faDays=900;p.professional.contract.endYear=s.proWorld.year;return s;
 }
 function clear(s){s.careerNotice=undefined;s.noticeQueue=[];s.careerEvent=null;return s;}
+function retentionFixture(){
+ const s=clear(fixture()),p=e.getPlayer(s),club=p.professional.contract.club;
+ const peer=structuredClone(p);peer.id='strong-incumbent';peer.teamId=club;
+ for(const key of Object.keys(peer.stats))peer.stats[key]=100;
+ s.players=[p,peer];for(const c of s.proWorld.clubs)c.budget=1e12;
+ for(const row of p.professional.assessments){delete row.war;row.score=82;row.grade='S';row.cumulative=82;row.cumulativeGrade='S';}
+ return s;
+}
+test('FA retains a valid home-team offer even when nine rival clubs rank ahead, without duplicates or more than three offers',()=>{
+ const s=retentionFixture(),p=e.getPlayer(s),club=p.professional.contract.club,before=structuredClone(p.professional.contract);
+ market.openContractMarket(s);const offers=s.proWorld.market.offers;
+ assert.equal(s.proWorld.market.kind,'fa');assert.equal(offers.length,3);assert.equal(offers[0].club,club);assert.equal(offers[0].faRetention,true);
+ assert.ok(offers.slice(1).every(o=>o.club!==club&&o.faRetention===false));assert.equal(new Set(offers.map(o=>o.club)).size,3);
+ assert.deepEqual(p.professional.contract,before);
+ s.proWorld.market.round++;market.refreshOffers(s);assert.equal(s.proWorld.market.offers[0].club,club);
+});
+test('the home-team FA proposal can be negotiated, saved and accepted without an invented transfer or reset service',()=>{
+ const s=retentionFixture(),p=e.getPlayer(s),team=p.teamId,club=p.professional.contract.club,service=structuredClone(p.professional.service),career=structuredClone(p.career),salaries=structuredClone(p.professional.salaries);
+ market.openContractMarket(s);const offer=s.proWorld.market.offers[0];assert.ok(offer.years>=2);
+ market.negotiateOffer(s,offer.id);clear(s);
+ const restored=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(s))).state;
+ assert.equal(restored.proWorld.market.offers[0].faRetention,true);
+ const next=life.actOnProCareer(restored,{type:'accept',id:offer.id}),q=e.getPlayer(next);
+ assert.equal(next.proWorld.market.settled,true);assert.equal(q.teamId,team);assert.equal(q.professional.contract.club,club);assert.equal(q.professional.contract.source,'fa');
+ assert.equal(q.professional.contract.salary,offer.salary);assert.equal(q.professional.contract.endYear,offer.year+offer.years-1);
+ assert.deepEqual(q.professional.service,service);assert.deepEqual(q.career,career);assert.deepEqual(q.professional.salaries,salaries);
+ assert.equal(q.professional.faDays,900);assert.equal(q.professional.movements.at(-1).kind,'FA 잔류');
+ assert.equal(q.professional.movements.at(-1).from,club);assert.equal(q.professional.movements.at(-1).to,club);
+});
+test('an unaffordable home-team proposal does not bypass budget checks or prevent rival FA offers',()=>{
+ const s=retentionFixture(),p=e.getPlayer(s),club=p.professional.contract.club;s.proWorld.clubs[club].budget=0;
+ market.openContractMarket(s);assert.equal(s.proWorld.market.offers.length,3);assert.ok(s.proWorld.market.offers.every(o=>o.club!==club));
+ assert.equal(p.professional.employment,'active');assert.equal(p.professional.contract.club,club);
+});
+test('the FA screen distinguishes staying from transferring, including older saved offers without a retention flag',()=>{
+ const s=retentionFixture();market.openContractMarket(s);
+ const render=()=>renderToStaticMarkup(createElement(ProContractPanel,{state:s,disabled:false,onAction(){},onRetire(){}}));
+ let html=render();assert.match(html,/원소속팀 FA 잔류 제안/);assert.match(html,/원소속팀 잔류/);assert.match(html,/타 구단 FA 이적 제안/);assert.match(html,/이적 계약 수락/);
+ for(const offer of s.proWorld.market.offers)delete offer.faRetention;
+ html=render();assert.match(html,/원소속팀 FA 잔류 제안/);
+});
 test('FA offers can use a first-team vacancy when all 45 lower places are filled',()=>{
  const s=fixture(),p=e.getPlayer(s),club=(p.teamId%10+1)%10;
  const make=(i,team)=>{const q=structuredClone(p);q.id='capacity-'+i;q.teamId=team;q.professional.contract.club=club;return q;};

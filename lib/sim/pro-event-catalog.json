@@ -42,7 +42,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE02",
@@ -87,7 +88,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE03",
@@ -141,7 +143,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE04",
@@ -190,7 +193,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE05",
@@ -235,7 +239,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE06",
@@ -275,7 +280,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE07",
@@ -315,7 +321,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE08",
@@ -363,7 +370,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE09",
@@ -399,7 +407,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE10",
@@ -435,7 +444,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE11",
@@ -471,7 +481,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE12",
@@ -519,7 +530,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE13",
@@ -570,7 +582,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE14",
@@ -626,7 +639,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE15",
@@ -678,7 +692,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE16",
@@ -716,7 +731,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE17",
@@ -773,7 +789,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE18",
@@ -804,7 +821,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE19",
@@ -841,7 +859,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE20",
@@ -905,7 +924,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE21",
@@ -958,7 +978,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE22",
@@ -1020,7 +1041,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE23",
@@ -1082,7 +1104,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE24",
@@ -1149,7 +1172,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE25",
@@ -1200,7 +1224,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE26",
@@ -1251,7 +1276,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE27",
@@ -1310,7 +1336,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE28",
@@ -1370,7 +1397,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE29",
@@ -1405,7 +1433,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE30",
@@ -1453,929 +1482,922 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE31",
-    "title": "동료와 다른 구장으로",
-    "description": "동료가 일정이 비는 날 다른 팀 경기를 보러 가자고 한다. 관중석에서 선수들의 움직임을 볼 기회다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "함께 경기를 관람한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "상대 벤치의 수비 조정을 눈여겨봤다. 나중에 동료와 더 이야기하기로 했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 40,
-            "message": "경기는 즐거웠지만 왕복 이동에 지쳤다.",
-            "fatigueRange": {
-              "min": 4,
-              "max": 8
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "오늘은 숙소에서 쉰다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "아무 일정 없이 푹 쉬었다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          },
-          {
-            "weight": 40,
-            "message": "경기 하이라이트를 보다 휴식 시간이 줄었다.",
-            "recoveryPercent": {
-              "min": 2,
-              "max": 6
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE32",
-    "title": "동료의 집들이",
-    "description": "같은 팀 동료가 가까운 선수들을 집으로 초대했다. 편하게 식사하고 이야기하는 자리다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "집들이에 참석한다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "집들이에서 동료가 지켜온 생활 습관을 들었다. 내 일정에 맞는 회복 방법을 찾아 적용했다.",
-            "fatigueRange": {
-              "min": -5,
-              "max": -2
-            },
-            "weeks": {
-              "recovery": 3
-            }
-          },
-          {
-            "weight": 30,
-            "message": "야구 밖의 이야기를 나누며 서로 편해졌다.",
-            "fatigueRange": {
-              "min": -5,
-              "max": -2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "즐거운 이야기가 이어져 돌아오는 시간이 늦었다.",
-            "fatigueRange": {
-              "min": 3,
-              "max": 6
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "축하를 전하고 집에서 쉰다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "마음을 전한 뒤 일찍 잠들었다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 18
-            }
-          },
-          {
-            "weight": 40,
-            "message": "집안일을 하느라 기대만큼 쉬지는 못했다.",
-            "recoveryPercent": {
-              "min": 3,
-              "max": 7
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE33",
-    "title": "직접 차려보는 한 끼",
-    "description": "동료가 간단히 만들 수 있는 식사를 알려준다고 한다. 평소 생활 리듬에 맞게 식사를 준비해볼까?",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "동료와 직접 만들어본다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "식사 준비를 함께하며 훈련 전후에 몸을 챙기는 요령을 배웠다. 꾸준한 체력 관리로 이어졌다.",
-            "fatigueRange": {
-              "min": -4,
-              "max": -1
-            },
-            "weeks": {
-              "stamina": 3
-            }
-          },
-          {
-            "weight": 30,
-            "message": "준비와 정리를 나누니 여유 있게 식사했다. 다음에도 해보기로 했다.",
-            "fatigueRange": {
-              "min": -4,
-              "max": -1
-            }
-          },
-          {
-            "weight": 40,
-            "message": "익숙하지 않은 준비와 설거지에 시간이 오래 걸렸다.",
-            "fatigueRange": {
-              "min": 3,
-              "max": 6
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "평소 식사를 하고 쉬어간다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "익숙한 시간에 식사를 마치고 푹 쉬었다.",
-            "recoveryPercent": {
-              "min": 8,
-              "max": 16
-            }
-          },
-          {
-            "weight": 40,
-            "message": "밀린 일을 정리하다 쉬는 시간이 조금 줄었다.",
-            "recoveryPercent": {
-              "min": 2,
-              "max": 6
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE34",
-    "title": "팬이 보내온 편지",
-    "description": "팬이 구단을 통해 손편지를 보내왔다. 성적보다 꾸준히 뛰는 모습을 응원한다는 내용이다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "답장을 써서 구단에 맡긴다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "응원의 의미를 되새기며 마음의 부담을 덜었다.",
-            "fatigueRange": {
-              "min": -5,
-              "max": -2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "무슨 말을 쓸지 고민하느라 시간이 길어졌다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "편지를 간직하고 조용히 쉰다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "응원을 읽고 마음 편하게 잠들었다.",
-            "recoveryPercent": {
-              "min": 8,
-              "max": 16
-            }
-          },
-          {
-            "weight": 40,
-            "message": "몇 번 다시 읽느라 쉬는 시간이 짧아졌다.",
-            "recoveryPercent": {
-              "min": 3,
-              "max": 6
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE35",
-    "title": "옛 동료와의 저녁 약속",
-    "description": "예전에 함께 뛰었던 동료와 연락이 닿았다. 일정이 맞는 저녁에 잠깐 만나자는 제안이다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "만나서 근황을 나눈다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "서로 다른 환경에서 배운 야구 이야기가 도움이 됐다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          },
-          {
-            "weight": 40,
-            "message": "추억 이야기가 길어져 늦게 돌아왔다.",
-            "fatigueRange": {
-              "min": 3,
-              "max": 7
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "통화로 안부를 전한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "짧은 대화로 반가움을 나누고 충분히 쉬었다.",
-            "recoveryPercent": {
-              "min": 8,
-              "max": 16
-            }
-          },
-          {
-            "weight": 40,
-            "message": "통화가 예상보다 길어졌지만 일찍 마무리했다.",
-            "recoveryPercent": {
-              "min": 2,
-              "max": 6
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE36",
-    "title": "원정 숙소의 게임 약속",
-    "description": "동료가 저녁에 온라인 게임을 함께하자고 한다. 내일 준비를 위해 끝낼 시간을 정할 수 있다.",
+    "title": "휴일에 비워 둔 오후",
+    "description": "일정이 비는 오후가 생겼다. 정해둔 시간 안에서 잠깐 외출하거나 숙소에서 편히 쉬어도 된다.",
     "rule": {
       "activity": "free",
-      "travel": true
+      "revision": 2
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "시간을 정해 함께한다",
+        "label": "가까운 곳에서 기분을 전환한다",
         "outcomes": [
           {
             "weight": 30,
-            "message": "팀으로 게임하며 역할을 나누고 상황을 읽었다. 야구에서도 동료의 선택을 이해할 관점을 얻었다.",
-            "fatigueRange": {
-              "min": -4,
-              "max": -1
-            },
-            "weeks": {
-              "bq": 3
-            }
-          },
-          {
-            "weight": 30,
-            "message": "가볍게 웃으며 긴장을 풀고 약속한 시간에 마쳤다.",
-            "fatigueRange": {
-              "min": -4,
-              "max": -1
-            }
-          },
-          {
-            "weight": 40,
-            "message": "승부가 길어져 잠드는 시간이 늦었다.",
-            "fatigueRange": {
-              "min": 3,
-              "max": 7
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "오늘은 접속하지 않고 쉰다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "화면을 끄고 깊이 잠들었다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          },
-          {
-            "weight": 40,
-            "message": "경기 영상을 보다가 휴식이 조금 짧아졌다.",
-            "recoveryPercent": {
-              "min": 3,
-              "max": 7
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE37",
-    "title": "지역 야구교실의 초대",
-    "description": "일정이 없는 날 지역 야구교실에서 짧게 이야기를 들려달라고 한다. 참가 여부는 자유다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "아이들과 야구 이야기를 나눈다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "기본 동작을 직접 보여주며 힘을 빼는 순서를 되짚었다. 동료의 질문에 답하다 내 동작도 한층 정교해졌다.",
-            "weeks": {
-              "precision": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "기본 동작을 쉽게 설명하면서 나도 다시 이해했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 40,
-            "message": "질문에 하나씩 답하다 시간이 길어져 피곤해졌다.",
-            "fatigueRange": {
-              "min": 4,
-              "max": 7
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "응원 메시지를 보내고 쉰다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "짧은 메시지를 전달한 뒤 충분히 쉬었다.",
-            "recoveryPercent": {
-              "min": 8,
-              "max": 16
-            }
-          },
-          {
-            "weight": 40,
-            "message": "문구를 고민하느라 쉬는 시간이 조금 줄었다.",
-            "recoveryPercent": {
-              "min": 2,
-              "max": 6
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE38",
-    "title": "가족과 맞춘 저녁 시간",
-    "description": "오랜만에 가족과 저녁 시간이 맞았다. 일찍 식사를 마칠 수도, 근황을 더 나눌 수도 있다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "천천히 식사하며 이야기한다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편안한 식사와 대화 속에서 수면과 생활 리듬을 돌아봤다. 내 몸에 맞는 회복 습관을 잡았다.",
-            "fatigueRange": {
-              "min": -6,
-              "max": -2
-            },
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
             "weeks": {
               "recovery": 3
-            }
-          },
-          {
-            "weight": 30,
-            "message": "익숙한 사람들과 마음을 놓고 쉬었다.",
-            "fatigueRange": {
-              "min": -6,
-              "max": -2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "반가운 이야기가 길어져 귀가가 늦었다.",
+            },
             "fatigueRange": {
               "min": 2,
               "max": 5
             }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧게 식사하고 일찍 쉰다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "편안한 저녁을 보내고 충분히 잤다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 18
-            }
           },
           {
-            "weight": 40,
-            "message": "이동이 길어져 휴식이 조금 짧아졌다.",
-            "recoveryPercent": {
-              "min": 3,
-              "max": 7
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE39",
-    "title": "쌓여 있는 집안 정리",
-    "description": "미뤄둔 생활용품 정리가 눈에 들어온다. 한 번에 끝낼 수도 있고 필요한 것만 정리할 수도 있다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "오늘 한 번에 정리한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "생활 공간이 편해져 마음까지 가벼워졌다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": 0
-            }
-          },
-          {
-            "weight": 40,
-            "message": "무거운 물건을 옮기며 예상보다 몸을 많이 썼다.",
-            "fatigueRange": {
-              "min": 4,
-              "max": 7
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "필요한 물건만 정리하고 쉰다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "할 일을 나눠 마치고 충분히 쉬었다.",
-            "recoveryPercent": {
-              "min": 8,
-              "max": 16
-            }
-          },
-          {
-            "weight": 40,
-            "message": "정리하던 물건이 눈에 밟혀 잠깐 더 시간을 썼다.",
+            "weight": 30,
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
             "fatigueRange": {
               "min": 0,
               "max": 2
             }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE40",
-    "title": "동료의 낚시 제안",
-    "description": "동료가 가까운 곳으로 짧게 낚시를 가자고 한다. 야구 이야기를 잠시 쉬는 시간이 될 수 있다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "가까운 곳으로 함께 다녀온다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "조용히 앉아 복잡한 생각을 내려놓았다.",
-            "fatigueRange": {
-              "min": -5,
-              "max": -2
-            }
           },
           {
             "weight": 40,
-            "message": "오래 앉아 있다 돌아오는 길에 몸이 뻐근해졌다.",
-            "fatigueRange": {
-              "min": 3,
-              "max": 6
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "오늘은 집에서 쉬기로 한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "이동 없이 충분히 쉬었다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 18
-            }
-          },
-          {
-            "weight": 40,
-            "message": "집에서도 자꾸 할 일을 찾아 휴식이 줄었다.",
-            "recoveryPercent": {
-              "min": 3,
-              "max": 7
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE41",
-    "title": "야구 밖의 나를 묻는 인터뷰",
-    "description": "구단 콘텐츠 담당자가 취미와 일상에 대한 짧은 인터뷰를 제안했다. 가능한 범위를 정해도 된다고 한다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "편하게 취미 이야기를 들려준다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "긴장을 풀고 자연스럽게 이야기를 마쳤다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          },
-          {
-            "weight": 40,
-            "message": "촬영이 여러 번 이어져 준비보다 오래 걸렸다.",
-            "fatigueRange": {
-              "min": 3,
-              "max": 6
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧은 서면 답변으로 대신한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "정해둔 분량만 답하고 휴식했다.",
-            "recoveryPercent": {
-              "min": 7,
-              "max": 14
-            }
-          },
-          {
-            "weight": 40,
-            "message": "표현을 고치느라 예상보다 오래 앉아 있었다.",
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
             "fatigueRange": {
               "min": 1,
-              "max": 3
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE42",
-    "title": "휴대폰에 쌓인 알림",
-    "description": "최근 경기 영상에 달린 반응이 계속 올라온다. 확인할 시간을 정하지 않으면 밤이 짧아질 것 같다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "잠깐 확인하고 알림을 정리한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "응원에 힘을 얻고 정해둔 시간에 화면을 껐다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          },
-          {
-            "weight": 40,
-            "message": "여러 반응을 읽다가 쉽게 화면을 끄지 못했다.",
-            "fatigueRange": {
-              "min": 3,
-              "max": 6
+              "max": 4
             }
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "오늘은 알림을 끄고 쉰다",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "조용한 시간에 깊게 쉬었다.",
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
             "recoveryPercent": {
               "min": 10,
               "max": 20
             }
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "숙소 주변에서 잠깐 바람만 쐰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
+            "fatigue": -4
+          }
+        ]
+      }
+    ],
+    "category": "daily"
+  },
+  {
+    "id": "PE32",
+    "title": "투구·타격 동작의 균형 점검",
+    "description": "코치가 힘을 쓰는 순간 머리와 중심이 흔들리는 장면을 보여줬다. 동작을 나누어 비교하며 균형을 찾아보자.",
+    "rule": {
+      "activity": "training",
+      "revision": 2
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "새 중심 이동을 나눠 연습한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "머리와 몸의 중심을 유지한 채 힘을 전달하는 감각을 찾았다. 새 동작의 반복성이 좋아졌다.",
+            "weeks": {
+              "precision": 4
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 30,
+            "message": "중심을 바꾸는 과정에서 동작의 연결이 끊겼다. 코치와 구간을 나누어 확인했다.",
+            "fatigue": 4
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "기존 동작의 흔들림부터 줄인다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "기존 동작에서 꼭 줄여야 할 흔들림을 짚고 반복할 기준을 정했다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "낮은 강도로 같은 동작을 짧게 반복한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
+            "weeks": {
+              "precision": 3
+            },
+            "fatigue": 2
+          }
+        ]
+      }
+    ],
+    "category": "baseball"
+  },
+  {
+    "id": "PE33",
+    "title": "임팩트와 릴리스의 재현성",
+    "description": "같은 준비를 해도 공에 힘이 실리는 지점이 조금씩 달라진다. 코치와 공을 보내는 순간을 일정하게 만드는 연습을 한다.",
+    "rule": {
+      "activity": "training",
+      "revision": 2
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "힘을 전달하는 순간을 집중 반복한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "공에 힘을 싣는 순간을 일정하게 맞췄다. 강도를 올려도 같은 지점을 찾는 감각이 생겼다.",
+            "weeks": {
+              "force": 4
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 30,
+            "message": "힘을 더 쓰려다 공을 보내는 지점이 달라졌다. 강도를 낮춰 다시 맞춰봤다.",
+            "fatigue": 4
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "정확한 동작부터 일정하게 맞춘다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "낮은 강도에서 정확한 동작을 반복하며 기준이 되는 지점을 정리했다.",
+            "weeks": {
+              "precision": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "공의 출발 지점을 영상으로 분석한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 2
+          }
+        ]
+      }
+    ],
+    "category": "baseball"
+  },
+  {
+    "id": "PE34",
+    "title": "가족이 보내온 편지",
+    "description": "가족이 평소 생활을 응원하는 편지를 보내왔다. 감사 인사를 나누고 하루를 편안하게 마무리해보자.",
+    "rule": {
+      "activity": "free",
+      "revision": 2
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "차분히 답장을 쓴다",
+        "outcomes": [
+          {
+            "weight": 30,
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
+            "weeks": {
+              "stamina": 3
+            },
+            "fatigueRange": {
+              "min": 2,
+              "max": 5
+            }
+          },
+          {
+            "weight": 30,
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
+            "fatigueRange": {
+              "min": 0,
+              "max": 2
+            }
           },
           {
             "weight": 40,
-            "message": "궁금해서 한 번 확인했지만 다시 휴식을 취했다.",
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
+            "fatigueRange": {
+              "min": 1,
+              "max": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
             "recoveryPercent": {
-              "min": 4,
-              "max": 8
+              "min": 10,
+              "max": 20
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "짧은 답장만 보내고 쉬어간다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
+            "fatigue": -4
+          }
+        ]
+      }
+    ],
+    "category": "daily"
+  },
+  {
+    "id": "PE35",
+    "title": "오래된 친구에게 온 연락",
+    "description": "오래 알고 지낸 친구에게 연락이 왔다. 서로 편한 시간에 짧게 근황을 나눌 수 있다.",
+    "rule": {
+      "activity": "free",
+      "revision": 2
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "편한 시간에 안부를 나눈다",
+        "outcomes": [
+          {
+            "weight": 30,
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigueRange": {
+              "min": 2,
+              "max": 5
+            }
+          },
+          {
+            "weight": 30,
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
+            "fatigueRange": {
+              "min": 0,
+              "max": 2
+            }
+          },
+          {
+            "weight": 40,
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
+            "fatigueRange": {
+              "min": 1,
+              "max": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
+            "recoveryPercent": {
+              "min": 10,
+              "max": 20
             }
           }
         ]
       }
-    ]
+    ],
+    "category": "daily"
+  },
+  {
+    "id": "PE36",
+    "title": "공의 궤적을 읽는 반응 훈련",
+    "description": "타격 코치가 서로 다른 구종을 섞어 보여준다. 스윙하기 전 궤적을 읽고 공을 고르는 기준을 세워보자.",
+    "rule": {
+      "activity": "training",
+      "revision": 2,
+      "field": "batting"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "구종을 구분하며 타이밍을 맞춘다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "구종별로 궤적을 구분하며 스윙을 준비했다. 공을 기다릴 기준과 타이밍이 선명해졌다.",
+            "weeks": {
+              "contact": 4
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 30,
+            "message": "구종을 미리 짐작하다 타이밍이 흔들렸다. 궤적을 더 오래 확인하는 연습으로 돌아갔다.",
+            "fatigue": 4
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "좋은 공 하나를 골라 집중한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "공격할 공 하나를 정해 관찰할 정보를 줄이고 판단 순서를 정리했다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "반응에 집중해 짧은 스윙을 반복한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
+            "weeks": {
+              "contact": 3
+            },
+            "fatigue": 2
+          }
+        ]
+      }
+    ],
+    "category": "baseball"
+  },
+  {
+    "id": "PE37",
+    "title": "생활에 필요한 개인 물품",
+    "description": "개인 생활에 필요한 물품을 챙길 시간이 생겼다. 필요한 것만 준비해 남은 시간을 여유롭게 쓸 수도 있다.",
+    "rule": {
+      "activity": "free",
+      "revision": 2
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "필요한 물건을 골라 준비한다",
+        "outcomes": [
+          {
+            "weight": 30,
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
+            "weeks": {
+              "recovery": 3
+            },
+            "fatigueRange": {
+              "min": 2,
+              "max": 5
+            }
+          },
+          {
+            "weight": 30,
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
+            "fatigueRange": {
+              "min": 0,
+              "max": 2
+            }
+          },
+          {
+            "weight": 40,
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
+            "fatigueRange": {
+              "min": 1,
+              "max": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
+            "recoveryPercent": {
+              "min": 10,
+              "max": 20
+            }
+          }
+        ]
+      }
+    ],
+    "category": "daily"
+  },
+  {
+    "id": "PE38",
+    "title": "가족과 맞춘 저녁 시간",
+    "description": "가족과 저녁 시간이 맞았다. 함께 식사하며 근황을 나누거나 일찍 마무리하고 쉬어도 된다.",
+    "rule": {
+      "activity": "free",
+      "revision": 2
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "가족과 편하게 식사한다",
+        "outcomes": [
+          {
+            "weight": 30,
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
+            "weeks": {
+              "stamina": 3
+            },
+            "fatigueRange": {
+              "min": 2,
+              "max": 5
+            }
+          },
+          {
+            "weight": 30,
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
+            "fatigueRange": {
+              "min": 0,
+              "max": 2
+            }
+          },
+          {
+            "weight": 40,
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
+            "fatigueRange": {
+              "min": 1,
+              "max": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
+            "recoveryPercent": {
+              "min": 10,
+              "max": 20
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "식사만 함께하고 먼저 돌아간다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
+            "fatigue": -4
+          }
+        ]
+      }
+    ],
+    "category": "daily"
+  },
+  {
+    "id": "PE39",
+    "title": "주자가 있을 때의 투구 준비",
+    "description": "배터리 코치가 주자를 둔 연습 상황을 만들었다. 견제와 타자 승부 사이에서 일정한 준비 동작을 유지해보자.",
+    "rule": {
+      "activity": "training",
+      "revision": 2,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "주자를 확인한 뒤 투구를 연결한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "주자를 확인한 뒤에도 일정한 투구 동작을 유지했다. 시선과 준비 순서가 자연스럽게 이어졌다.",
+            "weeks": {
+              "control": 4
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 30,
+            "message": "주자를 의식해 준비가 빨라졌다. 포수와 투구 전 확인 순서를 다시 맞췄다.",
+            "fatigue": 4
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "투구 동작의 반복성부터 점검한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "일정한 동작을 우선하며 타자와 주자를 살필 순서를 정리했다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      }
+    ],
+    "category": "baseball"
+  },
+  {
+    "id": "PE40",
+    "title": "휴일 오후의 짧은 약속",
+    "description": "가까운 친구와 잠깐 만날 시간이 맞았다. 길게 머무르지 않고 가볍게 기분을 바꿀 수 있다.",
+    "rule": {
+      "activity": "free",
+      "revision": 2
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "정한 시간만큼 만나고 돌아온다",
+        "outcomes": [
+          {
+            "weight": 30,
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigueRange": {
+              "min": 2,
+              "max": 5
+            }
+          },
+          {
+            "weight": 30,
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
+            "fatigueRange": {
+              "min": 0,
+              "max": 2
+            }
+          },
+          {
+            "weight": 40,
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
+            "fatigueRange": {
+              "min": 1,
+              "max": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
+            "recoveryPercent": {
+              "min": 10,
+              "max": 20
+            }
+          }
+        ]
+      }
+    ],
+    "category": "daily"
+  },
+  {
+    "id": "PE41",
+    "title": "수비 위치와 첫발의 판단",
+    "description": "분석 담당자가 상대 타자의 타구 방향을 정리했다. 수비 코치와 출발 위치를 바꿔가며 첫발을 연습한다.",
+    "rule": {
+      "activity": "training",
+      "revision": 2,
+      "field": "batting",
+      "fielding": true
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "타구 방향별 첫발을 반복한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "출발 위치를 바꿔가며 타구 방향에 맞는 첫발을 찾았다. 포구까지의 동선이 짧아졌다.",
+            "weeks": {
+              "defense": 4
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 30,
+            "message": "위치를 의식하다 첫발이 늦었다. 코치와 기본 자세부터 되짚었다.",
+            "fatigue": 4
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "기본 위치에서 포구부터 확인한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "기본 위치에서 정확하게 포구하며 송구로 연결하는 동작을 다듬었다.",
+            "weeks": {
+              "arm": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      }
+    ],
+    "category": "baseball"
+  },
+  {
+    "id": "PE42",
+    "title": "정해 둔 취침 시간",
+    "description": "오늘 해야 할 일을 마치고 잠들 준비를 한다. 조용히 시간을 보내거나 일찍 눈을 붙여도 된다.",
+    "rule": {
+      "activity": "free",
+      "revision": 2
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "하루를 정리하고 잠들 준비를 한다",
+        "outcomes": [
+          {
+            "weight": 30,
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
+            "weeks": {
+              "recovery": 3
+            },
+            "fatigueRange": {
+              "min": 2,
+              "max": 5
+            }
+          },
+          {
+            "weight": 30,
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
+            "fatigueRange": {
+              "min": 0,
+              "max": 2
+            }
+          },
+          {
+            "weight": 40,
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
+            "fatigueRange": {
+              "min": 1,
+              "max": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "조용한 곳에서 충분히 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
+            "recoveryPercent": {
+              "min": 10,
+              "max": 20
+            }
+          }
+        ]
+      }
+    ],
+    "category": "daily"
   },
   {
     "id": "PE43",
-    "title": "이동 버스의 옆자리",
-    "description": "팀 이동 중 옆자리 동료가 이어폰을 빼고 말을 건다. 지나온 경기 이야기를 나누거나 눈을 붙일 수 있다.",
+    "title": "장거리 이동 중의 휴식",
+    "description": "예정된 원정 이동으로 긴 시간을 차 안에서 보낸다. 잠깐 이야기를 나누거나 편한 자세로 쉬어가도 된다.",
     "rule": {
       "activity": "any",
+      "revision": 2,
       "travel": true
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "서로 본 경기 장면을 이야기한다",
+        "label": "옆자리 동료와 잠깐 이야기한다",
         "outcomes": [
           {
             "weight": 30,
-            "message": "옆자리 동료가 내 준비 동작에서 놓치던 부분을 짚어줬다. 조언을 다음 연습에 적용해 약점을 다듬었다.",
-            "weeks": {
-              "weak": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          },
-          {
-            "weight": 30,
-            "message": "같은 상황을 다른 위치에서 본 이야기가 도움이 됐다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "흥미로운 이야기가 길어져 잠잘 시간을 놓쳤다.",
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "양해를 구하고 눈을 붙인다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "흔들리는 버스에서도 잠깐 깊이 잠들었다.",
-            "recoveryPercent": {
-              "min": 7,
-              "max": 15
-            }
-          },
-          {
-            "weight": 40,
-            "message": "자주 깨기는 했지만 몸을 쉬게 했다.",
-            "recoveryPercent": {
-              "min": 2,
-              "max": 6
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE44",
-    "title": "선수가 쓴 책 한 권",
-    "description": "동료가 은퇴 선수가 쓴 책을 빌려주었다. 기술보다 선수 생활의 선택에 관한 이야기가 많다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "인상적인 부분을 메모하며 읽는다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "책에 나온 준비 동작을 연습에서 직접 확인했다. 내게 맞는 부분을 골라 약점을 다듬는 실마리를 얻었다.",
-            "weeks": {
-              "weak": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          },
-          {
-            "weight": 30,
-            "message": "경기를 준비하는 관점을 새롭게 생각했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "계속 읽다 보니 눈이 피곤하고 취침이 늦었다.",
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "조금만 읽고 일찍 덮는다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "읽을 분량을 정하고 편안하게 쉬었다.",
-            "recoveryPercent": {
-              "min": 8,
-              "max": 16
-            }
-          },
-          {
-            "weight": 40,
-            "message": "다음 내용이 궁금해 조금 더 읽었다.",
-            "recoveryPercent": {
-              "min": 2,
-              "max": 6
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE45",
-    "title": "숙소 근처의 산책길",
-    "description": "쉬는 시간에 숙소 근처의 조용한 길을 발견했다. 가볍게 걸을지 방에서 쉴지 정해보자.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "짧게 걸으며 기분을 바꾼다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "호흡과 보폭을 맞춰 걷다 몸에 맞는 페이스를 찾았다. 다음 훈련에서도 불필요하게 힘을 쓰지 않게 됐다.",
-            "recoveryPercent": {
-              "min": 8,
-              "max": 17
-            },
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
             "weeks": {
               "stamina": 3
+            },
+            "fatigueRange": {
+              "min": 2,
+              "max": 5
             }
           },
           {
             "weight": 30,
-            "message": "발걸음을 늦추니 긴장도 풀렸다.",
-            "recoveryPercent": {
-              "min": 8,
-              "max": 17
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
+            "fatigueRange": {
+              "min": 0,
+              "max": 2
             }
           },
           {
             "weight": 40,
-            "message": "길을 잘못 들어 예상보다 오래 걸었다.",
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
             "fatigueRange": {
-              "min": 2,
-              "max": 5
+              "min": 1,
+              "max": 4
             }
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "방에서 편하게 낮잠을 잔다",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "푹 자고 나니 몸이 가벼워졌다.",
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
             "recoveryPercent": {
               "min": 10,
               "max": 20
             }
+          }
+        ]
+      }
+    ],
+    "category": "daily"
+  },
+  {
+    "id": "PE44",
+    "title": "혼자 보내는 조용한 저녁",
+    "description": "자유롭게 쓸 수 있는 저녁 시간이 생겼다. 부담 없는 취미를 잠깐 즐기거나 조용히 쉴 수 있다.",
+    "rule": {
+      "activity": "free",
+      "revision": 2
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "짧게 취미 시간을 갖는다",
+        "outcomes": [
+          {
+            "weight": 30,
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigueRange": {
+              "min": 2,
+              "max": 5
+            }
+          },
+          {
+            "weight": 30,
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
+            "fatigueRange": {
+              "min": 0,
+              "max": 2
+            }
           },
           {
             "weight": 40,
-            "message": "주변 소리에 자주 깨 휴식이 짧았다.",
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
+            "fatigueRange": {
+              "min": 1,
+              "max": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
             "recoveryPercent": {
-              "min": 3,
-              "max": 7
+              "min": 10,
+              "max": 20
             }
           }
         ]
       }
-    ]
+    ],
+    "category": "daily"
+  },
+  {
+    "id": "PE45",
+    "title": "휴일의 낮잠",
+    "description": "오후에 잠깐 눈을 붙일 여유가 생겼다. 편한 자세로 쉬거나 가볍게 몸을 풀며 기분을 바꿔보자.",
+    "rule": {
+      "activity": "free",
+      "revision": 2
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "잠깐 눈을 붙이고 편히 쉰다",
+        "outcomes": [
+          {
+            "weight": 30,
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
+            "weeks": {
+              "recovery": 3
+            },
+            "fatigueRange": {
+              "min": 2,
+              "max": 5
+            }
+          },
+          {
+            "weight": 30,
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
+            "fatigueRange": {
+              "min": 0,
+              "max": 2
+            }
+          },
+          {
+            "weight": 40,
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
+            "fatigueRange": {
+              "min": 1,
+              "max": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "조용한 곳에서 충분히 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
+            "recoveryPercent": {
+              "min": 10,
+              "max": 20
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-3",
+        "label": "짧게 눈을 붙이고 조용히 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
+            "fatigue": -4
+          }
+        ]
+      }
+    ],
+    "category": "daily"
   },
   {
     "id": "PE46",
-    "title": "관람 뒤의 전력 분석 대화",
-    "description": "함께 다른 팀 경기를 봤던 동료가 그날의 작전을 다시 꺼냈다. 선수 입장에서 이유를 짚어보자.",
+    "title": "지난 휴일 이후의 생활 리듬",
+    "description": "전에 보냈던 휴일을 떠올리며 동료가 어떤 휴식이 편했는지 묻는다. 서로 잘 맞았던 방법을 나눈다.",
     "rule": {
       "activity": "free",
+      "revision": 2,
       "after": {
         "id": "PE31",
         "choices": [
@@ -2388,58 +2410,61 @@
     "choices": [
       {
         "id": "choice-1",
-        "label": "장면을 찾아 의견을 비교한다",
+        "label": "편했던 휴식 방법을 이야기한다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "수비와 주루 양쪽에서 상황을 이해했다.",
+            "weight": 30,
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
             "weeks": {
-              "bq": 4
+              "stamina": 3
             },
             "fatigueRange": {
-              "min": 1,
-              "max": 4
+              "min": 2,
+              "max": 5
+            }
+          },
+          {
+            "weight": 30,
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
+            "fatigueRange": {
+              "min": 0,
+              "max": 2
             }
           },
           {
             "weight": 40,
-            "message": "기억과 영상이 달라 확인하는 데 시간이 오래 걸렸다.",
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
             "fatigueRange": {
-              "min": 2,
-              "max": 5
+              "min": 1,
+              "max": 4
             }
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "핵심 장면만 이야기하고 쉰다",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "짧은 대화로도 준비할 내용을 찾았다.",
-            "weeks": {
-              "bq": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "대화를 마치고 몸을 충분히 쉬게 했다.",
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
             "recoveryPercent": {
-              "min": 6,
-              "max": 12
+              "min": 10,
+              "max": 20
             }
           }
         ]
       }
-    ]
+    ],
+    "category": "daily"
   },
   {
     "id": "PE47",
-    "title": "집들이에서 시작된 안부",
-    "description": "집들이에서 속내를 나눴던 동료가 요즘 어떻게 지내는지 먼저 묻는다. 잠깐 걸으며 이야기하자는 제안이다.",
+    "title": "영상으로 다시 본 균형 점검",
+    "description": "앞서 연습한 중심 이동을 실전 속도에 가까운 동작과 비교한다. 힘을 더 쓰면서도 균형을 지킬 방법을 찾는다.",
     "rule": {
-      "activity": "free",
+      "activity": "training",
+      "revision": 2,
       "after": {
         "id": "PE32",
         "choices": [
@@ -2452,67 +2477,47 @@
     "choices": [
       {
         "id": "choice-1",
-        "label": "함께 걸으며 고민을 나눈다",
+        "label": "빠른 동작에서도 균형을 반복한다",
         "outcomes": [
           {
-            "weight": 30,
-            "message": "동료와 걸으며 피로를 쌓아두던 생활 습관을 돌아봤다. 쉴 때 제대로 몸을 회복하는 방법을 찾았다.",
-            "fatigueRange": {
-              "min": -6,
-              "max": -2
-            },
+            "weight": 70,
+            "message": "속도를 올려도 앞서 찾은 균형을 유지했다. 영상에서도 동작의 흔들림이 줄어드는 점을 확인했다.",
             "weeks": {
-              "recovery": 3
-            }
+              "precision": 4
+            },
+            "fatigue": 3
           },
           {
             "weight": 30,
-            "message": "먼저 챙겨주는 동료 덕분에 부담을 덜었다.",
-            "fatigueRange": {
-              "min": -6,
-              "max": -2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "서로의 이야기가 길어져 다리가 조금 무거워졌다.",
-            "fatigueRange": {
-              "min": 2,
-              "max": 4
-            }
+            "message": "빠른 동작에서는 예전 습관이 다시 나왔다. 코치와 바꿀 부분을 하나로 좁혔다.",
+            "fatigue": 4
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "고맙다고 전하고 먼저 쉰다",
+        "label": "효과가 있었던 한 동작만 남긴다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "편히 쉬라는 말을 듣고 일찍 잠들었다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 18
-            }
-          },
-          {
-            "weight": 40,
-            "message": "안부를 주고받느라 쉬는 시간이 조금 줄었다.",
-            "recoveryPercent": {
-              "min": 3,
-              "max": 7
-            }
+            "weight": 100,
+            "message": "효과가 분명했던 동작 하나를 남기고 반복할 기준을 정리했다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE48",
-    "title": "익숙해진 한 끼 준비",
-    "description": "전에 함께 요리했던 동료가 이번에는 준비를 나눠 해보자고 한다. 서로 편했던 방법을 공유할 수 있다.",
+    "title": "흔들리지 않는 임팩트와 릴리스",
+    "description": "전에 찾은 공을 보내는 지점을 연습 속도를 바꿔가며 확인한다. 서두를 때 달라지는 동작을 코치와 짚어보자.",
     "rule": {
-      "activity": "free",
+      "activity": "training",
+      "revision": 2,
       "after": {
         "id": "PE33",
         "choices": [
@@ -2525,59 +2530,47 @@
     "choices": [
       {
         "id": "choice-1",
-        "label": "준비 순서를 나눠 함께 만든다",
+        "label": "속도를 바꾸며 같은 지점을 찾는다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "생활 시간을 일정하게 쓰는 요령을 찾았다.",
+            "weight": 70,
+            "message": "속도를 달리해도 같은 지점에서 공을 보냈다. 서두를 때 바뀌던 동작을 스스로 짚을 수 있었다.",
             "weeks": {
-              "recovery": 3
+              "precision": 4
             },
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
+            "fatigue": 3
           },
           {
-            "weight": 40,
-            "message": "새 메뉴를 고르다 준비 시간이 길어졌다.",
-            "fatigueRange": {
-              "min": 3,
-              "max": 5
-            }
+            "weight": 30,
+            "message": "속도를 바꾸자 힘을 전달하는 순서가 어긋났다. 기준 속도에서 다시 확인했다.",
+            "fatigue": 4
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "배운 방법으로 간단히 먹고 쉰다",
+        "label": "낮은 강도로 정확성을 유지한다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "익숙해진 준비 덕분에 휴식 시간을 확보했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 18
-            }
-          },
-          {
-            "weight": 40,
-            "message": "정리에 시간이 조금 걸렸지만 무리 없이 마쳤다.",
-            "recoveryPercent": {
-              "min": 3,
-              "max": 7
-            }
+            "weight": 100,
+            "message": "낮은 강도에서 정확한 지점을 반복하며 힘을 전달하는 감각을 다듬었다.",
+            "weeks": {
+              "force": 3
+            },
+            "fatigue": 1
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE49",
-    "title": "답장을 받은 팬의 감사 인사",
-    "description": "구단 담당자가 전에 쓴 답장에 대한 감사 인사를 전해주었다. 짧은 응원이 누군가에게 힘이 되었다고 한다.",
+    "title": "편지 뒤에 이어진 가족의 답장",
+    "description": "전에 보낸 답장에 가족의 소식이 돌아왔다. 가까운 사람들의 평소 이야기를 듣고 안부를 전한다.",
     "rule": {
       "activity": "free",
+      "revision": 2,
       "after": {
         "id": "PE34",
         "choices": [
@@ -2590,67 +2583,61 @@
     "choices": [
       {
         "id": "choice-1",
-        "label": "담당자에게 감사의 말을 전한다",
+        "label": "가족의 소식을 듣고 답한다",
         "outcomes": [
           {
             "weight": 30,
-            "message": "경기 장면을 기억한 팬의 편지를 다시 읽었다. 당연하게 넘겼던 내 판단을 되짚으며 준비할 점을 정리했다.",
-            "fatigueRange": {
-              "min": -5,
-              "max": -2
-            },
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
             "weeks": {
               "bq": 3
+            },
+            "fatigueRange": {
+              "min": 2,
+              "max": 5
             }
           },
           {
             "weight": 30,
-            "message": "응원을 주고받는 의미를 생각하며 긴장을 풀었다.",
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
             "fatigueRange": {
-              "min": -5,
-              "max": -2
+              "min": 0,
+              "max": 2
             }
           },
           {
             "weight": 40,
-            "message": "어떻게 답할지 고민하며 시간을 조금 썼다.",
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
             "fatigueRange": {
               "min": 1,
-              "max": 3
+              "max": 4
             }
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "인사를 간직하고 평소처럼 쉰다",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "따뜻한 말을 떠올리며 편안히 쉬었다.",
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
             "recoveryPercent": {
-              "min": 8,
-              "max": 16
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각에 잠겨 잠드는 시간이 조금 늦었다.",
-            "recoveryPercent": {
-              "min": 2,
-              "max": 6
+              "min": 10,
+              "max": 20
             }
           }
         ]
       }
-    ]
+    ],
+    "category": "daily"
   },
   {
     "id": "PE50",
-    "title": "옛 동료가 보내준 메모",
-    "description": "얼마 전 만난 옛 동료가 대화에서 나온 연습 방법을 짧게 정리해 보내왔다. 지금 내 상황에 맞을지 살펴보자.",
+    "title": "다시 이어진 친구의 안부",
+    "description": "전에 근황을 나눴던 친구가 그 뒤의 생활을 물었다. 짧은 답장으로 서로의 일상을 전해보자.",
     "rule": {
-      "activity": "training",
+      "activity": "free",
+      "revision": 2,
       "after": {
         "id": "PE35",
         "choices": [
@@ -2663,13 +2650,13 @@
     "choices": [
       {
         "id": "choice-1",
-        "label": "코치와 함께 적용 방법을 찾는다",
+        "label": "그 뒤의 근황을 들려준다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "내 동작에 맞는 부분을 골라 연습했다.",
+            "weight": 30,
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
             "weeks": {
-              "weak": 4
+              "recovery": 3
             },
             "fatigueRange": {
               "min": 2,
@@ -2677,83 +2664,16 @@
             }
           },
           {
-            "weight": 40,
-            "message": "남에게 맞던 방법이 내게는 어색했다. 차이만 정리했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "아이디어만 기록하고 루틴을 지킨다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "원래 연습의 목적을 다시 확인했다.",
-            "weeks": {
-              "bq": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "메모를 정리한 뒤 무리 없이 마쳤다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "PE51",
-    "title": "다음 게임 약속의 규칙",
-    "description": "함께 게임했던 동료가 다시 모이자고 한다. 지난번의 취침 시간을 떠올리며 이번 규칙을 정할 수 있다.",
-    "rule": {
-      "activity": "free",
-      "after": {
-        "id": "PE36",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "종료 시간을 먼저 정하고 함께한다",
-        "outcomes": [
-          {
             "weight": 30,
-            "message": "함께 시간을 지켜 쉬고 노는 리듬을 맞췄다. 일정한 수면과 회복 습관이 몸에 자리 잡기 시작했다.",
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
             "fatigueRange": {
-              "min": -5,
-              "max": -2
-            },
-            "weeks": {
-              "recovery": 3
-            }
-          },
-          {
-            "weight": 30,
-            "message": "서로 시간을 지켜 즐겁게 기분을 풀었다.",
-            "fatigueRange": {
-              "min": -5,
-              "max": -2
+              "min": 0,
+              "max": 2
             }
           },
           {
             "weight": 40,
-            "message": "한 판이 길어졌지만 늦기 전에 마무리했다.",
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
             "fatigueRange": {
               "min": 1,
               "max": 4
@@ -2763,34 +2683,82 @@
       },
       {
         "id": "choice-2",
-        "label": "다음 휴일로 미루고 오늘은 쉰다",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "휴식에 집중해 깊이 잠들었다.",
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
             "recoveryPercent": {
-              "min": 12,
+              "min": 10,
               "max": 20
-            }
-          },
-          {
-            "weight": 40,
-            "message": "일정을 맞추는 대화가 길어져 휴식이 조금 줄었다.",
-            "recoveryPercent": {
-              "min": 4,
-              "max": 8
             }
           }
         ]
       }
-    ]
+    ],
+    "category": "daily"
+  },
+  {
+    "id": "PE51",
+    "title": "구종을 섞은 실전 타격 과제",
+    "description": "반응 훈련에서 익힌 구분법을 타격 연습에 적용한다. 구종을 미리 알려주지 않는 상황에서 스윙을 결정해보자.",
+    "rule": {
+      "activity": "training",
+      "revision": 2,
+      "after": {
+        "id": "PE36",
+        "choices": [
+          "choice-1"
+        ],
+        "minDays": 14,
+        "maxDays": 112
+      },
+      "field": "batting"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "실전처럼 구종을 읽고 스윙한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "구종을 미리 몰라도 노릴 공을 구분했다. 읽은 궤적과 스윙 타이밍이 자연스럽게 이어졌다.",
+            "weeks": {
+              "contact": 4
+            },
+            "fatigue": 3
+          },
+          {
+            "weight": 30,
+            "message": "실전 속도에서는 구종을 좇다 판단이 늦었다. 타격 코치와 기다릴 공의 범위를 다시 정했다.",
+            "fatigue": 4
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "노릴 공의 범위를 좁혀 연습한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "노릴 공을 좁혀 불필요한 반응을 줄이고 타석에서의 준비 순서를 정리했다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigue": 1
+          }
+        ]
+      }
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE52",
-    "title": "야구교실에서 온 질문",
-    "description": "전에 만났던 아이가 구단을 통해 질문을 보내왔다. 긴장하면 기본 동작이 어려워진다는 고민이다.",
+    "title": "개인 물품을 챙긴 뒤",
+    "description": "전에 준비한 물품 덕분에 일상이 조금 편해졌다. 필요한 것을 줄여 정리할지 그대로 둘지 생각해본다.",
     "rule": {
       "activity": "free",
+      "revision": 2,
       "after": {
         "id": "PE37",
         "choices": [
@@ -2803,35 +2771,32 @@
     "choices": [
       {
         "id": "choice-1",
-        "label": "내 경험을 떠올려 답한다",
+        "label": "편했던 생활 방식을 정리한다",
         "outcomes": [
           {
             "weight": 30,
-            "message": "질문에 답하려고 기본 동작을 천천히 되짚었다. 스스로도 놓쳤던 힘 조절과 타이밍을 이해했다.",
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
             "weeks": {
-              "precision": 3
+              "stamina": 3
             },
             "fatigueRange": {
-              "min": 1,
-              "max": 3
+              "min": 2,
+              "max": 5
             }
           },
           {
             "weight": 30,
-            "message": "쉽게 설명하면서 나의 준비 과정도 되짚었다.",
-            "weeks": {
-              "bq": 3
-            },
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
             "fatigueRange": {
-              "min": 1,
-              "max": 3
+              "min": 0,
+              "max": 2
             }
           },
           {
             "weight": 40,
-            "message": "좋은 답을 쓰고 싶어 오래 고민했다.",
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
             "fatigueRange": {
-              "min": 2,
+              "min": 1,
               "max": 4
             }
           }
@@ -2839,81 +2804,79 @@
       },
       {
         "id": "choice-2",
-        "label": "짧은 응원을 전하고 쉰다",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "아이의 도전을 응원하고 휴식을 취했다.",
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
             "recoveryPercent": {
-              "min": 8,
-              "max": 15
-            }
-          },
-          {
-            "weight": 40,
-            "message": "문구를 고치다 쉬는 시간이 조금 짧아졌다.",
-            "recoveryPercent": {
-              "min": 2,
-              "max": 6
+              "min": 10,
+              "max": 20
             }
           }
         ]
       }
-    ]
+    ],
+    "category": "daily"
   },
   {
     "id": "PE53",
-    "title": "팬 행사 뒤의 인사 시간",
-    "description": "구단의 짧은 팬 행사를 마쳤다. 남은 시간에 조금 더 인사하거나 예정대로 휴식할 수 있다.",
+    "title": "주말에 맞춘 가족 일정",
+    "description": "가족과 짧게 시간을 보낼 수 있는 일정이 맞았다. 길게 머무르지 않아도 서로 얼굴을 볼 수 있다.",
     "rule": {
-      "activity": "free"
+      "activity": "free",
+      "revision": 2
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "잠깐 더 남아 인사한다",
+        "label": "가능한 시간만큼 함께한다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "응원의 목소리에 긴장이 풀렸다.",
+            "weight": 30,
+            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
+            "weeks": {
+              "bq": 3
+            },
             "fatigueRange": {
-              "min": -3,
-              "max": -1
+              "min": 2,
+              "max": 5
+            }
+          },
+          {
+            "weight": 30,
+            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
+            "fatigueRange": {
+              "min": 0,
+              "max": 2
             }
           },
           {
             "weight": 40,
-            "message": "오래 서서 인사하느라 몸이 무거워졌다.",
+            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
             "fatigueRange": {
-              "min": 3,
-              "max": 6
+              "min": 1,
+              "max": 4
             }
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "감사 인사를 하고 예정대로 쉰다",
+        "label": "짧게 인사를 전하고 먼저 쉰다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "정해둔 일정대로 충분히 쉬었다.",
+            "weight": 100,
+            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
             "recoveryPercent": {
-              "min": 8,
-              "max": 16
-            }
-          },
-          {
-            "weight": 40,
-            "message": "돌아가는 길이 붐벼 휴식이 조금 줄었다.",
-            "recoveryPercent": {
-              "min": 3,
-              "max": 7
+              "min": 10,
+              "max": 20
             }
           }
         ]
       }
-    ]
+    ],
+    "category": "daily"
   },
   {
     "id": "PE54",
@@ -2974,7 +2937,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE55",
@@ -3035,7 +2999,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE56",
@@ -3095,7 +3060,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE57",
@@ -3152,7 +3118,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE58",
@@ -3214,7 +3181,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE59",
@@ -3277,7 +3245,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE60",
@@ -3334,7 +3303,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE61",
@@ -3406,7 +3376,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE62",
@@ -3478,7 +3449,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE63",
@@ -3545,7 +3517,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE64",
@@ -3613,7 +3586,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE65",
@@ -3686,7 +3660,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE66",
@@ -3753,7 +3728,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE67",
@@ -3820,7 +3796,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE68",
@@ -3878,7 +3855,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE69",
@@ -3937,7 +3915,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE70",
@@ -3997,7 +3976,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE71",
@@ -4058,7 +4038,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE72",
@@ -4116,7 +4097,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE73",
@@ -4170,7 +4152,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE74",
@@ -4233,7 +4216,8 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   },
   {
     "id": "PE75",
@@ -4301,6 +4285,7 @@
           }
         ]
       }
-    ]
+    ],
+    "category": "baseball"
   }
 ]

@@ -47,18 +47,21 @@ test('shared roster renders the requested columns and exact selected-league reco
   const html=renderToStaticMarkup(createElement(RosterTable,{state:s,players:[p],field:'pitching',level:'first',onSelect(){}}));
   const headers=[...html.matchAll(/<th(?: [^>]*)?>(.*?)<\/th>/g)].map(m=>m[1]);
   assert.deepEqual(headers,['선수','OVR','등급','소속','나이','포지션','출전경기','이닝','승','패','홀드','세이브','ERA','출전평가']);
-  assert.match(html,/출전평가 등급 F/);assert.match(html,/>60\.0</);assert.match(html,/>5\.2</);assert.match(html,/>3\.18</);assert.doesNotMatch(html,/투수 OVR|타자 OVR/);
+  assert.match(html,/출전평가 등급 E/);assert.match(html,/>5\.2</);assert.match(html,/>3\.18</);assert.doesNotMatch(html,/투수 OVR|타자 OVR/);
   Object.assign(p.seasonStats.batting,{PA:30,AB:25,H:10,HR:2,RBI:8,BB:5});p.seasonStats.games={batting:9};
   const bat=renderToStaticMarkup(createElement(RosterTable,{state:s,players:[p],field:'batting',onSelect(){}}));
   assert.match(bat,/<th>타수<\/th>/);assert.match(bat,/<th>OPS<\/th>/);assert.match(bat,/>\.400</);assert.doesNotMatch(bat,/<th>ERA<\/th>/);
 });
-test('pro grade and grade ordering use the current selection score, while school grades retain reputation',()=>{
+test('pro grade and grade ordering use recorded WAR independently of ability and fatigue, while school grades retain reputation',()=>{
   const rested=player('rested'),tired=player('tired');for(const p of [rested,tired]){for(const k of Object.keys(p.stats))p.stats[k]=70;p.recentZ=0;p.fatigue=0;}
   rested.reputation=10;tired.reputation=100;tired.fatigue=90;
-  assert.equal(r.rosterGradeScore(rested,true),e.selectionScore(rested));assert.equal(r.rosterGrade(r.rosterGradeScore(rested,true),true),'F');
+  assert.equal(r.rosterGradeScore(rested,true),71);assert.equal(r.rosterGrade(r.rosterGradeScore(rested,true),true),'E');
+  assert.equal(r.rosterGradeScore(tired,true),r.rosterGradeScore(rested,true));
+  Object.assign(rested.seasonByLevel.first.batting,{PA:300,AB:270,H:100,HR:25,BB:30});
+  Object.assign(tired.seasonByLevel.first.batting,{PA:300,AB:285,H:40,HR:2,BB:15});
   assert.ok(r.rosterGradeScore(tired,true)<r.rosterGradeScore(rested,true));assert.ok(r.compareRosterPlayers(rested,tired,'batting','total','grade',true)<0);
   assert.ok(r.compareRosterPlayers(rested,tired,'batting','total','grade',false)>0);assert.equal(r.rosterGradeScore(tired,false),100);
-  tired.proContract={status:'developmental',joinedDate:'2028-01-01'};const normal=e.selectionScore(rested);tired.fatigue=0;assert.equal(r.rosterGradeScore(tired,true),normal-6);
+  const before=r.rosterGradeScore(tired,true);tired.proContract={status:'developmental',joinedDate:'2028-01-01'};tired.fatigue=0;assert.equal(r.rosterGradeScore(tired,true),before);
 });
 
 test('school and pro share the roster and viewing leaves player data and RNG untouched',()=>{
@@ -70,7 +73,7 @@ test('school and pro share the roster and viewing leaves player data and RNG unt
   assert.match(pro,/1군/);assert.match(pro,/2군/);assert.match(pro,/시즌 합계/);assert.match(pro,/등급순/);assert.deepEqual(s,proBefore);
 });
 
-test('school score column shows reputation, pro shows selection score, and labels match the actual values',()=>{
+test('school score column shows reputation, pro shows WAR converted to points, and labels match the actual values',()=>{
   const p=player('서로다른평가'),s=state([p]);
   for(const key of Object.keys(p.stats))p.stats[key]=60;
   p.reputation=82.3;p.fatigue=0;p.recentZ=0;
@@ -80,6 +83,6 @@ test('school score column shows reputation, pro shows selection score, and label
   const guide=renderToStaticMarkup(createElement(PlayerRoster,{state:s,onSelect(){}}));
   assert.match(guide,/평판 열/);assert.doesNotMatch(guide,/출전평가/);
   s.careerMode='pro';const pro=render();
-  assert.match(pro,/<th>출전평가<\/th>/);assert.match(pro,/출전평가 등급 F/);assert.match(pro,/>60\.0<\/b><\/td><\/tr>/);
+  assert.match(pro,/<th>출전평가<\/th>/);assert.match(pro,/출전평가 등급 E/);assert.match(pro,/>71\.0<\/b><\/td><\/tr>/);
   assert.doesNotMatch(pro,/>82\.3<\/b><\/td><\/tr>/);
 });

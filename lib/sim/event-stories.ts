@@ -1,9 +1,11 @@
 import {addDays,available,getPlayer,isPitcher,ticketsUsed} from "./engine";
 import type {GameState} from "./types";
 
-export type EventStory = {mode:"school"|"pro";teamId:number;sourceId?:string};
+export type EventStory = {mode:"school"|"pro";teamId:number;sourceId?:string;revision?:number};
+export type EventCategory="baseball"|"daily";
 export type EventRule = {
   activity:"training"|"free"|"any";
+  revision?:number;
   field?:"batting"|"pitching";months?:number[];minAge?:number;maxAge?:number;minGrade?:number;
   minFatigue?:number;maxFatigue?:number;form?:"slump"|"good";
   travel?:boolean;fielding?:boolean;
@@ -28,10 +30,11 @@ export function eligibleStory(s:GameState,id:string,rule:EventRule,date=s.date):
   if(rule.form==="slump"&&p.recentZ>-.3||rule.form==="good"&&p.recentZ<.3)return;
   const history=(s.careerEventHistory??[]).filter(row=>row.date<=date);
   if(history.some(row=>row.definitionId===id&&date<addDays(row.date,56)))return;
-  if(!rule.after)return {mode,teamId:p.teamId};
+  const revision=rule.revision===undefined?{}:{revision:rule.revision};
+  if(!rule.after)return {mode,teamId:p.teamId,...revision};
   const after=rule.after;
   const source=[...history].reverse().find(row=>row.definitionId===after.id&&row.choiceId&&after.choices.includes(row.choiceId)
-    &&row.story?.mode===mode&&row.story.teamId===p.teamId&&date>=addDays(row.date,after.minDays)&&date<=addDays(row.date,after.maxDays)
+    &&row.story?.mode===mode&&row.story.teamId===p.teamId&&(row.story.revision??0)===(rule.revision??0)&&date>=addDays(row.date,after.minDays)&&date<=addDays(row.date,after.maxDays)
     &&!history.some(done=>done.definitionId===id&&done.story?.sourceId===row.id));
-  return source?{mode,teamId:p.teamId,sourceId:source.id}:undefined;
+  return source?{mode,teamId:p.teamId,sourceId:source.id,...revision}:undefined;
 }

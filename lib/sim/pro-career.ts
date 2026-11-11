@@ -125,7 +125,7 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   syncJerseyNumbers(s);
   capturePlayerEvaluations(s,"entry");
   notice(s,"entry",developmentalEntry ? "신고선수로 프로에 입단했습니다" : "프로 유니폼을 입었습니다",developmentalEntry
-    ? `${draftClubs[club]} 육성선수로 시작합니다. ${choice==="direct"?"현재 보직 기량을 평가받아 신고선수로 입단했습니다. ":""}성장은 일반 선수의 90%입니다. 출전평가로 2군 출전 기회를 얻고 실제 경기 성과로 정식 선수 전환에 도전합니다.`
+    ? `${draftClubs[club]} 육성선수로 시작합니다. ${choice==="direct"?"현재 보직 기량을 평가받아 신고선수로 입단했습니다. ":""}성장은 일반 선수의 90%입니다. 기량·컨디션 평가로 2군 출전 기회를 얻고 실제 경기 성과로 정식 선수 전환에 도전합니다.`
     : `${draftClubs[club]} 잔류군(3군)에서 신인 시즌을 시작합니다. 성장 효율은 처음부터 100%이며, 같은 평가에서는 육성선수보다 먼저 2군 승격 기회를 얻습니다. ${entry==="direct"?"배정된 능력치로 프로 커리어를 시작합니다.":"고교 능력치와 개인 기록은 그대로 이어집니다."}`);
   if(p.professional?.twoWayHistory?.some(row=>row.action==="단일 역할 입단"))s.careerNotice!.message+=` 프로 겸업은 투수·타자 OVR이 모두 75 이상이어야 하므로 ${positions[p.position]}에 집중합니다. 양쪽 능력을 키워 겸업에 다시 도전할 수 있습니다.`;
   return s;

@@ -104,7 +104,7 @@ export function reviewLeagueRegistrations(s:GameState) {
       const up=farm[0];if(!up)continue;
       const margin=firstTeamDemotionMargin(down,w.year);
       if(!injured&&(s.date<addDays(down.professional?.lastRegistration??"1900-01-01",14)||selectionScore(up)<=selectionScore(down)+margin))continue;
-      exchange(s,up,down,injured?"장기 부상 회복을 위한 명단 조정입니다.":`같은 포지션의 출전평가 차이를 확인했습니다. 승격 ${selectionScore(up).toFixed(1)} / 조정 ${selectionScore(down).toFixed(1)} · 1군 유지 기준 차이 ${margin.toFixed(1)}점 · 누적 평가와 기존 1군의 성적을 반영했습니다.`);
+      exchange(s,up,down,injured?"장기 부상 회복을 위한 명단 조정입니다.":`같은 포지션의 기량·컨디션 심사점수 차이를 확인했습니다. 승격 ${selectionScore(up).toFixed(1)} / 조정 ${selectionScore(down).toFixed(1)} · 1군 유지 기준 차이 ${margin.toFixed(1)}점 · 누적 평가와 기존 1군의 성적을 반영했습니다.`);
     }
   }
   balanceSquadDepth(s);
@@ -121,8 +121,8 @@ export function reviewReserveRegistrations(s:GameState){
       const second=s.players.filter(p=>p.teamId===club.id+10),same=second.filter(p=>p.position===up.position&&(!p.professional?.lastRegistration||s.date>=addDays(p.professional.lastRegistration,14))).sort((a,b)=>selectionScore(a)-selectionScore(b)||a.id.localeCompare(b.id));
       const down=same[0];if(second.length>=30&&(!down||selectionScore(up)<=selectionScore(down)+3))continue;
       const from=proSquad(up.teamId)!;setProSquad(s,up,"second");if(down&&second.length>=30)setProSquad(s,down,down.proContract?.status==="developmental"?"developmental":"third");
-      proNews(s,`${up.name} · 2군 승격 · 출전평가 ${selectionScore(up).toFixed(1)}`,`${s.date}:reserve:${up.id}`);
-      if(up.id===s.playerId||down?.id===s.playerId){const mine=getPlayer(s),to=proSquad(mine.teamId)!;s.postSchool!.pro!.level=to;s.postSchool!.pro!.transactions.push({date:s.date,from:mine.id===up.id?from:"second",to,reason:"출전평가와 잔류군 우선순위를 반영한 2군 등록 심사",exchangedPlayerId:mine.id===up.id?down?.id??"":up.id});proNotice(s,`reserve:${s.date}:${mine.id}`,mine.id===up.id?"2군 승격 통보":"잔류·육성군 조정",`${squadLabel(mine.teamId)}에서 다음 출전 기회를 준비합니다. 같은 평가에서는 잔류군이 육성선수보다 우선합니다.`,mine.id===up.id?"promoted":"demoted");}
+      proNews(s,`${up.name} · 2군 승격 · 등록 심사점수 ${selectionScore(up).toFixed(1)}`,`${s.date}:reserve:${up.id}`);
+      if(up.id===s.playerId||down?.id===s.playerId){const mine=getPlayer(s),to=proSquad(mine.teamId)!;s.postSchool!.pro!.level=to;s.postSchool!.pro!.transactions.push({date:s.date,from:mine.id===up.id?from:"second",to,reason:"기량·컨디션과 잔류군 우선순위를 반영한 2군 등록 심사",exchangedPlayerId:mine.id===up.id?down?.id??"":up.id});proNotice(s,`reserve:${s.date}:${mine.id}`,mine.id===up.id?"2군 승격 통보":"잔류·육성군 조정",`${squadLabel(mine.teamId)}에서 다음 출전 기회를 준비합니다. 같은 평가에서는 잔류군이 육성선수보다 우선합니다.`,mine.id===up.id?"promoted":"demoted");}
     }
   }
 }

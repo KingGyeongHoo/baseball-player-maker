@@ -29,7 +29,7 @@ function ids(s){return runtime.proGeneralCandidates(s).map(c=>c.id);}
 test('the catalog contains exactly PE01-PE75, two or three choices, and 100 percent per choice',()=>{
  assert.deepEqual(catalog.proEventCatalog.map(c=>c.id),Array.from({length:75},(_,i)=>'PE'+String(i+1).padStart(2,'0')));
  for(const definition of catalog.proEventCatalog){assert.ok(definition.choices.length>=2&&definition.choices.length<=3);for(const choice of definition.choices)assert.equal(choice.outcomes.reduce((n,o)=>n+o.weight,0),100);}
- assert.equal(catalog.proEventCatalog.reduce((n,c)=>n+c.choices.length,0),163);
+ assert.equal(catalog.proEventCatalog.reduce((n,c)=>n+c.choices.length,0),170);
 });
 test('opening freezes stat aliases and shows only actions before a choice',()=>{
  const s=fixture(),p=e.getPlayer(s);p.stats.contact=10;p.stats.power=20;const event=open(s,'PE03');assert.equal(event.choices[0].outcomes[0].weeks.contact,4);p.stats.contact=90;p.stats.power=5;assert.equal(event.choices[0].outcomes[0].weeks.contact,4);

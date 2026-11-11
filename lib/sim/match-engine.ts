@@ -1,4 +1,5 @@
-import { accumulation, advanceRunners, available, clamp, effective, emptyRecord, isPitcher, mergeRecord, params, pitchingRole, probabilities, random, roleFor, selectionScore } from "./engine";
+import { accumulation, advanceRunners, available, clamp, effective, emptyRecord, hash, isPitcher, mergeRecord, params, pitchingRole, probabilities, random, roleFor, selectionScore } from "./engine";
+import {fieldingIndex,recordFieldingOuts,recordFieldingPlay} from "./fielding";
 import {professionalLineup,proNotice} from "./pro-world";
 import {playoffRosterFor} from "./pro-season";
 import { applyMatchEffect, openScheduledEvent } from "./event-system";
@@ -39,6 +40,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     game.status = "inProgress";
     game.lineup = sides.map(side => [...side.order.map(p => p.id), side.starter.id]);
     s.matchProgress = {
+      ...(pro?{fieldingVersion:1 as const}:{}),
       gameId: game.id, sides: sides.map(side => ({ field: side.field.map(p => p.id), order: side.order.map(p => p.id), starter: side.starter.id, pitchers: side.pitchers.map(p => p.id) })),
       original: rosters.flat().map(p => ({ id: p.id, fatigue: p.fatigue, lastPitched: p.lastPitched })),
       pitchers: sides.map(side => side.starter.id), usedPitchers: sides.map(side => [side.starter.id]), battingIndex: [0, 0], pitchOuts: [0, 0], recentEvents: [],
@@ -128,7 +130,10 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     m.battingIndex[side]++;
     const bat = line(batter).batting, pit = line(pitcher).pitching, b = effective(batter), p = effective(pitcher);
     const effect = s.matchEffect?.gameId === game.id && s.matchEffect.batterId === batter.id && s.matchEffect.pitcherId === pitcher.id ? s.matchEffect : undefined;
-    const probs = applyMatchEffect(probabilities(b, p, m.defense[pitchingSide], m.arm[pitchingSide],configuration), effect);
+    const fielder=m.fieldingVersion===1?player(m.sides[pitchingSide].field[fieldingIndex(hash(`${s.seed}:${game.id}:${m.inning}:${side}:${m.battingIndex[side]}:field`))]):undefined;
+    const probs = applyMatchEffect(probabilities(b, p, fielder?effective(fielder).defense:m.defense[pitchingSide], m.arm[pitchingSide],configuration), effect);
+    const reference=fielder?applyMatchEffect(probabilities(b,p,configuration["match.defense_center"],m.arm[pitchingSide],configuration),effect):undefined;
+    const expectedOut=reference?(1-reference.hit)*(1-reference.k)/((1-reference.hit)*(1-reference.k)+reference.hit*(1-reference.hr)):0;
     if (s.matchEffect?.gameId === game.id) delete s.matchEffect;
     const batBefore = { ...bat }, pitBefore = { ...pit };
     bat.PA++; pit.BF++; pitcher.lastPitched = game.date;
@@ -150,12 +155,14 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
         const kind = random(s, "match");
         const n = kind < probs.hr ? 4 : kind < probs.hr + probs.double ? 2 : kind < probs.hr + probs.double + probs.triple ? 3 : 1;
         if (n === 4) { bat.HR++; pit.HR++; } else if (n === 2) bat["2B"]++; else if (n === 3) bat["3B"]++;
+        if(fielder&&n!==4)recordFieldingPlay(line(fielder),false,expectedOut);
         const extra = (runner: { playerId: string; pitcherId: string }) => random(s, "match") < clamp(params["running.extra_base"] + params["running.extra_slope"] * (effective(player(runner.playerId)).speed - m.arm[pitchingSide]), params["running.extra_min"], params["running.extra_max"]);
         advanceRunners(m.bases, { playerId: batter.id, pitcherId: pitcher.id }, n, extra, score);
       } else {
         m.outs++; pit.outs++; m.pitchOuts[pitchingSide]++;
         if (random(s, "match") < probs.k) { bat.SO++; pit.SO++; }
-        else if (random(s, "match") < params[`match.gb_${batter.stance.batting}`]) bat.GB++; else bat.FB++;
+        else {if (random(s, "match") < params[`match.gb_${batter.stance.batting}`]) bat.GB++; else bat.FB++;if(fielder)recordFieldingPlay(line(fielder),true,expectedOut);}
+        if(m.fieldingVersion===1)recordFieldingOuts(m.sides[pitchingSide].field.map(player),line);
         pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.pitch_out"] * params[`stance.${pitcher.stance.pitching}_cost`] * accumulation(pitcher.stats.stamina));
       }
     }

@@ -31,7 +31,7 @@ export default function TrainingCenter({state,policy,setPolicy,stance,setStance,
     {message&&<p className="training-save-message" role="status">{message}</p>}
     <div className="training-layout"><Panel title="주간 훈련 배분" eyebrow="WEEKLY TRAINING"><fieldset className="content-lock" disabled={locked}><TrainingEditor player={player} policy={policy} setPolicy={setPolicy} date={state.date} context={state}/></fieldset></Panel>
       <div className="side-column"><Panel title="경기 성향" eyebrow="PLAYING STYLE"><fieldset className="content-lock" disabled={locked}><StanceEditor stance={stance} setStance={setStance}/></fieldset></Panel>
-        {profile??<section className="player-card"><h2>{player.name}</h2><div className="detail-position"><span>{positionLabel(player)}</span><PlayerGrade player={player} pro={state.careerMode==="pro"}/></div><PlayerAbilities player={player}/></section>}
+        {profile??<section className="player-card"><h2>{player.name}</h2><div className="detail-position"><span>{positionLabel(player)}</span><PlayerGrade player={player} pro={state.careerMode==="pro"} state={state}/></div><PlayerAbilities player={player}/></section>}
         <div className="condition-note"><div><b>훈련과 회복의 균형을 맞추세요.</b><p>배분을 줄이면 회복하고, 늘리면 피로를 쓰며 집중 성장합니다. 전체 0은 회복에 집중합니다. 부상·한계 피로로 활동이 어려우면 강제 휴식합니다.</p></div></div>
       </div></div><Panel title="성장의 발자취" eyebrow="GROWTH TRACKER" className="training-growth"><GrowthChart state={state}/></Panel>
   </div>;

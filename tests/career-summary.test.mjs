@@ -35,7 +35,7 @@ test('honors group only this player, deduplicate legacy and new titles, distingu
 
 test('compact contract estimates include the current season once, ignore unrated/future seasons and count remaining contract years correctly',()=>{
  const s=fixture(),p=e.getPlayer(s);s.calendar.seasonYear=2031;p.professional.assessments=[row(2028,70),row(2029,80),row(2030,null),row(2040,100)];p.professional.employment='active';p.teamId=0;p.proContract.status='regular';p.fatigue=0;p.recentZ=0;for(const key of Object.keys(p.stats))p.stats[key]=76;p.professional.contract={...p.professional.contract,startYear:2031,endYear:2033,salary:100_000_000};
- const summary=careerContractSummary(s);assert.equal(summary.cumulative,75);assert.equal(summary.projected,(70+80+e.selectionScore(p))/3);assert.equal(summary.seasons,3);assert.equal(summary.salary,100_000_000);
+ const summary=careerContractSummary(s);assert.equal(summary.cumulative,75);assert.equal(summary.projected,(70+80+71)/3);assert.equal(summary.seasons,3);assert.equal(summary.salary,100_000_000);
  p.professional.assessments.push({...row(2031,82,'second'),salary:100_000_000});s.proWorld.seasonClosed=true;const frozen=careerContractSummary(s);assert.equal(frozen.cumulative,(70+80+82)/3);assert.equal(frozen.projected,frozen.cumulative);assert.equal(frozen.seasons,2);
  const html=renderToStaticMarkup(createElement(Assessments,{state:s}));assert.equal((html.match(/<thead><tr>/g)||[]).length,1);assert.match(html,/<th>시즌<\/th><th>출전평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);assert.ok(html.includes('2군'));assert.ok(!html.includes('1군 출전경기'));assert.ok(!html.includes('기준 연봉'));
  p.professional.employment='freeAgent';assert.equal(careerContractSummary(s).seasons,0);assert.equal(careerContractSummary(s).salary,null);

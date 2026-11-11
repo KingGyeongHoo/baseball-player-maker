@@ -11,6 +11,17 @@ const runtime=require('../.test-build/lib/sim/pro-event-runtime.js');
 const {eligibleStory}=require('../.test-build/lib/sim/event-stories.js');
 const storage=require('../.test-build/lib/career-save.js');
 const cache=new Map();
+test('both catalogs contain exactly 80 percent baseball events and choice buttons, and 20 percent daily ones',()=>{
+ for(const [rows,events,choices] of [[school.schoolEventCatalog,60,125],[pro.proEventCatalog,75,170]]){
+  assert.equal(rows.length,events);assert.equal(rows.reduce((n,e)=>n+e.choices.length,0),choices);
+  const daily=rows.filter(e=>e.category==='daily'),baseball=rows.filter(e=>e.category==='baseball');
+  assert.equal(daily.length*5,events);assert.equal(baseball.length*5,events*4);
+  assert.equal(daily.reduce((n,e)=>n+e.choices.length,0)*5,choices);
+  assert.equal(baseball.reduce((n,e)=>n+e.choices.length,0)*5,choices*4);
+  assert.doesNotMatch(JSON.stringify(rows),/온라인 게임|시험 범위|학교 축제|낚시|집들이|야식/);
+  for(const e of rows)for(const choice of e.choices)assert.equal(choice.outcomes.reduce((n,b)=>n+b.weight,0),100);
+ }
+});
 function fixture(mode){
  if(!cache.has(mode)){
   const s=mode==='pro'?pc.acknowledgeCareer(pc.createProfessionalDemo('expanded-events','생활검증','SS')):e.createGame('expanded-events','생활검증','SS');
@@ -28,7 +39,8 @@ function rawEvent(s,id,story){
  return s.careerMode==='pro'?pro.createProEvent(s,id,{version:1,catalogId:id,channel:'general',year:s.calendar.seasonYear,playerId:p.id,teamId:p.teamId,level:p.teamId<10?'first':'second',field:e.isPitcher(p.primaryRole)?'pitching':'batting',openedAt:s.date,story}):school.createCareerEvent(id,p,s.date,s.week,{story});
 }
 function settleSource(s,mode,definition,choice='choice-1'){
- const p=e.getPlayer(s);s.careerEvent=rawEvent(s,definition.rule.after.id,{mode,teamId:p.teamId});
+ const p=e.getPlayer(s);const parent=definitions(mode).find(d=>d.id===definition.rule.after.id);
+ s.careerEvent=rawEvent(s,definition.rule.after.id,{mode,teamId:p.teamId,...(parent?.rule.revision===undefined?{}:{revision:parent.rule.revision})});
  return e.answerCareerEvent(s,choice);
 }
 function situation(mode,definition){
@@ -113,13 +125,13 @@ test('fatigue varies within the authored range and save/load preserves a pending
 test('legacy histories without story metadata never invent follow-ups and private invitations never penalize selection',()=>{
  const s=fixture('school'),d=definitions('school').find(d=>d.id==='L14');s.careerEventHistory=[{id:'legacy',definitionId:'L01',date:e.addDays(s.date,-14),choice:'동료와 경기를 보러 간다'}];
  assert.equal(eligibleStory(s,d.id,d.rule),undefined);
- for(const mode of ['school','pro'])for(const row of definitions(mode).filter(d=>mode==='school'?d.id.startsWith('L'):Number(d.id.slice(2))<=53)){
+ for(const mode of ['school','pro'])for(const row of definitions(mode).filter(d=>d.category==='daily')){
   const event=rawEvent(fixture(mode),row.id);for(const choice of event.choices)for(const branch of choice.outcomes){assert.equal(branch.reputation,undefined);assert.equal(branch.proChanceRequest,undefined);}
  }
 });
 
 test('selected life stories sometimes teach skills while preserving recovery-only and fatigue outcomes',()=>{
- const ids={school:['L03','L06','L07','L12','L13','L17'],pro:['PE32','PE33','PE36','PE38','PE45','PE47','PE49','PE51']};
+ const ids=Object.fromEntries(['school','pro'].map(mode=>[mode,definitions(mode).filter(d=>d.category==='daily').map(d=>d.id)]));
  for(const mode of ['school','pro'])for(const id of ids[mode]){
   const s=fixture(mode),p=e.getPlayer(s);for(const key of Object.keys(p.stats))p.stats[key]=60;p.injury=null;if(p.professional)p.professional.agingProfile=undefined;
   s.careerEvent=rawEvent(s,id);const branches=s.careerEvent.choices[0].outcomes;
@@ -130,8 +142,32 @@ test('selected life stories sometimes teach skills while preserving recovery-onl
 });
 
 test('technical exchanges resolve to batting and pitching skills using the selected player role',()=>{
- for(const [position,expected] of [['SS','contact'],['SP','control']])for(const [mode,id] of [['school','L12'],['pro','PE37']]){
+ for(const [position,expected] of [['SS','contact'],['SP','control']])for(const [mode,id] of [['school','L03'],['pro','PE32']]){
   const s=fixture(mode),p=e.getPlayer(s);p.position=position;p.primaryRole=e.roleFor(position);for(const key of Object.keys(p.stats))p.stats[key]=60;
-  const event=rawEvent(s,id);assert.equal(event.choices[0].outcomes[0].weeks[expected],3);
+  const event=rawEvent(s,id),choice=mode==='school'?event.choices[1]:event.choices[0];assert.equal(choice.outcomes[0].weeks[expected],mode==='school'?3:4);
  }
+});
+test('replaced life slots are actual baseball training with matching eligibility and scheduling phases',()=>{
+ const replaced={school:['L03','L05','L06','L07','L16','L18'],pro:['PE32','PE33','PE36','PE39','PE41','PE47','PE48','PE51']};
+ for(const mode of ['school','pro'])for(const id of replaced[mode]){
+  const definition=definitions(mode).find(d=>d.id===id),s=situation(mode,definition);
+  assert.equal(definition.category,'baseball');assert.equal(definition.rule.activity,'training');
+  if(mode==='school')assert.equal(school.eventKind(id),'training');
+  assert.ok(eligibleStory(s,id,definition.rule));s.calendar.trainingDays=[];assert.equal(eligibleStory(s,id,definition.rule),undefined);
+ }
+});
+test('retired everyday stories cannot trigger unrelated rewritten follow-ups using the same legacy ID',()=>{
+ for(const [mode,id] of [['school','L16'],['pro','PE47']]){
+  const definition=definitions(mode).find(d=>d.id===id),s=situation(mode,definition);
+  assert.ok(eligibleStory(s,id,definition.rule));delete s.careerEventHistory.at(-1).story.revision;
+  assert.equal(eligibleStory(s,id,definition.rule),undefined);
+ }
+});
+test('a pending old everyday choice retains its saved text and outcome when imported after the catalog rewrite',()=>{
+ const s=fixture('school');s.careerEvent=rawEvent(s,'L03',{mode:'school',teamId:e.getPlayer(s).teamId});
+ s.careerEvent.title='시험을 앞둔 공부 약속';s.careerEvent.choices=[{id:'old-choice',label:'예전 저장의 선택',outcomes:[{weight:100,message:'이미 저장한 결과',fatigue:-2}]}];
+ const loaded=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(s))).state;
+ assert.deepEqual(loaded.careerEvent,s.careerEvent);
+ const done=e.answerCareerEvent(loaded,'old-choice');assert.equal(done.careerEventHistory.at(-1).message,'이미 저장한 결과');
+ assert.equal(done.careerEventHistory.at(-1).story.revision,undefined);
 });

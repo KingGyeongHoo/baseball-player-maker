@@ -59,7 +59,16 @@ function season(
       injuredDays: 200,
     };
   else delete p.evaluationAvailability;
-  return a.recordSeasonAssessment(s, p);
+  // Contract/exit policy fixtures retain historical point ratings. New WAR
+  // calculation and cumulative integration are exercised in pro-war.test.mjs.
+  const row = a.recordSeasonAssessment(s, p);
+  delete row.war;
+  row.score = injured ? null : score;
+  row.grade = require("../.test-build/lib/roster-grades.js").rosterGrade(row.score, true);
+  const values = p.professional.assessments.flatMap(r => r.score === null ? [] : [r.score]);
+  row.cumulative = values.length ? values.reduce((sum, n) => sum + n, 0) / values.length : null;
+  row.cumulativeGrade = require("../.test-build/lib/roster-grades.js").rosterGrade(row.cumulative, true);
+  return row;
 }
 test("season evaluations freeze once, average all valid years equally and survive save/load without touching live state", () => {
   const s = fixture(),

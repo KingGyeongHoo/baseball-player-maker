@@ -1,5 +1,5 @@
 import {emptyRecord,getPlayer,mergeRecord} from "./sim/engine";
-import {assessmentValue} from "./sim/pro-assessment";
+import {currentSeasonAssessment} from "./sim/pro-assessment";
 import {playerSeasons} from "./player-records";
 import type {GameState,Player} from "./sim/types";
 
@@ -19,11 +19,12 @@ export function careerContractSummary(state:GameState){
   const scores=rows.flatMap(row=>row.score===null?[]:[row.score]);
   const mean=(values:number[])=>values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
   const cumulative=mean(scores),current=rows.find(row=>row.year===year);
-  const estimate=pro?.employment==="active"&&p.teamId>=0?assessmentValue(p,year).current:null;
+  const evaluation=!current&&pro?.employment==="active"&&p.teamId>=0?currentSeasonAssessment(state,p):undefined;
+  const estimate=evaluation?.score??null;
   const projected=current?cumulative:mean([...scores,...(estimate===null?[]:[estimate])]);
   const contract=pro?.contract,firstYear=Math.max(year+(state.proWorld?.seasonClosed?1:0),contract?.startYear??year);
   const seasons=contract&&pro?.employment==="active"?Math.max(0,contract.endYear-firstYear+1):0;
-  return {cumulative,projected,seasons,salary:seasons?contract!.salary:null};
+  return {cumulative,projected,seasons,salary:seasons?contract!.salary:null,seasonScore:current?current.score:estimate,war:current?.war??evaluation?.war};
 }
 
 export type CareerHonorCategory="national"|"gold"|"allstar"|"individual";

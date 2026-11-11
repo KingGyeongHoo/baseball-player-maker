@@ -1,11 +1,12 @@
 import definitions from "./event-definitions.json";
-import type {EventRule} from "./event-stories";
+import type {EventRule,EventCategory} from "./event-stories";
 import type { CareerEvent, CareerEventBranch, EventOpportunity, EventRewardWeeks, EventScene, Player, Role, Stat } from "./types";
 
-type Definition={id:string;title:string;description:string;rule?:EventRule;choices:{id:string;label:string;outcomes:{weight:number;message:string;effect:string;fatigueRange?:{min:number;max:number};recoveryPercent?:{min:number;max:number}}[]}[]};
+type Definition={id:string;title:string;description:string;category?:EventCategory;kind?:CareerEvent["kind"];rule?:EventRule;choices:{id:string;label:string;outcomes:{weight:number;message:string;effect:string;fatigueRange?:{min:number;max:number};recoveryPercent?:{min:number;max:number}}[]}[]};
 export const schoolEventCatalog=definitions.events as Definition[];
 export const eventIds = schoolEventCatalog.map(event => event.id);
 export function eventKind(id: string): CareerEvent["kind"] {
+  const kind=schoolEventCatalog.find(row=>row.id===id)?.kind;if(kind)return kind;
   return id === "P08" ? "special" : id.startsWith("T") ? "training" : id.startsWith("P") || id.startsWith("L") ? "person" : id.startsWith("C") ? "tournament" : "game";
 }
 const rolePosition: Record<Role, string> = { "코너 야수": "1루수", "센터라인": "유격수", "포수": "포수", "선발": "선발투수", "중간계투": "중간계투", "마무리": "마무리" };

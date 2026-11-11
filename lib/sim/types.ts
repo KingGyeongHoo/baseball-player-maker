@@ -51,6 +51,7 @@ export type Pitching = {
   ER: number;
 };
 export type RecordLine = {
+  fielding?: {version:1;chances:number;plays:number;expectedPlays:number;outs:Partial<Record<Position,number>>};
   batting: Batting;
   pitching: Pitching;
   games?: Partial<Record<"batting"|"pitching"|"wins"|"losses"|"holds"|"saves",number>>;
@@ -317,6 +318,7 @@ export type WeekProgress = {
   };
 };
 export type MatchProgress = {
+  fieldingVersion?:1;
   scoring?: {stints:{id:string;side:number;starter:boolean;lead:number;runners:number;exitLead?:number;blown:boolean}[];winner?:string;loser?:string};
   proStarts?:Record<string,ProAppearance>;
   gameId: string; sides: { field: string[]; order: string[]; starter: string; pitchers: string[] }[];

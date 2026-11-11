@@ -1,4 +1,5 @@
 import {firstTeamAppearances,recordSeasonAssessment,requiresDevelopmentalOffer} from "./pro-assessment";
+import {createProWarContext} from "./pro-war";
 import {syncJerseyNumbers} from "../jersey-numbers";
 import {seededPlayerName} from "./player-names";
 import {captureEvaluationChange,capturePlayerEvaluations} from "./evaluation-lifecycle";
@@ -149,8 +150,8 @@ export function finishProfessionalDay(s:GameState){
 export function closeProfessionalSeason(s:GameState){
   const w=s.proWorld!;if(w.seasonClosed)return;
   w.seasonClosed=true;w.stage="summary";s.phase="ended";
-  const appearances=firstTeamAppearances(s);
-  for(const p of s.players){if(!p.professional)continue;recordSeasonAssessment(s,p,appearances);archiveProfessionalSeason(s,p);payroll(s,p);}
+  const appearances=firstTeamAppearances(s),warContext=createProWarContext(s);
+  for(const p of s.players){if(!p.professional)continue;recordSeasonAssessment(s,p,appearances,warContext);archiveProfessionalSeason(s,p);payroll(s,p);}
   applySeasonExitPolicies(s);
   freezeProNational(s);
   for(const p of s.players){if(!p.professional)continue;p.professional.proBonus*=.8;if(p.professional.employment==="freeAgent")p.professional.unattachedYears++;}

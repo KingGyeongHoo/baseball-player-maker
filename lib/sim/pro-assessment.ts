@@ -3,6 +3,7 @@ import { rosterGrade } from "../roster-grades";
 import { proContractRules as rules } from "./pro-contract-rules";
 import type { GameState, Player, ProSquad, RecordLine } from "./types";
 import type { ProSeasonAssessment } from "./pro-types";
+import { createProWarContext, proWarAssessment, type ProWarContext } from "./pro-war";
 const squad = (id: number): ProSquad | null =>
   id < 0
     ? null
@@ -222,6 +223,7 @@ export function recordSeasonAssessment(
   s: GameState,
   p: Player,
   appearances = firstTeamAppearances(s),
+  warContext?: ProWarContext,
 ): ProSeasonAssessment | undefined {
   const pro = p.professional;
   if (!pro) return;
@@ -243,20 +245,11 @@ export function recordSeasonAssessment(
     pro.assessmentUsage?.year === s.calendar.seasonYear
       ? pro.assessmentUsage
       : undefined;
-  const available = p.evaluationAvailability,
-    first = p.seasonByLevel?.first,
+  const first = p.seasonByLevel?.first,
     second = p.seasonByLevel?.second;
   const pa = (first?.batting.PA ?? 0) + (second?.batting.PA ?? 0),
     outs = (first?.pitching.outs ?? 0) + (second?.pitching.outs ?? 0);
-  const injuredAllYear =
-    available?.year === s.calendar.seasonYear &&
-    available.days > 0 &&
-    available.availableDays === 0 &&
-    available.injuredDays === available.days &&
-    pa === 0 &&
-    outs === 0;
-  const score =
-    pro.employment === "active" && !injuredAllYear ? selectionScore(p) : null;
+  const evaluation = currentSeasonAssessment(s, p, warContext), score = evaluation.score;
   const promoted =
     !!usage &&
     usage.upperDays >= rules.upperDays &&
@@ -291,6 +284,7 @@ export function recordSeasonAssessment(
       date: s.date,
       salary:pro.contract&&pro.contract.startYear<=s.calendar.seasonYear&&pro.contract.endYear>=s.calendar.seasonYear?pro.contract.salary:null,
       score,
+      ...(evaluation.war ? { war: evaluation.war } : {}),
       grade: rosterGrade(score, true),
       ability: roleScore(p),
       role: p.primaryRole,
@@ -308,14 +302,24 @@ export function recordSeasonAssessment(
   rows.sort((a, b) => a.year - b.year);
   return row;
 }
+export function currentSeasonAssessment(s: GameState, p: Player, warContext?: ProWarContext) {
+  const available = p.evaluationAvailability;
+  const records = p.seasonByLevel;
+  const appeared = records && [records.first, records.second].some(r => r.batting.PA > 0 || r.pitching.BF > 0);
+  const injuredAllYear = available?.year === s.calendar.seasonYear && available.days > 0
+    && available.availableDays === 0 && available.injuredDays === available.days && !appeared;
+  if (p.professional?.employment !== "active" || injuredAllYear) return { score: null };
+  const war = proWarAssessment(p, warContext??createProWarContext(s));
+  return { score: war.score, war };
+}
 export function assessmentValue(p: Player, year: number) {
   const rows = (p.professional?.assessments ?? []).filter(
       (r) => r.year <= year,
     ),
     current = rows.find((r) => r.year === year);
   const cumulative = average(rows),
-    score = current ? current.score : selectionScore(p);
-  const basis = score ?? cumulative ?? selectionScore({ ...p, fatigue: 0 });
+    score = current ? current.score : proWarAssessment(p).score;
+  const basis = score ?? cumulative ?? proWarAssessment(p).score;
   return {
     current: score,
     cumulative,

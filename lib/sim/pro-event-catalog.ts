@@ -2,9 +2,9 @@ import data from "./pro-event-catalog.json";
 import {getPlayer,isPitcher,positions} from "./engine";
 import type {CareerEvent,CareerEventBranch,EventRewardWeeks,GameState,Stat} from "./types";
 import type {ProEventContext} from "./pro-event-types";
-import type {EventRule} from "./event-stories";
+import type {EventRule,EventCategory} from "./event-stories";
 
-type Definition={id:string;title:string;description:string;rule?:EventRule;choices:{id:string;label:string;outcomes:(Omit<CareerEventBranch,"weeks">&{weeks?:Record<string,number>;trial?:boolean;requestChance?:boolean})[]}[]};
+type Definition={id:string;title:string;description:string;category?:EventCategory;rule?:EventRule;choices:{id:string;label:string;outcomes:(Omit<CareerEventBranch,"weeks">&{weeks?:Record<string,number>;trial?:boolean;requestChance?:boolean})[]}[]};
 export const proEventCatalog=data as Definition[];
 export const proBattingStats:Stat[]=["contact","power","speed","defense"],proPitchingStats:Stat[]=["velocity","control","movement"];
 export function createProEvent(s:GameState,id:string,context:ProEventContext):CareerEvent {

@@ -400,6 +400,11 @@ export function probabilities(b: Stats, p: Stats, defense: number, arm: number, 
   };
 }
 export function mergeRecord(target: RecordLine, add: RecordLine) {
+  if(add.fielding){
+    const f=target.fielding??={version:1,chances:0,plays:0,expectedPlays:0,outs:{}};
+    f.chances+=add.fielding.chances;f.plays+=add.fielding.plays;f.expectedPlays+=add.fielding.expectedPlays;
+    for(const [position,outs]of Object.entries(add.fielding.outs))f.outs[position as Position]=(f.outs[position as Position]??0)+outs!;
+  }
   mergeGameCounters(target,add);
   for (const group of ["batting", "pitching"] as const) for (const k of Object.keys(target[group])) (target[group] as Record<string, number>)[k] += (add[group] as Record<string, number>)[k];
 }

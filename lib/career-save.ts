@@ -1,4 +1,5 @@
 import {hydrateAssessments} from "./sim/pro-assessment";
+import {validProWarAssessment} from "./sim/pro-war";
 import {initializeAgingProfile,isPhysicalStat} from "./sim/pro-growth";
 import {syncJerseyNumbers} from "./jersey-numbers";
 import {discardRetiredPlayers} from "./sim/retired-records";
@@ -20,6 +21,7 @@ export function validateCareerState(value:unknown):asserts value is GameState {
     const assessments=p.professional?.assessments;
     if(assessments!==undefined&&(!Array.isArray(assessments)||new Set(assessments.map(row=>row.year)).size!==assessments.length||assessments.some(row=>!Number.isInteger(row.year)||typeof row.date!=="string"||row.score!==null&&!Number.isFinite(row.score)||row.cumulative!==null&&!Number.isFinite(row.cumulative)||!Number.isFinite(row.ability)||typeof row.reserveSeason!=="boolean"||typeof row.developmental!=="boolean"||row.firstTeam!==undefined&&typeof row.firstTeam!=="boolean"||row.secondOnly!==undefined&&typeof row.secondOnly!=="boolean"||row.firstGames!==undefined&&row.firstGames!==null&&(!Number.isInteger(row.firstGames)||row.firstGames<0)||!["season-end","reconstructed"].includes(row.source))))throw new Error("시즌 출전평가 기록을 복원할 수 없습니다.");
     const usage=p.professional?.assessmentUsage;
+    if(assessments?.some(row=>row.war!==undefined&&(!validProWarAssessment(row.war)||row.score===null||Math.abs(row.score-row.war.score)>1e-7)))throw new Error("시즌 출전평가의 WAR 환산 기록을 복원할 수 없습니다.");
     if(usage&&(!Number.isInteger(usage.year)||[usage.activeDays,usage.lowerDays,usage.upperDays].some(n=>!Number.isInteger(n)||n<0)||usage.lowerDays+usage.upperDays!==usage.activeDays||usage.firstDays!==undefined&&(!Number.isInteger(usage.firstDays)||usage.firstDays<0||usage.firstDays>usage.upperDays)))throw new Error("소속 군의 활동 일수를 복원할 수 없습니다.");
     const refusal=p.professional?.nonRenewal;
     if(refusal&&(!Number.isInteger(refusal.year)||!["reserve","limited-appearances","post-rookie-evaluation","second-team","low-evaluation"].includes(refusal.kind)||!Number.isInteger(refusal.club)||refusal.club<0||refusal.club>=10||typeof refusal.reason!=="string"))throw new Error("재계약 판정 기록이 손상됐습니다.");

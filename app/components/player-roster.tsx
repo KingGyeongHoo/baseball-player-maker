@@ -25,17 +25,23 @@ import { dashboardRecordValues } from "./dashboard-records";
 import DraftRoundBadge from "./draft-round-badge";
 import { proSquad } from "../../lib/sim/pro-squads";
 import Tooltip from "./tooltip";
+import {createProWarContext,type ProWarContext} from "../../lib/sim/pro-war";
 
 const rosterScoreText = (score: number | null | undefined) => score != null && Number.isFinite(score) ? score.toFixed(1) : "—";
 
 export function PlayerGrade({
   player,
   pro = player.careerMode === "pro",
+  state,
+  warContext,
 }: {
   player: Player;
   pro?: boolean;
+  state?:GameState;
+  warContext?:ProWarContext;
 }) {
-  const score = rosterGradeScore(player, pro),
+  const context=useMemo(()=>warContext??(pro&&state?createProWarContext(state):undefined),[warContext,pro,state]);
+  const score = rosterGradeScore(player, pro,context),
     grade = rosterGrade(score, pro),
     source = pro ? "출전평가" : "평판";
   return (
@@ -83,6 +89,7 @@ export function RosterTable({
 }) {
   const pro = state.careerMode === "pro",
     metrics = rosterMetrics[field];
+  const warContext=useMemo(()=>pro?createProWarContext(state):undefined,[pro,state]);
   return (
     <div className="table-scroll roster-table roster-records-table">
       <table>
@@ -182,7 +189,7 @@ export function RosterTable({
                 <b>{scoreText(ovr(p, field === "pitching"))}</b>
               </td>
               <td>
-                <PlayerGrade player={p} pro={pro} />
+                <PlayerGrade player={p} pro={pro} warContext={warContext}/>
               </td>
               <td>{state.teams[p.teamId]?.name ?? "무소속"}</td>
               <td>{pro ? (p.age ?? "—") : `${p.grade}학년`}</td>
@@ -194,8 +201,8 @@ export function RosterTable({
                 <td key={label}>{value}</td>
               ))}
               <td>
-                <b title={pro ? "역할 능력·피로·최근 성적·등록 상태를 반영한 현재 출전평가" : "역할별 능력·경기 성적·이벤트 보너스를 반영한 평판"}>
-                  {rosterScoreText(rosterGradeScore(p, pro))}
+                <b title={pro ? "타격·투구·수비·포지션 WAR를 기존 점수로 환산한 출전평가" : "역할별 능력·경기 성적·이벤트 보너스를 반영한 평판"}>
+                  {rosterScoreText(rosterGradeScore(p, pro,warContext))}
                 </b>
               </td>
             </tr>
@@ -220,6 +227,7 @@ function PlayerRoster({
 }) {
   const mine = getPlayer(state),
     pro = state.careerMode === "pro";
+  const warContext=useMemo(()=>pro?createProWarContext(state):undefined,[pro,state]);
   const [scope, setScope] = useState("team"),
     [field, setField] = useState<RosterField>(
       isPitcher(mine.primaryRole) ? "pitching" : "batting",
@@ -254,9 +262,9 @@ function PlayerRoster({
             (state.teams[p.teamId]?.name ?? "무소속").includes(query)),
       )
       .sort((a, b) =>
-        compareRosterPlayers(a, b, field, pro ? level : "total", sort, pro),
+        compareRosterPlayers(a, b, field, pro ? level : "total", sort, pro,warContext),
       );
-  }, [state, mine.teamId, field, level, scope, query, sort, pro]);
+  }, [state, mine.teamId, field, level, scope, query, sort, pro,warContext]);
   const projections = useMemo(
     () =>
       new Map<string, DraftPick>(
@@ -395,7 +403,7 @@ function PlayerRoster({
         </p>
         <p>
           {pro
-            ? "프로 등급은 현재 역할의 출전평가를 사용합니다. 역할 능력에 피로·최근 성적·신고선수·관리 상태를 반영하므로 컨디션에 따라 변합니다."
+            ? "프로 출전평가는 타격·투구·수비·포지션 WAR를 기존 점수로 환산합니다. 능력치는 경기 결과와 선발·승격 판단에 사용하며 평가 점수에 직접 더하지 않습니다."
             : "고교 등급은 역할별 능력과 표본을 보정한 경기 성적, 이벤트 보너스를 포함한 평판을 사용합니다."}{" "}
           OVR을 다시 더하지 않습니다. {pro ? "출전평가" : "평판"} 열은 소수 첫째 자리까지 표시하며
           등급도 이 점수로 판정합니다.
