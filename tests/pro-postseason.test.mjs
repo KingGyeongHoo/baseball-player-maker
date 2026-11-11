@@ -6,6 +6,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js'),life=require('../.test-build/lib/sim/pro-season.js');
 const {encodeCareerSave,decodeCareerSave}=require('../.test-build/lib/career-save.js');
 const {clubName}=require('../.test-build/lib/sim/pro-world.js');
+const world=require('../.test-build/lib/sim/pro-world.js'),postRoster=require('../.test-build/lib/sim/pro-postseason-roster.js');
 const {CareerNoticeDialog}=require('../.test-build/app/components/career-continuation.js');
 const Bracket=require('../.test-build/app/components/postseason-bracket.js').default,Dashboard=require('../.test-build/app/components/pro-dashboard.js').default,League=require('../.test-build/app/components/pro-league.js').default;
 e.params['pro_events.enabled']=0;
@@ -31,9 +32,10 @@ test('regular-season notices follow the parent club rank and put non-first-team 
   assert.equal(notice.title,rank===1?`${team} 정규시즌 우승!`:rank<=5?`${team} 포스트시즌 진출 성공 !`:`${team}는 포스트 시즌 진출에 실패했습니다.`);
   const entry=rank===1?'1위로 한국시리즈에 진출합니다':rank===2?'2위로 플레이오프에 진출합니다.':rank===3?'3위로 준플레이오프에 직행합니다':rank<=5?`${rank}위로 와일드카드 결정전에 진출합니다`:'포스트시즌 종료 후 시즌이 종료됩니다.';
   const suffix='아쉽게도 포스트시즌 엔트리에는 등록되지 못했습니다';
-  assert.equal(notice.message,[entry,...(level?[suffix]:[])].filter(Boolean).join('\n\n'));
+  const first=e.getPlayer(s).teamId<10,calledUp=s.proWorld.postseasonExpansion.calledUp.includes(p.id);
+  assert.equal(notice.message,[entry,...(first?[]:[suffix]),...(calledUp?['포스트시즌 특별 엔트리에 선발되어 1군으로 합류했습니다.']:[])].filter(Boolean).join('\n\n'));
   assert.doesNotMatch(notice.message,/다른 선수|리그 이력|고정 명단|기록과 분리/);
-  if(rank===4&&level===10){s.careerNotice={...notice,title:'정규 시즌 종료·포스트시즌 개막',message:'포스트시즌에는 등록되지 않았으며 다른 선수·구단의 우승 결과도 리그 이력에 보관됩니다.'};const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));assert.ok(html.includes(`<p>${entry}</p><p>${suffix}</p>`));assert.ok(html.includes(`${team} 포스트시즌 진출 성공 !`));assert.doesNotMatch(html,/다른 선수|리그 이력/);}
+  if(rank===4&&level===10){s.careerNotice={...notice,title:'정규 시즌 종료·포스트시즌 개막',message:'이전 저장의 포스트시즌 안내'};const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));assert.ok(html.includes(`<p>${entry}</p>`));assert.equal(html.includes(`<p>${suffix}</p>`),!first);assert.ok(html.includes(`${team} 포스트시즌 진출 성공 !`));assert.doesNotMatch(html,/다른 선수|리그 이력/);}
  }
 });
 test('rank four advances on one actual win or tie and cannot get credited twice',()=>{
@@ -63,8 +65,60 @@ test('tied games remain recorded and replay after the normal last game at the or
  play(s,'semi',null,{tie:true});assert.equal(next(s,'semi').homeTeamId,2);play(s,'semi',3);assert.equal(round(s,'semi').winner,3);assert.deepEqual(s.rngStates,rng);
 });
 test('each new round freezes its own roster and new players do not enter an existing series roster',()=>{
- const s=fixture(),r=round(s,'wildcard'),late=s.players.find(p=>p.teamId===13);assert.ok(!r.rosters['3'].includes(late.id));const outgoing=s.players.find(p=>p.teamId===3&&p.position===late.position);outgoing.teamId=13;late.teamId=3;
- assert.equal(life.playoffRosterFor(s,next(s,'wildcard'),[late]).length,0);play(s,'wildcard',3);assert.ok(round(s,'semi').rosters['3'].includes(late.id));assert.ok(Object.values(round(s,'semi').rosters).every(ids=>ids.length<=30));
+ const s=fixture(),r=round(s,'wildcard'),late=s.players.find(p=>p.teamId===13&&!r.rosters['3'].includes(p.id));assert.ok(late);const outgoing=s.players.find(p=>p.teamId===3&&p.position===late.position);outgoing.teamId=13;late.teamId=3;
+ assert.equal(life.playoffRosterFor(s,next(s,'wildcard'),[late]).length,0);play(s,'wildcard',3);assert.ok(round(s,'semi').rosters['3'].includes(late.id));assert.ok(Object.values(round(s,'semi').rosters).every(ids=>ids.length<=32));
+});
+
+const skills=(p,n)=>{for(const key of Object.keys(p.stats))p.stats[key]=n;p.injury=null;p.forcedRest=false;p.recentZ=0;p.fatigue=0;};
+test('all five qualifiers expand to 32 and a strong farm player replaces a weak first-team player before the notice',()=>{
+ const s=structuredClone(template),p=e.getPlayer(s);p.teamId=13;p.proContract.status='regular';skills(p,99);
+ const weak=s.players.find(q=>q.teamId===3&&q.position===p.position);skills(weak,1);
+ const teams=new Map(s.players.map(q=>[q.id,q.teamId])),rng={...s.rngStates},records=s.players.map(q=>structuredClone(q.seasonStats));
+ s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';life.finishProfessionalDay(s);
+ for(let club=0;club<10;club++)assert.equal(s.players.filter(q=>q.teamId===club).length,club<5?32:29);
+ assert.equal(p.teamId,3);assert.equal(weak.teamId,13);assert.equal(s.postSchool.pro.level,'first');
+ assert.ok(round(s,'wildcard').rosters['3'].includes(p.id));assert.match(s.careerNotice.message,/특별 엔트리/);assert.doesNotMatch(s.careerNotice.message,/등록되지 못/);
+ for(const id of s.proWorld.postseasonExpansion.calledUp)assert.equal(teams.get(id),s.players.find(q=>q.id===id).teamId+10);
+ assert.deepEqual(s.rngStates,rng);assert.deepEqual(s.players.map(q=>q.seasonStats),records);
+ const registrations=s.players.map(q=>q.teamId);assert.equal(postRoster.expandPostseasonRosters(s),false);assert.deepEqual(s.players.map(q=>q.teamId),registrations);
+ const game=next(s,'wildcard');s.date=game.date;e.simulateGame(s,game,[game.homeTeamId,game.awayTeamId].map(id=>s.players.filter(q=>q.teamId===id)));
+ assert.equal(game.status,'completed');assert.ok(game.boxScore[p.id]?.batting.PA>0,'special registration participates in a real postseason game');
+});
+
+test('third-squad, developmental and unavailable farm stars cannot take special roster places',()=>{
+ const s=structuredClone(template),third=e.getPlayer(s),dev=s.players.find(q=>q.teamId===13),injured=s.players.find(q=>q.teamId===13&&q.id!==dev.id);
+ third.teamId=23;skills(third,100);dev.proContract.status='developmental';skills(dev,100);skills(injured,100);injured.injury={unavailableUntil:'2099-01-01'};
+ s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';life.finishProfessionalDay(s);
+ assert.equal(third.teamId,23);assert.equal(dev.teamId,13);assert.equal(injured.teamId,13);
+ for(const p of [third,dev,injured])assert.ok(!round(s,'wildcard').rosters['3'].includes(p.id));
+});
+
+test('expanded registrations survive saving and next camp, then the current three lowest ratings are cut at opening',()=>{
+ let s=fixture();life.closeProfessionalSeason(s);for(const p of s.players)if(p.professional.contract)p.professional.contract.endYear=2035;
+ s.careerNotice=null;s.noticeQueue=[];life.startNextProSeason(s);const club=3,first=s.players.filter(p=>p.teamId===club);
+ assert.equal(first.length,32);world.ensureProWorld(s);assert.equal(s.players.filter(p=>p.teamId===club).length,32);
+ const lowest=first.filter(p=>e.isPitcher(p.primaryRole)).slice(0,3);for(const [i,p] of lowest.entries())skills(p,1+i);
+ s.playerId=lowest[0].id;s.postSchool.pro.club=club;s.postSchool.pro.level='first';s.careerNotice=null;s.noticeQueue=[];
+ const opening=s.calendar.competitions.find(c=>c.id==='pro-first').startDate;s.date=e.addDays(opening,-1);
+ assert.deepEqual(postRoster.trimPostseasonRostersForOpening(s),[]);
+ s=decodeCareerSave(JSON.stringify(encodeCareerSave(s,false))).state;assert.ok(s.proWorld.postseasonExpansion);
+ s.date=opening;const before=new Map(s.players.map(p=>[p.id,p.teamId]));world.reviewLeagueRegistrations(s);
+ assert.equal(s.players.filter(p=>p.teamId===club).length,29);assert.equal(s.players.filter(p=>before.get(p.id)===club&&p.teamId===club+10).length,3);
+ for(const p of lowest)assert.equal(s.players.find(q=>q.id===p.id).teamId,club+10);
+ assert.equal(s.postSchool.pro.level,'second');assert.equal(s.careerNotice.kind,'demoted');assert.match(s.careerNotice.message,/출전평가 하위 3명/);
+ assert.equal(s.proWorld.postseasonExpansion,undefined);const registrations=s.players.map(p=>p.teamId);
+ assert.deepEqual(postRoster.trimPostseasonRostersForOpening(s),[]);assert.deepEqual(s.players.map(p=>p.teamId),registrations);
+ world.ensureProWorld(s);world.reviewLeagueRegistrations(s);assert.deepEqual(s.players.map(p=>p.teamId),registrations,'loading or acknowledging the notice cannot undo the final opening roster');
+});
+
+test('an ongoing 29-player postseason save expands once while preserving played games and the bracket',()=>{
+ const s=fixture();play(s,'wildcard',4);for(let club=0;club<5;club++)for(const p of s.players.filter(p=>p.teamId===club).slice(29))p.teamId=club+10;
+ delete s.proWorld.postseason.rosterVersion;delete s.proWorld.postseasonExpansion;
+ const games=structuredClone(s.calendar.events),series=s.proWorld.postseason.series.map(({rosters,...row})=>row),rng={...s.rngStates};
+ const loaded=life.upgradeProfessionalState(s);assert.notEqual(loaded,s);assert.equal(s.players.filter(p=>p.teamId===3).length,29);
+ assert.equal(loaded.players.filter(p=>p.teamId===3).length,32);assert.equal(round(loaded,'wildcard').rosters['3'].length,32);
+ assert.deepEqual(loaded.calendar.events,games);assert.deepEqual(loaded.proWorld.postseason.series.map(({rosters,...row})=>row),series);assert.deepEqual(loaded.rngStates,rng);
+ assert.equal(life.upgradeProfessionalState(loaded),loaded);
 });
 test('postseason games allow fifteen innings and keep regular records separate',()=>{
  const s=fixture(),game=next(s,'wildcard'),keys=['match.bb_base','match.bb_min','match.bb_max','match.hit_base','match.hit_min','match.hit_max'],old=Object.fromEntries(keys.map(k=>[k,e.params[k]]));

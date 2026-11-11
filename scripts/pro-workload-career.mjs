@@ -27,7 +27,7 @@ for(const role of ['SP','RP','CP']){
 }
 const games=s.calendar.events.filter(g=>g.competitionId==='pro-first'),last=new Map();
 const totals=new Map();
-for(const g of games.filter(g=>g.status==='completed'))for(const[id,r]of Object.entries(g.boxScore))if(r.pitching.BF){const total=totals.get(id)??{outs:0,games:0};total.outs+=r.pitching.outs;total.games++;totals.set(id,total);}
+for(const g of games.filter(g=>g.status==='completed'))for(const[id,r]of Object.entries(g.boxScore))if(r.pitching.BF||r.pitching.outs){const total=totals.get(id)??{outs:0,games:0};total.outs+=r.pitching.outs;total.games++;totals.set(id,total);}
 for(const[id,total]of totals){const row=rows.find(p=>p.id===id);assert(row,id);assert.equal(row.seasonByLevel.first.pitching.outs,total.outs,id);assert.equal(row.seasonByLevel.first.games.pitching,total.games,id);}
 for(const g of games.filter(g=>g.status==='completed').sort((a,b)=>a.date.localeCompare(b.date)))for(const team of [g.homeTeamId,g.awayTeamId]){
  const id=g.lineup[team===g.homeTeamId?0:1][9],history=last.get(team)??[];if(history.includes(id))throw Error('Rotation gap violated');history.push(id);if(history.length>4)history.shift();last.set(team,history);

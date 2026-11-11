@@ -59,9 +59,40 @@ test('legacy winter adds new gold gloves without replacing its announced MVP or 
 
 test('individual awards freeze only category leaders, retain ties and separate first and second league records',()=>{
  assert.equal(awardValueText({format:'rate',value:.34}),'.340');assert.equal(awardValueText({format:'innings',value:17}),'5.2');
- const s=fixture(),p=e.getPlayer(s);p.seasonByLevel.first.batting.HR=50;const tied=structuredClone(p);tied.id='tied-home-run';tied.name='공동홈런왕';s.players.push(tied);const farm=structuredClone(p);farm.id='farm-champion';farm.teamId=10;farm.seasonByLevel={first:e.emptyRecord(),second:structuredClone(p.seasonByLevel.first)};farm.seasonByLevel.second.batting.HR=70;s.players.push(farm);
- const rows=individualAwards(s),home=rows.find(row=>row.level==='first'&&row.metric==='HR'),second=rows.find(row=>row.level==='second'&&row.metric==='HR');assert.equal(home.value,50);assert.deepEqual(home.winners.map(row=>row.playerId).sort(),[p.id,tied.id].sort());assert.equal(second.value,70);assert.equal(second.winners[0].playerId,farm.id);assert.ok(!home.winners.some(row=>row.playerId===farm.id));
+ const s=fixture(),p=e.getPlayer(s);p.seasonByLevel.first.batting.H=200;const tied=structuredClone(p);tied.id='tied-hits';tied.name='공동안타왕';s.players.push(tied);const farm=structuredClone(p);farm.id='farm-champion';farm.teamId=10;farm.seasonByLevel={first:e.emptyRecord(),second:structuredClone(p.seasonByLevel.first)};farm.seasonByLevel.second.batting.H=230;s.players.push(farm);
+ const rows=individualAwards(s),home=rows.find(row=>row.level==='first'&&row.metric==='H'),second=rows.find(row=>row.level==='second'&&row.metric==='H');assert.equal(home.value,200);assert.deepEqual(home.winners.map(row=>row.playerId).sort(),[p.id,tied.id].sort());assert.equal(second.value,230);assert.equal(second.winners[0].playerId,farm.id);assert.ok(!home.winners.some(row=>row.playerId===farm.id));
  life.closeProfessionalSeason(s);assert.deepEqual(s.proWorld.seasons[0].individualAwards,rows);
- const html=renderToStaticMarkup(createElement(IndividualAwards,{state:s,season:s.proWorld.seasons[0],onRecords(){}}));assert.ok(html.includes('공동 1위'));assert.ok(html.includes('공동홈런왕'));assert.ok(!html.includes('farm-champion'));assert.ok(!html.includes('2위'));
+ const html=renderToStaticMarkup(createElement(IndividualAwards,{state:s,season:s.proWorld.seasons[0],onRecords(){}}));assert.ok(html.includes('공동 1위'));assert.ok(html.includes('공동안타왕'));assert.ok(!html.includes('farm-champion'));assert.ok(!html.includes('2위'));
  const hub=renderToStaticMarkup(createElement(AwardsHub,{state:s,onRecords(){}}));for(const label of ['어워드','올스타','골든글러브','개인 수상'])assert.ok(hub.includes(label));assert.ok(!hub.includes('<dialog'));
+});
+
+test('individual pitching titles share starter and relief qualification and require innings for holds and saves',()=>{
+ const s=fixture();s.players=[];
+ for(const [level,games] of [['first',144],['second',72]])for(const [role,multiple] of [['선발',3],['중간계투',1],['마무리',1]])for(const short of [false,true]){
+  const p=structuredClone(template.players.find(p=>p.id===template.playerId));p.id=`${level}-${role}-${short}`;p.primaryRole=role;p.teamId=level==='first'?0:10;p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};
+  const r=p.seasonByLevel[level];Object.assign(r.pitching,{outs:games*multiple-Number(short),BF:700,SO:100,ER:1,H:10,BB:2});r.games={...r.games,holds:short?999:5,saves:short?999:5};s.players.push(p);
+ }
+ const awards=individualAwards(s);
+ for(const level of ['first','second'])for(const metric of ['era','holds','saves']){
+  const award=awards.find(row=>row.level===level&&row.metric===metric);assert.ok(award,`${level} ${metric}`);
+  assert.ok(award.winners.every(p=>p.playerId.endsWith('-false')));
+  if(metric==='holds'||metric==='saves'){assert.equal(award.value,5);assert.equal(award.winners.length,3);}
+ }
+});
+
+test('only the eight requested records award titles in either league while other metrics remain viewable',()=>{
+ const s=fixture();
+ for(const p of s.players){p.seasonByLevel.first.batting.SB=20;p.seasonByLevel.first.games={wins:20,holds:10,saves:15};p.seasonByLevel.second=structuredClone(p.seasonByLevel.first);}
+ const awards=individualAwards(s);
+ for(const level of ['first','second']){
+  assert.deepEqual(awards.filter(row=>row.level===level&&row.field==='batting').map(row=>row.metric),['avg','H','SB','RBI']);
+  assert.deepEqual(awards.filter(row=>row.level===level&&row.field==='pitching').map(row=>row.metric),['wins','holds','saves','era']);
+ }
+ const {leaderMetrics}=require('../.test-build/lib/league-leaders.js');
+ for(const id of ['HR','2B','3B','ops'])assert.ok(leaderMetrics.batting.some(row=>row.id===id));
+ for(const id of ['whip','kRate','SO','outs'])assert.ok(leaderMetrics.pitching.some(row=>row.id===id));
+ const regular=evaluation.regularAwards(s);assert.ok(regular.some(row=>row.kind==='도루왕'));
+ assert.ok(!regular.some(row=>['홈런','탈삼진','WHIP','OPS'].includes(row.kind)));
+ const season={individualAwards:[...awards,{level:'first',field:'batting',metric:'HR',label:'홈런',value:99,winners:[{playerId:'hidden',playerName:'기록전용선수',club:0}]}]};
+ const html=renderToStaticMarkup(createElement(IndividualAwards,{state:s,season,onRecords(){}}));assert.ok(html.includes('도루왕'));assert.ok(!html.includes('기록전용선수'));
 });

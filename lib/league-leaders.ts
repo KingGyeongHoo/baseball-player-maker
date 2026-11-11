@@ -1,4 +1,5 @@
 import {recordRates} from "./player-records";
+import {pitchingRole} from "./sim/engine";
 import {careerLeagueTable} from "./sim/pro-calendar";
 import type {GameState,Player,RecordLine} from "./sim/types";
 
@@ -9,6 +10,7 @@ const batting:LeaderMetric[]=[
   {id:"obp",label:"출루율",value:r=>recordRates(r).obp,format:"rate",qualified:true},
   {id:"slg",label:"장타율",value:r=>recordRates(r).slugging,format:"rate",qualified:true},
   {id:"ops",label:"OPS",value:r=>recordRates(r).ops,format:"rate",qualified:true},
+  {id:"SB",label:"도루",value:r=>r.batting.SB??0},
   ...([['HR','홈런'],['H','안타'],['RBI','타점'],['R','득점'],['2B','2루타'],['3B','3루타'],['BB','볼넷'],['PA','타석'],['AB','타수'],['SO','삼진'],['GB','땅볼'],['FB','뜬공']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>r.batting[id],ascending:id==="SO"})),
 ];
 const pitching:LeaderMetric[]=[
@@ -16,10 +18,20 @@ const pitching:LeaderMetric[]=[
   {id:"whip",label:"WHIP",value:r=>recordRates(r).whip,format:"decimal",ascending:true,qualified:true},
   {id:"kRate",label:"탈삼진율",value:r=>r.pitching.BF?r.pitching.SO/r.pitching.BF:null,format:"percent",qualified:true},
   {id:"outs",label:"이닝",value:r=>r.pitching.outs,format:"innings"},
+  {id:"wins",label:"승",value:r=>r.games?.wins??0},
+  {id:"holds",label:"홀드",value:r=>r.games?.holds??0,qualified:true},
+  {id:"saves",label:"세이브",value:r=>r.games?.saves??0,qualified:true},
   ...([['SO','탈삼진'],['BF','상대한 타자'],['H','피안타'],['BB','볼넷 허용'],['HR','피홈런'],['R','실점'],['ER','자책점']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>r.pitching[id],ascending:!['SO','BF'].includes(id)})),
 ];
 export const leaderMetrics:Record<LeaderField,LeaderMetric[]>={batting,pitching};
 export type LeaderRow={player:Player;value:number;sample:number};
+
+// Pitching samples are recorded as outs: one out per team game is G / 3 innings.
+export function requiredLeaderSample(player:Player,field:LeaderField,games:number,pro=true){
+  if(field==="batting")return Math.max(1,Math.ceil(games*3.1));
+  const role=pitchingRole(player),bullpen=role==="중간계투"||role==="마무리";
+  return Math.max(1,Math.ceil(games*(pro&&bullpen?1:3)));
+}
 
 export function leagueLeaders(state:GameState,competition:string,field:LeaderField){
   const pro=state.careerMode==="pro",level=competition==="pro-first"?"first":"second";
@@ -33,7 +45,7 @@ export function leagueLeaders(state:GameState,competition:string,field:LeaderFie
   return leaderMetrics[field].map(metric=>({metric,rows:candidates.flatMap(({player,records,games})=>{
     if(!records)return [];
     const sample=field==="batting"?records.batting.PA:records.pitching.outs;
-    if(sample<=0||metric.qualified&&sample<(field==="batting"?Math.max(1,Math.ceil(games*3.1)):Math.max(1,games*3)))return [];
+    if(sample<=0||metric.qualified&&sample<requiredLeaderSample(player,field,games,pro))return [];
     const value=metric.value(records);
     return value===null||!Number.isFinite(value)?[]:[{player,value,sample}];
   }).sort((a,b)=>(metric.ascending?a.value-b.value:b.value-a.value)||b.sample-a.sample||a.player.id.localeCompare(b.player.id)).slice(0,10)}));

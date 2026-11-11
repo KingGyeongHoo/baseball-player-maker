@@ -10,6 +10,7 @@ import type {ProAppearance} from "./pro-event-types";
 import {packRecentRecord,recentSample} from "./recent-records";
 import {finishGameRecords,pitcherEntered,recordLeadChange} from "./game-records";
 import {proBullpenPlan,proMatchParameters,proPitcherOutLimit,proRecentTeamGames,proReliefPriority,proReliefReady} from './pro-balance';
+import {stolenBaseAttempt} from './base-stealing';
 
 // Every cursor and runner is serializable: returning at a choice never replays
 // an inning, consumes a match draw early, or commits a partial game twice.
@@ -107,6 +108,22 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
         if (next) { pitcherEntered(m,game,next.id,pitchingSide);m.pitchers[pitchingSide] = next.id; m.usedPitchers[pitchingSide].push(next.id); m.pitchOuts[pitchingSide] = 0; }
         else if(!saveEntry&&!(pro&&!starter&&available(current,game.date)&&current.fatigue<params['coach.replace_fatigue']&&m.pitchOuts[pitchingSide]<15))return forfeit(pitchingSide);
       }
+      const runner=m.bases[0];
+      if(pro&&runner&&!m.bases[1]){
+        const current=player(m.pitchers[pitchingSide]),source={rngStates:{...s.rngStates,match:hash(`${s.seed}:${game.id}:${m.inning}:${side}:${m.pa}:${runner.playerId}:steal`)}};
+        const result=stolenBaseAttempt(effective(player(runner.playerId)),effective(current),effective(player(m.sides[pitchingSide].field[0])),random(source,'match'),random(source,'match'));
+        if(result!=='none'){
+          const runnerLine=line(player(runner.playerId)).batting;
+          if(result==='safe'){runnerLine.SB=(runnerLine.SB??0)+1;m.bases[1]=runner;}
+          else {
+            runnerLine.CS=(runnerLine.CS??0)+1;m.outs++;line(current).pitching.outs++;m.pitchOuts[pitchingSide]++;current.lastPitched=game.date;
+            if(m.fieldingVersion===1)recordFieldingOuts(m.sides[pitchingSide].field.map(player),line);
+            current.fatigue=clamp(current.fatigue+params['fatigue.pitch_out']*params[`stance.${current.stance.pitching}_cost`]*accumulation(current.stats.stamina));
+          }
+          m.bases[0]=null;
+          if(m.outs>=3){m.ready=false;continue;}
+        }
+      }
       m.ready = true;
     }
     const orderIndex = m.battingIndex[side] % 9;
@@ -190,7 +207,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     for (const id of m.sides[side].field.slice(0, 8)) { const p = player(id); p.fatigue = clamp(p.fatigue + params["fatigue.field_game"] * outs / 27 * accumulation(p.stats.stamina)); }
   }
   for (const [id, record] of Object.entries(game.boxScore)) {
-    if(s.careerMode==="pro"&&(record.batting.PA||record.pitching.BF)){const p=player(id),side=m.sides.findIndex(row=>row.field.includes(id)||row.pitchers.includes(id));(game.proAppearances??={})[id]=m.proStarts?.[id]??{teamId:side===0?game.homeTeamId:game.awayTeamId,level:game.competitionId.startsWith("pro-playoffs-")?"postseason":game.competitionId==="pro-first"?"first":"second",position:p.position,startedField:false,startedPitching:false};}
+    if(s.careerMode==="pro"&&(record.batting.PA||record.pitching.BF||record.pitching.outs)){const p=player(id),side=m.sides.findIndex(row=>row.field.includes(id)||row.pitchers.includes(id));(game.proAppearances??={})[id]=m.proStarts?.[id]??{teamId:side===0?game.homeTeamId:game.awayTeamId,level:game.competitionId.startsWith("pro-playoffs-")?"postseason":game.competitionId==="pro-first"?"first":"second",position:p.position,startedField:false,startedPitching:false};}
     if(game.evaluationEnvironment)(game.evaluationEnvironment.playerTeams??={})[id]=game.proAppearances?.[id]?.teamId??player(id).teamId;
     const p=player(id),postseason=game.competitionId.startsWith("pro-playoffs-");
     if(!postseason)mergeRecord(p.seasonStats,record);
@@ -198,7 +215,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       p.seasonByLevel ??= {first:emptyRecord(),second:emptyRecord()};
       if(postseason){p.seasonPostseason??=emptyRecord();mergeRecord(p.seasonPostseason,record);}else mergeRecord(p.seasonByLevel[game.competitionId==="pro-first"?"first":"second"],record);
       const club=String(p.teamId%10);p.seasonByClub??={};p.seasonByClub[club]??={first:emptyRecord(),second:emptyRecord(),postseason:emptyRecord()};mergeRecord(p.seasonByClub[club][postseason?"postseason":game.competitionId==="pro-first"?"first":"second"],record);
-      if(p.professional&&(record.batting.PA||record.pitching.BF)){
+      if(p.professional&&(record.batting.PA||record.pitching.BF||record.pitching.outs)){
         p.professional.lastAppearance=game.date;
         if(game.competitionId==="pro-first"){
           const first=p.professional.firsts,debuts=!first.debut;first.debut??=game.date;if(game.lineup.some(side=>side.slice(0,10).includes(id)))first.start??=game.date;

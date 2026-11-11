@@ -23,7 +23,9 @@ export function regularSeasonFinishNotice(state:GameState){
   const club=p.teamId>=0?p.teamId%10:p.professional?.contract?.club??state.postSchool?.pro?.club??null;
   const rank=(state.proWorld?.postseason?.seeds.indexOf(club??-1)??-1)+1;
   const team=club===null?"무소속":state.teams[club]?.name.replace(/ [12]군$/,"")??"무소속";
-  return regularSeasonFinishText(team,rank,p.teamId>=0&&p.teamId<10);
+  const notice=regularSeasonFinishText(team,rank,p.teamId>=0&&p.teamId<10);
+  if(state.proWorld?.postseasonExpansion?.calledUp.includes(p.id))notice.message+='\n\n포스트시즌 특별 엔트리에 선발되어 1군으로 합류했습니다.';
+  return notice;
 }
 
 export function professionalSeasonFinishNotice(state:GameState,year=state.proWorld?.year??state.calendar.seasonYear){

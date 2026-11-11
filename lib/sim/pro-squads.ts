@@ -1,7 +1,7 @@
 import {available,hash,roleScore,selectionScore} from "./engine";
 import {proTeamName} from "./club-names";
 import type {GameState,Player,Position,ProSquad} from "./types";
-import {firstTeamCapacity,firstTeamSlots,proRosterPositions} from './pro-roster';
+import {firstTeamCapacity,firstTeamRosterCapacity,firstTeamSlots,proRosterPositions} from './pro-roster';
 
 export const squadLevels:ProSquad[]=["first","second","third","developmental"];
 export const squadLabels:Record<ProSquad,string>={first:"1군",second:"2군",third:"잔류군(3군)",developmental:"육성선수"};
@@ -39,7 +39,7 @@ export function reorganizeProSquads(s:GameState){
     for(const p of members)if(p.proContract?.status==="developmental")setProSquad(s,p,"developmental");
   }
   s.proWorld!.squadsVersion=2;
-  for(const series of s.proWorld!.postseason?.series??[])if(series.winner===undefined)for(const club of series.clubs)series.rosters[String(club)]=s.players.filter(p=>p.teamId===club&&p.proContract?.status!=="developmental"&&!series.excluded.includes(p.id)).slice(0,firstTeamCapacity).map(p=>p.id);
+  for(const series of s.proWorld!.postseason?.series??[])if(series.winner===undefined)for(const club of series.clubs)series.rosters[String(club)]=s.players.filter(p=>p.teamId===club&&p.proContract?.status!=="developmental"&&!series.excluded.includes(p.id)).slice(0,firstTeamRosterCapacity(s,club)).map(p=>p.id);
   const mine=s.players.find(p=>p.id===s.playerId);if(mine&&s.postSchool?.pro)s.postSchool.pro.level=proSquad(mine.teamId)??"third";
   return true;
 }
@@ -47,6 +47,9 @@ export function reorganizeProSquads(s:GameState){
 // from the lower squads and move excess registrations down without losing data.
 export function normalizeFirstTeamRoster(s:GameState,club:number){
   if(s.weekProgress||s.matchProgress)return;
+  if(s.proWorld?.openingRosterDate===s.date)return;
+  // Expanded registrations remain in place throughout the following camp.
+  if(firstTeamRosterCapacity(s,club)>firstTeamCapacity)return;
   const members=s.players.filter(p=>p.teamId>=0&&p.teamId%10===club&&p.professional?.employment==='active'&&p.proContract?.status!=='developmental');
   const first=members.filter(p=>p.teamId===club),pitching=(p:Player)=>['SP','RP','CP'].includes(p.position),count=(pos:Position)=>first.filter(p=>p.position===pos).length;
   const arms=first.filter(pitching).length;

@@ -2,7 +2,7 @@ import type {Game,MatchProgress,RecordLine} from "./types";
 
 export const gameCounterKeys=["batting","pitching","wins","losses","holds","saves"] as const;
 export function mergeGameCounters(target:RecordLine,add:RecordLine){
-  const targetBatting=target.batting.PA>0,targetPitching=target.pitching.BF>0,addBatting=add.batting.PA>0,addPitching=add.pitching.BF>0;
+  const targetBatting=target.batting.PA>0,targetPitching=target.pitching.BF>0||target.pitching.outs>0,addBatting=add.batting.PA>0,addPitching=add.pitching.BF>0||add.pitching.outs>0;
   for(const key of gameCounterKeys){
     const a=target.games?.[key],b=add.games?.[key];
     // Unknown legacy totals stay unknown; never turn missing history into zero.
@@ -57,7 +57,7 @@ export function finishGameRecords(game:Game,m:MatchProgress){
   }
   for(const [id,record] of Object.entries(game.boxScore))record.games={
     batting:fielders.has(id)||record.batting.PA>0?1:0,
-    pitching:record.pitching.BF>0?1:0,
+    pitching:record.pitching.BF>0||record.pitching.outs>0?1:0,
     ...(scoring?{wins:Number(id===winner),losses:Number(id===loser),holds:Number(holds.has(id)),saves:Number(saves.has(id))}:{}),
   };
 }

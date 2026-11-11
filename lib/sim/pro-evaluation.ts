@@ -1,6 +1,7 @@
 import {clamp,emptyRecord,isPitcher,mergeRecord,ops,ovr,positions,roleScore,proSelectionScore} from "./engine";
 import type {GameState,Player,Position,RecordLine} from "./types";
 import type {ProAward} from "./pro-types";
+import {individualAwards} from './pro-individual-awards';
 
 export function performanceValue(p:Player,records:RecordLine,farm=false) {
   const r=records,pit=r.pitching,b=r.batting;
@@ -42,14 +43,9 @@ export function goldGloveAwards(s:GameState):ProAward[]{
 export function regularAwards(s:GameState):ProAward[] {
   const year=s.calendar.seasonYear,players=s.players.filter(p=>p.professional&&p.seasonByLevel),league=emptyRecord(),awards:ProAward[]=[];
   for(const p of players)mergeRecord(league,p.seasonByLevel!.first);
-  const games=144,add=(kind:string,p:Player,value:number)=>awards.push({year,kind,playerId:p.id,playerName:p.name,club:p.teamId<0?p.professional!.contract?.club??p.professional!.firstClub:p.teamId%10,value});
-  const titles:[string,(r:RecordLine)=>number, (r:RecordLine)=>boolean,boolean][]=[
-    ["타율",r=>r.batting.H/r.batting.AB,r=>r.batting.PA>=Math.ceil(games*3.1)&&r.batting.AB>0,false],
-    ["홈런",r=>r.batting.HR,r=>r.batting.PA>0,false],["타점",r=>r.batting.RBI,r=>r.batting.PA>0,false],["안타",r=>r.batting.H,r=>r.batting.PA>0,false],
-    ["평균자책점",r=>r.pitching.ER*27/r.pitching.outs,r=>r.pitching.outs>=games*3,true],["탈삼진",r=>r.pitching.SO,r=>r.pitching.BF>0,false]];
-  for(const [kind,value,qualifies,low] of titles){const candidates=players.filter(p=>qualifies(p.seasonByLevel!.first));if(!candidates.length)continue;
-    const best=(low?Math.min:Math.max)(...candidates.map(p=>value(p.seasonByLevel!.first)));
-    for(const p of candidates)if(Math.abs(value(p.seasonByLevel!.first)-best)<1e-10)add(kind,p,best);
+  const add=(kind:string,p:Player,value:number)=>awards.push({year,kind,playerId:p.id,playerName:p.name,club:p.teamId<0?p.professional!.contract?.club??p.professional!.firstClub:p.teamId%10,value});
+  for(const title of individualAwards(s).filter(row=>row.level==='first'))for(const winner of title.winners){
+    const p=players.find(p=>p.id===winner.playerId);if(p)add(title.label,p,title.value);
   }
   const candidates=players.filter(p=>p.seasonByLevel!.first.batting.PA>=100||p.seasonByLevel!.first.pitching.outs>=90),merits=candidates.map(p=>({p,...awardMerit(p,p.seasonByLevel!.first,league)}));
   const normalize=(row:typeof merits[number])=>{const group=merits.filter(m=>m.pitching===row.pitching),mean=group.reduce((n,m)=>n+m.raw,0)/Math.max(1,group.length),sd=Math.sqrt(group.reduce((n,m)=>n+(m.raw-mean)**2,0)/Math.max(1,group.length));return (sd?(row.raw-mean)/sd:0)*10+Math.log1p(row.n)*3;};

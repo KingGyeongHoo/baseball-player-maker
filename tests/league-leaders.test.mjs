@@ -35,6 +35,54 @@ test('rate leaders apply playing-time requirements and order ERA and WHIP upward
  short.seasonStats.batting.HR=999;short.seasonPostseason=e.emptyRecord();short.seasonPostseason.batting.HR=999;assert.equal(rows(s,'pro-second','batting','HR').length,0);
  const copy=structuredClone(s);leagueLeaders(s,'pro-first','batting');assert.deepEqual(s,copy);
 });
+
+test('qualified relievers rank the top ten holds and saves separately by level',()=>{
+ const s=fixture();
+ for(let i=0;i<14;i++){
+  const p=player('reliever'+String(i).padStart(2,'0'),10);
+  p.primaryRole='중간계투';
+  for(const [level,holds,saves] of [['first',i,14-i],['second',14-i,i]]){
+   const record=p.seasonByLevel[level];record.pitching.outs=1;record.pitching.BF=1;
+   record.games={...record.games,holds,saves};
+  }
+  p.seasonStats.games={...p.seasonStats.games,holds:999,saves:999};
+  p.seasonPostseason=e.emptyRecord();p.seasonPostseason.games={...p.seasonPostseason.games,holds:999,saves:999};
+  s.players.push(p);
+ }
+ assert.equal(rows(s,'pro-first','pitching','era').length,10);
+ for(const level of ['pro-first','pro-second'])for(const metric of ['holds','saves']){
+  const ranked=rows(s,level,'pitching',metric);assert.equal(ranked.length,10);
+  const reverse=(level==='pro-first')===(metric==='holds');
+  assert.equal(ranked[0].player.id,reverse?'reliever13':'reliever00');
+  assert.equal(ranked[0].value,reverse?13:14);
+  assert.ok(ranked.every((row,i)=>i===0||ranked[i-1].value>=row.value));
+ }
+ const old=player('legacy');old.primaryRole='마무리';old.seasonByLevel.first.pitching.outs=1;delete old.seasonByLevel.first.games;s.players=[old];
+ for(const metric of ['holds','saves'])assert.equal(rows(s,'pro-first','pitching',metric)[0].value,0);
+});
+
+test('starter and bullpen qualification uses separate out boundaries for rates, holds and saves in both leagues',()=>{
+ for(const [level,games] of [['first',144],['second',72]]){
+  const s=fixture(),competition=level==='first'?'pro-first':'pro-second';
+  for(const game of s.calendar.events.filter(g=>g.competitionId===competition)){game.status='completed';game.score=[3,1];}
+  for(const [role,multiplier] of [['선발',3],['중간계투',1],['마무리',1]])for(const short of [false,true]){
+   const p=player(`${role}-${short}`,level==='first'?0:10);p.primaryRole=role;
+   const record=p.seasonByLevel[level];Object.assign(record.pitching,{outs:games*multiplier-Number(short),BF:600,SO:90,ER:5,H:30,BB:5});
+   record.games={...record.games,holds:short?100:2,saves:short?100:2};s.players.push(p);
+  }
+  const twoWay=player('two-way-bullpen',level==='first'?0:10);twoWay.primaryRole='유격수';twoWay.twoWay={pitchingPosition:'RP'};twoWay.seasonByLevel[level]=structuredClone(s.players.find(p=>p.id==='중간계투-false').seasonByLevel[level]);s.players.push(twoWay);
+  for(const metric of ['era','whip','kRate','holds','saves']){
+   const ids=rows(s,competition,'pitching',metric).map(row=>row.player.id);
+   assert.equal(ids.length,4,`${level} ${metric}`);assert.ok(ids.every(id=>id.endsWith('-false')||id==='two-way-bullpen'));
+  }
+  assert.equal(rows(s,competition,'pitching','SO').length,7,'counting strikeouts retain their existing qualification');
+ }
+ const s=fixture();for(const game of s.calendar.events.filter(g=>g.competitionId==='pro-first').slice(0,50)){game.status='completed';game.score=[3,1];}
+ // Ten games per team: the bullpen minimum is ten outs (3.1 innings), not four whole innings.
+ const p=player('fractional');p.primaryRole='중간계투';p.seasonByLevel.first.pitching.outs=10;p.seasonByLevel.first.games={saves:1};s.players=[p];
+ assert.equal(rows(s,'pro-first','pitching','saves').length,1);p.seasonByLevel.first.pitching.outs=9;
+ assert.equal(rows(s,'pro-first','pitching','saves').length,0);
+});
 test('retired NPC details are discarded once while recent league totals and the user career remain available',()=>{
  const s=fixture(),me=player('me'),old=player('retired');s.players=[me,old];old.professional.employment='retired';old.seasonByLevel.first.batting.PA=20;old.seasonByLevel.first.batting.H=7;s.proWorld.archive=[old];
  me.professional.employment='retired';const before=evaluationLeague(s,2030,'first');

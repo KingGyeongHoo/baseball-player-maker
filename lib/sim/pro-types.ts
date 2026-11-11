@@ -35,7 +35,7 @@ export type ProSeasonArchive = {year:number;endDate?:string;standings:Standing[]
 export type ProSeries = {id:string;stage:"wildcard"|"semi"|"playoff"|"final";clubs:[number,number];wins:[number,number];target:number;game:number;lastDate:string;winner?:number;rosters:Record<string,string[]>;excluded:string[];drawHomes?:number[];processedGame?:number};
 export type ContractOffer = {id:string;club:number;year:number;years:number;salary:number;role:string;kind:"renewal"|"fa"|"released";faRetention?:boolean;lastChance?:true;negotiated:boolean;final:boolean;competition:string[];registration?:"developmental";assessment?:{current:number|null;cumulative:number|null;score:number}};
 export type RetiredNumber={club:number;number:number;playerId:string;playerName:string;date:string;score:number};
-export type ProPostseason={format?:"kbo-v1";seeds:number[];series:ProSeries[];champion?:number};
+export type ProPostseason={format?:"kbo-v1";rosterVersion?:1;seeds:number[];series:ProSeries[];champion?:number};
 export type ProWorld = {
   resumeCampAfterAwards?:true;
   stove?:{version:1;year:number;openedAt:string;closesAt:string;nextUpdate:string;round:number;closed:boolean;movedIds:string[]};
@@ -44,6 +44,8 @@ export type ProWorld = {
   clubs:{id:number;direction:"contend"|"balanced"|"rebuild";budget:number;deadMoney:Record<string,number>;nextReview?:string}[];
   seasons:ProSeasonArchive[]; archive:Player[]; retiredRecords?:Record<string,RecordLine>; news:{id:string;date:string;text:string}[];
   postseason?:ProPostseason;
+  postseasonExpansion?:{year:number;clubs:number[];calledUp:string[]};
+  openingRosterDate?:string;
   replacedPostseason?:{year:number;date:string;postseason:ProPostseason;games:Game[];competitions:Competition[];records:{playerId:string;records:RecordLine;byClub:Record<string,RecordLine>}[]};
   market?:{year:number;kind:"renewal"|"fa"|"released";round:number;offers:ContractOffer[];settled:boolean;requestedRelease?:boolean;retentionOnly?:true};
   retiredNumbers?:RetiredNumber[];

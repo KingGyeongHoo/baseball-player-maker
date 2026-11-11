@@ -2,7 +2,7 @@ import type { Player, Position, RecordLine } from "./types";
 
 export const fieldPositions: Position[] = ["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH"];
 // A routed ball is one observed opportunity, not a second probability draw.
-// Catcher opportunities are popups; framing, steals and assists are not simulated.
+// Catcher fielding chances are popups; framing and throwing assists are not recorded.
 const routeWeights = [5, 20, 18, 17, 9, 12, 9, 10];
 export function fieldingIndex(roll: number) {
   let n = roll % 100;

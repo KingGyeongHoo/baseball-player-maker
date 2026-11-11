@@ -8,8 +8,9 @@ import {addDays,available,clamp,draftClubs,draftPlayers,emptyRecord,generatedTal
 import {developmentCalendar,careerLeagueTable} from "./pro-calendar";
 import {applyAging} from "./pro-growth";
 import {regularAwards,contractValue} from "./pro-evaluation";
-import {firstTeamCapacity} from './pro-roster';
-import {BASE_SALARY,clubName,contractFor,ensureProWorld,initializeProfessional,proNews,proNotice} from "./pro-world";
+import {postseasonTeamCapacity} from './pro-roster';
+import {expandPostseasonRosters,needsPostseasonRosterUpgrade} from './pro-postseason-roster';
+import {BASE_SALARY,clubName,contractFor,ensureProWorld,initializeProfessional,prepareOpeningRegistrations,proNews,proNotice} from "./pro-world";
 import {upgradeContractRules,needsContractUpgrade,applySeasonExitPolicies,offerFor,canRemove,careerRequest,clubRoster,negotiateOffer,openContractMarket,refreshOffers,releasePlayer,renewNPCs,reviewNPCTrades,reviewStoveReleases,signContract,trimForRookies} from "./pro-market";
 import {type GameState,type Game,type Player,type Position} from "./types";
 import type {ProSeries} from "./pro-types";
@@ -40,7 +41,7 @@ function payroll(s:GameState,p:Player){
   for(const [club,amount] of byClub){const value=Math.trunc(amount);pro.salaries.push({year,club,amount:value,salary:contract.salary});pro.earnings+=value;}
 }
 function playoffRoster(s:GameState,club:number){
-  return s.players.filter(p=>p.teamId===club&&p.proContract?.status!=="developmental").slice(0,firstTeamCapacity).map(p=>p.id);
+  return s.players.filter(p=>p.teamId===club&&p.proContract?.status!=="developmental").slice(0,postseasonTeamCapacity).map(p=>p.id);
 }
 function scheduleSeriesGame(s:GameState,series:ProSeries,date:string){
   const number=series.game++,round=postseasonRound(series.stage);
@@ -48,7 +49,7 @@ function scheduleSeriesGame(s:GameState,series:ProSeries,date:string){
   const game:Game={id:`${s.calendar.seasonYear}:${series.id}:${number}`,date,homeTeamId:home,awayTeamId:away,competitionId:`pro-playoffs-${series.id}`,round:number+1,rulesetId:"pro-playoffs-v1",status:"scheduled",score:[0,0],innings:[[],[]],lineup:[],boxScore:{}};
   s.calendar.events.push(game);s.calendar.events.sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));if(date>s.calendar.seasonEnd)s.calendar.seasonEnd=date;series.lastDate=date;
   let competition=s.calendar.competitions.find(c=>c.id===game.competitionId);
-  if(!competition){competition={id:game.competitionId,name:round.label,kind:"league",startDate:date,endDate:date,entryRule:"정식 선수 29명 이하의 고정 시리즈 명단",participantTeamIds:[...series.clubs],initialized:true,round:0,roundDates:[],byes:[],championTeamId:null};s.calendar.competitions.push(competition);}competition.endDate=date;
+  if(!competition){competition={id:game.competitionId,name:round.label,kind:"league",startDate:date,endDate:date,entryRule:"정식 선수 최대 32명 · 포스트시즌 특별 엔트리 · 시리즈별 고정 명단",participantTeamIds:[...series.clubs],initialized:true,round:0,roundDates:[],byes:[],championTeamId:null};s.calendar.competitions.push(competition);}competition.endDate=date;
 }
 function makeSeries(s:GameState,id:string,stage:ProSeries["stage"],clubs:[number,number],date:string){
   const series:ProSeries={id,stage,clubs,wins:stage==="wildcard"?[1,0]:[0,0],target:postseasonRound(stage).target,game:0,lastDate:date,rosters:Object.fromEntries(clubs.map(club=>[String(club),playoffRoster(s,club)])),excluded:[]};
@@ -56,6 +57,7 @@ function makeSeries(s:GameState,id:string,stage:ProSeries["stage"],clubs:[number
 }
 export function preparePlayoffReplacements(s:GameState){
   const w=s.proWorld;if(w?.stage!=="postseason")return;
+  expandPostseasonRosters(s);
   for(const series of w.postseason!.series.filter(v=>v.winner===undefined))for(const club of series.clubs){
     const ids=series.rosters[String(club)];
     for(let i=0;i<ids.length;i++){const old=s.players.find(p=>p.id===ids[i]);if(!old?.injury||s.date>=old.injury.unavailableUntil)continue;
@@ -95,6 +97,7 @@ export function migrateActivePostseason(s:GameState){
   if(s.proEvents){s.proEvents.history=s.proEvents.history.filter(r=>!r.seriesId);if(s.proEvents.reservation?.context.seriesId)delete s.proEvents.reservation;}
   const seeds=careerLeagueTable(s.calendar,"pro-first").slice(0,5).map(r=>r.teamId);
   w.postseason={format:"kbo-v1",seeds,series:[]};
+  expandPostseasonRosters(s);
   s.calendar.seasonEnd=s.calendar.events.at(-1)?.date??w.regularEnd;
   makeSeries(s,"wildcard","wildcard",[seeds[3],seeds[4]],addDays(s.date,1));
   updateReputation(s);
@@ -105,12 +108,13 @@ export function finishProfessionalDay(s:GameState){
   ensureProWorld(s);const w=s.proWorld!;
   if(s.phase==="ended")return true;
   if(migrateActivePostseason(s))return false;
-  if(w.stage==="camp"&&s.date>=s.calendar.competitions.find(c=>c.id==="pro-first")!.startDate)w.stage="regular";
+  if(w.stage==="camp"&&s.date>=s.calendar.competitions.find(c=>c.id==="pro-first")!.startDate){prepareOpeningRegistrations(s);w.stage="regular";}
   if(w.stage==="regular"&&s.date>=w.regularEnd){
     const tiePending=["pro-first","pro-second"].map(id=>advanceLeagueTiebreakers(s.calendar,id,s.date)).some(Boolean);
     if(tiePending)return false;
     for(const id of ["pro-first","pro-second"]){const competition=s.calendar.competitions.find(c=>c.id===id);if(competition)competition.championTeamId=careerLeagueTable(s.calendar,id)[0]?.teamId??null;}
     w.stage="postseason";const standings=careerLeagueTable(s.calendar,"pro-first"),seeds=standings.slice(0,5).map(v=>v.teamId);w.postseason={format:"kbo-v1",seeds,series:[]};
+    expandPostseasonRosters(s);
     makeSeries(s,"wildcard","wildcard",[seeds[3],seeds[4]],addDays(s.date,2));
     const notice=regularSeasonFinishNotice(s);
     proNotice(s,`PRO10:postseason:${w.year}`,notice.title,notice.message);return false;
@@ -315,9 +319,12 @@ export function advanceUnattachedMonth(input:GameState,advance:(s:GameState)=>Ga
   }return s;
 }
 export function upgradeProfessionalState(input:GameState){
-  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===1&&!needsPostseasonUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input))return input;
+  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===1&&!needsPostseasonUpgrade(input)&&!needsPostseasonRosterUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input))return input;
   const s=structuredClone(input);ensureProWorld(s);upgradeContractRules(s);
   migrateActivePostseason(s);
+  if(expandPostseasonRosters(s)){
+    for(const notice of [s.careerNotice,...s.noticeQueue??[]])if(notice?.code===`PRO10:postseason:${s.proWorld!.year}`)Object.assign(notice,regularSeasonFinishNotice(s));
+  }
   upgradeProSchedule(s);
   upgradeAllstarSchedule(s);ensureAllstarSeason(s);
   if(!input.proWorld&&s.phase==="ended"){s.proWorld!.stage="regular";s.phase="weekStart";finishProfessionalDay(s);s.date=addDays(s.date,1);}

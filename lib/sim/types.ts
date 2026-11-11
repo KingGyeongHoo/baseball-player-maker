@@ -27,6 +27,8 @@ export type Stance = {
   pitching: "full" | "command";
 };
 export type Batting = {
+  SB?: number;
+  CS?: number;
   PA: number;
   AB: number;
   H: number;

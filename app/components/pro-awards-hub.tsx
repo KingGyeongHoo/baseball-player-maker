@@ -6,17 +6,18 @@ import type {ProIndividualAward,ProSeasonArchive} from "../../lib/sim/pro-types"
 import {SeasonAwards} from "./pro-awards";
 import ProAllstar from "./pro-allstar";
 import {ProAllstarHonors} from "./pro-career-panels";
+import {individualTitleName} from '../../lib/sim/pro-individual-awards';
 
 export function awardValueText(row:ProIndividualAward){
   return row.format==="innings"?formatInnings(row.value):row.format==="percent"?`${(row.value*100).toFixed(1)}%`:row.format==="decimal"?row.value.toFixed(2):row.format==="rate"?row.value.toFixed(3).replace(/^0\./,'.'):String(row.value);
 }
 export function IndividualAwards({state,season,onRecords}:{state:GameState;season?:ProSeasonArchive;onRecords:(id:string)=>void}){
   const [level,setLevel]=useState<ProLevel>('first'),[field,setField]=useState<'batting'|'pitching'>('batting');
-  const rows=season?.individualAwards?.filter(row=>row.level===level&&row.field===field)??[];
+  const rows=season?.individualAwards?.filter(row=>row.level===level&&row.field===field&&individualTitleName(row)).map(row=>({...row,label:individualTitleName(row)!}))??[];
   return <section className="panel"><div className="panel-heading"><h2>개인 수상 · 항목별 1위</h2></div><div className="career-panel-body">
     <div className="awards-filters"><div className="segmented" aria-label="개인 수상 리그">{(['first','second'] as const).map(key=><button key={key} aria-pressed={level===key} className={level===key?'selected':''} onClick={()=>setLevel(key)}>{key==='first'?'1군':'2군'}</button>)}</div><div className="segmented" aria-label="개인 수상 분야">{(['batting','pitching'] as const).map(key=><button key={key} aria-pressed={field===key} className={field===key?'selected':''} onClick={()=>setField(key)}>{key==='batting'?'타자':'투수'}</button>)}</div></div>
     {rows.length?<div className="table-scroll"><table><thead><tr><th>수상 항목</th><th>1위 선수</th><th>소속</th><th>기록</th></tr></thead><tbody>{rows.flatMap(row=>row.winners.map(winner=><tr key={`${row.metric}:${winner.playerId}`} className={winner.playerId===state.playerId?'my-player-row':''}><th scope="row">{row.label}{row.winners.length>1&&<small> · 공동 1위</small>}</th><td>{state.players.some(p=>p.id===winner.playerId)?<button className="player-name-button" onClick={()=>onRecords(winner.playerId)}>{winner.playerName}</button>:winner.playerName}</td><td>{state.teams[winner.club]?.name.replace(/ 1군$/,'')??'—'}</td><td><b>{awardValueText(row)}</b></td></tr>))}</tbody></table></div>:<p className="empty-note">{season?'규정 기록을 충족한 수상자가 없거나 이 시즌의 개인 수상 기록이 없습니다.':'시즌 종료 후 항목별 1위 선수가 확정됩니다.'}</p>}
-    <p className="micro muted">정규리그 기록만 반영합니다. 비율 기록은 규정 타석·이닝을 충족한 선수만 선정하며 동률은 공동 1위로 표시합니다.</p>
+    <p className="micro muted">정규리그 기록만 반영합니다. 타격 비율 기록은 규정 타석, 투구 비율 기록·홀드·세이브는 규정 이닝을 충족해야 합니다. 선발은 1군 144이닝·2군 72이닝, 불펜은 1군 48이닝·2군 24이닝이며 동률은 공동 1위로 표시합니다.</p>
   </div></section>;
 }
 export default function ProAwardsHub({state,onRecords}:{state:GameState;onRecords:(id:string)=>void}){

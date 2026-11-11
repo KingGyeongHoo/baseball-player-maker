@@ -3,6 +3,7 @@ import {currentSeasonAssessment} from "./sim/pro-assessment";
 import {playerSeasons} from "./player-records";
 import {clubName} from "./sim/pro-world";
 import type {GameState,Player} from "./sim/types";
+import {individualTitleName,individualTitleFromKind,isRecordOnlyAward} from './sim/pro-individual-awards';
 
 export function lifetimeRecords(player:Player,year:number){
   const total=emptyRecord();
@@ -68,13 +69,14 @@ export function careerHonors(state:GameState):Record<CareerHonorCategory,CareerH
   }
   for(const season of seasons){
     const announced=!season.awardsCeremony||!!season.awardsCeremony.presentedAt;
-    for(const row of season.individualAwards??[])if(row.winners.some(winner=>winner.playerId===player.id))add("individual",season.year,`${row.level==="first"?"1군":"2군"} ${row.label} 1위`,row.winners.length>1?"공동 1위":undefined);
+    for(const row of season.individualAwards??[]){const title=individualTitleName(row);if(title&&row.winners.some(winner=>winner.playerId===player.id))add("individual",season.year,`${row.level==="first"?"1군":"2군"} ${title}`,row.winners.length>1?"공동 1위":undefined);}
     for(const award of season.awards){
       if(award.playerId!==player.id)continue;
       if(award.category==="goldGlove"||award.kind.startsWith("골든글러브")){if(announced)add("gold",season.year,award.kind.replace("골든글러브 · ",""));continue;}
       if(award.kind==="시즌 MVP"){if(announced)add("individual",season.year,award.kind);continue;}
-      if(["타율","홈런","타점","안타","평균자책점","탈삼진"].includes(award.kind))add("individual",season.year,`1군 ${award.kind} 1위`);
-      else add("individual",season.year,award.kind);
+      const title=individualTitleFromKind(award.kind);
+      if(title)add("individual",season.year,`1군 ${title}`);
+      else if(!isRecordOnlyAward(award.kind))add("individual",season.year,award.kind);
     }
   }
   for(const rows of Object.values(result))rows.sort((a,b)=>b.year-a.year||a.title.localeCompare(b.title,"ko"));

@@ -31,7 +31,7 @@ export function runSeason(seed){
        for(const[other,record]of Object.entries(g.boxScore))if(other!==id&&record.pitching.BF>0&&s.players.find(p=>p.id===other)?.teamId===team)assert(['중간계투','마무리'].includes(e.pitchingRole(s.players.find(p=>p.id===other))));
        assert(!recent.includes(id),`Starter reused before five team games: ${id}`);recent.push(id);if(recent.length>4)recent.shift();recentStarts.set(team,recent);
      }
-     for(const[id,record]of Object.entries(g.boxScore))if(record.pitching.BF){
+     for(const[id,record]of Object.entries(g.boxScore))if(record.pitching.BF||record.pitching.outs){
        const p=s.players.find(p=>p.id===id),row=workloadRows.get(id)??{id,role:p.position,games:0,outs:0,maxOuts:0,starts:0};
        row.games++;row.outs+=record.pitching.outs;row.maxOuts=Math.max(row.maxOuts,record.pitching.outs);row.starts+=Number(g.lineup.some(side=>side[9]===id));workloadRows.set(id,row);
        if(row.role==='SP'&&record.pitching.outs>=24)rareOutings.starterEightInnings++;

@@ -89,8 +89,8 @@ test('farm-only reputation performance is capped at 70, separate from first-team
   const s=fixture(),p=e.getPlayer(s);Object.assign(p.seasonByLevel.second.batting,{PA:200,AB:180,H:120,BB:20,HR:50});world.reviewProfessionalReputation(s);assert.ok(p.performanceReputation<=70);assert.equal(evaluation.regularAwards(s).some(a=>a.playerId===p.id&&a.kind==='홈런'),false);
 });
 test('regular awards enforce qualified rate titles, allow tied counting titles, and grant no skill bonuses',()=>{
-  const s=fixture(),p=e.getPlayer(s),q=s.players.find(q=>q.id!==p.id),stats={...p.stats};Object.assign(p.seasonByLevel.first.batting,{PA:447,AB:400,H:140,HR:30});Object.assign(q.seasonByLevel.first.batting,{PA:446,AB:400,H:250,HR:30});
-  const awards=evaluation.regularAwards(s);assert.equal(awards.find(a=>a.kind==='타율').playerId,p.id);assert.equal(awards.filter(a=>a.kind==='홈런').length,2);assert.deepEqual(p.stats,stats);assert.deepEqual(evaluation.regularAwards(s),awards);
+  const s=fixture(),p=e.getPlayer(s),q=s.players.find(q=>q.id!==p.id),stats={...p.stats};Object.assign(p.seasonByLevel.first.batting,{PA:447,AB:400,H:140,HR:30});Object.assign(q.seasonByLevel.first.batting,{PA:446,AB:300,H:140,HR:30});
+  const awards=evaluation.regularAwards(s);assert.equal(awards.find(a=>a.kind==='타격왕').playerId,p.id);assert.equal(awards.filter(a=>a.kind==='안타왕').length,2);assert.equal(awards.some(a=>a.kind==='홈런'),false);assert.deepEqual(p.stats,stats);assert.deepEqual(evaluation.regularAwards(s),awards);
 });
 test('retirement archives the actual career before displaying the result and forfeits only remaining voluntary salary',()=>{
   const s=summary(),p=e.getPlayer(s);p.professional.contract.endYear=2030;const before=structuredClone(s),retired=life.actOnProCareer(s,{type:'retire'});assert.deepEqual(s,before);assert.equal(retired.proWorld.stage,'retired');assert.equal(retired.proWorld.retired.forfeited,2*world.BASE_SALARY);assert.equal(e.getPlayer(retired).professional.employment,'retired');assert.ok(e.getPlayer(retired).career.some(row=>row.careerMode==='pro'));assert.throws(()=>life.actOnProCareer(acknowledge(retired),{type:'nextSeason'}),/은퇴/);

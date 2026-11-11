@@ -1,8 +1,10 @@
 import {clamp,emptyRecord,hash,isPitcher,params,previewPlayer,random,reputationScore} from './engine';
 import {seededPlayerName} from './player-names';
-import type {Player,Position} from './types';
+import type {GameState,Player,Position} from './types';
 
 export const firstTeamCapacity=29;
+export const postseasonTeamCapacity=firstTeamCapacity+3;
+export const firstTeamRosterCapacity=(s:GameState,club:number)=>s.proWorld?.postseasonExpansion?.clubs.includes(club)?postseasonTeamCapacity:firstTeamCapacity;
 export const proRosterPositions:Position[]=['C','C','1B','2B','2B','3B','SS','SS','LF','LF','CF','CF','RF','RF','DH',...Array<Position>(6).fill('SP'),...Array<Position>(8).fill('RP'),'CP'];
 export function firstTeamSlots(seed:string,club:number):Position[]{
   const pitchers=12+hash(`${seed}:${club}:pitcher-depth`)%4,starters=5+hash(`${seed}:${club}:starter-depth`)%2;

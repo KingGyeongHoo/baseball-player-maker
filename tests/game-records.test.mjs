@@ -53,3 +53,44 @@ test('real simulation counts appearances and decisions once, without changing ex
  const before=structuredClone(rosters);assert.equal(e.simulateGame(s,game,rosters),true);assert.deepEqual(rosters,before);
  }
 });
+
+test('stealing uses runner speed and judgement against battery ability with distinct safe and caught results',()=>{
+ const {stolenBaseAttempt}=require('../.test-build/lib/sim/base-stealing.js');
+ const normal={speed:65,bq:65,arm:65,control:65},fast={...normal,speed:95,bq:85},slow={...normal,speed:25,bq:25};
+ assert.equal(stolenBaseAttempt(fast,normal,normal,.1,.1),'safe');assert.equal(stolenBaseAttempt(slow,normal,normal,.1,.1),'none');
+ assert.equal(stolenBaseAttempt(fast,normal,normal,0,.99),'out');
+ assert.equal(stolenBaseAttempt(normal,normal,{...normal,arm:20},0,.75),'safe');assert.equal(stolenBaseAttempt(normal,normal,{...normal,arm:100},0,.75),'out');
+});
+
+test('stolen-base totals merge through old records and preserve packed record layouts',()=>{
+ const current=e.emptyRecord();current.batting.SB=3;current.batting.CS=1;current.batting.PA=10;
+ const old=e.emptyRecord(),oldPacked=packEvaluationRecord(old);assert.deepEqual(unpackEvaluationRecord(oldPacked),old);
+ e.mergeRecord(old,current);e.mergeRecord(old,current);assert.equal(old.batting.SB,6);assert.equal(old.batting.CS,2);
+ assert.deepEqual(unpackEvaluationRecord(packEvaluationRecord(old)),old);
+ const {packRecentRecord,mergeRecentRecord,recentSample}=require('../.test-build/lib/sim/recent-records.js'),packed=packRecentRecord(current),recent=e.emptyRecord();
+ mergeRecentRecord(recent,packed);assert.equal(recent.batting.SB,3);assert.equal(recent.batting.CS,1);assert.equal(recentSample(packed,false),10);
+ mergeRecentRecord(recent,packed.slice(0,20));assert.equal(recent.batting.SB,3);assert.equal(recent.batting.PA,20);
+ const {game,m}=fixture();game.boxScore.save=line(1,0);finishGameRecords(game,m);assert.equal(game.boxScore.save.games.pitching,1);
+});
+
+test('real professional steals and caught stealing reconcile with pitching outs, level totals and save/load',()=>{
+ const {encodeCareerSave,decodeCareerSave}=require('../.test-build/lib/career-save.js');
+ const previous=e.params['pro_events.enabled'];e.params['pro_events.enabled']=0;
+ try{
+  const s=pc.acknowledgeCareer(pc.createProfessionalDemo('steal-records-integration','도루집계','SS'));s.proWorld.stage='regular';
+  let steals=0,caught=0;
+  for(const game of s.calendar.events.filter(g=>g.competitionId==='pro-first').slice(0,30)){
+   s.date=game.date;for(const p of s.players){p.fatigue=0;p.forcedRest=false;p.injury=null;}
+   const rosters=[game.homeTeamId,game.awayTeamId].map(id=>s.players.filter(p=>p.teamId===id));
+   assert.equal(e.simulateGame(s,game,rosters),true);assert.equal(game.status,'completed');
+   const records=Object.values(game.boxScore),cs=records.reduce((n,r)=>n+(r.batting.CS??0),0);
+   steals+=records.reduce((n,r)=>n+(r.batting.SB??0),0);caught+=cs;
+   assert.equal(records.reduce((n,r)=>n+r.pitching.outs,0),records.reduce((n,r)=>n+r.batting.AB-r.batting.H,0)+cs);
+  }
+  assert.ok(steals>0);assert.ok(caught>0);
+  assert.equal(s.players.reduce((n,p)=>n+(p.seasonByLevel.first.batting.SB??0),0),steals);
+  assert.equal(s.players.reduce((n,p)=>n+(p.seasonStats.batting.CS??0),0),caught);
+  const restored=decodeCareerSave(JSON.stringify(encodeCareerSave(s,false))).state;
+  assert.equal(restored.players.reduce((n,p)=>n+(p.seasonByLevel.first.batting.SB??0),0),steals);
+ }finally{e.params['pro_events.enabled']=previous;}
+});
