@@ -1,4 +1,6 @@
-import {available,clamp,emptyRecord,getPlayer,hash,isPitcher,params,reputationScore,roleFor,roleScore,selectionScore,simulateGame} from "./engine";
+import {available,clamp,emptyRecord,getPlayer,hash,isPitcher,params,roleFor,roleScore,selectionScore,simulateGame} from "./engine";
+import {eventTrainingReward} from "./event-system";
+import {clearProfessionalReputation} from "./pro-selection";
 import {performanceValue} from "./pro-evaluation";
 import {proNews,proNotice} from "./pro-world";
 import {allstarDates} from "./pro-allstar-calendar";
@@ -9,7 +11,7 @@ export const allstarSlots:Position[]=["SP","RP","CP","C","1B","2B","3B","SS","LF
 export const allstarSides:AllstarSide[]=["blue","white"];
 export const allstarLevels:AllstarLevel[]=["first","second"];
 export const allstarSideLabels={blue:"BLUE Team",white:"WHITE Team"};
-export const allstarRules={selectionBonus:3,mvpBonus:2,bonusCap:8,injuryMultiplier:1.5,injuryExtra:.015};
+export const allstarRules={selectionGrowthWeeks:3,mvpGrowthWeeks:2,injuryMultiplier:1.5,injuryExtra:.015};
 const blueClubs=new Set([0,9,7,3,4]);
 export const allstarSide=(club:number):AllstarSide=>blueClubs.has(club%10)?"blue":"white";
 const fieldPositions:Position[]=["C","SS","CF","2B","1B","3B","LF","RF","DH"];
@@ -77,7 +79,7 @@ function rewardSelection(s:GameState,member:AllstarMember,level:AllstarLevel,sid
   const pro=p.professional,history=pro.allstarHistory??=[];
   if(history.some(row=>row.year===s.calendar.seasonYear))return;
   history.push({year:s.calendar.seasonYear,level,side,slot:member.slot,method:member.method});
-  pro.allstarBonus=Math.min(allstarRules.bonusCap,(pro.allstarBonus??0)+allstarRules.selectionBonus);p.reputation=reputationScore(p);
+  p.stats.bq=clamp(p.stats.bq+eventTrainingReward(p,"bq",allstarRules.selectionGrowthWeeks),1);clearProfessionalReputation(p);
 }
 const member=(p:Player,slot:Position,method:AllstarMember["method"]):AllstarMember=>({playerId:p.id,name:p.name,club:p.teamId%10,slot,method});
 export function finalizeAllstars(s:GameState){
@@ -137,7 +139,7 @@ export function prepareAllstarDay(s:GameState){
     level.prepared=true;
     const keys=isPitcher(mine.primaryRole)?["velocity","control","movement"] as const:["contact","power","speed","defense"] as const;
     const weak=[...keys].sort((a,b)=>mine.stats[a]-mine.stats[b])[0];
-    userEvent(s,`AS-PREP-${selection.level}`,"별들의 무대에 초대받았다",`${allstarSideLabels[selection.side]}의 ${selection.level==="first"?"1군":"2군"} 올스타. ${date} 경기를 앞두고 준비 방식을 정한다. 선발 평판 보상은 이미 반영됐으며 실제 출전 때 피로와 부상 위험이 생긴다.`,[
+    userEvent(s,`AS-PREP-${selection.level}`,"별들의 무대에 초대받았다",`${allstarSideLabels[selection.side]}의 ${selection.level==="first"?"1군":"2군"} 올스타. ${date} 경기를 앞두고 준비 방식을 정한다. 선발 경험의 능력 성장은 이미 반영됐으며 실제 출전 때 피로와 부상 위험이 생긴다.`,[
       {id:"routine",label:"평소 루틴과 회복에 집중한다",outcomes:[{weight:100,message:"새 무대에서도 내 페이스를 지키기로 했다.",fatigue:-3}]},
       {id:"team",label:"다른 구단 선수들과 호흡을 맞춘다",outcomes:[{weight:100,message:"낯선 동료들과 야구 이야기를 나누며 긴장을 풀었다.",fatigue:-1,reputation:.5}]},
       {id:"learn",label:"다른 올스타 선수에게 기술을 배운다",outcomes:[{weight:60,message:"상대의 시범을 따라 해보며 내 약점을 다듬을 감각을 찾았다.",weeks:{[weak]:3},fatigue:2},{weight:40,message:"당장 동작에 붙지는 않았지만 상황을 읽는 새로운 관점을 얻었다.",weeks:{bq:1},fatigue:1}]},
@@ -173,7 +175,7 @@ function simulateAllstar(s:GameState,level:AllstarLevel){
     const history=p.professional?.allstarHistory?.find(row=>row.year===season.year);if(history)history.participated=true;
   }
   if(ranked[0]){const best=ranked[0],p=s.players.find(p=>p.id===best.id)!;entry.mvp={playerId:p.id,name:p.name,side:best.side,merit:best.score};
-    if(p.professional){p.professional.allstarBonus=Math.min(allstarRules.bonusCap,(p.professional.allstarBonus??0)+allstarRules.mvpBonus);const history=p.professional.allstarHistory?.find(row=>row.year===season.year);if(history)history.mvp=true;p.reputation=reputationScore(p);}
+    if(p.professional){p.stats.bq=clamp(p.stats.bq+eventTrainingReward(p,"bq",allstarRules.mvpGrowthWeeks),1);const history=p.professional.allstarHistory?.find(row=>row.year===season.year);if(history)history.mvp=true;clearProfessionalReputation(p);}
   }
   proNews(s,`${level==="first"?"1군":"2군"} 올스타 · BLUE ${game.score[0]} : ${game.score[1]} WHITE${entry.mvp?` · 미스터 올스타 ${entry.mvp.name}`:""}`,`${season.year}:allstar-result:${level}`);
 }

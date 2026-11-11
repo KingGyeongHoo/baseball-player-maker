@@ -87,6 +87,17 @@ test('same-grade ranks never call a freshman a current-year draft candidate',()=
 test('report reading is pure and deterministic, with no changes to random streams or current decisions',()=>{
   const s=fixture(),before=structuredClone(s),p=e.getPlayer(s),one=report(s),two=report(s);assert.deepEqual(one,two);assert.deepEqual(s,before);assert.equal(e.selectionScore(p),one.comparison.legacyRegistration);
 });
+
+test('pro scouting and roster share live selection while old experimental comparison scores stay off screen',()=>{
+  const s=fixture(true),p=e.getPlayer(s),roster=require('../.test-build/lib/roster-records.js');
+  for(const key of Object.keys(p.stats))p.stats[key]=76;p.fatigue=0;p.recentZ=1;p.proContract.status='regular';delete p.professional.managedUntil;
+  const first=report(s);p.fatigue=95;const tired=report(s);
+  assert.equal(first.comparison.legacyRegistration,76);assert.equal(tired.comparison.legacyRegistration,76);assert.equal(roster.rosterGradeScore(p),76);
+  assert.equal(tired.comparison.candidateRegistration,first.comparison.candidateRegistration);
+  const html=renderToStaticMarkup(createElement(PlayerEvaluationContent,{report:tired}));
+  assert.match(html,/평가 당시 출전평가 76/);assert.doesNotMatch(html,/현행 계약 평가|1군 표본 분리 비교값|평판 평가|보직 적합도|1군 툴|20~80/);
+  assert.equal(tired.reputation,undefined);assert.equal(tired.comparison.legacyContract,null);assert.equal(tired.comparison.candidateRegistration,null);
+});
 test('monthly capture covers NPCs equally, is idempotent and keeps dated growth without using training exposure as scouting visits',()=>{
   const s=fixture(),p=e.getPlayer(s),rng={...s.rngStates};s.date='2027-04-01';l.capturePlayerEvaluations(s);assert.ok(s.players.every(p=>p.evaluationHistory.some(r=>r.date===s.date)));
   const n=p.evaluationHistory.length;l.capturePlayerEvaluations(s);assert.equal(p.evaluationHistory.length,n);s.date='2027-05-01';p.stats.contact++;l.capturePlayerEvaluations(s);const q=a.playerEvaluationFor(s,p);assert.ok(q.growth.changes.contact>0);assert.deepEqual(s.rngStates,rng);
@@ -119,5 +130,6 @@ test('direct professional starts carry no fictitious high-school evaluation hist
 test('the UI separates levels, raw/corrected evidence, model forecasts and conditional growth without invented telemetry',()=>{
   const s=fixture(true),q=report(s),html=renderToStaticMarkup(createElement(PlayerEvaluationContent,{report:q,parameters:r.evaluationReference(s).parameters}));
   for(const text of ['1군 정규 시즌','2군 정규 시즌','미측정','고정된 1군 상대','조건부 성장 전망','판정 비교'])assert.ok(html.includes(text),text);
-  for(const text of ['WAR','xwOBA','GB%','회전수 2','km/h'])assert.ok(!html.includes(text),text);
+  assert.match(html,/WAR는 시즌 결산·계약의 성과 평가에 사용/);
+  for(const text of ['xwOBA','GB%','회전수 2','km/h'])assert.ok(!html.includes(text),text);
 });

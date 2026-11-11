@@ -9,7 +9,7 @@ import {openProMatchEvent,openProPreparation} from "./pro-event-runtime";
 import type {ProAppearance} from "./pro-event-types";
 import {packRecentRecord,recentSample} from "./recent-records";
 import {finishGameRecords,pitcherEntered,recordLeadChange} from "./game-records";
-import {proBullpenPlan,proMatchParameters,proPitcherOutLimit,proReliefPriority,proReliefReady} from './pro-balance';
+import {proBullpenPlan,proMatchParameters,proPitcherOutLimit,proRecentTeamGames,proReliefPriority,proReliefReady} from './pro-balance';
 
 // Every cursor and runner is serializable: returning at a choice never replays
 // an inning, consumes a match draw early, or commits a partial game twice.
@@ -26,7 +26,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   if (!s.matchProgress) {
     recordEvaluationEnvironment(s,game,rosters);
     const prepared=game.proPreparedLineup;
-    const valid=prepared?.every(side=>[...side.field,...side.order,...side.pitchers,side.starter].every(id=>players.has(id)));
+    const valid=prepared?.every(side=>[...side.field,...side.order,...side.pitchers,side.starter].every(id=>players.has(id))&&(!pro||pitchingRole(player(side.starter))==='선발'));
     const sides = prepared&&valid?prepared.map(side=>({field:side.field.map(player),order:side.order.map(player),starter:player(side.starter),pitchers:side.pitchers.map(player)})):rosters.map(roster => professionalLineup(s,roster,game.date,game.evaluationPlayers));
     if (sides.some(side => side.field.length < 9 || !side.starter)) {
       game.status = "forfeit";
@@ -38,12 +38,12 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     }
     delete game.proPreparedLineup;
     game.status = "inProgress";
-    game.lineup = sides.map(side => [...side.order.map(p => p.id), side.starter.id]);
+    game.lineup = sides.map(side => [...side.order.map(p => p.id), side.starter!.id]);
     s.matchProgress = {
       ...(pro?{fieldingVersion:1 as const}:{}),
-      gameId: game.id, sides: sides.map(side => ({ field: side.field.map(p => p.id), order: side.order.map(p => p.id), starter: side.starter.id, pitchers: side.pitchers.map(p => p.id) })),
+      gameId: game.id, sides: sides.map(side => ({ field: side.field.map(p => p.id), order: side.order.map(p => p.id), starter: side.starter!.id, pitchers: side.pitchers.map(p => p.id) })),
       original: rosters.flat().map(p => ({ id: p.id, fatigue: p.fatigue, lastPitched: p.lastPitched })),
-      pitchers: sides.map(side => side.starter.id), usedPitchers: sides.map(side => [side.starter.id]), battingIndex: [0, 0], pitchOuts: [0, 0], recentEvents: [],
+      pitchers: sides.map(side => side.starter!.id), usedPitchers: sides.map(side => [side.starter!.id]), battingIndex: [0, 0], pitchOuts: [0, 0], recentEvents: [],
       defense: sides.map(side => side.field.slice(0, 8).reduce((sum, p) => sum + effective(p).defense, 0) / 8),
       arm: sides.map(side => [side.field[2], side.field[6], side.field[7]].reduce((sum, p) => sum + effective(p).arm / 3, 0)),
       inning: 1, battingSide: 1, outs: 0, pa: 0, runs: 0, bases: [null, null, null], ready: false, eventFatigue: 0,
@@ -60,6 +60,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   const m = s.matchProgress;
   if (m.gameId !== game.id) throw new Error("다른 경기가 진행 중입니다.");
   const bullpenPlans=pro?m.sides.map((side,index)=>proBullpenPlan(side.pitchers.map(player),s.seed,game.date,index)):[];
+  const recentTeamGames=pro?[game.homeTeamId,game.awayTeamId].map(team=>proRecentTeamGames(s,team,game.date)):[];
   const line = (p: Player) => game.boxScore[p.id] ??= emptyRecord();
   const forfeit = (side: number) => {
     game.status = "forfeit"; game.forfeitTeamId = side === 0 ? game.homeTeamId : game.awayTeamId;
@@ -89,16 +90,22 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       const current = player(m.pitchers[pitchingSide]);
       const starter=m.usedPitchers[pitchingSide].length===1;
       const lead = game.score[pitchingSide] - game.score[side];
-      const {closerId,longReliefId,setupId,bridgeId}=bullpenPlans[pitchingSide]??{};
-      const limit = game.exhibition?(m.usedPitchers[pitchingSide].length<=3?3:6):pro?proPitcherOutLimit(current,starter,s.seed,game.date,closerId,bridgeId,lead):starter ? params["coach.starter_outs"] : pitchingRole(current) === "마무리" ? params["coach.closer_outs"] : params["coach.relief_outs"];
-      const saveEntry=pro&&!game.exhibition&&!starter&&current.id!==closerId&&m.inning>=9&&m.pa===1&&m.outs===0&&game.score[pitchingSide]>game.score[side]&&game.score[pitchingSide]-game.score[side]<=3;
+      const {closerId,longReliefId,setupId,bridgeId,earlyCloser}=bullpenPlans[pitchingSide]??{};
+      const currentLine=game.boxScore[current.id]?.pitching;
+      let limit = game.exhibition?(m.usedPitchers[pitchingSide].length<=3?3:6):pro?proPitcherOutLimit(current,starter,s.seed,game.date,closerId,bridgeId,lead,currentLine?.R??0,currentLine?.BF??0,m.pitchOuts[pitchingSide]):starter ? params["coach.starter_outs"] : pitchingRole(current) === "마무리" ? params["coach.closer_outs"] : params["coach.relief_outs"];
+      if(pro&&!game.exhibition&&!starter&&pitchingRole(current)==='중간계투'&&(currentLine?.R??0)<2){
+        const remaining=m.sides[pitchingSide].pitchers.map(player).filter(p=>!m.usedPitchers[pitchingSide].includes(p.id)&&pitchingRole(p)!=='선발'&&available(p,game.date)&&p.fatigue<params['coach.replace_fatigue']).length;
+        const outsNeeded=Math.max(1,10-m.inning)*3-m.outs;
+        limit=Math.max(limit,Math.min(9,m.pitchOuts[pitchingSide]+Math.max(0,outsNeeded-remaining*3)));
+      }
+      const saveEntry=pro&&!game.exhibition&&!starter&&!!closerId&&current.id!==closerId&&(m.inning>=9||earlyCloser&&m.inning===8)&&m.pa===1&&m.outs===0&&game.score[pitchingSide]>game.score[side]&&game.score[pitchingSide]-game.score[side]<=3&&proReliefReady(player(closerId),game.date,undefined,recentTeamGames[pitchingSide]);
       if (saveEntry || m.pitchOuts[pitchingSide] >= limit || current.fatigue >= params["coach.replace_fatigue"] || !available(current, game.date)) {
-        const unused=m.sides[pitchingSide].pitchers.map(player).filter(p=>!m.usedPitchers[pitchingSide].includes(p.id)&&!m.sides[pitchingSide].field.includes(p.id)&&available(p,game.date)&&p.fatigue<params['coach.replace_fatigue']);
-        const rested=unused.filter(p=>!pro||proReliefReady(p,game.date,longReliefId));
-        const next = (rested.length?rested:unused)
-          .sort((a, b) => Number(game.evaluationPlayers?.includes(b.id)??false)-Number(game.evaluationPlayers?.includes(a.id)??false) || (pro&&!game.exhibition?proReliefPriority(b,game.date,m.inning,lead,closerId,longReliefId,setupId,bridgeId)-proReliefPriority(a,game.date,m.inning,lead,closerId,longReliefId,setupId,bridgeId):(m.inning >= 9 && lead >= 1 && lead <= 3 ? Number(pitchingRole(b) === "마무리") - Number(pitchingRole(a) === "마무리") : 0) || selectionScore(b, pitchingRole(b)) - selectionScore(a, pitchingRole(a))) || a.id.localeCompare(b.id))[0];
+        const unused=m.sides[pitchingSide].pitchers.map(player).filter(p=>!m.usedPitchers[pitchingSide].includes(p.id)&&!m.sides[pitchingSide].field.includes(p.id)&&available(p,game.date)&&p.fatigue<params['coach.replace_fatigue']&&(!pro||['중간계투','마무리'].includes(pitchingRole(p))));
+        const rested=unused.filter(p=>!pro||game.exhibition||proReliefReady(p,game.date,longReliefId,recentTeamGames[pitchingSide]));
+        const next = saveEntry?unused.find(p=>p.id===closerId):(rested.length?rested:unused)
+          .sort((a, b) => Number(game.evaluationPlayers?.includes(b.id)??false)-Number(game.evaluationPlayers?.includes(a.id)??false) || (pro&&!game.exhibition?proReliefPriority(b,game.date,m.inning,lead,closerId,longReliefId,setupId,bridgeId,recentTeamGames[pitchingSide].length)-proReliefPriority(a,game.date,m.inning,lead,closerId,longReliefId,setupId,bridgeId,recentTeamGames[pitchingSide].length):(m.inning >= 9 && lead >= 1 && lead <= 3 ? Number(pitchingRole(b) === "마무리") - Number(pitchingRole(a) === "마무리") : 0) || selectionScore(b, pitchingRole(b)) - selectionScore(a, pitchingRole(a))) || a.id.localeCompare(b.id))[0];
         if (next) { pitcherEntered(m,game,next.id,pitchingSide);m.pitchers[pitchingSide] = next.id; m.usedPitchers[pitchingSide].push(next.id); m.pitchOuts[pitchingSide] = 0; }
-        else if(!saveEntry)return forfeit(pitchingSide);
+        else if(!saveEntry&&!(pro&&!starter&&available(current,game.date)&&current.fatigue<params['coach.replace_fatigue']&&m.pitchOuts[pitchingSide]<15))return forfeit(pitchingSide);
       }
       m.ready = true;
     }

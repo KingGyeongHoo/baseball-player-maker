@@ -7,7 +7,7 @@ export function startingAssignments(roster: Player[]) {
   // Base-ability depth chart: rest/injury affects today's game, not squad status.
   for (const position of starterSlots) {
     const eligible = roster.filter(p => !p.freshmanReserve && !assigned.has(p.id) && p.eligiblePositions.includes(position));
-    const natural = roster.some(p=>p.careerMode) ? [] : eligible.filter(p=>p.position===position);
+    const natural = roster.some(p=>p.careerMode) ? [] : eligible.filter(p=>position==="RP"||position==="CP"?p.position==="RP"||p.position==="CP":p.position===position);
     const best = (natural.length ? natural : eligible)
       .sort((a, b) => roleScore(b, roleFor(position)) - roleScore(a, roleFor(position)) || a.id.localeCompare(b.id))[0];
     if (best) assigned.set(best.id, position);

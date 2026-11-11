@@ -7,6 +7,14 @@ const { teamStrength, teamRankings } = require('../.test-build/lib/team-strength
 const close = (a,b) => assert.ok(Math.abs(a-b) < 1e-8, `${a} != ${b}`);
 const game = e.createGame('team-power', '전력검증', 'SS');
 
+test('school bullpen depth selects from one shared relief pool instead of reserving a slot for a closer',()=>{
+ const roster=[['starter','SP',100],['relief-a','RP',90],['relief-b','RP',80],['old-closer','CP',10]].map(([id,position,ability])=>{
+  const p=e.previewPlayer(id,id,position);p.id=id;p.teamId=0;delete p.freshmanReserve;for(const key of Object.keys(p.stats))p.stats[key]=ability;return p;
+ });
+ const {startingAssignments}=require('../.test-build/lib/roster-status.js'),assigned=startingAssignments(roster);
+ assert(assigned.has('relief-a'));assert(assigned.has('relief-b'));assert(!assigned.has('old-closer'));assert.equal(assigned.get('starter'),'SP');
+});
+
 test('team scores equal the exact starter 1 / reserve 0.5 weighted mean without mutating players', () => {
   const before = structuredClone(game.players);
   const t = teamStrength(game.players, 0);

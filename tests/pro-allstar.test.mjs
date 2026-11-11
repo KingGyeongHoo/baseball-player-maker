@@ -53,13 +53,13 @@ test('June finalization selects 12 voted plus 10 recommended per side per league
   assert.ok(rows.every(r=>a.allstarSide(r.club)===side));assert.ok(rows.filter(r=>['SP','RP','CP'].includes(r.slot)).length>=6);assert.ok(rows.filter(r=>r.slot==='C').length>=2);
  }
  assert.equal(new Set(ids).size,88);assert.equal(season.finalizedAt,'2028-06-30');const before=structuredClone(s);assert.equal(a.finalizeAllstars(s),false);assert.deepEqual(s,before);
- const p=e.getPlayer(s);assert.equal(p.professional.allstarHistory.length,1);assert.equal(p.professional.allstarBonus,3);
- const clone=structuredClone(p);clone.professional.allstarBonus=0;assert.equal(e.selectionScore(clone),e.selectionScore(p));assert.ok(e.reputationScore(p)>e.reputationScore(clone));
+ const p=e.getPlayer(s);assert.equal(p.professional.allstarHistory.length,1);assert.equal(p.professional.allstarBonus,undefined);assert.equal(p.reputation,null);
+ const clone=structuredClone(p);clone.reputation=100;clone.professional.allstarBonus=8;assert.equal(e.selectionScore(clone),e.selectionScore(p));assert.equal(e.reputationScore(p),null);
 });
 
 test('frozen selection honors June registration and injuries receive eligible replacements without erasing honors',()=>{
  const s=selected(),old=s.proWorld.allstar.levels.second.blue.roster[0],p=s.players.find(p=>p.id===old.playerId);p.injury={severity:'mild',startDate:'2028-07-01',unavailableUntil:'2028-08-01',originalPenalty:1,penaltyRemaining:1,penaltyRecoverDays:7};
- s.date=c.allstarDates(2028).second;a.playAllstarDay(s);const entry=s.proWorld.allstar.levels.second;assert.ok(entry.blue.withdrawn.includes(p.id));assert.ok(!entry.blue.roster.some(r=>r.playerId===p.id));assert.equal(p.professional.allstarHistory[0].withdrawn,true);assert.equal(p.professional.allstarBonus,3);assert.ok(entry.blue.roster.some(r=>r.replacementFor===p.id));
+ s.date=c.allstarDates(2028).second;a.playAllstarDay(s);const entry=s.proWorld.allstar.levels.second;assert.ok(entry.blue.withdrawn.includes(p.id));assert.ok(!entry.blue.roster.some(r=>r.playerId===p.id));assert.equal(p.professional.allstarHistory[0].withdrawn,true);assert.equal(p.professional.allstarBonus,undefined);assert.ok(entry.blue.roster.some(r=>r.replacementFor===p.id));
  const all=a.allstarLevels.flatMap(l=>a.allstarSides.flatMap(side=>s.proWorld.allstar.levels[l][side].roster.map(r=>r.playerId)));assert.equal(new Set(all).size,all.length);
 });
 
@@ -105,8 +105,8 @@ test('allstar honors and match results survive season archival while the next se
  p.professional.contract.endYear=2030;s.careerNotice=undefined;s.noticeQueue=[];life.startNextProSeason(s);assert.equal(s.calendar.seasonYear,2029);assert.equal(s.proWorld.allstar,undefined);assert.deepEqual(p.professional.allstarHistory,history);a.ensureAllstarSeason(s);assert.equal(s.proWorld.allstar.year,2029);assert.equal(s.proWorld.allstar.finalizedAt,undefined);
 });
 
-test('selection reputation is capped and future migration waits until an active week is finished',()=>{
- const s=fixture(),p=e.getPlayer(s);p.professional.allstarBonus=7;s.date='2028-06-30';a.finalizeAllstars(s);assert.equal(p.professional.allstarBonus,8);
+test('selection growth is awarded once and future migration waits until an active week is finished',()=>{
+ const s=fixture(),p=e.getPlayer(s);p.stats.bq=Math.min(p.stats.bq,90);const initial=p.stats.bq;s.date='2028-06-30';a.finalizeAllstars(s);assert.ok(p.stats.bq>initial);const grown=p.stats.bq;assert.equal(a.finalizeAllstars(s),false);assert.equal(p.stats.bq,grown);
  delete s.calendar.proAllstarScheduleVersion;s.weekProgress={};const before=structuredClone(s.calendar.events);assert.equal(c.upgradeAllstarSchedule(s),false);assert.deepEqual(s.calendar.events,before);
 });
 

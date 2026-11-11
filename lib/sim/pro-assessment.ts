@@ -4,6 +4,7 @@ import { proContractRules as rules } from "./pro-contract-rules";
 import type { GameState, Player, ProSquad, RecordLine } from "./types";
 import type { ProSeasonAssessment } from "./pro-types";
 import { createProWarContext, proWarAssessment, type ProWarContext } from "./pro-war";
+import {proSeasonForm} from "./pro-selection";
 const squad = (id: number): ProSquad | null =>
   id < 0
     ? null
@@ -340,6 +341,7 @@ export function firstTeamDemotionMargin(p: Player, year: number) {
   const b = p.seasonByLevel?.first.batting;
   const established =
     selectionScore(p) >= 79 ||
+    proSeasonForm(p,p.primaryRole,{first:p.seasonByLevel?.first}).value >= .35 ||
     (!!b && b.PA >= 40 && b.AB > 0 && b.H / b.AB >= 0.3);
   return (established ? 8 : 3) + firstTeamRetention(p, year).bonus;
 }
@@ -421,7 +423,7 @@ export function seasonExit(
   return low >= duration
     ? {
         kind: "post-rookie-evaluation",
-        reason: `최초 프로 ${rules.rookieGraceSeasons}시즌을 제외한 누적 출전평가 E 이하가 ${low}개 평가 시즌 이어졌습니다. (${duration}년 기준)`,
+        reason: `최초 프로 ${rules.rookieGraceSeasons}시즌을 제외한 누적 시즌평가 E 이하가 ${low}개 평가 시즌 이어졌습니다. (${duration}년 기준)`,
       }
     : null;
 }

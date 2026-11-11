@@ -3,12 +3,15 @@ import {addDays,available,getPlayer,isPitcher,ovr,params,random,roleFor,roleScor
 import {professionalLineup} from "./pro-world";
 import {createProEvent,proMainField,proEventCatalog} from "./pro-event-catalog";
 import {eligibleStory} from "./event-stories";
+import {eventCategoryPool,eventFocusPool,resolveEventFocus} from './event-selection';
 import {cancelProReservation,ensureProEvents,equivalentProId,proChannelFree,proDayFree,proEventsEnabled,proIdFree,recordProChoice} from "./pro-event-ledger";
 import {proFieldTarget,recentProEvidence} from "./pro-event-evidence";
 import type {ProEventContext} from "./pro-event-types";
 import type {EventScene,Game,GameState,Player,Position} from "./types";
 
 const onceIds=new Set(["PE08","PE09","PE10","PE11","PE28","PE29","PE30"]);
+const proCategories=new Map(proEventCatalog.map(e=>[e.id,e.category??'baseball']));
+const proFocuses=new Map(proEventCatalog.map(e=>[e.id,e]));
 function context(s:GameState,id:string,date:string,extra:Partial<ProEventContext>={}):ProEventContext {const p=getPlayer(s);return {version:1,catalogId:id,channel:"general",year:s.calendar.seasonYear,playerId:p.id,teamId:p.teamId,level:proSquad(p.teamId)??"third",field:proMainField(s),openedAt:date,...extra};}
 const active=(p:Player)=>p.professional?.employment==="active"&&p.teamId>=0;
 function once(s:GameState,id:string){return !ensureProEvents(s).history.some(row=>row.season===s.calendar.seasonYear&&equivalentProId(row,id));}
@@ -22,7 +25,7 @@ export function proGeneralCandidates(s:GameState,date=s.date){
   const recent=ledger.history.filter(row=>row.channel==="general").slice(-3);
   const add=(id:string,extra:Partial<ProEventContext>={})=>{if(recent.some(row=>equivalentProId(row,id))||!proIdFree(s,id,"general",date)||onceIds.has(id)&&!once(s,id))return;pool.push({id,context:context(s,id,date,extra)});};
   if(injured){const injuryKey=`${p.id}:${p.injury!.startDate}`;if(p.injury!.unavailableUntil<=addDays(date,7)&&!ledger.history.some(row=>row.injuryKey===injuryKey))add("PE18",{injuryKey});return pool;}
-  if(!ownGames.length&&(!s.calendar.trainingDays.includes(date)||!ticketsUsed(p.trainingPolicy))&&teammate)add("PE19",{partnerId:teammate.id});
+  if(!p.forcedRest&&!ownGames.length&&(!s.calendar.trainingDays.includes(date)||!ticketsUsed(p.trainingPolicy))&&teammate)add("PE19",{partnerId:teammate.id});
   if(p.forcedRest)return pool;
   for(const definition of proEventCatalog){
     if(!definition.rule)continue;
@@ -64,10 +67,13 @@ export function proGeneralCandidates(s:GameState,date=s.date){
 export function planProEventWeek(s:GameState){
   if(!proEventsEnabled(s)||!active(getPlayer(s)))return;const ledger=ensureProEvents(s);if(ledger.plannedWeek===s.week)return;ledger.plannedWeek=s.week;delete ledger.reservation;
   if(params["pro_events.general_chance"]<=0)return;
-  const options=Array.from({length:7},(_,day)=>{const date=addDays(s.date,day);return proChannelFree(s,"general",date)?proGeneralCandidates(s,date).map(c=>({...c,date})):[];}).flat();
-  let ids=[...new Set(options.map(c=>c.id))];const stages=ids.filter(id=>onceIds.has(id)||id==="PE18");if(stages.length)ids=stages;if(!ids.length||random(s,"events")>=params["pro_events.general_chance"])return;
-  const continuations=ids.filter(id=>options.some(c=>c.id===id&&c.context.story?.sourceId));
-  if(continuations.length&&random(s,"events")<.5)ids=continuations;
+  const pool=Array.from({length:7},(_,day)=>{const date=addDays(s.date,day);return proChannelFree(s,"general",date)?proGeneralCandidates(s,date).map(c=>({...c,date})):[];}).flat();
+  if(!pool.length||random(s,"events")>=params["pro_events.general_chance"])return;
+  const category=eventCategoryPool(pool,c=>proCategories.get(c.id)??'baseball',random(s,'events'));
+  const p=getPlayer(s),pitching=isPitcher(p.primaryRole);
+  const options=proCategories.get(category[0].id)==='daily'?category:eventFocusPool(category,c=>{const d=proFocuses.get(c.id);return resolveEventFocus((pitching?d?.pitchingFocus:d?.battingFocus)??d?.focus,pitching,p.stats);},pitching,random(s,'events'));
+  if(!options.length)return;
+  let ids=[...new Set(options.map(c=>c.id))];const stages=ids.filter(id=>onceIds.has(id)||id==="PE18");if(stages.length)ids=stages;
   const id=ids[Math.floor(random(s,"events")*ids.length)],dates=options.filter(c=>c.id===id),chosen=dates[Math.floor(random(s,"events")*dates.length)];ledger.reservation={week:s.week,date:chosen.date,id,context:chosen.context};
 }
 export function openProGeneralEvent(s:GameState){

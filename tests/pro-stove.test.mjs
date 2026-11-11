@@ -66,10 +66,10 @@ test('the FA screen distinguishes staying from transferring, including older sav
 test('FA offers can use a first-team vacancy when all 45 lower places are filled',()=>{
  const s=fixture(),p=e.getPlayer(s),club=(p.teamId%10+1)%10;
  const make=(i,team)=>{const q=structuredClone(p);q.id='capacity-'+i;q.teamId=team;q.professional.contract.club=club;return q;};
- s.players=[p,...Array.from({length:29},(_,i)=>make(i,club)),...Array.from({length:45},(_,i)=>make(i+29,club+10))];
+ s.players=[p,...Array.from({length:28},(_,i)=>make(i,club)),...Array.from({length:45},(_,i)=>make(i+28,club+10))];
  s.proWorld.clubs[club].budget=1e12;
  const offer=market.offerFor(s,p,club,s.proWorld.year+1,'fa');assert.ok(offer);
- market.signContract(s,p,offer);assert.equal(p.teamId,club);assert.equal(market.clubRoster(s,club).length,75);assert.equal(s.players.filter(q=>q.teamId===club).length,30);
+ market.signContract(s,p,offer);assert.equal(p.teamId,club);assert.equal(market.clubRoster(s,club).length,74);assert.equal(s.players.filter(q=>q.teamId===club).length,29);
  const extra=make(100,-1);extra.professional.employment='freeAgent';s.players.push(extra);assert.equal(market.offerFor(s,extra,club,s.proWorld.year+1,'fa'),null);
 });
 test('a full lower squad still blocks developmental first-team entry and offer reads do not release players',()=>{

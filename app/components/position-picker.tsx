@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useId, type CSSProperties } from "react";
-import { positions } from "@/lib/sim/engine";
+import { positions,positionName } from "@/lib/sim/engine";
 import { fieldPositions, pitchingPositions, type PlayerKind } from "@/lib/player-creation";
 import type { Position } from "@/lib/sim/types";
 
@@ -27,15 +27,18 @@ export function Ballpark() {
   </svg>;
 }
 
-export default function PositionPicker({ kind, value, onKindChange, onChange, disabled }: {
+export default function PositionPicker({ kind, value, onKindChange, onChange, disabled,mode="school" }: {
   kind: PlayerKind | null;
   value: Position | null;
   onKindChange: (kind: PlayerKind) => void;
   onChange: (position: Position) => void;
   disabled: boolean;
+  mode?:"school"|"pro";
 }) {
   const id = useId();
   const selected = fieldPositions.find(p => p.id === value);
+  const pitchingChoices=mode==="school"?pitchingPositions.filter(p=>p.id!=="CP").map(p=>p.id==="RP"?{...p,pose:"BULLPEN",description:"셋포지션 · 중간계투와 마무리를 함께 맡는 구원 투수"}:p):pitchingPositions;
+  const name=(position:Position)=>positionName(position,mode==="pro"?"pro":undefined);
   return <div className="creation-position-picker">
     <fieldset className="creation-step" disabled={disabled}>
       <legend><span>01</span>어떤 선수로 시작할까요?</legend>
@@ -62,15 +65,15 @@ export default function PositionPicker({ kind, value, onKindChange, onChange, di
         <div className="selected-position-note" role="status"><b>{value ? positions[value] : "포지션을 골라주세요"}</b><span>{value === "DH" ? "수비 부담을 줄이고 타격에 집중하는 자리입니다." : selected?.description ?? "각 포지션의 위치를 눌러 역할을 확인할 수 있습니다."}</span></div>
       </> : <>
         <p className="position-instruction">나만의 마운드, 어떤 순간을 책임질까요?</p>
-        <div className="pitcher-position-cards">
-          {pitchingPositions.map(position => <label key={position.id} className={`pitcher-position-card ${value === position.id ? "selected" : ""}`}>
+        <div className={`pitcher-position-cards${mode==="school"?" school-pitcher-positions":""}`}>
+          {pitchingChoices.map(position => <label key={position.id} className={`pitcher-position-card ${value === position.id ? "selected" : ""}`}>
             <input type="radio" name={`${id}-position`} value={position.id} checked={value === position.id} onChange={() => onChange(position.id)} />
             <span className="pitcher-card-code">{position.id}</span><i className="pitcher-card-check" aria-hidden="true">{value === position.id ? "✓" : ""}</i>
             <span className="pitcher-pose"><Image src={position.image} width={384} height={384} sizes="(max-width: 760px) 30vw, 200px" alt="" /></span>
-            <span className="pitcher-card-copy"><small>{position.pose}</small><b>{positions[position.id]}</b><span>{position.description.split(" · ")[0]}</span></span>
+            <span className="pitcher-card-copy"><small>{position.pose}</small><b>{name(position.id)}</b><span>{position.description.split(" · ")[0]}</span></span>
           </label>)}
         </div>
-        <div className="selected-position-note" role="status"><b>{value ? positions[value] : "보직을 골라주세요"}</b><span>{pitchingPositions.find(position => position.id === value)?.description.split(" · ")[1] ?? "선발 · 중간계투 · 마무리 중 하나를 선택하세요."}</span></div>
+        <div className="selected-position-note" role="status"><b>{value ? name(value) : "보직을 골라주세요"}</b><span>{pitchingChoices.find(position => position.id === value)?.description.split(" · ")[1] ?? (mode==="school"?"선발 · 불펜 중 하나를 선택하세요.":"선발 · 중간계투 · 마무리 중 하나를 선택하세요.")}</span></div>
       </>}
     </fieldset>
   </div>;

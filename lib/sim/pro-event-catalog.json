@@ -43,7 +43,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "contact"
   },
   {
     "id": "PE02",
@@ -89,7 +90,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "control"
   },
   {
     "id": "PE03",
@@ -144,7 +146,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "weak"
   },
   {
     "id": "PE04",
@@ -194,7 +197,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "power"
   },
   {
     "id": "PE05",
@@ -240,7 +244,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "movement"
   },
   {
     "id": "PE06",
@@ -281,7 +286,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "defense"
   },
   {
     "id": "PE07",
@@ -322,7 +328,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "speed"
   },
   {
     "id": "PE08",
@@ -371,16 +378,17 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "physical"
   },
   {
     "id": "PE09",
     "title": "캠프의 새 수비 위치",
-    "description": "코치가 {현재 포지션}과 함께 {목표 포지션}의 적성도 평가해보자고 한다. 14일 동안 준비한 뒤 역할을 검토할 예정이다.",
+    "description": "코치가 {현재 포지션}과 함께 {목표 포지션}의 적성도 평가해보자고 한다. 14일 동안 준비한 뒤 역할을 검토할 예정이다. 수락하면 14일 평가 뒤 정상 훈련과 적성 기준을 충족할 때 해당 보직으로 전환하며, 추가 선택은 발생하지 않는다.",
     "choices": [
       {
         "id": "choice-1",
-        "label": "새로운 수비 위치의 평가를 받는다",
+        "label": "평가를 받고 기준 충족 시 보직 전환에 동의한다",
         "outcomes": [
           {
             "weight": 100,
@@ -389,7 +397,8 @@
               "defense": 3
             },
             "fatigue": 4,
-            "trial": true
+            "trial": true,
+            "proAutoTransition": true
           }
         ]
       },
@@ -408,16 +417,17 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "defense"
   },
   {
     "id": "PE10",
     "title": "선발 경쟁 중 불펜 제안",
-    "description": "투수 코치가 중간계투 역할도 평가해보자고 한다. 짧은 이닝을 준비하는 방향으로 전환할까?",
+    "description": "투수 코치가 중간계투 역할도 평가해보자고 한다. 짧은 이닝을 준비하는 방향으로 전환할까? 수락하면 14일 평가 뒤 정상 훈련과 적성 기준을 충족할 때 해당 보직으로 전환하며, 추가 선택은 발생하지 않는다.",
     "choices": [
       {
         "id": "choice-1",
-        "label": "중간계투 평가에 도전한다",
+        "label": "평가를 받고 기준 충족 시 보직 전환에 동의한다",
         "outcomes": [
           {
             "weight": 100,
@@ -426,7 +436,8 @@
               "movement": 3
             },
             "fatigue": 3,
-            "trial": true
+            "trial": true,
+            "proAutoTransition": true
           }
         ]
       },
@@ -445,16 +456,17 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "movement"
   },
   {
     "id": "PE11",
     "title": "타격에 집중하는 보직",
-    "description": "코치가 지명타자 경쟁을 준비해보자고 한다. 타격을 중심으로 역할을 평가받을까?",
+    "description": "코치가 지명타자 경쟁을 준비해보자고 한다. 타격을 중심으로 역할을 평가받을까? 수락하면 14일 평가 뒤 정상 훈련과 적성 기준을 충족할 때 해당 보직으로 전환하며, 추가 선택은 발생하지 않는다.",
     "choices": [
       {
         "id": "choice-1",
-        "label": "지명타자 역할을 평가받는다",
+        "label": "평가를 받고 기준 충족 시 보직 전환에 동의한다",
         "outcomes": [
           {
             "weight": 100,
@@ -463,7 +475,8 @@
               "contact": 3
             },
             "fatigue": 3,
-            "trial": true
+            "trial": true,
+            "proAutoTransition": true
           }
         ]
       },
@@ -482,39 +495,43 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "contact"
   },
   {
     "id": "PE12",
-    "title": "2군에서 평가 기회를 요청하다",
-    "description": "훈련을 이어왔지만 경기에서 보여줄 기회가 적었다. 코치와 다음 준비 방향을 이야기할 시간이 생겼다.",
+    "title": "2군 실전 점검과 출전 요청",
+    "description": "실전 출전이 적어 {정교 훈련}을 반복하고 있다. 오늘 동작을 코치에게 보여주고 다음 출전 기회를 요청할 수 있다.",
     "choices": [
       {
         "id": "choice-1",
-        "label": "평가 출전 기회를 요청한다",
+        "label": "{정교 훈련}을 보여주며 출전을 요청한다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "구단이 다음 21일 동안 출전 자격과 컨디션에 맞는 평가 기회를 검토하기로 했다.",
+            "message": "정확한 동작을 코치 앞에서 반복했다. 구단은 다음 21일 동안 출전 자격과 컨디션에 맞는 평가 기회를 검토하기로 했다.",
+            "weeks": {
+              "precision": 3
+            },
             "requestChance": true
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "약점을 먼저 보완한다",
+        "label": "{정교 훈련}을 더 반복한다",
         "outcomes": [
           {
             "weight": 75,
-            "message": "기회를 기다리며 부족했던 기술을 다듬었다.",
+            "message": "목표를 좁혀 같은 동작을 반복했다. 실전에서 공을 다루는 감각이 일정해졌다.",
             "weeks": {
-              "weak": 4
+              "precision": 4
             },
             "fatigue": 4
           },
           {
             "weight": 25,
-            "message": "보완할 부분을 찾았지만 오늘은 피로가 먼저 쌓였다.",
+            "message": "반복이 길어지자 동작이 흐트러졌다. 오늘은 훈련을 줄여 마쳤다.",
             "fatigue": 5
           }
         ]
@@ -531,7 +548,9 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "contact",
+    "pitchingFocus": "control"
   },
   {
     "id": "PE13",
@@ -583,7 +602,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "precision"
   },
   {
     "id": "PE14",
@@ -640,7 +660,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "weak"
   },
   {
     "id": "PE15",
@@ -693,7 +714,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "precision"
   },
   {
     "id": "PE16",
@@ -732,7 +754,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "strong"
   },
   {
     "id": "PE17",
@@ -790,7 +813,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "weak"
   },
   {
     "id": "PE18",
@@ -822,29 +846,30 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "physical"
   },
   {
     "id": "PE19",
-    "title": "휴식일의 야구 이야기",
-    "description": "쉬는 날 동료가 지난 경기의 판단을 함께 복기하자고 한다. 오늘은 어떻게 보낼까?",
+    "title": "동료와 맞추는 첫 움직임",
+    "description": "팀 훈련이 없는 날, 동료가 운동장에서 {첫발 훈련}을 짧게 맞춰 보자고 한다. 공을 많이 쓰지 않고 출발 동작만 반복할 수 있다.",
     "choices": [
       {
         "id": "choice-1",
-        "label": "동료와 경기 판단을 복기한다",
+        "label": "동료와 {첫발 훈련}을 반복한다",
         "outcomes": [
           {
             "weight": 75,
-            "message": "다른 시각으로 보니 놓쳤던 선택이 보였다.",
+            "message": "발을 디딘 뒤 멈추던 힘이 다음 동작으로 이어졌다. 짧은 움직임에서도 힘이 빠르게 붙었다.",
             "weeks": {
-              "bq": 3
+              "burst": 3
             },
-            "fatigue": 1
+            "fatigue": 2
           },
           {
             "weight": 25,
-            "message": "서로의 생각을 나누고 가볍게 하루를 마쳤다.",
-            "fatigue": -3
+            "message": "출발을 서두르다 무게중심이 흐트러졌다. 반복을 줄이고 훈련을 마쳤다.",
+            "fatigue": 3
           }
         ]
       },
@@ -854,13 +879,15 @@
         "outcomes": [
           {
             "weight": 100,
-            "message": "야구 준비를 잠시 내려놓고 몸을 회복했다.",
+            "message": "오늘은 몸을 쉬게 하고 다음 훈련에 대비했다.",
             "fatigue": -10
           }
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "speed",
+    "pitchingFocus": "velocity"
   },
   {
     "id": "PE20",
@@ -925,7 +952,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "contact"
   },
   {
     "id": "PE21",
@@ -979,7 +1007,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "power"
   },
   {
     "id": "PE22",
@@ -1042,7 +1071,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "control"
   },
   {
     "id": "PE23",
@@ -1105,7 +1135,8 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "control"
   },
   {
     "id": "PE24",
@@ -1173,43 +1204,44 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "physical"
   },
   {
     "id": "PE25",
-    "title": "포스트시즌 상대 준비",
-    "description": "포스트시즌에서 만날 상대가 정해졌다. 동료들과 준비 방향을 정리할 시간이 생겼다.",
+    "title": "포스트시즌의 정확한 동작",
+    "description": "포스트시즌 첫 경기를 앞두고 {정교 훈련}으로 감각을 맞춘다. 반복 횟수를 늘릴지, 짧게 끝낼지 정할 수 있다.",
     "choices": [
       {
         "id": "choice-1",
-        "label": "상대 기록과 경기 상황을 함께 분석한다",
+        "label": "목표를 좁혀 {정교 훈련}을 반복한다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "여러 상황에서 취할 선택을 동료들과 정리했다.",
+            "message": "공을 다루는 지점을 좁히고 같은 동작을 이어 갔다. 긴장 속에서도 동작이 일정해졌다.",
             "weeks": {
-              "bq": 4
+              "precision": 4
             },
-            "fatigue": 1
+            "fatigue": 3
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "개인 기술을 집중해서 점검한다",
+        "label": "짧은 반복으로 익숙한 동작을 확인한다",
         "outcomes": [
           {
             "weight": 70,
-            "message": "시리즈에 앞서 익숙한 동작을 더 정교하게 다듬었다.",
+            "message": "적은 반복에서도 정확한 동작을 재현했다. 경기에서 쓸 감각을 다듬었다.",
             "weeks": {
               "precision": 3
             },
-            "fatigue": 4
+            "fatigue": 2
           },
           {
             "weight": 30,
-            "message": "준비가 길어지며 몸에 피로가 남았다.",
-            "fatigue": 5
+            "message": "마지막에 힘이 들어가 동작이 굳었다. 준비를 길게 끌지 않고 마쳤다.",
+            "fatigue": 3
           }
         ]
       },
@@ -1225,42 +1257,44 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "control",
+    "battingFocus": "contact"
   },
   {
     "id": "PE26",
-    "title": "패하면 끝나는 경기",
-    "description": "오늘 지면 이번 시즌의 도전이 끝난다. 경기 전 마지막 준비를 어떻게 할까?",
+    "title": "벼랑 끝 경기의 하체 힘",
+    "description": "오늘 지면 시즌이 끝난다. 경기 준비에서 {힘 훈련}으로 하체가 먼저 움직이는 순서를 맞춘다.",
     "choices": [
       {
         "id": "choice-1",
-        "label": "동료와 경기 상황을 다시 정리한다",
+        "label": "{힘 훈련}으로 전신의 힘을 연결한다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "각자 맡은 상황을 복기하며 준비를 마쳤다.",
+            "message": "발을 딛고 몸통을 돌리는 순서가 맞았다. 팔에만 의지하지 않고 공에 힘을 실었다.",
             "weeks": {
-              "bq": 3
+              "force": 3
             },
-            "fatigue": 1
+            "fatigue": 2
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "가장 자신 있는 기술을 점검한다",
+        "label": "익숙한 동작에서 마지막 회전을 끝까지 잇는다",
         "outcomes": [
           {
             "weight": 75,
-            "message": "자신 있는 동작을 차분히 정리했다.",
+            "message": "서두르지 않고 끝 동작까지 힘을 보냈다. 전신을 쓰는 감각이 또렷해졌다.",
             "weeks": {
-              "strong": 3
+              "force": 3
             },
             "fatigue": 4
           },
           {
             "weight": 25,
-            "message": "평소보다 오래 준비하며 피로가 쌓였다.",
+            "message": "힘을 더 쓰려다 상체가 먼저 열렸다. 반복이 길어지며 몸이 무거워졌다.",
             "fatigue": 5
           }
         ]
@@ -1277,34 +1311,34 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "power",
+    "pitchingFocus": "velocity"
   },
   {
     "id": "PE27",
     "title": "성인 대표팀 합동훈련 초청",
-    "description": "이번 시즌의 활약을 바탕으로 성인 대표팀 합동훈련에 초청받았다. 소집에 참가할까?",
+    "description": "시즌 활약을 인정받아 성인 대표팀 합동훈련에 초청받았다. 참가하면 다른 선수들과 {구종 훈련}으로 공의 움직임을 직접 익힌다.",
     "choices": [
       {
         "id": "choice-1",
-        "label": "대표팀 합동훈련에 참가한다",
+        "label": "대표팀의 {구종 훈련}에 참가한다",
         "outcomes": [
           {
             "weight": 20,
-            "message": "수준 높은 훈련에서 강점을 보여주며 새로운 감각도 얻었다.",
+            "message": "다른 선수와 공을 주고받으며 움직임을 직접 맞췄다. 손끝과 타이밍에 새로운 감각이 생겼다.",
             "weeks": {
-              "core": 6
+              "pitchShape": 6
             },
-            "fatigue": 10,
-            "reputation": 3
+            "fatigue": 10
           },
           {
             "weight": 70,
-            "message": "다양한 선수와 훈련하며 보완할 부분을 찾았다.",
+            "message": "서로 다른 공의 움직임을 반복해서 경험했다. 익숙한 동작으로 대응하는 감각을 다졌다.",
             "weeks": {
-              "weak": 3
+              "pitchShape": 3
             },
-            "fatigue": 8,
-            "reputation": 1
+            "fatigue": 8
           },
           {
             "weight": 10,
@@ -1319,25 +1353,27 @@
       },
       {
         "id": "choice-2",
-        "label": "이번에는 소속팀에서 준비한다",
+        "label": "소속팀에서 {구종 훈련}을 이어간다",
         "outcomes": [
           {
             "weight": 50,
-            "message": "소속팀의 개인 훈련으로 필요한 부분을 다듬었다.",
+            "message": "익숙한 환경에서 공의 움직임에 맞춰 반복했다. 자신에게 맞는 동작을 다듬었다.",
             "weeks": {
-              "precision": 3
+              "pitchShape": 3
             },
             "fatigue": 3
           },
           {
             "weight": 50,
-            "message": "시즌의 피로를 정비할 시간을 가졌다.",
+            "message": "훈련량을 줄이고 시즌의 피로를 정비했다.",
             "fatigue": -12
           }
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "movement",
+    "battingFocus": "contact"
   },
   {
     "id": "PE28",
@@ -1398,1504 +1434,762 @@
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "physical"
   },
   {
     "id": "PE29",
     "title": "남은 강점을 살릴 역할",
-    "description": "코치가 남아 있는 강점을 {목표 역할}에서 살려보자고 한다. 14일 동안 새로운 역할을 평가받을까?",
+    "description": "코치가 {수비 훈련}을 지켜본 뒤 {목표 역할}에서도 강점을 살릴 수 있다고 말한다. 수락하면 14일 평가 뒤 정상 훈련과 적성 기준을 충족할 때 해당 보직으로 전환하며, 추가 선택은 발생하지 않는다.",
     "choices": [
       {
         "id": "choice-1",
-        "label": "새로운 역할을 평가받는다",
+        "label": "기본 동작을 점검하고 기준 충족 시 보직 전환에 동의한다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "다른 역할로 커리어를 이어갈 준비를 시작했다.",
+            "message": "{수비 훈련}의 기본 동작을 다시 맞췄다. 이후 새 역할에서 출전할 준비를 시작했다.",
             "weeks": {
-              "bq": 3
+              "fielding": 3
             },
-            "trial": true
+            "trial": true,
+            "proAutoTransition": true
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "현재 역할의 강점을 더 다듬는다",
+        "label": "현재 역할에서 {수비 훈련}을 더 반복한다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "익숙한 역할에서 자신의 강점을 다시 정리했다.",
+            "message": "익숙한 역할에서 공을 다루는 동작을 반복했다. 흔들리던 기본 자세를 다졌다.",
             "weeks": {
-              "strong": 4
+              "fielding": 4
             },
             "fatigue": 4
           }
         ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "defense",
+    "pitchingFocus": "control"
   },
   {
     "id": "PE30",
-    "title": "신인에게 설명하며 되짚은 기술",
-    "description": "같은 분야의 신인이 연습을 지켜봐달라고 부탁했다. 동작을 설명해줄까, 개인 훈련을 이어갈까?",
+    "title": "신인과 함께 쓰는 하체 힘",
+    "description": "같은 분야의 신인이 {힘 훈련}을 같이 해보자고 한다. 몸을 먼저 움직여 힘을 공으로 전달하는 동작을 번갈아 반복한다.",
     "choices": [
       {
         "id": "choice-1",
-        "label": "동작과 판단을 설명해준다",
+        "label": "신인과 번갈아 {힘 훈련}을 반복한다",
         "outcomes": [
           {
             "weight": 65,
-            "message": "설명하는 과정에서 경기 판단의 기준이 더 분명해졌다.",
-            "weeks": {
-              "bq": 4
-            },
-            "fatigue": 2
-          },
-          {
-            "weight": 35,
-            "message": "익숙한 동작을 말로 풀어내며 자신의 기술도 다시 정리했다.",
-            "weeks": {
-              "strong": 3
-            },
-            "fatigue": 3
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "개인 훈련 계획을 이어간다",
-        "outcomes": [
-          {
-            "weight": 75,
-            "message": "개인 과제에 집중하며 보완할 부분을 다듬었다.",
-            "weeks": {
-              "weak": 3
-            },
-            "fatigue": 2
-          },
-          {
-            "weight": 25,
-            "message": "계획한 양을 마치고 몸을 가볍게 정리했다.",
-            "fatigue": -3
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE31",
-    "title": "휴일에 비워 둔 오후",
-    "description": "일정이 비는 오후가 생겼다. 정해둔 시간 안에서 잠깐 외출하거나 숙소에서 편히 쉬어도 된다.",
-    "rule": {
-      "activity": "free",
-      "revision": 2
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "가까운 곳에서 기분을 전환한다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "recovery": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-3",
-        "label": "숙소 주변에서 잠깐 바람만 쐰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
-            "fatigue": -4
-          }
-        ]
-      }
-    ],
-    "category": "daily"
-  },
-  {
-    "id": "PE32",
-    "title": "투구·타격 동작의 균형 점검",
-    "description": "코치가 힘을 쓰는 순간 머리와 중심이 흔들리는 장면을 보여줬다. 동작을 나누어 비교하며 균형을 찾아보자.",
-    "rule": {
-      "activity": "training",
-      "revision": 2
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "새 중심 이동을 나눠 연습한다",
-        "outcomes": [
-          {
-            "weight": 70,
-            "message": "머리와 몸의 중심을 유지한 채 힘을 전달하는 감각을 찾았다. 새 동작의 반복성이 좋아졌다.",
-            "weeks": {
-              "precision": 4
-            },
-            "fatigue": 3
-          },
-          {
-            "weight": 30,
-            "message": "중심을 바꾸는 과정에서 동작의 연결이 끊겼다. 코치와 구간을 나누어 확인했다.",
-            "fatigue": 4
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "기존 동작의 흔들림부터 줄인다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "기존 동작에서 꼭 줄여야 할 흔들림을 짚고 반복할 기준을 정했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigue": 1
-          }
-        ]
-      },
-      {
-        "id": "choice-3",
-        "label": "낮은 강도로 같은 동작을 짧게 반복한다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
-            "weeks": {
-              "precision": 3
-            },
-            "fatigue": 2
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE33",
-    "title": "임팩트와 릴리스의 재현성",
-    "description": "같은 준비를 해도 공에 힘이 실리는 지점이 조금씩 달라진다. 코치와 공을 보내는 순간을 일정하게 만드는 연습을 한다.",
-    "rule": {
-      "activity": "training",
-      "revision": 2
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "힘을 전달하는 순간을 집중 반복한다",
-        "outcomes": [
-          {
-            "weight": 70,
-            "message": "공에 힘을 싣는 순간을 일정하게 맞췄다. 강도를 올려도 같은 지점을 찾는 감각이 생겼다.",
+            "message": "동료의 동작을 본 뒤 자신의 발과 몸통 순서를 맞췄다. 마지막까지 힘이 이어졌다.",
             "weeks": {
               "force": 4
             },
             "fatigue": 3
           },
           {
-            "weight": 30,
-            "message": "힘을 더 쓰려다 공을 보내는 지점이 달라졌다. 강도를 낮춰 다시 맞춰봤다.",
-            "fatigue": 4
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "정확한 동작부터 일정하게 맞춘다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "낮은 강도에서 정확한 동작을 반복하며 기준이 되는 지점을 정리했다.",
+            "weight": 35,
+            "message": "전력 동작은 줄이고 낮은 강도로 순서를 다시 맞췄다. 하체 힘을 전달하는 기본 감각을 익혔다.",
             "weeks": {
-              "precision": 3
-            },
-            "fatigue": 1
-          }
-        ]
-      },
-      {
-        "id": "choice-3",
-        "label": "공의 출발 지점을 영상으로 분석한다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
-            "weeks": {
-              "bq": 3
+              "force": 3
             },
             "fatigue": 2
           }
         ]
+      },
+      {
+        "id": "choice-2",
+        "label": "개인 훈련으로 하체 회전을 맞춘다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "개인 과제로 같은 동작을 반복했다. 발에서 시작한 힘이 손끝까지 자연스럽게 이어졌다.",
+            "weeks": {
+              "force": 3
+            },
+            "fatigue": 2
+          },
+          {
+            "weight": 25,
+            "message": "훈련량을 줄여 몸을 가볍게 정리했다.",
+            "fatigue": -3
+          }
+        ]
       }
     ],
-    "category": "baseball"
+    "category": "baseball",
+    "focus": "velocity",
+    "battingFocus": "power"
   },
   {
-    "id": "PE34",
-    "title": "가족이 보내온 편지",
-    "description": "가족이 평소 생활을 응원하는 편지를 보내왔다. 감사 인사를 나누고 하루를 편안하게 마무리해보자.",
+    "id": "PE31",
+    "title": "개인 휴일의 늦은 아침",
+    "description": "오늘은 팀 훈련과 경기가 없다. 알람을 끄고 몸을 충분히 쉬게 할 수 있는 아침이다.",
+    "category": "daily",
     "rule": {
       "activity": "free",
-      "revision": 2
+      "revision": 4,
+      "minFatigue": 15
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "차분히 답장을 쓴다",
+        "label": "늦은 아침을 먹고 가볍게 걷는다",
         "outcomes": [
           {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "stamina": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
+            "weight": 100,
+            "message": "무리하지 않고 몸을 움직인 뒤 편하게 쉬었다.",
+            "fatigue": -8
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
+        "label": "잠을 더 자고 하루를 천천히 시작한다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
+            "message": "쌓인 피로를 느끼며 충분히 수면을 취했다.",
             "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-3",
-        "label": "짧은 답장만 보내고 쉬어간다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
-            "fatigue": -4
-          }
-        ]
-      }
-    ],
-    "category": "daily"
-  },
-  {
-    "id": "PE35",
-    "title": "오래된 친구에게 온 연락",
-    "description": "오래 알고 지낸 친구에게 연락이 왔다. 서로 편한 시간에 짧게 근황을 나눌 수 있다.",
-    "rule": {
-      "activity": "free",
-      "revision": 2
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "편한 시간에 안부를 나눈다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
+              "min": 14,
+              "max": 22
             }
           }
         ]
       }
-    ],
-    "category": "daily"
+    ]
   },
   {
-    "id": "PE36",
-    "title": "공의 궤적을 읽는 반응 훈련",
-    "description": "타격 코치가 서로 다른 구종을 섞어 보여준다. 스윙하기 전 궤적을 읽고 공을 고르는 기준을 세워보자.",
+    "id": "PE32",
+    "title": "토탭에서 레그킥으로",
+    "description": "타격 코치가 하체 회전이 끝나기 전에 배트가 먼저 나온다고 말한다. 케이지에서 앞다리를 들어 체중을 싣는 타격을 시험한다.",
+    "category": "baseball",
     "rule": {
       "activity": "training",
-      "revision": 2,
+      "revision": 4,
       "field": "batting"
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "구종을 구분하며 타이밍을 맞춘다",
+        "label": "레그킥을 도입해 하체 힘을 싣는다",
         "outcomes": [
           {
             "weight": 70,
-            "message": "구종별로 궤적을 구분하며 스윙을 준비했다. 공을 기다릴 기준과 타이밍이 선명해졌다.",
+            "message": "들었던 다리를 딛자 배트가 함께 돌아갔다. 장타를 만드는 힘의 순서를 익혔다.",
             "weeks": {
-              "contact": 4
+              "power": 4
             },
-            "fatigue": 3
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
           },
           {
             "weight": 30,
-            "message": "구종을 미리 짐작하다 타이밍이 흔들렸다. 궤적을 더 오래 확인하는 연습으로 돌아갔다.",
-            "fatigue": 4
+            "message": "발이 내려오는 순간을 놓쳐 배트가 늦었다. 빠른 공에 타이밍이 흔들렸다.",
+            "stats": {
+              "contact": -0.8
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "좋은 공 하나를 골라 집중한다",
+        "label": "토탭을 작게 가져가며 타이밍을 지킨다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "공격할 공 하나를 정해 관찰할 정보를 줄이고 판단 순서를 정리했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigue": 1
-          }
-        ]
-      },
-      {
-        "id": "choice-3",
-        "label": "반응에 집중해 짧은 스윙을 반복한다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
+            "message": "고개가 움직이지 않도록 짧게 디뎠다. 빠른 공에도 배트 중심을 맞혔다.",
             "weeks": {
               "contact": 3
             },
-            "fatigue": 2
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE37",
-    "title": "생활에 필요한 개인 물품",
-    "description": "개인 생활에 필요한 물품을 챙길 시간이 생겼다. 필요한 것만 준비해 남은 시간을 여유롭게 쓸 수도 있다.",
-    "rule": {
-      "activity": "free",
-      "revision": 2
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "필요한 물건을 골라 준비한다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "recovery": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
             "fatigueRange": {
               "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
+              "max": 3
             }
           }
         ]
       }
     ],
-    "category": "daily"
+    "focus": "power"
   },
   {
-    "id": "PE38",
-    "title": "가족과 맞춘 저녁 시간",
-    "description": "가족과 저녁 시간이 맞았다. 함께 식사하며 근황을 나누거나 일찍 마무리하고 쉬어도 된다.",
-    "rule": {
-      "activity": "free",
-      "revision": 2
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "가족과 편하게 식사한다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "stamina": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-3",
-        "label": "식사만 함께하고 먼저 돌아간다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
-            "fatigue": -4
-          }
-        ]
-      }
-    ],
-    "category": "daily"
-  },
-  {
-    "id": "PE39",
-    "title": "주자가 있을 때의 투구 준비",
-    "description": "배터리 코치가 주자를 둔 연습 상황을 만들었다. 견제와 타자 승부 사이에서 일정한 준비 동작을 유지해보자.",
+    "id": "PE33",
+    "title": "이중 키킹으로 만드는 균형",
+    "description": "불펜에서 축발 위에 몸을 오래 남기는 연습을 한다. 투수 코치가 다리를 나눠 들며 상체가 먼저 나가지 않게 잡아준다.",
+    "category": "baseball",
     "rule": {
       "activity": "training",
-      "revision": 2,
+      "revision": 4,
       "field": "pitching"
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "주자를 확인한 뒤 투구를 연결한다",
+        "label": "이중 키킹으로 투구 균형을 바꾼다",
         "outcomes": [
           {
-            "weight": 70,
-            "message": "주자를 확인한 뒤에도 일정한 투구 동작을 유지했다. 시선과 준비 순서가 자연스럽게 이어졌다.",
+            "weight": 75,
+            "message": "두 번째로 다리를 들 때 허리가 뒤에 남았다. 디딤발과 릴리스의 방향이 맞아들었다.",
             "weeks": {
               "control": 4
             },
-            "fatigue": 3
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
           },
           {
-            "weight": 30,
-            "message": "주자를 의식해 준비가 빨라졌다. 포수와 투구 전 확인 순서를 다시 맞췄다.",
-            "fatigue": 4
+            "weight": 25,
+            "message": "동작을 끊어 가는 동안 팔이 늦었다. 직구에 실리던 힘이 줄었다.",
+            "stats": {
+              "velocity": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "투구 동작의 반복성부터 점검한다",
+        "label": "한 번만 들고 축발을 길게 누른다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "일정한 동작을 우선하며 타자와 주자를 살필 순서를 정리했다.",
+            "message": "투구 리듬을 끊지 않고 마운드를 밀었다. 몸통의 힘이 직구에 이어졌다.",
             "weeks": {
-              "bq": 3
+              "velocity": 3
             },
-            "fatigue": 1
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
           }
         ]
       }
     ],
-    "category": "baseball"
+    "focus": "control"
   },
   {
-    "id": "PE40",
-    "title": "휴일 오후의 짧은 약속",
-    "description": "가까운 친구와 잠깐 만날 시간이 맞았다. 길게 머무르지 않고 가볍게 기분을 바꿀 수 있다.",
+    "id": "PE34",
+    "title": "가족과 보내는 저녁",
+    "description": "쉬는 날 가족과 식사를 함께한다. 늦어지기 전에 귀가해 취침 시간을 지킬 수 있다.",
+    "category": "daily",
     "rule": {
       "activity": "free",
-      "revision": 2
+      "revision": 4,
+      "minFatigue": 15
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "정한 시간만큼 만나고 돌아온다",
+        "label": "식사 뒤 잠깐 이야기하고 돌아간다",
         "outcomes": [
           {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
+            "weight": 100,
+            "message": "차분한 식사를 마치고 몸과 마음의 긴장을 풀었다.",
+            "fatigue": -7
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
+        "label": "안부를 전하고 일찍 잠자리에 든다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
+            "message": "귀가 시간을 당겨 충분한 수면을 취했다.",
             "recoveryPercent": {
-              "min": 10,
+              "min": 12,
               "max": 20
             }
           }
         ]
       }
+    ]
+  },
+  {
+    "id": "PE35",
+    "title": "오래된 친구와 짧은 만남",
+    "description": "쉬는 날 오랜 친구와 가까운 곳에서 만났다. 오래 머물지 않기로 서로 약속했다.",
+    "category": "daily",
+    "rule": {
+      "activity": "free",
+      "revision": 4,
+      "minFatigue": 15
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "차 한 잔을 마시며 쉬었다 돌아간다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "짧은 만남으로 기분을 풀고 남은 시간은 쉬었다.",
+            "fatigue": -6
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "잠깐 인사하고 집에서 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "몸이 무겁다는 말을 전하고 일찍 휴식을 시작했다.",
+            "recoveryPercent": {
+              "min": 10,
+              "max": 18
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE36",
+    "title": "슬라이더를 스위퍼처럼",
+    "description": "슬라이더가 타자 배트에 자꾸 걸린다. 불펜에서 그립과 손목 각도를 바꿔 옆으로 더 빠지는 공을 연습한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "옆 회전을 늘려 스위퍼 궤적을 만든다",
+        "outcomes": [
+          {
+            "weight": 60,
+            "message": "공이 직구 궤적에서 더 길게 옆으로 벗어났다. 타자의 스윙을 비키는 감각을 찾았다.",
+            "weeks": {
+              "movement": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 40,
+            "message": "회전을 의식하느라 손목이 먼저 열렸다. 변화구가 스트라이크 존에 들어오지 않았다.",
+            "stats": {
+              "control": -0.6
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "기존 슬라이더를 타자 무릎 높이에 꽂는다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "궤적을 키우기 전에 시작점을 고정했다. 슬라이더의 높낮이가 안정됐다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
     ],
-    "category": "daily"
+    "focus": "movement"
+  },
+  {
+    "id": "PE37",
+    "title": "리드 폭보다 빠른 첫발",
+    "description": "코치가 견제 동작과 투구 동작을 섞어 보여 준다. 리드를 무작정 늘리지 않고 출발 순간의 첫발을 빠르게 만드는 훈련이다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "batting"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "몸을 낮추고 첫 세 걸음을 짧게 몰아 뗀다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "발이 땅에 오래 머물지 않았다. 짧은 보폭이 이어지며 빠르게 가속했다.",
+            "weeks": {
+              "speed": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
+            }
+          },
+          {
+            "weight": 25,
+            "message": "무게중심이 앞으로 쏠려 견제에 몸을 되돌리기 어려웠다. 출발 자세가 흐트러졌다.",
+            "stats": {
+              "speed": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "작은 리드에서 첫발만 반복한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "서두르지 않고 발을 떼는 순서를 맞췄다. 작은 리드에서도 가속을 붙였다.",
+            "weeks": {
+              "speed": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "speed"
+  },
+  {
+    "id": "PE38",
+    "title": "직접 차린 휴일 식사",
+    "description": "외출 일정이 없는 저녁이다. 끼니를 챙긴 뒤 남은 시간을 휴식에 쓸 수 있다.",
+    "category": "daily",
+    "rule": {
+      "activity": "free",
+      "revision": 4,
+      "minFatigue": 15
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "간단히 요리해 먹고 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "서두르지 않고 식사를 마친 뒤 몸을 편히 쉬게 했다.",
+            "fatigue": -8
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "준비된 식사를 먹고 수면을 보충한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "식사 시간을 줄여 누워 쉴 시간을 더 확보했다.",
+            "recoveryPercent": {
+              "min": 12,
+              "max": 20
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE39",
+    "title": "도루를 막는 퀵모션",
+    "description": "라이브 피칭에서 1루 주자가 계속 스타트를 노린다. 세트 포지션에서 다리를 줄여 들고 공을 던져본다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "다리 들기를 줄여 투구 시간을 단축한다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "상체와 디딤발이 함께 나갔다. 빨리 던져도 공이 낮은 코스에 모였다.",
+            "weeks": {
+              "control": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 25,
+            "message": "팔이 따라올 시간이 줄어 변화구가 일찍 빠졌다. 꺾이는 지점이 흔들렸다.",
+            "stats": {
+              "movement": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "정지 시간을 바꾸며 주자를 묶는다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "주자가 출발할 박자를 읽기 어렵게 만들었다. 견제와 투구를 섞는 판단이 빨라졌다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "control"
+  },
+  {
+    "id": "PE40",
+    "title": "직구처럼 던지는 스플리터",
+    "description": "불펜 포수가 손가락을 벌린 그립을 받아준다. 직구 팔 스윙을 유지한 채 타자 앞에서 떨어뜨리는 공을 연습한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "스플리터를 새 결정구로 연습한다",
+        "outcomes": [
+          {
+            "weight": 60,
+            "message": "직구와 비슷하게 출발한 공이 미트 앞에서 가라앉았다. 떨어지는 구종을 다룰 감각이 생겼다.",
+            "weeks": {
+              "movement": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 40,
+            "message": "손에서 빠지는 시점이 일정하지 않았다. 공이 땅에 먼저 닿았다.",
+            "stats": {
+              "control": -0.6
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "그립을 덜 벌리고 낮은 코스를 맞힌다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "손에 맞는 간격으로 공을 놓았다. 원하는 출발 높이를 반복할 수 있게 됐다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "movement"
   },
   {
     "id": "PE41",
-    "title": "수비 위치와 첫발의 판단",
-    "description": "분석 담당자가 상대 타자의 타구 방향을 정리했다. 수비 코치와 출발 위치를 바꿔가며 첫발을 연습한다.",
+    "title": "중계 플레이의 발 방향",
+    "description": "외야에서 날아온 공을 받아 홈으로 연결하는 훈련이다. 공이 오기 전에 몸을 반쯤 돌려 잡아본다.",
+    "category": "baseball",
     "rule": {
       "activity": "training",
-      "revision": 2,
+      "revision": 4,
       "field": "batting",
       "fielding": true
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "타구 방향별 첫발을 반복한다",
+        "label": "옆으로 돌아서 받으며 한 동작에 송구한다",
         "outcomes": [
           {
-            "weight": 70,
-            "message": "출발 위치를 바꿔가며 타구 방향에 맞는 첫발을 찾았다. 포구까지의 동선이 짧아졌다.",
+            "weight": 80,
+            "message": "공이 글러브에 들어올 때 몸이 이미 홈 쪽을 향했다. 중계 송구가 끊기지 않았다.",
             "weeks": {
               "defense": 4
             },
-            "fatigue": 3
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
           },
           {
-            "weight": 30,
-            "message": "위치를 의식하다 첫발이 늦었다. 코치와 기본 자세부터 되짚었다.",
-            "fatigue": 4
+            "weight": 20,
+            "message": "공을 받기 전에 팔부터 돌아갔다. 강하게 던질 자세를 만들지 못했다.",
+            "stats": {
+              "arm": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "기본 위치에서 포구부터 확인한다",
+        "label": "가슴 앞에서 잡고 발을 디뎌 강하게 던진다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "기본 위치에서 정확하게 포구하며 송구로 연결하는 동작을 다듬었다.",
+            "message": "공을 안정적으로 쥔 뒤 체중을 실었다. 송구가 중간에서 처지지 않았다.",
             "weeks": {
               "arm": 3
             },
-            "fatigue": 1
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
           }
         ]
       }
     ],
-    "category": "baseball"
+    "focus": "defense"
   },
   {
     "id": "PE42",
-    "title": "정해 둔 취침 시간",
-    "description": "오늘 해야 할 일을 마치고 잠들 준비를 한다. 조용히 시간을 보내거나 일찍 눈을 붙여도 된다.",
+    "title": "일찍 불을 끄는 밤",
+    "description": "내일 일정까지 여유가 있는 밤이다. 휴대전화를 계속 볼지 내려놓고 먼저 쉴지 결정한다.",
+    "category": "daily",
     "rule": {
       "activity": "free",
-      "revision": 2
+      "revision": 4,
+      "minFatigue": 15
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "하루를 정리하고 잠들 준비를 한다",
+        "label": "휴대전화를 내려놓고 바로 잠든다",
         "outcomes": [
           {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "recovery": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
+            "weight": 100,
+            "message": "방해받지 않고 잠들어 몸에 남은 피로를 풀었다.",
+            "fatigue": -10
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "조용한 곳에서 충분히 쉰다",
+        "label": "따뜻한 물로 씻고 몸을 쉬게 한다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
+            "message": "긴장을 푼 뒤 잠자리에 들어 푹 쉬었다.",
             "recoveryPercent": {
-              "min": 10,
+              "min": 12,
               "max": 20
             }
           }
         ]
       }
-    ],
-    "category": "daily"
+    ]
   },
   {
     "id": "PE43",
-    "title": "장거리 이동 중의 휴식",
-    "description": "예정된 원정 이동으로 긴 시간을 차 안에서 보낸다. 잠깐 이야기를 나누거나 편한 자세로 쉬어가도 된다.",
+    "title": "원정 이동 중의 휴식",
+    "description": "원정 경기를 앞두고 이동하는 날이다. 좌석에서 자세를 바꿔 다리를 쉬게 한다.",
+    "category": "daily",
     "rule": {
       "activity": "any",
-      "revision": 2,
+      "revision": 4,
+      "minFatigue": 15,
       "travel": true
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "옆자리 동료와 잠깐 이야기한다",
+        "label": "좌석을 정리하고 짧게 잠든다",
         "outcomes": [
           {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "stamina": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
+            "weight": 100,
+            "message": "몸을 편하게 받친 뒤 눈을 붙였다.",
+            "fatigue": -7
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
+        "label": "정차 때 가볍게 걷고 다시 쉰다",
         "outcomes": [
           {
             "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
+            "message": "오래 앉아 굳은 다리를 풀고 남은 이동 시간에 쉬었다.",
             "recoveryPercent": {
               "min": 10,
-              "max": 20
+              "max": 16
             }
           }
         ]
       }
-    ],
-    "category": "daily"
+    ]
   },
   {
     "id": "PE44",
-    "title": "혼자 보내는 조용한 저녁",
-    "description": "자유롭게 쓸 수 있는 저녁 시간이 생겼다. 부담 없는 취미를 잠깐 즐기거나 조용히 쉴 수 있다.",
-    "rule": {
-      "activity": "free",
-      "revision": 2
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "짧게 취미 시간을 갖는다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          }
-        ]
-      }
-    ],
-    "category": "daily"
-  },
-  {
-    "id": "PE45",
-    "title": "휴일의 낮잠",
-    "description": "오후에 잠깐 눈을 붙일 여유가 생겼다. 편한 자세로 쉬거나 가볍게 몸을 풀며 기분을 바꿔보자.",
-    "rule": {
-      "activity": "free",
-      "revision": 2
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "잠깐 눈을 붙이고 편히 쉰다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "recovery": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "조용한 곳에서 충분히 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-3",
-        "label": "짧게 눈을 붙이고 조용히 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "필요한 부분만 정리하고 정해둔 계획을 이어갔다.",
-            "fatigue": -4
-          }
-        ]
-      }
-    ],
-    "category": "daily"
-  },
-  {
-    "id": "PE46",
-    "title": "지난 휴일 이후의 생활 리듬",
-    "description": "전에 보냈던 휴일을 떠올리며 동료가 어떤 휴식이 편했는지 묻는다. 서로 잘 맞았던 방법을 나눈다.",
-    "rule": {
-      "activity": "free",
-      "revision": 2,
-      "after": {
-        "id": "PE31",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "편했던 휴식 방법을 이야기한다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "stamina": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          }
-        ]
-      }
-    ],
-    "category": "daily"
-  },
-  {
-    "id": "PE47",
-    "title": "영상으로 다시 본 균형 점검",
-    "description": "앞서 연습한 중심 이동을 실전 속도에 가까운 동작과 비교한다. 힘을 더 쓰면서도 균형을 지킬 방법을 찾는다.",
+    "title": "배트를 뒤에 세워두는 로드",
+    "description": "타격 코치가 투수가 던지기 전에 배트를 충분히 준비하라고 한다. 손과 배트를 뒤에 두는 로드 동작을 연습한다.",
+    "category": "baseball",
     "rule": {
       "activity": "training",
-      "revision": 2,
-      "after": {
-        "id": "PE32",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "빠른 동작에서도 균형을 반복한다",
-        "outcomes": [
-          {
-            "weight": 70,
-            "message": "속도를 올려도 앞서 찾은 균형을 유지했다. 영상에서도 동작의 흔들림이 줄어드는 점을 확인했다.",
-            "weeks": {
-              "precision": 4
-            },
-            "fatigue": 3
-          },
-          {
-            "weight": 30,
-            "message": "빠른 동작에서는 예전 습관이 다시 나왔다. 코치와 바꿀 부분을 하나로 좁혔다.",
-            "fatigue": 4
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "효과가 있었던 한 동작만 남긴다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "효과가 분명했던 동작 하나를 남기고 반복할 기준을 정리했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigue": 1
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE48",
-    "title": "흔들리지 않는 임팩트와 릴리스",
-    "description": "전에 찾은 공을 보내는 지점을 연습 속도를 바꿔가며 확인한다. 서두를 때 달라지는 동작을 코치와 짚어보자.",
-    "rule": {
-      "activity": "training",
-      "revision": 2,
-      "after": {
-        "id": "PE33",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "속도를 바꾸며 같은 지점을 찾는다",
-        "outcomes": [
-          {
-            "weight": 70,
-            "message": "속도를 달리해도 같은 지점에서 공을 보냈다. 서두를 때 바뀌던 동작을 스스로 짚을 수 있었다.",
-            "weeks": {
-              "precision": 4
-            },
-            "fatigue": 3
-          },
-          {
-            "weight": 30,
-            "message": "속도를 바꾸자 힘을 전달하는 순서가 어긋났다. 기준 속도에서 다시 확인했다.",
-            "fatigue": 4
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "낮은 강도로 정확성을 유지한다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "낮은 강도에서 정확한 지점을 반복하며 힘을 전달하는 감각을 다듬었다.",
-            "weeks": {
-              "force": 3
-            },
-            "fatigue": 1
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE49",
-    "title": "편지 뒤에 이어진 가족의 답장",
-    "description": "전에 보낸 답장에 가족의 소식이 돌아왔다. 가까운 사람들의 평소 이야기를 듣고 안부를 전한다.",
-    "rule": {
-      "activity": "free",
-      "revision": 2,
-      "after": {
-        "id": "PE34",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "가족의 소식을 듣고 답한다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          }
-        ]
-      }
-    ],
-    "category": "daily"
-  },
-  {
-    "id": "PE50",
-    "title": "다시 이어진 친구의 안부",
-    "description": "전에 근황을 나눴던 친구가 그 뒤의 생활을 물었다. 짧은 답장으로 서로의 일상을 전해보자.",
-    "rule": {
-      "activity": "free",
-      "revision": 2,
-      "after": {
-        "id": "PE35",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "그 뒤의 근황을 들려준다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "recovery": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          }
-        ]
-      }
-    ],
-    "category": "daily"
-  },
-  {
-    "id": "PE51",
-    "title": "구종을 섞은 실전 타격 과제",
-    "description": "반응 훈련에서 익힌 구분법을 타격 연습에 적용한다. 구종을 미리 알려주지 않는 상황에서 스윙을 결정해보자.",
-    "rule": {
-      "activity": "training",
-      "revision": 2,
-      "after": {
-        "id": "PE36",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      },
+      "revision": 4,
       "field": "batting"
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "실전처럼 구종을 읽고 스윙한다",
+        "label": "손을 뒤에 남기고 회전으로 배트를 끌어낸다",
         "outcomes": [
           {
             "weight": 70,
-            "message": "구종을 미리 몰라도 노릴 공을 구분했다. 읽은 궤적과 스윙 타이밍이 자연스럽게 이어졌다.",
+            "message": "허리와 배트 사이에 여유가 생겼다. 모아둔 힘이 임팩트에서 풀렸다.",
             "weeks": {
-              "contact": 4
-            },
-            "fatigue": 3
-          },
-          {
-            "weight": 30,
-            "message": "실전 속도에서는 구종을 좇다 판단이 늦었다. 타격 코치와 기다릴 공의 범위를 다시 정했다.",
-            "fatigue": 4
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "노릴 공의 범위를 좁혀 연습한다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "노릴 공을 좁혀 불필요한 반응을 줄이고 타석에서의 준비 순서를 정리했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigue": 1
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE52",
-    "title": "개인 물품을 챙긴 뒤",
-    "description": "전에 준비한 물품 덕분에 일상이 조금 편해졌다. 필요한 것을 줄여 정리할지 그대로 둘지 생각해본다.",
-    "rule": {
-      "activity": "free",
-      "revision": 2,
-      "after": {
-        "id": "PE37",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "편했던 생활 방식을 정리한다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "stamina": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          }
-        ]
-      }
-    ],
-    "category": "daily"
-  },
-  {
-    "id": "PE53",
-    "title": "주말에 맞춘 가족 일정",
-    "description": "가족과 짧게 시간을 보낼 수 있는 일정이 맞았다. 길게 머무르지 않아도 서로 얼굴을 볼 수 있다.",
-    "rule": {
-      "activity": "free",
-      "revision": 2
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "가능한 시간만큼 함께한다",
-        "outcomes": [
-          {
-            "weight": 30,
-            "message": "편한 시간에 생활을 돌아보며 나에게 맞는 리듬을 찾았다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 30,
-            "message": "부담 없이 시간을 보내고 일상으로 돌아왔다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각보다 시간이 길어졌다. 남은 시간은 조용히 쉬기로 했다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "짧게 인사를 전하고 먼저 쉰다",
-        "outcomes": [
-          {
-            "weight": 100,
-            "message": "짧게 인사를 전하고 충분한 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 20
-            }
-          }
-        ]
-      }
-    ],
-    "category": "daily"
-  },
-  {
-    "id": "PE54",
-    "title": "타격 준비 자세의 재설계",
-    "description": "타격 코치가 배트를 출발시키기 전 자세를 조금 바꿔보자고 한다. 타이밍을 맞추기까지 비교 연습이 필요하다.",
-    "rule": {
-      "activity": "training",
-      "field": "batting"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "새 준비 자세를 시험한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "공을 따라가는 시선과 스윙 시작이 연결됐다. 변화 과정을 남겨두었다.",
-            "weeks": {
-              "contact": 3
+              "power": 4
             },
             "fatigueRange": {
               "min": 3,
@@ -2903,446 +2197,10 @@
             }
           },
           {
-            "weight": 40,
-            "message": "익숙한 타이밍이 흔들렸다. 비교할 영상을 남겼다.",
-            "fatigueRange": {
-              "min": 4,
-              "max": 7
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "기존 자세의 흔들림만 줄인다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "평소 동작에서 힘이 새는 부분을 찾았다.",
-            "weeks": {
-              "contact": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "무리 없이 정해둔 연습량만 마쳤다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE55",
-    "title": "투구 템포의 작은 변화",
-    "description": "투수 코치가 공을 받은 뒤 준비 시간을 일정하게 맞춰보자고 한다. 서두르는 것과 리듬을 만드는 것은 다르다고 한다.",
-    "rule": {
-      "activity": "training",
-      "field": "pitching"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "새 준비 순서를 연습한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "동작이 급해지는 순간을 줄였다. 다음에도 확인하기로 했다.",
-            "weeks": {
-              "control": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 40,
-            "message": "리듬을 의식하니 어깨에 힘이 들어갔다. 연습 내용을 기록했다.",
-            "fatigueRange": {
-              "min": 4,
-              "max": 7
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "익숙한 템포로 제구를 확인한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "기본 동작을 일정하게 반복했다.",
-            "weeks": {
-              "control": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "투구량을 줄이고 몸을 정리했다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE56",
-    "title": "상대의 습관을 찾는 영상",
-    "description": "분석 담당자가 몇 개의 경기 장면을 모아왔다. 한 번의 움직임보다 반복되는 준비 동작을 찾아보자고 한다.",
-    "rule": {
-      "activity": "training"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "의심되는 패턴을 직접 기록한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "반복되는 상황과 예외를 구분했다. 다음 기록과 비교하기로 했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          },
-          {
-            "weight": 40,
-            "message": "표본이 적어 결론을 내리지 못했다. 관찰할 항목만 남겼다.",
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "분석 담당자의 요약부터 듣는다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "복잡한 장면을 짧게 정리했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "필요한 내용만 듣고 몸을 쉬게 했다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE57",
-    "title": "회복 루틴의 기록",
-    "description": "트레이너가 잠든 시간과 몸 상태를 간단히 적어보자고 한다. 생활 속에서 무리한 부분을 찾기 위한 기록이다.",
-    "rule": {
-      "activity": "training"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "생활과 몸 상태를 기록한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "몸이 무거워지는 날의 공통점을 찾기 시작했다.",
-            "weeks": {
-              "recovery": 3
-            },
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "기록할 항목이 낯설어 정리에 시간이 걸렸다.",
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "오늘의 피로부터 점검한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "지금 필요한 휴식을 골라 몸을 풀었다.",
-            "recoveryPercent": {
-              "min": 8,
-              "max": 16
-            }
-          },
-          {
-            "weight": 40,
-            "message": "점검 뒤 밀린 준비를 하느라 휴식은 짧았다.",
-            "recoveryPercent": {
-              "min": 2,
-              "max": 6
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE58",
-    "title": "수비 사이의 목소리",
-    "description": "수비 코치가 타구를 쫓을 때 동료와 부르는 신호를 점검하자고 한다. 서로 같은 뜻으로 이해하는지 확인해보자.",
-    "rule": {
-      "activity": "training",
-      "field": "batting",
-      "fielding": true
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "동료와 신호를 맞춰본다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "엇갈리던 판단을 알아차리고 움직임을 맞췄다.",
-            "weeks": {
-              "defense": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 40,
-            "message": "여러 상황을 반복하다 다리가 무거워졌다.",
-            "fatigueRange": {
-              "min": 4,
-              "max": 7
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "기본 신호를 정리하고 마친다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "헷갈리던 상황의 우선순위를 이해했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "정해진 내용만 확인하고 몸을 아꼈다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE59",
-    "title": "코치에게 보여줄 질문 노트",
-    "description": "최근 훈련에서 궁금했던 내용을 모아볼 시간이 생겼다. 잘 모르는 부분을 구체적으로 질문해보자.",
-    "rule": {
-      "activity": "training"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "질문을 적어 코치와 이야기한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "막연했던 어려움을 연습 과제로 바꿨다. 답을 노트에 남겼다.",
-            "weeks": {
-              "weak": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 4
-            }
-          },
-          {
-            "weight": 40,
-            "message": "한 번에 이해하기 어려워 확인할 내용을 더 적었다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "질문 하나만 골라 짧게 묻는다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "필요한 조언을 듣고 동작을 정리했다.",
-            "weeks": {
-              "precision": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "짧게 확인하고 평소 훈련을 마무리했다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE60",
-    "title": "동료와 바꿔보는 연습 설명",
-    "description": "같은 팀 동료가 각자 잘하는 기술을 말로 설명해보자고 한다. 상대의 장점을 듣고 내 습관도 돌아볼 수 있다.",
-    "rule": {
-      "activity": "training"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "서로의 방법을 자세히 설명한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "설명하던 내 동작에서도 빠뜨린 기본을 찾았다.",
-            "weeks": {
-              "precision": 3,
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 40,
-            "message": "예시를 보여주느라 연습 시간이 길어졌다.",
-            "fatigueRange": {
-              "min": 4,
-              "max": 7
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "한 가지 조언만 나누고 마친다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "동료의 관점에서 연습 목적을 이해했다.",
-            "weeks": {
-              "bq": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "짧은 대화 뒤 몸을 충분히 쉬게 했다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE61",
-    "title": "새 타격 자세의 선택",
-    "description": "시험한 타격 준비 자세를 코치와 다시 비교한다. 새 동작을 더 다듬을지 편한 부분만 남길지 결정할 때다.",
-    "rule": {
-      "activity": "training",
-      "field": "batting",
-      "after": {
-        "id": "PE54",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "새 동작을 더 다듬는다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "반복하던 동작의 연결이 좋아졌다.",
-            "weeks": {
-              "contact": 4
-            },
-            "fatigueRange": {
-              "min": 3,
-              "max": 6
-            }
-          },
-          {
-            "weight": 40,
-            "message": "아직 맞지 않는 부분이 남았다. 원인은 이해했지만 연습이 길었다.",
-            "weeks": {
-              "bq": 3
+            "weight": 30,
+            "message": "손을 너무 뒤에 둬 빠른 공에 늦었다. 배트가 길게 돌아나왔다.",
+            "stats": {
+              "contact": -0.8
             },
             "fatigueRange": {
               "min": 5,
@@ -3353,11 +2211,11 @@
       },
       {
         "id": "choice-2",
-        "label": "맞는 부분만 남기고 정리한다",
+        "label": "로드를 줄이고 공을 보는 시간을 늘린다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "익숙한 자세에 쓸 수 있는 변화를 찾았다.",
+            "weight": 100,
+            "message": "준비 동작을 간결하게 줄였다. 공에 따라 배트가 나오는 시점을 조절했다.",
             "weeks": {
               "contact": 3
             },
@@ -3365,46 +2223,70 @@
               "min": 1,
               "max": 3
             }
-          },
-          {
-            "weight": 40,
-            "message": "큰 변경은 접고 몸을 쉬게 했다.",
-            "fatigueRange": {
-              "min": -4,
-              "max": -1
-            }
           }
         ]
       }
     ],
-    "category": "baseball"
+    "focus": "power"
   },
   {
-    "id": "PE62",
-    "title": "압박 속의 투구 템포",
-    "description": "전에 연습한 준비 순서를 주자가 있는 가상 상황에서도 유지해보자는 제안이다.",
+    "id": "PE45",
+    "title": "오후에 비워 둔 시간",
+    "description": "개인 정리를 끝내고 쉬는 시간이 남았다. 훈련을 더 잡지 않고 회복에 쓸 수 있다.",
+    "category": "daily",
     "rule": {
-      "activity": "training",
-      "field": "pitching",
-      "after": {
-        "id": "PE55",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
+      "activity": "free",
+      "revision": 4,
+      "minFatigue": 15
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "복잡한 상황에서 반복해본다",
+        "label": "짧게 눈을 붙이고 가볍게 몸을 푼다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "잠깐 잠든 뒤 편안하게 몸을 움직였다.",
+            "fatigue": -9
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "일정을 비우고 충분히 누워 쉰다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "외출을 미루고 남은 시간을 온전히 쉬었다.",
+            "recoveryPercent": {
+              "min": 14,
+              "max": 22
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PE46",
+    "title": "체인지업의 팔 속도",
+    "description": "불펜 포수가 체인지업 때만 팔이 느려진다고 말한다. 직구와 같은 팔 스윙으로 공을 던져본다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "직구 팔 스윙으로 체인지업을 던진다",
         "outcomes": [
           {
             "weight": 60,
-            "message": "주자를 신경 쓰면서도 준비 순서를 지켰다.",
+            "message": "공을 느리게 놓으려고 팔을 멈추지 않았다. 직구와의 속도 차이가 살아났다.",
             "weeks": {
-              "control": 4
+              "movement": 4
             },
             "fatigueRange": {
               "min": 3,
@@ -3413,24 +2295,24 @@
           },
           {
             "weight": 40,
-            "message": "신경 쓸 것이 많아 동작이 흔들렸다. 확인할 문제를 찾았다.",
-            "weeks": {
-              "bq": 3
+            "message": "빠른 팔에 손가락이 따라오지 못했다. 체인지업이 바깥으로 새었다.",
+            "stats": {
+              "control": -0.6
             },
             "fatigueRange": {
-              "min": 4,
-              "max": 7
+              "min": 5,
+              "max": 8
             }
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "낮은 강도로 순서만 확인한다",
+        "label": "두 구종을 같은 높이에서 출발시킨다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "무리 없이 기본 리듬을 굳혔다.",
+            "weight": 100,
+            "message": "속도보다 릴리스 위치를 먼저 맞췄다. 두 공을 원하는 코스로 보내는 감각이 좋아졌다.",
             "weeks": {
               "control": 3
             },
@@ -3438,124 +2320,60 @@
               "min": 1,
               "max": 3
             }
-          },
-          {
-            "weight": 40,
-            "message": "오늘은 투구량을 줄이고 마무리했다.",
-            "fatigueRange": {
-              "min": -4,
-              "max": -1
-            }
           }
         ]
       }
     ],
-    "category": "baseball"
+    "focus": "movement"
   },
   {
-    "id": "PE63",
-    "title": "예상과 달랐던 상대 패턴",
-    "description": "전에 적어둔 상대의 습관에 새로운 영상이 추가됐다. 처음 세운 가설과 다른 장면도 있다.",
+    "id": "PE47",
+    "title": "장타 뒤 2루를 통과하는 발",
+    "description": "외야로 빠지는 타구를 가정하고 1루에서 3루까지 달린다. 코치는 2루에서 속도를 죽이지 않도록 주로를 잡아 준다.",
+    "category": "baseball",
     "rule": {
       "activity": "training",
-      "after": {
-        "id": "PE56",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
+      "revision": 4,
+      "field": "batting"
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "가설을 고쳐 다시 정리한다",
+        "label": "베이스를 스치며 전력으로 돌아 나간다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "맞는 장면만 보던 버릇을 발견했다. 판단의 근거가 분명해졌다.",
+            "weight": 75,
+            "message": "베이스 앞에서 보폭을 맞춰 속도를 지켰다. 3루로 나가는 첫발에도 힘이 남았다.",
             "weeks": {
-              "bq": 4
+              "speed": 4
             },
             "fatigueRange": {
-              "min": 1,
-              "max": 4
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 40,
-            "message": "예외가 많아 결론은 미뤘지만 볼 항목을 좁혔다.",
-            "weeks": {
-              "bq": 3
+            "weight": 25,
+            "message": "베이스를 크게 돌아 주로가 길어졌다. 급히 방향을 틀다 걸음이 엉켰다.",
+            "stats": {
+              "speed": -0.5
             },
             "fatigueRange": {
-              "min": 2,
-              "max": 5
+              "min": 6,
+              "max": 9
             }
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "확실한 정보만 남긴다",
+        "label": "속도를 낮춰 진입 각도부터 맞춘다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "불확실한 추측을 덜고 준비를 단순하게 만들었다.",
+            "weight": 100,
+            "message": "밟을 위치를 정해 같은 주로를 반복했다. 코너 뒤에도 자연스럽게 속도가 붙었다.",
             "weeks": {
-              "bq": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "자료를 정리하고 충분히 쉬었다.",
-            "recoveryPercent": {
-              "min": 6,
-              "max": 12
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE64",
-    "title": "생활 기록에서 찾은 차이",
-    "description": "트레이너와 지난번부터 적은 생활 기록을 살펴본다. 잠드는 시간과 몸의 무거움에 차이가 보인다.",
-    "rule": {
-      "activity": "training",
-      "after": {
-        "id": "PE57",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "바꿀 습관 하나를 정한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "내 몸에 맞는 회복 순서를 구체적으로 잡았다.",
-            "weeks": {
-              "recovery": 4
-            },
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "뚜렷한 원인은 아직 없지만 기록을 더 간단하게 다듬었다.",
-            "weeks": {
-              "recovery": 3
+              "speed": 3
             },
             "fatigueRange": {
               "min": 1,
@@ -3563,57 +2381,150 @@
             }
           }
         ]
-      },
+      }
+    ],
+    "focus": "speed"
+  },
+  {
+    "id": "PE48",
+    "title": "짧은 보폭을 넓히는 불펜",
+    "description": "코치가 디딤발이 너무 빨리 닿아 하체 힘을 쓰지 못한다고 말한다. 불펜에서 보폭을 조금씩 넓혀 던져 본다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
       {
-        "id": "choice-2",
-        "label": "잘 맞았던 휴식부터 반복한다",
+        "id": "choice-1",
+        "label": "보폭을 넓혀 체중을 공에 싣는다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "편했던 방법으로 몸을 충분히 쉬게 했다.",
-            "recoveryPercent": {
-              "min": 12,
-              "max": 20
+            "weight": 65,
+            "message": "뒤에 남던 체중이 앞으로 실렸다. 릴리스까지 힘이 이어져 직구가 빨라졌다.",
+            "weeks": {
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 40,
-            "message": "주변 일정 때문에 계획만큼 쉬지는 못했다.",
-            "recoveryPercent": {
-              "min": 4,
-              "max": 8
+            "weight": 35,
+            "message": "보폭만 늘려 상체가 뒤에 남았다. 늦어진 릴리스에 공이 높게 빠졌다.",
+            "stats": {
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "짧은 거리에서 밀고 딛는 동작을 맞춘다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "하체를 밀어내는 순간부터 맞췄다. 팔에만 의지하지 않고 직구에 힘을 실었다.",
+            "weeks": {
+              "velocity": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           }
         ]
       }
     ],
-    "category": "baseball"
+    "focus": "velocity"
   },
   {
-    "id": "PE65",
-    "title": "실전 속도를 가정한 수비 신호",
-    "description": "전에 맞춘 신호를 빠르게 움직이는 연습에서도 확인한다. 목소리와 첫발이 함께 나가야 한다.",
+    "id": "PE49",
+    "title": "리드 폭을 한 발 늘리기",
+    "description": "주루 훈련에서 코치가 리드 폭을 조금 더 늘려보라고 한다. 귀루할 거리를 확인한 뒤 스타트를 반복한다.",
+    "category": "baseball",
     "rule": {
       "activity": "training",
-      "field": "batting",
-      "after": {
-        "id": "PE58",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      },
-      "fielding": true
+      "revision": 4,
+      "field": "batting"
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "동료와 빠른 상황을 반복한다",
+        "label": "리드를 넓히고 빠르게 스타트한다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "망설이는 순간이 줄며 타구를 읽는 감각이 좋아졌다.",
+            "weight": 80,
+            "message": "앞발을 바로 빼고 달려 나갔다. 도루 출발 때 가속이 붙었다.",
+            "weeks": {
+              "speed": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 20,
+            "message": "넓어진 거리를 오가느라 다리에 힘이 빨리 빠졌다. 반복 출발이 무거워졌다.",
+            "stats": {
+              "stamina": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "리드는 유지하고 투수의 첫 움직임에 반응한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "투수 발이 홈으로 향하는 순간을 골랐다. 출발할 공을 고르는 판단이 좋아졌다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "speed"
+  },
+  {
+    "id": "PE50",
+    "title": "포수의 팝타임 줄이기",
+    "description": "포수 수비 훈련에서 공을 잡고 2루로 던진다. 코치는 공을 빼는 손과 오른발을 동시에 움직이라고 한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "batting",
+      "fielding": true,
+      "positions": [
+        "C"
+      ]
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "발과 손을 동시에 움직여 송구를 당긴다",
+        "outcomes": [
+          {
+            "weight": 80,
+            "message": "미트에서 공을 빼는 순간 몸이 돌아갔다. 송구 준비에서 낭비하는 동작이 줄었다.",
             "weeks": {
               "defense": 4
             },
@@ -3623,269 +2534,11 @@
             }
           },
           {
-            "weight": 40,
-            "message": "신호가 엇갈려 여러 번 다시 맞췄다.",
-            "weeks": {
-              "bq": 3
+            "weight": 20,
+            "message": "빠르게 던지려다 상체가 뒤로 젖었다. 송구에 힘을 싣지 못했다.",
+            "stats": {
+              "arm": -0.5
             },
-            "fatigueRange": {
-              "min": 4,
-              "max": 7
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "엇갈린 상황만 짧게 점검한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "누가 먼저 판단할지 명확하게 정리했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "확인을 마치고 몸을 가볍게 풀었다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE66",
-    "title": "질문 노트를 다시 펼치다",
-    "description": "전에 코치에게 물었던 내용을 실제 연습 뒤 다시 읽는다. 그때는 몰랐던 뜻이 이제 보일 수도 있다.",
-    "rule": {
-      "activity": "training",
-      "after": {
-        "id": "PE59",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "달라진 점을 설명하고 조언을 듣는다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "조언을 내 동작에 맞게 이해했다.",
-            "weeks": {
-              "weak": 4
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 40,
-            "message": "설명하면서 다른 문제를 발견했다. 다음 과제를 정리했다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "도움 된 한 줄만 남긴다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "연습의 우선순위가 간단해졌다.",
-            "weeks": {
-              "bq": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "노트를 정리하고 일찍 마무리했다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE67",
-    "title": "동료가 돌려준 피드백",
-    "description": "전에 기술을 설명했던 동료가 연습해본 느낌을 들려준다. 내가 당연하게 여긴 부분을 어려워했다고 한다.",
-    "rule": {
-      "activity": "training",
-      "after": {
-        "id": "PE60",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "다시 설명하며 함께 확인한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "상대의 질문 덕분에 내 기본 동작도 정교해졌다.",
-            "weeks": {
-              "precision": 4
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 40,
-            "message": "설명을 바꾸어보느라 연습 시간이 길어졌다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 3,
-              "max": 6
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "차이점을 듣고 메모만 남긴다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "사람마다 맞는 동작이 다르다는 점을 이해했다.",
-            "weeks": {
-              "bq": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "짧게 의견을 나눈 뒤 쉬었다.",
-            "fatigueRange": {
-              "min": -4,
-              "max": -1
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE68",
-    "title": "부진한 날의 짧은 기록",
-    "description": "최근 경기가 잘 풀리지 않는다. 결과와 별개로 오늘 잘 지킨 준비 한 가지를 적어보자는 조언을 들었다.",
-    "rule": {
-      "activity": "free",
-      "form": "slump"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "지킨 것과 놓친 것을 적는다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "결과와 준비를 나눠 보니 다음 목표가 선명해졌다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": -2,
-              "max": 0
-            }
-          },
-          {
-            "weight": 40,
-            "message": "아쉬운 장면이 떠올라 정리에 시간이 걸렸다.",
-            "fatigueRange": {
-              "min": 2,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "오늘은 생각을 쉬고 잠을 잔다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "고민을 잠시 내려놓고 깊게 쉬었다.",
-            "recoveryPercent": {
-              "min": 12,
-              "max": 20
-            }
-          },
-          {
-            "weight": 40,
-            "message": "잠깐 뒤척였지만 충분히 누워 있었다.",
-            "recoveryPercent": {
-              "min": 4,
-              "max": 8
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE69",
-    "title": "잘 풀리는 시기의 추가 연습",
-    "description": "최근 경기 감각이 좋다. 코치는 좋은 느낌을 더 확인할지 피로를 관리할지 스스로 정해보라고 한다.",
-    "rule": {
-      "activity": "training",
-      "form": "good",
-      "minFatigue": 25
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "좋은 동작을 짧게 더 확인한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "감각이 좋았던 이유를 찾아 반복했다.",
-            "weeks": {
-              "precision": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          },
-          {
-            "weight": 40,
-            "message": "좋은 느낌을 쫓다 연습이 길어졌다.",
             "fatigueRange": {
               "min": 5,
               "max": 8
@@ -3895,397 +2548,1500 @@
       },
       {
         "id": "choice-2",
-        "label": "감각을 메모하고 몸을 쉰다",
+        "label": "준비를 서두르지 않고 2루까지 강하게 던진다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "준비 내용을 남기고 회복에 집중했다.",
-            "recoveryPercent": {
-              "min": 10,
-              "max": 18
+            "weight": 100,
+            "message": "몸을 세우고 체중을 앞에 실었다. 송구가 베이스까지 단단하게 뻗었다.",
+            "weeks": {
+              "arm": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
-          },
+          }
+        ]
+      }
+    ],
+    "focus": "defense"
+  },
+  {
+    "id": "PE51",
+    "title": "변화구를 기다리는 프리배팅",
+    "description": "배팅볼에 빠른 공과 느린 공을 섞는다. 앞발을 딛은 뒤에도 상체를 남겨두는 연습을 한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "batting"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "앞발을 딛고 변화구를 끝까지 기다린다",
+        "outcomes": [
           {
-            "weight": 40,
-            "message": "메모가 길어졌지만 연습량은 줄였다.",
-            "recoveryPercent": {
+            "weight": 80,
+            "message": "하체가 멈춰도 손은 뒤에 남았다. 느린 공에 몸이 먼저 나가지 않았다.",
+            "weeks": {
+              "contact": 4
+            },
+            "fatigueRange": {
               "min": 3,
-              "max": 7
+              "max": 6
             }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE70",
-    "title": "대기 시간의 관찰 과제",
-    "description": "코치가 동료의 준비 동작을 관찰해보라고 한다. 직접 반복하는 연습과는 다른 것을 볼 수 있다.",
-    "rule": {
-      "activity": "training"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "동료의 준비 순서를 기록한다",
-        "outcomes": [
+          },
           {
-            "weight": 60,
-            "message": "같은 상황에서도 선택이 다른 이유를 이해했다.",
-            "weeks": {
-              "bq": 3
+            "weight": 20,
+            "message": "기다리는 데만 집중해 하체 회전을 쓰지 못했다. 타구에 힘이 덜 실렸다.",
+            "stats": {
+              "power": -0.5
             },
             "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "오래 집중하느라 눈과 몸이 피곤해졌다.",
-            "fatigueRange": {
-              "min": 2,
-              "max": 5
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "내 준비 동작만 간단히 점검한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "필요 없는 동작을 줄이고 기본을 다듬었다.",
-            "weeks": {
-              "precision": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "무리하지 않고 평소 준비를 마쳤다.",
-            "fatigueRange": {
-              "min": -2,
-              "max": 0
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE71",
-    "title": "프로 생활의 첫 습관",
-    "description": "선배가 훈련 시작 전 준비 시간을 어떻게 쓰는지 묻는다. 새 환경에서 자신만의 순서를 만들어볼 때다.",
-    "rule": {
-      "activity": "training",
-      "maxAge": 24
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "선배에게 준비 방법을 배운다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "해야 할 일을 놓치지 않는 순서를 찾았다.",
-            "weeks": {
-              "bq": 3
-            },
-            "fatigueRange": {
-              "min": 1,
-              "max": 3
-            }
-          },
-          {
-            "weight": 40,
-            "message": "선배의 방식을 따라 하다 내게 안 맞는 부분을 알았다.",
-            "fatigueRange": {
-              "min": 2,
-              "max": 4
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "익숙한 준비를 먼저 정돈한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "원래 하던 준비의 빈틈을 줄였다.",
-            "weeks": {
-              "recovery": 3
-            },
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          },
-          {
-            "weight": 40,
-            "message": "일찍 준비를 끝내고 쉬었다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE72",
-    "title": "베테랑에게 남는 연습",
-    "description": "오래 뛰며 익힌 연습 가운데 지금도 도움이 되는 것이 무엇인지 코치가 묻는다. 모든 것을 예전처럼 할 필요는 없다.",
-    "rule": {
-      "activity": "training",
-      "minAge": 33
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "도움 되는 동작을 골라 집중한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "현재 몸에 맞는 강점을 다시 확인했다.",
-            "weeks": {
-              "precision": 3
-            },
-            "fatigueRange": {
-              "min": 2,
-              "max": 4
-            }
-          },
-          {
-            "weight": 40,
-            "message": "과거의 감각을 찾으려다 연습이 길어졌다.",
-            "fatigueRange": {
-              "min": 4,
-              "max": 7
-            }
-          }
-        ]
-      },
-      {
-        "id": "choice-2",
-        "label": "연습을 줄이고 회복을 점검한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "몸의 반응을 살피며 휴식을 취했다.",
-            "recoveryPercent": {
-              "min": 12,
-              "max": 20
-            }
-          },
-          {
-            "weight": 40,
-            "message": "정리에 시간이 들었지만 부담은 줄였다.",
-            "recoveryPercent": {
-              "min": 4,
+              "min": 5,
               "max": 8
             }
           }
         ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE73",
-    "title": "다음 일정을 준비하는 가방",
-    "description": "장비와 생활용품을 미리 챙길 시간이 생겼다. 동료는 필요한 물건 목록을 함께 확인하자고 한다.",
-    "rule": {
-      "activity": "free"
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "동료와 빠진 물건을 점검한다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "미리 준비를 마쳐 마음이 가벼워졌다.",
-            "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          },
-          {
-            "weight": 40,
-            "message": "서로의 물건을 찾느라 정리가 길어졌다.",
-            "fatigueRange": {
-              "min": 2,
-              "max": 4
-            }
-          }
-        ]
       },
       {
         "id": "choice-2",
-        "label": "필수품만 챙기고 일찍 쉰다",
+        "label": "빠른 공에 맞춰 강한 스윙을 반복한다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "간단히 준비하고 휴식 시간을 지켰다.",
-            "recoveryPercent": {
-              "min": 8,
-              "max": 16
-            }
-          },
-          {
-            "weight": 40,
-            "message": "놓친 물건이 생각나 잠깐 다시 정리했다.",
-            "fatigueRange": {
-              "min": 0,
-              "max": 2
-            }
-          }
-        ]
-      }
-    ],
-    "category": "baseball"
-  },
-  {
-    "id": "PE74",
-    "title": "더운 날의 훈련 마무리",
-    "description": "더위에 몸이 평소보다 무겁다. 트레이너가 오늘은 마무리 운동과 휴식 시간을 잘 나누자고 한다.",
-    "rule": {
-      "activity": "training",
-      "months": [
-        6,
-        7,
-        8
-      ],
-      "minFatigue": 35
-    },
-    "choices": [
-      {
-        "id": "choice-1",
-        "label": "가볍게 몸을 풀며 상태를 살핀다",
-        "outcomes": [
-          {
-            "weight": 60,
-            "message": "몸의 열과 긴장을 차분히 낮췄다.",
+            "weight": 100,
+            "message": "확실한 출발 박자를 정하고 회전했다. 임팩트 때 힘이 모였다.",
             "weeks": {
-              "recovery": 3
+              "power": 3
             },
             "fatigueRange": {
-              "min": -3,
-              "max": -1
-            }
-          },
-          {
-            "weight": 40,
-            "message": "습한 날씨 탓에 가벼운 움직임에도 지쳤다.",
-            "fatigueRange": {
-              "min": 2,
-              "max": 4
+              "min": 1,
+              "max": 3
             }
           }
         ]
-      },
+      }
+    ],
+    "focus": "contact"
+  },
+  {
+    "id": "PE52",
+    "title": "12시에서 6시로 떨어지는 커브",
+    "description": "커브를 던질 때 팔이 옆으로 눕는 느낌이다. 불펜에서 팔 각도를 세워 수직으로 떨어지는 공을 시험한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
       {
-        "id": "choice-2",
-        "label": "시원한 곳에서 충분히 쉰다",
+        "id": "choice-1",
+        "label": "팔 각도를 세워 큰 커브를 만든다",
         "outcomes": [
           {
             "weight": 60,
-            "message": "쉬는 동안 몸이 한결 가벼워졌다.",
-            "recoveryPercent": {
-              "min": 12,
-              "max": 22
+            "message": "공이 높은 곳에서 출발해 아래로 떨어졌다. 커브의 낙차를 키우는 감각을 익혔다.",
+            "weeks": {
+              "movement": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
             "weight": 40,
-            "message": "주변이 분주해 깊이 쉬지는 못했다.",
-            "recoveryPercent": {
-              "min": 4,
+            "message": "팔을 세우려다 릴리스가 늦었다. 공이 낮은 곳으로 몰렸다.",
+            "stats": {
+              "control": -0.6
+            },
+            "fatigueRange": {
+              "min": 5,
               "max": 8
             }
           }
         ]
+      },
+      {
+        "id": "choice-2",
+        "label": "평소 각도로 커브를 스트라이크 존에 넣는다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "과하게 각도를 만들지 않고 놓는 지점을 맞췄다. 커브를 원하는 높이에서 꺾었다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
       }
     ],
-    "category": "baseball"
+    "focus": "movement"
   },
   {
-    "id": "PE75",
-    "title": "부진 기록에서 남은 한 줄",
-    "description": "어려웠던 날부터 적어둔 기록을 다시 읽는다. 결과가 달라도 꾸준히 지킨 준비가 눈에 들어온다.",
+    "id": "PE53",
+    "title": "파울 라인 쪽 뜬공",
+    "description": "수비 코치가 파울 라인 바깥으로 뜬공을 띄운다. 라인과 펜스를 확인하며 공 아래로 들어가는 훈련이다.",
+    "category": "baseball",
     "rule": {
-      "activity": "free",
-      "after": {
-        "id": "PE68",
-        "choices": [
-          "choice-1"
-        ],
-        "minDays": 14,
-        "maxDays": 112
-      }
+      "activity": "training",
+      "revision": 4,
+      "field": "batting",
+      "fielding": true
     },
     "choices": [
       {
         "id": "choice-1",
-        "label": "계속 지킬 준비를 골라 정리한다",
+        "label": "시선을 공에 두고 낙구 지점까지 달린다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "결과에만 흔들리지 않고 상황을 보는 기준을 세웠다.",
+            "weight": 80,
+            "message": "달리는 동안 고개가 덜 흔들렸다. 공 아래에 들어갈 때 몸의 방향을 맞췄다.",
+            "weeks": {
+              "defense": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 20,
+            "message": "공을 놓치지 않으려다 보폭이 작아졌다. 첫 가속이 느려졌다.",
+            "stats": {
+              "speed": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "펜스와 라인을 확인하고 짧은 전력 질주를 한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "주변을 확인한 뒤 확실한 방향으로 출발했다. 타구를 향한 첫 가속이 붙었다.",
+            "weeks": {
+              "speed": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "defense"
+  },
+  {
+    "id": "PE54",
+    "title": "큰 레그킥을 토탭으로 줄이기",
+    "description": "빠른 공에 스윙이 계속 늦는다. 케이지에서 앞다리를 크게 드는 대신 앞꿈치만 찍고 타격해본다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "batting"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "토탭으로 바꿔 준비 동작을 줄인다",
+        "outcomes": [
+          {
+            "weight": 80,
+            "message": "발이 빨리 제자리로 돌아왔다. 강한 공에도 배트가 늦지 않았다.",
+            "weeks": {
+              "contact": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 20,
+            "message": "하체에 체중을 모으기 전에 배트가 나갔다. 정타에도 힘이 덜 붙었다.",
+            "stats": {
+              "power": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "레그킥은 유지하고 다리 높이만 낮춘다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "힘을 모으는 동작을 남기면서 시간을 줄였다. 하체를 써서 강하게 때렸다.",
+            "weeks": {
+              "power": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "contact"
+  },
+  {
+    "id": "PE55",
+    "title": "골반이 먼저 도는 투구",
+    "description": "불펜에서 골반과 어깨가 동시에 열리는 동작을 고친다. 코치는 하체가 먼저 움직이고 팔이 뒤따라오게 던져 보라고 한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "골반 회전 뒤 상체를 빠르게 돌린다",
+        "outcomes": [
+          {
+            "weight": 65,
+            "message": "팔이 몸통 회전을 따라 빠르게 나왔다. 직구가 미트까지 힘 있게 뻗었다.",
+            "weeks": {
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
+            }
+          },
+          {
+            "weight": 35,
+            "message": "어깨를 억지로 붙잡다 팔이 늦었다. 공이 손끝에서 빠지는 위치가 흔들렸다.",
+            "stats": {
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "낮은 강도로 회전 순서를 반복한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "하체부터 돌고 상체를 따라 보냈다. 전신의 힘을 공으로 옮기는 감각을 익혔다.",
+            "weeks": {
+              "velocity": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "velocity"
+  },
+  {
+    "id": "PE56",
+    "title": "앞다리로 버티는 직구",
+    "description": "불펜에서 디딤발 무릎이 계속 접힌다. 앞다리로 버틴 뒤 몸통을 회전시키는 동작을 반복한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "앞다리로 버티고 상체를 빠르게 회전한다",
+        "outcomes": [
+          {
+            "weight": 65,
+            "message": "디딤발에서 몸이 주저앉지 않았다. 몸통 회전의 힘이 직구에 전달됐다.",
+            "weeks": {
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          },
+          {
+            "weight": 35,
+            "message": "앞다리에 힘을 너무 줘 상체가 일찍 들렸다. 공이 높은 곳으로 몰렸다.",
+            "stats": {
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 7,
+              "max": 10
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "착지 위치를 맞추며 낮은 코스를 던진다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "발이 놓이는 방향을 고정했다. 상체가 들리지 않고 공을 낮게 놓았다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "velocity"
+  },
+  {
+    "id": "PE57",
+    "title": "글러브를 당기는 시점",
+    "description": "불펜에서 글러브 쪽 어깨가 먼저 열려 공이 옆으로 빠진다. 글러브를 몸 가까이에 모으는 시점을 바꿔 본다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "글러브를 가슴 앞에 모으고 코스를 노린다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "글러브 쪽 어깨가 버텨 줬다. 손끝이 흔들리지 않아 공이 미트 안으로 모였다.",
+            "weeks": {
+              "control": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
+            }
+          },
+          {
+            "weight": 25,
+            "message": "글러브를 너무 세게 당겨 몸이 한쪽으로 돌아갔다. 공의 좌우 편차가 커졌다.",
+            "stats": {
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "반 강도로 같은 위치에 글러브를 모은다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "힘을 빼고 동작을 맞췄다. 같은 자세로 릴리스하는 감각을 익혔다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "control"
+  },
+  {
+    "id": "PE58",
+    "title": "중계 위치를 정하는 수비",
+    "description": "외야로 빠지는 타구에 주자가 둘 움직인다. 투수와 야수는 홈과 3루 중 어디를 막을지 소리로 맞추며 중계와 백업을 반복한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "주자 위치를 보며 중계와 백업을 직접 지시한다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "타구가 나오자 주자와 송구 방향을 함께 봤다. 중계와 백업이 겹치지 않아 다음 진루를 막았다.",
             "weeks": {
               "bq": 4
             },
             "fatigueRange": {
-              "min": 0,
-              "max": 3
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 40,
-            "message": "아쉬운 장면도 떠올랐지만 다음에 확인할 항목을 정했다.",
-            "weeks": {
-              "bq": 3
+            "weight": 25,
+            "message": "앞선 주자만 보고 뒤 주자를 놓쳤다. 서로 다른 콜이 나와 중계가 늦어졌다.",
+            "stats": {
+              "bq": -0.5
             },
             "fatigueRange": {
-              "min": 1,
-              "max": 4
+              "min": 6,
+              "max": 9
             }
           }
         ]
       },
       {
         "id": "choice-2",
-        "label": "기록을 덮고 충분히 쉬어간다",
+        "label": "주자 한 명인 상황부터 위치를 맞춘다",
         "outcomes": [
           {
-            "weight": 60,
-            "message": "지나간 경기를 내려놓고 편안하게 쉬었다.",
-            "recoveryPercent": {
-              "min": 12,
-              "max": 20
-            }
-          },
-          {
-            "weight": 40,
-            "message": "생각을 정리하는 데 조금 걸렸지만 몸은 쉬게 했다.",
-            "recoveryPercent": {
-              "min": 4,
-              "max": 8
+            "weight": 100,
+            "message": "상황을 하나씩 반복하며 설 곳을 익혔다. 공이 오기 전에 다음 송구를 준비했다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           }
         ]
       }
     ],
-    "category": "baseball"
+    "focus": "bq"
+  },
+  {
+    "id": "PE59",
+    "title": "오픈 스탠스의 몸쪽 공",
+    "description": "배팅 케이지에서 몸쪽 공만 받아친다. 앞발을 조금 열고 배트가 나올 공간을 만들어본다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "batting"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "앞발을 열고 몸쪽 공을 강하게 친다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "배트가 몸에 걸리지 않고 돌아나왔다. 안쪽 공을 강하게 당겨 쳤다.",
+            "weeks": {
+              "power": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 30,
+            "message": "몸이 일찍 열리면서 바깥쪽 공에 배트가 닿지 않았다. 맞히는 범위가 흔들렸다.",
+            "stats": {
+              "contact": -0.8
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "발 위치는 두고 손을 몸 가까이 붙인다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "배트가 짧은 길로 공에 닿았다. 몸쪽 공에도 중심을 맞혔다.",
+            "weeks": {
+              "contact": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "power"
+  },
+  {
+    "id": "PE60",
+    "title": "홈 쪽으로 길게 뻗는 릴리스",
+    "description": "코치가 투구 뒤 팔을 너무 빨리 접는다고 말한다. 불펜에서 공을 놓은 뒤에도 손을 홈 쪽으로 길게 뻗는다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "몸을 앞으로 보내며 릴리스를 길게 만든다",
+        "outcomes": [
+          {
+            "weight": 65,
+            "message": "투구가 몸 앞쪽에서 끝났다. 힘을 중간에 끊지 않고 공에 실었다.",
+            "weeks": {
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          },
+          {
+            "weight": 35,
+            "message": "멀리 뻗으려다 디딤발 위에서 균형을 잃었다. 공이 땅으로 쏠렸다.",
+            "stats": {
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 7,
+              "max": 10
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "디딤발 위에 멈춰 릴리스 위치를 반복한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "발과 몸통이 함께 멈췄다. 공을 놓는 높이가 일정해졌다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "velocity"
+  },
+  {
+    "id": "PE61",
+    "title": "배트 끝에 걸리는 바깥쪽 공",
+    "description": "라이브 배팅에서 바깥쪽 공이 계속 배트 끝에 맞는다. 타격 코치가 홈 쪽으로 한 뼘 가까이 서보라고 한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "batting"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "타석을 좁혀 바깥쪽 공을 끝까지 친다",
+        "outcomes": [
+          {
+            "weight": 80,
+            "message": "공이 배트 끝보다 안쪽에 맞기 시작했다. 바깥쪽 공을 밀어내는 감각을 익혔다.",
+            "weeks": {
+              "contact": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 20,
+            "message": "타석에 붙자 몸쪽 공을 강하게 돌리지 못했다. 스윙에 힘을 모으기 어려웠다.",
+            "stats": {
+              "power": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "타석 위치를 유지하고 앞팔을 길게 쓴다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "몸을 공 쪽으로 던지지 않고 팔을 뻗었다. 먼 코스에서도 타구에 힘이 붙었다.",
+            "weeks": {
+              "power": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "contact"
+  },
+  {
+    "id": "PE62",
+    "title": "직구 궤적에서 꺾이는 커터",
+    "description": "불펜 포수가 직구와 같은 팔 스윙으로 작은 변화를 주자고 한다. 그립을 조금 옆으로 돌려 커터를 연습한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "직구처럼 던지는 커터를 익힌다",
+        "outcomes": [
+          {
+            "weight": 60,
+            "message": "직구로 보이던 공이 배트 앞에서 짧게 꺾였다. 새로운 구종을 던질 감각이 생겼다.",
+            "weeks": {
+              "movement": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 40,
+            "message": "손목을 억지로 돌려 직구 릴리스까지 흔들렸다. 공이 반대쪽으로 빠졌다.",
+            "stats": {
+              "control": -0.6
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "직구의 양쪽 코너부터 다시 맞힌다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "구종을 늘리는 대신 기준이 되는 공을 다듬었다. 코너에 공을 놓는 감각이 안정됐다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "movement"
+  },
+  {
+    "id": "PE63",
+    "title": "밀어치는 라이브 배팅",
+    "description": "수비수들이 당겨치는 쪽으로 붙었다는 상황으로 연습한다. 바깥쪽 공을 반대 방향으로 보내는 과제다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "batting"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "공을 끝까지 기다려 빈 쪽으로 밀어 친다",
+        "outcomes": [
+          {
+            "weight": 80,
+            "message": "상체를 남겨두고 배트 중심으로 공을 받았다. 바깥쪽 공을 맞히는 범위가 넓어졌다.",
+            "weeks": {
+              "contact": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 20,
+            "message": "밀어치려다 손만 내밀었다. 회전을 쓰지 못해 타구가 힘없이 떴다.",
+            "stats": {
+              "power": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "배트 궤적을 길게 쓰며 강하게 밀어 친다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "몸통을 돌린 뒤 배트를 반대 방향으로 밀었다. 밀어 친 공도 깊게 뻗었다.",
+            "weeks": {
+              "power": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "contact"
+  },
+  {
+    "id": "PE64",
+    "title": "세트 포지션의 멈추는 위치",
+    "description": "주자를 둔 불펜 투구에서 글러브를 멈추는 높이를 바꿔본다. 얼굴 앞보다 가슴 앞에서 손을 모아 던진다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "글러브를 낮추고 곧바로 투구한다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "손을 푸는 길이 짧아졌다. 디딤발과 팔이 같은 박자로 나왔다.",
+            "weeks": {
+              "control": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 25,
+            "message": "동작이 짧아지면서 상체를 돌릴 여유를 잃었다. 직구에 힘이 줄었다.",
+            "stats": {
+              "velocity": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "손 위치는 유지하고 몸통 회전에 집중한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "익숙한 리듬으로 허리를 돌렸다. 주자가 있어도 직구에 힘을 실었다.",
+            "weeks": {
+              "velocity": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "control"
+  },
+  {
+    "id": "PE65",
+    "title": "러닝 캐치 뒤의 송구",
+    "description": "느리게 구르는 타구를 앞으로 달려 잡는다. 코치는 발을 멈추지 말고 한 손으로 잡아 1루로 연결하라고 한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "batting",
+      "fielding": true,
+      "positions": [
+        "SS",
+        "3B",
+        "2B"
+      ]
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "맨손 포구와 러닝 송구를 연결한다",
+        "outcomes": [
+          {
+            "weight": 80,
+            "message": "공을 잡는 위치와 던지는 발이 맞았다. 멈추지 않고 타구를 처리했다.",
+            "weeks": {
+              "defense": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 20,
+            "message": "달리는 힘을 제어하지 못해 팔로만 던졌다. 송구가 약하게 떠올랐다.",
+            "stats": {
+              "arm": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "두 손으로 잡고 몸을 세워 던진다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "공을 안정적으로 잡은 뒤 체중을 옮겼다. 짧은 거리에서도 송구에 힘이 붙었다.",
+            "weeks": {
+              "arm": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "defense"
+  },
+  {
+    "id": "PE66",
+    "title": "앞으로 무너지는 상체 세우기",
+    "description": "직구를 던질 때 상체가 너무 빨리 숙여진다. 디딤발로 버틴 뒤 팔을 끝까지 보내는 동작을 반복한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "착지 뒤 몸통을 버티며 전력으로 던진다",
+        "outcomes": [
+          {
+            "weight": 65,
+            "message": "몸이 먼저 꺾이지 않아 팔이 빠르게 지나갔다. 마지막 순간까지 힘이 직구에 실렸다.",
+            "weeks": {
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
+            }
+          },
+          {
+            "weight": 35,
+            "message": "버티는 동작에 힘이 들어가 몸통이 굳었다. 릴리스 방향이 옆으로 흔들렸다.",
+            "stats": {
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "반 강도로 던지며 상체가 숙여지는 때를 늦춘다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "디딘 다리 위에서 팔을 보냈다. 힘이 새지 않는 동작으로 직구를 던졌다.",
+            "weeks": {
+              "velocity": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "velocity"
+  },
+  {
+    "id": "PE67",
+    "title": "한 손으로 끝내는 스윙",
+    "description": "프리배팅에서 팔이 몸에 감기며 배트가 빨리 멈춘다. 코치가 임팩트 뒤 윗손을 풀어보라고 한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "batting"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "임팩트 뒤 한 손을 풀어 피니시한다",
+        "outcomes": [
+          {
+            "weight": 70,
+            "message": "임팩트 직후 배트가 멈추지 않았다. 회전이 타구 끝까지 이어졌다.",
+            "weeks": {
+              "power": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 30,
+            "message": "손을 너무 빨리 풀어 배트가 공에서 벗어났다. 임팩트 위치가 흔들렸다.",
+            "stats": {
+              "contact": -0.8
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "두 손을 유지하고 짧은 스윙을 반복한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "배트가 몸통과 함께 돌아갔다. 공을 맞히는 지점이 일정해졌다.",
+            "weeks": {
+              "contact": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "power"
+  },
+  {
+    "id": "PE68",
+    "title": "외야 플라이 뒤 태그업",
+    "description": "3루 주자로 서서 코치가 띄우는 공을 본다. 포구 순간에 맞춰 베이스를 차고 홈으로 달리는 연습을 한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "batting"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "포구 순간 베이스를 강하게 차고 나간다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "몸을 미리 흔들지 않고도 발이 빠르게 떨어졌다. 홈까지 달리는 속도가 빨라졌다.",
+            "weeks": {
+              "speed": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
+            }
+          },
+          {
+            "weight": 25,
+            "message": "출발하려다 발을 다시 붙였다. 두 번 움직이는 동안 몸의 균형이 무너졌다.",
+            "stats": {
+              "speed": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "짧은 거리에서 출발과 가속을 반복한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "포구 신호에 맞춰 일정하게 출발했다. 멈춘 자세에서도 빠르게 가속했다.",
+            "weeks": {
+              "speed": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "speed"
+  },
+  {
+    "id": "PE69",
+    "title": "전력 직구의 마지막 한 구",
+    "description": "불펜 마지막에 포수가 높은 코스의 직구를 주문한다. 코치는 정해둔 투구 수 안에서만 전력으로 던지게 한다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "하체를 끝까지 써서 전력 직구를 던진다",
+        "outcomes": [
+          {
+            "weight": 65,
+            "message": "발에서 시작한 힘이 손끝까지 이어졌다. 직구가 미트에 더 강하게 꽂혔다.",
+            "weeks": {
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          },
+          {
+            "weight": 35,
+            "message": "힘을 한꺼번에 쓰면서 머리가 먼저 들렸다. 직구가 높게 빠졌다.",
+            "stats": {
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 7,
+              "max": 10
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "강도를 낮추고 높은 코너를 정확히 맞힌다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "팔을 억지로 휘두르지 않고 릴리스를 맞췄다. 높은 코스에서도 공이 모였다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "velocity"
+  },
+  {
+    "id": "PE70",
+    "title": "스트라이크 존 네 모서리",
+    "description": "포수가 미트를 네 모서리에 번갈아 댄다. 구속보다 릴리스와 손끝 방향을 유지하며 원하는 코스로 던지는 불펜이다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "네 모서리를 연속으로 맞히는 투구를 한다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "미트 위치가 바뀌어도 손끝이 따라갔다. 원하는 코스에 공을 넣는 감각이 선명해졌다.",
+            "weeks": {
+              "control": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
+            }
+          },
+          {
+            "weight": 25,
+            "message": "모서리를 의식하다 팔로 공을 조절했다. 릴리스가 흔들려 가운데로 몰렸다.",
+            "stats": {
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "한 코스를 정해 같은 동작을 반복한다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "한 곳에 던지며 놓는 순간을 맞췄다. 일정한 동작에서 코스를 잡았다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "control"
+  },
+  {
+    "id": "PE71",
+    "title": "협살에서 던질 순간",
+    "description": "두 베이스 사이에 주자를 세우고 협살을 연습한다. 투수와 야수 모두 주자를 몰고 던진 뒤 다음 베이스를 받치는 역할을 번갈아 맡는다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "주자를 가까이 몰고 짧은 콜과 함께 던진다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "동료가 받기 좋은 거리까지 주자를 몰았다. 짧은 콜 한 번으로 송구와 백업이 이어졌다.",
+            "weeks": {
+              "bq": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
+            }
+          },
+          {
+            "weight": 25,
+            "message": "너무 가까이 쫓다 주자가 방향을 틀었다. 급한 송구에 동료와 위치가 겹쳤다.",
+            "stats": {
+              "bq": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "느린 주자부터 송구와 백업을 맞춘다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "던진 뒤 어느 쪽을 받칠지 미리 정했다. 주자가 돌아서도 다음 동작이 빨랐다.",
+            "weeks": {
+              "bq": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "bq"
+  },
+  {
+    "id": "PE72",
+    "title": "반복 대시의 마지막 세트",
+    "description": "짧은 전력 질주와 걷기를 번갈아 반복한다. 투수와 야수 모두 마지막 세트까지 하체 자세를 유지하는 체력 훈련이다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "마지막 세트까지 정해진 속도를 지킨다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "숨이 찼지만 발이 끌리지 않았다. 반복해서 움직여도 하체가 버텨 주는 시간이 늘었다.",
+            "weeks": {
+              "stamina": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
+            }
+          },
+          {
+            "weight": 25,
+            "message": "초반에 힘을 다 써 끝 세트에서 자세가 무너졌다. 다리가 무겁게 굳었다.",
+            "stats": {
+              "stamina": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "반복 횟수를 나눠 일정한 자세로 달린다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "반복 사이 호흡을 맞췄다. 일정한 움직임을 끝까지 이어 가는 힘을 다졌다.",
+            "weeks": {
+              "stamina": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "physical"
+  },
+  {
+    "id": "PE73",
+    "title": "높낮이를 바꾸는 불펜",
+    "description": "포수가 높은 미트와 낮은 미트를 번갈아 제시한다. 팔 각도를 억지로 바꾸지 않고 릴리스 시점을 유지하는 훈련이다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "같은 팔 동작으로 높은 공과 낮은 공을 섞는다",
+        "outcomes": [
+          {
+            "weight": 75,
+            "message": "손끝이 흔들리지 않아 원하는 높이에 공이 들어갔다. 높은 공 뒤에도 낮은 코스로 돌아왔다.",
+            "weeks": {
+              "control": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
+            }
+          },
+          {
+            "weight": 25,
+            "message": "높이를 바꾸려다 팔을 들었다 내렸다 했다. 공이 존 밖으로 빠졌다.",
+            "stats": {
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "낮은 미트부터 일정하게 맞힌다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "일정한 높이에 던지며 동작을 고정했다. 미트 위치가 조금 바뀌어도 공이 따라갔다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "control"
+  },
+  {
+    "id": "PE74",
+    "title": "더블헤더를 가정한 몸풀기",
+    "description": "더운 날 두 차례 훈련 사이에 몸이 굳지 않도록 짧은 조깅과 가동성 운동을 한다. 강도를 조절할 수 있다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "조깅과 가동성 운동을 한 묶음 더 한다",
+        "outcomes": [
+          {
+            "weight": 80,
+            "message": "몸이 식은 뒤에도 다시 움직이는 박자를 찾았다. 반복 활동을 버티는 힘을 길렀다.",
+            "weeks": {
+              "stamina": 4
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          },
+          {
+            "weight": 20,
+            "message": "더위 속에 운동을 늘려 몸에 피로가 오래 남았다. 몸을 회복시키는 리듬이 흐트러졌다.",
+            "stats": {
+              "recovery": -0.5
+            },
+            "fatigueRange": {
+              "min": 7,
+              "max": 10
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "그늘에서 수분을 보충하고 가볍게 몸을 푼다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "열이 오른 몸을 식히고 굳은 부위만 풀었다. 훈련 사이에 몸을 되돌리는 방법을 익혔다.",
+            "weeks": {
+              "recovery": 3
+            },
+            "fatigueRange": {
+              "min": -5,
+              "max": -2
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "physical"
+  },
+  {
+    "id": "PE75",
+    "title": "땀에 미끄러지는 공",
+    "description": "불펜에서 땀 때문에 공이 손가락에 잘 걸리지 않는다. 로진을 얇게 묻히고 그립에 주는 힘을 바꿔본다.",
+    "category": "baseball",
+    "rule": {
+      "activity": "training",
+      "revision": 4,
+      "field": "pitching"
+    },
+    "choices": [
+      {
+        "id": "choice-1",
+        "label": "손가락 끝에 힘을 모아 그립을 바꾼다",
+        "outcomes": [
+          {
+            "weight": 60,
+            "message": "미끄러지던 공이 손끝을 타고 나갔다. 변화구의 회전이 다시 선명해졌다.",
+            "weeks": {
+              "movement": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
+            }
+          },
+          {
+            "weight": 40,
+            "message": "공을 놓치지 않으려 너무 세게 쥐었다. 릴리스가 늦어 공이 바운드됐다.",
+            "stats": {
+              "control": -0.6
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": "choice-2",
+        "label": "손을 닦고 낮은 강도로 코스를 맞힌다",
+        "outcomes": [
+          {
+            "weight": 100,
+            "message": "불필요하게 쥐는 힘을 뺐다. 손이 미끄러워도 목표를 향해 공을 놓았다.",
+            "weeks": {
+              "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "movement"
   }
 ]

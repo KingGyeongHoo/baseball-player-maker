@@ -1,8 +1,9 @@
 import definitions from "./event-definitions.json";
 import type {EventRule,EventCategory} from "./event-stories";
+import type {EventFocusRule} from './event-selection';
 import type { CareerEvent, CareerEventBranch, EventOpportunity, EventRewardWeeks, EventScene, Player, Role, Stat } from "./types";
 
-type Definition={id:string;title:string;description:string;category?:EventCategory;kind?:CareerEvent["kind"];rule?:EventRule;choices:{id:string;label:string;outcomes:{weight:number;message:string;effect:string;fatigueRange?:{min:number;max:number};recoveryPercent?:{min:number;max:number}}[]}[]};
+type Definition={id:string;title:string;description:string;category?:EventCategory;focus?:EventFocusRule;kind?:CareerEvent["kind"];rule?:EventRule;choices:{id:string;label:string;outcomes:{weight:number;message:string;effect:string;fatigueRange?:{min:number;max:number};recoveryPercent?:{min:number;max:number}}[]}[]};
 export const schoolEventCatalog=definitions.events as Definition[];
 export const eventIds = schoolEventCatalog.map(event => event.id);
 export function eventKind(id: string): CareerEvent["kind"] {

@@ -3,17 +3,21 @@ import {evaluationLeague,unpackEvaluationRecord} from "./player-evaluation";
 import {performanceEvidence,weightedRecords} from "./evaluation-metrics";
 import type {EvaluationField,ReputationAssessment,ReputationBreakdown,ReputationPerformance} from "./player-evaluation-types";
 import type {GameState,Player,RecordLine,Role} from "./types";
+import {clearProfessionalReputation} from "./pro-selection";
 
 export const REPUTATION_MODEL="evaluation-reputation-v1";
 type Level="school"|"first"|"second";
 const fields:EvaluationField[]=["batting","pitching"];
-const mode=(p:Player)=>p.careerMode==="pro"?"pro":"school";
 
 // Reuse the report's component priors and 6:3:1 weighted event counts, without
 // running its fixed-opponent simulations for every player after each game.
 export function updateEvaluationReputations(s:GameState) {
-  const history=new Map<string,RecordLine>(),stage=s.careerMode==="pro"?"pro":"school";
-  const levels:Level[]=stage==="pro"?["first","second"]:["school"];
+  if(s.careerMode==="pro"){
+    for(const p of s.players)clearProfessionalReputation(p);
+    return;
+  }
+  const history=new Map<string,RecordLine>(),stage="school";
+  const levels:Level[]=["school"];
   for(const year of [s.calendar.seasonYear,s.calendar.seasonYear-1,s.calendar.seasonYear-2]){
     const archive=year<s.calendar.seasonYear?s.evaluationSystem?.contexts.filter(c=>c.year===year&&c.mode===stage&&c.date<=s.date).at(-1):undefined;
     for(const level of levels){const key=`${year}:${level}`,packed=archive?.history[key];history.set(key,packed?unpackEvaluationRecord(packed):evaluationLeague(s,year,level));}
@@ -44,24 +48,19 @@ export function updateEvaluationReputations(s:GameState) {
 }
 
 export function reputationBreakdown(p:Player):ReputationBreakdown {
-  const assessment=p.reputationEvaluation?.mode===mode(p)?p.reputationEvaluation:undefined;
+  const assessment=p.reputationEvaluation?.mode==="school"?p.reputationEvaluation:undefined;
   const roles:Role[]=p.twoWay?[roleFor(p.twoWay.pitchingPosition),roleFor(p.twoWay.battingPosition)]:[p.primaryRole];
   const maximum=params["reputation.performance_weight"]/(params["reputation.ability_weight"]+params["reputation.performance_weight"]);
   const parts=roles.map(role=>{
     const field:EvaluationField=isPitcher(role)?"pitching":"batting",data=assessment?.fields[field],ability=roleScore(p,role);
     let performance:number|null=null,reliability=0;
-    if(mode(p)==="pro"){
-      const first=data?.first,second=data?.second;
-      const firstWeight=first?.reliability??0,secondWeight=(1-firstWeight)*(second?.reliability??0)*params["reputation.farm_evidence_weight"];
-      reliability=firstWeight+secondWeight;
-      if(reliability)performance=(firstWeight*(first?.score??0)+secondWeight*Math.min(params["reputation.farm_score_cap"],second?.score??0))/reliability;
-    }else if(data?.school){performance=data.school.score;reliability=data.school.reliability;}
+    if(data?.school){performance=data.school.score;reliability=data.school.reliability;}
     const performanceWeight=maximum*clamp(reliability,0,1),score=ability*(1-performanceWeight)+(performance??0)*performanceWeight;
     return {field,role,ability,performance,reliability,performanceWeight,score};
   });
   const performanceWeight=parts.reduce((n,p)=>n+p.performanceWeight,0)/parts.length;
   const performance=parts.length===1?parts[0].performance:performanceWeight?parts.reduce((n,p)=>n+(p.performance??0)*p.performanceWeight,0)/(parts.length*performanceWeight):null;
   const ability=parts.reduce((n,p)=>n+p.ability,0)/parts.length,base=parts.reduce((n,p)=>n+p.score,0)/parts.length;
-  const bonus=(p.reputationBonus??0)+(p.professional?.proBonus??0)+(p.professional?.allstarBonus??0)+twoWayReputation(p);
+  const bonus=(p.reputationBonus??0)+twoWayReputation(p);
   return {modelVersion:REPUTATION_MODEL,assessedAt:assessment?.date??null,ability,performance,performanceWeight,base,bonus,total:clamp(base+bonus),fields:parts};
 }

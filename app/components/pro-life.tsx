@@ -2,7 +2,7 @@
 import PlayerEvaluationButton from "./player-evaluation";
 import { scoreText } from "../../lib/display";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { answerCareerEvent, overall, dateLabel, getPlayer, isPitcher, validPolicy } from "../../lib/sim/engine";
+import { answerCareerEvent, overall, dateLabel, getPlayer, isPitcher, validPolicy,roleLabel } from "../../lib/sim/engine";
 import { careerLabel, developmentProgress } from "../../lib/sim/pro-career";
 import { AutoProgress, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } from "../../lib/auto-progress";
 import {restoreWorkerState,workerStateInput} from "../../lib/sim/worker-state";
@@ -19,6 +19,9 @@ import ProDashboard from "./pro-dashboard";
 import {ScoutingReportContent} from "./scouting-report";
 import SeasonRecords from "./season-records";
 import CareerStorage from "./career-storage";
+import {deleteCareerInBackground,saveCareerInBackground} from "../../lib/career-autosave";
+import CareerRegenerationDialog from "./career-regeneration-dialog";
+import {careerSaveId} from "../../lib/career-save-key";
 import {ProGoals,ProContractPanel,ProRetirement,salaryText} from "./pro-career-panels";
 import ProAwardsHub from "./pro-awards-hub";
 import {CareerHonors,CareerLifetimeRecords} from "./pro-career-summary";
@@ -54,6 +57,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const [busy,setBusy]=useState(false),[auto,setAuto]=useState(false),[error,setError]=useState(""),[outcome,setOutcome]=useState<CareerEventOutcome|null>(state.pendingEventOutcome??null),[recordId,setRecordId]=useState(state.playerId);
   const [trainingMessage,setTrainingMessage]=useState(""),[draftPick,setDraftPick]=useState<DraftPick|null>(null),[reset,setReset]=useState(false);
   const worker=useRef<Worker|null>(null),locked=useRef(false),request=useRef(0),timer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const resetPending=useRef(false);
   const [autoProgress]=useState(()=>new AutoProgress());
   useEffect(()=>{
     if(state.careerMode!=="pro"||state.proWorld&&state.proClubNamesVersion===1&&!needsPostseasonUpgrade(state)&&!needsProScheduleUpgrade(state)&&!needsProSquadUpgrade(state)&&!needsContractUpgrade(state)&&!needsAllstarScheduleUpgrade(state))return;
@@ -65,12 +69,19 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   },[state,onChange,autoProgress]);
   const [autoStartWeek,setAutoStartWeek]=useState(state.week);
   const stop=useCallback(()=>{autoProgress.pause();setAuto(false);},[autoProgress]);
+  const resetCurrentCareer=async(save:boolean)=>{
+    if(resetPending.current)return;
+    resetPending.current=true;stop();cancelPendingSimulation({worker,request,locked,timer});setBusy(true);
+    try{if(save)await saveCareerInBackground(state,true);else await deleteCareerInBackground(careerSaveId(state));onReset();}
+    catch(error){setReset(false);setError(error instanceof Error?error.message:"선수 저장을 처리하지 못했습니다.");}
+    finally{resetPending.current=false;setBusy(false);}
+  };
   useEffect(()=>()=>{autoProgress.pause();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);setAuto(false);},[autoProgress]);
   const p=getPlayer(state),pro=state.postSchool?.pro,ended=state.phase==="ended",editing=busy||auto||!!state.weekProgress||ended;
   const recordsPlayer=state.players.find(q=>q.id===recordId)??p;
   const [retireConfirm,setRetireConfirm]=useState(false);
   const careerDisabled=busy||auto||!!state.weekProgress||!!state.careerNotice||!!state.careerEvent||!!outcome;
-  const onAction=(action:ProAction)=>{if(locked.current||careerDisabled)return;stop();try{const next=actOnProCareer(state,action);onChange(next);if(next.phase!=="ended")setTab("home");}catch(error){setError(error instanceof Error?error.message:"커리어 선택에 실패했습니다.");}};
+  const onAction=(action:ProAction)=>{if(locked.current||careerDisabled)return;stop();try{const next=actOnProCareer(state,action);onChange(next);if(next.phase!=="ended"||next.proWorld?.stage==="retired")setTab("home");}catch(error){setError(error instanceof Error?error.message:"커리어 선택에 실패했습니다.");}};
   const load=(next:GameState)=>{if(locked.current)return;stop();worker.current?.terminate();worker.current=null;request.current++;onChange(next);setOutcome(next.pendingEventOutcome??null);setPolicy(structuredClone(getPlayer(next).trainingPolicy));setStance({...getPlayer(next).stance});setTab(next.proWorld?.stage==="retired"?"home":next.phase==="ended"?"career":"home");};
   const advance=useCallback(()=>{
     if(locked.current||state.phase==="ended"||state.careerEvent||state.careerNotice||outcome||!validPolicy(policy))return;
@@ -104,11 +115,11 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const rivals=tab!=="roster"||p.teamId<0?[]:state.players.filter(q=>q.teamId>=0&&q.eligiblePositions.includes(p.position)&&(pro?q.teamId%10===pro.club:q.teamId===p.teamId)).sort((a,b)=>overall(b)-overall(a)||a.id.localeCompare(b.id));
 
   return <><div className="utility-bar"><div><span>나만의 야구선수 만들기</span><span>CAREER LIFE · v0.7.4</span></div></div>
-    <header className="site-header"><div className="header-main pro-header"><button className="pro-brand" onClick={()=>setTab("home")}>BASEBALL <b>LIFE.</b></button><span className="live-badge">{state.calendar.seasonYear} · {state.careerMode==="pro"?"PRO CAREER":"COLLEGE DEVELOPMENT"}</span><button className="text-button" onClick={()=>{stop();setReset(true);}}>새 선수 만들기</button></div>
+    <header className="site-header"><div className="header-main pro-header"><button className="pro-brand" onClick={()=>setTab("home")}>BASEBALL <b>LIFE.</b></button><span className="live-badge">{state.calendar.seasonYear} · {state.careerMode==="pro"?"PRO CAREER":"COLLEGE DEVELOPMENT"}</span><button className="text-button" disabled={busy} onClick={()=>{stop();setReset(true);}}>선수 재생성</button></div>
       <nav className="main-nav" aria-label="프로 라이프 메뉴"><div>{[["home","주간 대시보드"],["training","훈련 센터"],["roster","선수·로스터"],["records","개인 기록"],["league","리그"],...(state.careerMode==='pro'?[["awards","어워드"]]:[]),["career","커리어"]].map(([id,label])=><button className={tab===id?"active":""} key={id} onClick={()=>setTab(id)}>{label}</button>)}</div></nav>
     </header><main className="app-main pro-main"><CareerStorage state={state} onLoad={load} disabled={busy||auto}/><div className="page-kicker"><span>{state.careerMode==="pro"?"PRO LIFE":"THE NEXT CHANCE"} · {careerLabel(p)}</span><span>{dateLabel(state.date)} · {p.teamId<0?(state.proWorld?.stage==="retired"?"은퇴":"무소속"):pro?squadLabel(p.teamId)+" 등록":"대학 육성 시즌"}</span></div>
       {error&&<div className="error-banner" role="alert">{error}<button onClick={()=>setError("")}>닫기</button></div>}
-      {tab==="home"&&state.proWorld?.stage==="retired"&&<ProRetirement state={state} onRecords={()=>openRecords()} onNew={onReset}/>}
+      {tab==="home"&&state.proWorld?.stage==="retired"&&<ProRetirement state={state} onRecords={()=>openRecords()} onNew={()=>setReset(true)}/>}
       {tab==="home"&&state.proWorld?.stage!=="retired"&&<ProDashboard state={state} onTab={tab=>tab==="records"?openRecords():setTab(tab)} onTraining={openTraining} trainingDisabled={editing} records={<ProSeasonStats player={p}/>} notice={<DevelopmentContract player={p}/>}/>}
       {tab==="training"&&<TrainingCenter state={state} policy={policy} setPolicy={next=>{setPolicy(next);setTrainingMessage("");}} stance={stance} setStance={next=>{setStance(next);setTrainingMessage("");}} onSave={saveTraining} disabled={editing} message={trainingMessage}/>}
       {tab==="roster"&&<><PlayerRoster state={state} onSelect={openRecords}/>{rivals.length>0&&<Panel title="나의 포지션 경쟁"><RosterTable state={state} players={rivals.slice(0,6)} field={isPitcher(p.primaryRole)?"pitching":"batting"} onSelect={openRecords}/><p className="draft-board-note">같은 포지션의 OVR순입니다. 기록은 시즌 합계이며 등급은 출전평가 기준입니다. 등록 판단에는 최근 성적·컨디션도 반영되며 승격과 주전 출전은 별도로 결정됩니다.</p></Panel>}</>}
@@ -130,8 +141,8 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
     {state.careerNotice&&!(tab==="career"&&state.careerMode==="college"&&ended)&&<CareerNoticeDialog state={state} onChange={onChange}/>}
     {(state.careerEvent||outcome)&&<CareerEventDialog event={state.careerEvent??null} outcome={outcome} disabled={busy} onRecover={()=>{autoProgress.cancelScheduled();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);}} onDone={()=>{setOutcome(null);const next={...state};delete next.pendingEventOutcome;onChange(next);}} onChoose={id=>{if(locked.current||!state.careerEvent)return false;const next=answerCareerEvent(state,id);next.pendingEventOutcome=next.careerEventHistory!.at(-1)!;onChange(next);setOutcome(next.pendingEventOutcome);return true;}}/>}
 
-    {draftPick&&<Dialog title={`${draftPick.playerName} 지명 평가`} onClose={()=>setDraftPick(null)}><p>{draftPick.club} · 전체 {draftPick.overall}순위</p><p>{draftPick.teamName} · {draftPick.role}</p><p>평판 {scoreText(draftPick.reputation)} · 재능 {draftPick.talent}/10 · 적합도 {scoreText(draftPick.fit)} · 평가 {scoreText(draftPick.score)}</p><ScoutingReportContent state={state} pick={draftPick}/></Dialog>}
-    {reset&&<Dialog title="새 선수로 시작할까요?" onClose={()=>setReset(false)}><p>현재 커리어와 기록이 초기화됩니다.</p><div className="modal-actions"><button className="secondary" onClick={()=>setReset(false)}>계속 플레이</button><button className="primary" onClick={onReset}>새 선수 만들기</button></div></Dialog>}
+    {draftPick&&<Dialog title={`${draftPick.playerName} 지명 평가`} onClose={()=>setDraftPick(null)}><p>{draftPick.club} · 전체 {draftPick.overall}순위</p><p>{draftPick.teamName} · {roleLabel(draftPick.role)}</p><p>평판 {scoreText(draftPick.reputation)} · 재능 {draftPick.talent}/10 · 적합도 {scoreText(draftPick.fit)} · 평가 {scoreText(draftPick.score)}</p><ScoutingReportContent state={state} pick={draftPick}/></Dialog>}
+    {reset&&<CareerRegenerationDialog busy={busy} onClose={()=>setReset(false)} onChoose={save=>void resetCurrentCareer(save)}/>}
     {retireConfirm&&<Dialog title="커리어를 마무리할까요?" onClose={()=>setRetireConfirm(false)}><p>기록과 주요 사건을 보관한 뒤 은퇴 결과를 보여줍니다.</p><p>남아 있는 미래 급여 {salaryText(Math.max(0,(p.professional?.contract?.endYear??state.calendar.seasonYear)-state.calendar.seasonYear)*(p.professional?.contract?.salary??0))}를 포기합니다.</p><div className="modal-actions"><button className="secondary" onClick={()=>setRetireConfirm(false)}>계속 선수 생활</button><button className="primary" onClick={()=>{setRetireConfirm(false);onAction({type:"retire"});setTab("home");}}>은퇴하고 기록 보관</button></div></Dialog>}{busy&&<div className="busy-indicator" role="status">훈련·경기·등록 일정을 계산하고 있습니다.</div>}
   </>;
 }

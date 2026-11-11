@@ -2,12 +2,11 @@ import type {Game,MatchProgress,RecordLine} from "./types";
 
 export const gameCounterKeys=["batting","pitching","wins","losses","holds","saves"] as const;
 export function mergeGameCounters(target:RecordLine,add:RecordLine){
+  const targetBatting=target.batting.PA>0,targetPitching=target.pitching.BF>0,addBatting=add.batting.PA>0,addPitching=add.pitching.BF>0;
   for(const key of gameCounterKeys){
-    const field=key==="batting"?"batting":"pitching";
-    const has=(r:RecordLine)=>field==="batting"?r.batting.PA>0:r.pitching.BF>0;
     const a=target.games?.[key],b=add.games?.[key];
     // Unknown legacy totals stay unknown; never turn missing history into zero.
-    if(a===undefined&&has(target)||b===undefined&&has(add)){
+    if(a===undefined&&(key==="batting"?targetBatting:targetPitching)||b===undefined&&(key==="batting"?addBatting:addPitching)){
       if(target.games)delete target.games[key];
     }else if(a!==undefined||b!==undefined){
       (target.games??={})[key]=(a??0)+(b??0);

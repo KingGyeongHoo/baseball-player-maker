@@ -1,5 +1,6 @@
 import {hydrateAssessments} from "./sim/pro-assessment";
 import {validProWarAssessment} from "./sim/pro-war";
+import {clearProfessionalReputation} from "./sim/pro-selection";
 import {initializeAgingProfile,isPhysicalStat} from "./sim/pro-growth";
 import {syncJerseyNumbers} from "./jersey-numbers";
 import {discardRetiredPlayers} from "./sim/retired-records";
@@ -31,11 +32,13 @@ export function validateCareerState(value:unknown):asserts value is GameState {
     if(aging&&(aging.version!==1||!Number.isFinite(aging.physical)||aging.physical<0||aging.physical>100||!Number.isInteger(aging.peakStart)||aging.peakStart<20||aging.peakStart>32||!Number.isInteger(aging.declineStart)||aging.declineStart<=aging.peakStart||aging.declineStart>40||!aging.loss||Object.entries(aging.loss).some(([key,n])=>!statKeys.includes(key as typeof statKeys[number])||!isPhysicalStat(key as typeof statKeys[number])||!Number.isFinite(n)||n!<0||n!>100)))throw new Error("전성기·노화 기록을 복원할 수 없습니다.");
     const trial=p.professional?.roleTrial;if(trial?.version===1&&(!Array.isArray(trial.trainingDates)||typeof trial.started!=="string"||typeof trial.until!=="string"||typeof trial.sourceId!=="string"))throw new Error("보직 평가의 훈련 근거를 복원할 수 없습니다.");
   }
+  const retiredNumbers=s.proWorld?.retiredNumbers;
+  if(retiredNumbers!==undefined&&(!Array.isArray(retiredNumbers)||new Set(retiredNumbers.map(row=>row.playerId)).size!==retiredNumbers.length||new Set(retiredNumbers.map(row=>`${row.club}:${row.number}`)).size!==retiredNumbers.length||retiredNumbers.some(row=>!Number.isInteger(row.club)||row.club<0||row.club>=10||!Number.isInteger(row.number)||row.number<1||row.number>99||typeof row.playerId!=="string"||typeof row.playerName!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||!Number.isFinite(row.score)||row.score<0||row.score>100)))throw new Error("영구결번 기록을 복원할 수 없습니다.");
   if(!ids.has(s.playerId)||!s.rngStates||Object.values(s.rngStates).some(n=>!Number.isInteger(n)))throw new Error("선수 또는 난수 상태를 복원할 수 없습니다.");
   if(s.weekProgress&&(!Number.isInteger(s.weekProgress.remainingDays)||s.weekProgress.remainingDays<0||s.weekProgress.remainingDays>7))throw new Error("주간 중단 위치가 올바르지 않습니다.");
   if(s.matchProgress&&!s.calendar.events.some(g=>g.id===s.matchProgress!.gameId))throw new Error("진행 중인 경기를 찾을 수 없습니다.");
   if(s.proEvents&&(s.proEvents.version!==1||!Array.isArray(s.proEvents.history)||!Array.isArray(s.proEvents.attemptedGames)||!Array.isArray(s.proEvents.cancellations)||!s.proEvents.national||Object.values(s.proEvents.national).some(row=>!Array.isArray(row.roster)||row.roster.length>23||new Set(row.roster.map(p=>p.id)).size!==row.roster.length)))throw new Error("프로 이벤트 저장 상태가 손상됐거나 지원하지 않는 버전입니다.");
-  if(s.proEvents?.wbc&&Object.entries(s.proEvents.wbc).some(([year,row])=>Number(year)<2026||(Number(year)-2026)%4!==0||row.sourceYear!==Number(year)-1||typeof row.evaluatedAt!=="string"||typeof row.offered!=="boolean"||typeof row.settled!=="boolean"||!Array.isArray(row.roster)||row.roster.length>23||row.roster.some(p=>!p||typeof p.id!=="string"||!Number.isFinite(p.reputation)||!Number.isFinite(p.roleScore))||new Set(row.roster.map(p=>p.id)).size!==row.roster.length))throw new Error("WBC 국가대표 명단을 복원할 수 없습니다.");
+  if(s.proEvents?.wbc&&Object.entries(s.proEvents.wbc).some(([year,row])=>Number(year)<2026||(Number(year)-2026)%4!==0||row.sourceYear!==Number(year)-1||typeof row.evaluatedAt!=="string"||typeof row.offered!=="boolean"||typeof row.settled!=="boolean"||!Array.isArray(row.roster)||row.roster.length>23||row.roster.some(p=>!p||typeof p.id!=="string"||!Number.isFinite(p.selectionScore??p.reputation)||!Number.isFinite(p.roleScore))||new Set(row.roster.map(p=>p.id)).size!==row.roster.length))throw new Error("WBC 국가대표 명단을 복원할 수 없습니다.");
   if(s.careerEvent?.proEvent&&s.careerEvent.proEvent.version!==1)throw new Error("지원하지 않는 프로 이벤트 버전입니다.");
   if(s.calendar.events.some(game=>game.proPreparedLineup?.some(side=>[...side.field,...side.order,...side.pitchers,side.starter].some(id=>!ids.has(id)))))throw new Error("경기 준비 명단의 선수를 복원할 수 없습니다.");
   const allstar=s.proWorld?.allstar;
@@ -58,7 +61,7 @@ export function decodeCareerSave(raw:string):CareerSave {
 function validateCareerSave(file:CareerSave):CareerSave {
   if(file?.format!=="baseball-life"||file.version!==1)throw new Error("지원하지 않는 저장 형식입니다. 원본 파일은 유지됩니다.");
   validateCareerState(file.state);if(saveChecksum(JSON.stringify(file.state))!==file.checksum)throw new Error("저장 파일의 무결성 확인에 실패했습니다. 원본 파일은 유지됩니다.");
-  let assessmentsChanged=false;for(const p of file.state.players){assessmentsChanged=hydrateAssessments(file.state,p)||assessmentsChanged;assessmentsChanged=initializeAgingProfile(p)||assessmentsChanged;}
+  let assessmentsChanged=false;for(const p of file.state.players){assessmentsChanged=hydrateAssessments(file.state,p)||assessmentsChanged;assessmentsChanged=initializeAgingProfile(p)||assessmentsChanged;assessmentsChanged=clearProfessionalReputation(p)||assessmentsChanged;}
   const retiredRemoved=discardRetiredPlayers(file.state);
   const namesChanged=syncProClubNames(file.state);
   const needsNumbers=file.state.players.some(p=>p.jerseyNumber===undefined);

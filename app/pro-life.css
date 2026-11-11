@@ -135,6 +135,54 @@
 .contract-offers p { margin:12px 0; font-size:11px; line-height:1.8; color:#7b8ba2; }
 .contract-offers .modal-actions { flex-wrap:wrap; justify-content:flex-start; }
 .contract-offers .primary,.contract-offers .secondary { font-size:11px; padding:12px; }
+.retired-number-honor { display:flex; align-items:center; gap:24px; padding:24px; margin:22px 0; border-color:#dfc477; background:#fffbef; }
+.retired-number-honor>strong { flex:none; font-size:64px; line-height:1; color:#a77c16; }
+.retired-number-honor>div { min-width:0; }
+.retired-number-honor h2 { margin:8px 0; font-size:20px; }
+.retired-number-honor p { font-size:12px; line-height:1.8; color:#6e6550; overflow-wrap:anywhere; }
+.retirement-dashboard { display:grid; gap:24px; }
+.retirement-records { padding:28px; border-radius:3px; color:#fff; background:var(--navy); }
+.retirement-records-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:26px; }
+.retirement-records-heading .eyebrow { color:#a9bddc; }
+.retirement-records-heading h1 { margin:8px 0 12px; font-size:25px; letter-spacing:-.8px; }
+.retirement-records-heading p { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:0; }
+.retirement-records-heading p>b { font-size:17px; }
+.retirement-records-heading p>span,.retirement-date { font-size:11px; color:#bdcce2; }
+.retirement-date { flex:none; padding:7px 10px; border:1px solid #ffffff30; border-radius:3px; }
+.retirement-record-group+.retirement-record-group { border-top:1px solid #ffffff24; padding-top:20px; margin-top:22px; }
+.retirement-record-group h2 { font-size:11px; color:#b7c9e4; margin:0 0 14px; font-weight:400; }
+.retirement-stat-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:20px 12px; margin:0; }
+.retirement-stat-grid>div { min-width:0; }
+.retirement-stat-grid dt { color:#b7c9e4; font-size:11px; margin-bottom:9px; }
+.retirement-stat-grid dd { margin:0; font-size:27px; line-height:1.2; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.8px; }
+.retirement-records-caption { margin:24px 0 0; font-size:10px; color:#a9bddc; }
+.retirement-journey .panel-heading h2 { margin-top:6px; }
+.career-timeline { list-style:none; margin:0; padding:26px 28px 12px; }
+.career-timeline li { position:relative; display:grid; grid-template-columns:100px 24px minmax(0,1fr); column-gap:18px; padding-bottom:26px; }
+.career-timeline li:not(:last-child)::after { content:""; position:absolute; left:129px; top:16px; bottom:-3px; width:2px; background:#e3e9f1; }
+.career-timeline time { padding-top:3px; color:#8090a7; font-size:11px; font-variant-numeric:tabular-nums; }
+.milestone-marker { position:relative; z-index:1; justify-self:center; margin-top:4px; width:12px; height:12px; border:3px solid #b9c9dc; border-radius:50%; background:white; }
+.career-timeline h3 { margin:0 0 7px; color:var(--navy); font-size:14px; }
+.career-timeline p { margin:0; color:#8290a5; font-size:11px; line-height:1.8; overflow-wrap:anywhere; }
+.milestone-allstar .milestone-marker,.milestone-award .milestone-marker,.milestone-national .milestone-marker { border-color:#caa34c; background:#fff4d8; }
+.milestone-retirement .milestone-marker { border-color:var(--navy); background:var(--navy); }
+.retirement-honor-counts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; }
+.retirement-honor-counts article { min-width:0; padding:22px; }
+.retirement-honor-counts h2 { margin:0; color:#7787a0; font-size:12px; font-weight:400; }
+.retirement-honor-counts p { display:flex; align-items:baseline; gap:6px; margin:14px 0 10px; color:var(--navy); }
+.retirement-honor-counts strong { font-size:34px; line-height:1; font-variant-numeric:tabular-nums; }
+.retirement-honor-counts p>span { font-size:12px; }
+.retirement-honor-counts small { display:block; color:#91a0b4; font-size:10px; line-height:1.7; }
+.retirement-dashboard .retired-number-honor { margin:0; }
+.retirement-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; }
+@media(max-width:900px){.retirement-honor-counts{grid-template-columns:repeat(2,minmax(0,1fr))}.retirement-stat-grid dd{font-size:23px}}
+@media(max-width:600px){
+ .retirement-dashboard{gap:18px}.retirement-records{padding:22px 18px}.retirement-records-heading{flex-direction:column;gap:14px}.retirement-records-heading h1{font-size:23px}
+ .retirement-stat-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:22px 12px}.retirement-stat-grid dd{font-size:23px}
+ .career-timeline{padding:22px 18px 6px}.career-timeline li{grid-template-columns:74px 16px minmax(0,1fr);column-gap:12px}.career-timeline li:not(:last-child)::after{left:93px}
+ .career-timeline time{font-size:10px}.career-timeline h3{font-size:13px}.retirement-honor-counts{gap:12px}.retirement-honor-counts article{padding:18px 14px}.retirement-honor-counts strong{font-size:30px}
+ .retirement-actions>button{flex:1;padding:13px 10px;font-size:11px}
+}
 .career-pay-history { margin-top:20px; }
 .career-lifetime,.career-honors { margin-bottom:22px; }
 .career-lifetime table { min-width:620px; }
@@ -154,8 +202,15 @@
 .career-honor-category small { display:block; color:#8290a5; margin-top:5px; font-size:10px; line-height:1.6; }
 .career-honor-category .empty-note { padding:8px 0; text-align:left; }
 .compact-contract-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:16px; }
-.compact-contract-metrics span { display:block; color:#7b8ba2; font-size:11px; margin-bottom:7px; }
+.compact-contract-metrics>div { min-width:0; }
+.compact-contract-metrics>div+div { border-left:1px solid var(--line); padding-left:16px; }
+.compact-contract-metrics>div>span { display:block; color:#7b8ba2; font-size:11px; margin-bottom:7px; }
 .compact-contract-metrics b { display:block; color:#172344; font-size:19px; }
+.compact-contract-metrics>div>b { display:flex; align-items:center; min-height:38px; }
+.contract-assessment-value { display:flex; align-items:center; gap:10px; min-height:38px; }
+.contract-assessment-value>b { font-size:26px; }
+.contract-assessment-value .player-grade { min-width:38px; height:34px; font-size:22px; }
+@media(max-width:600px){.compact-contract-metrics>div:nth-child(odd){border-left:0;padding-left:0}.compact-contract-metrics .contract-assessment-value>b{font-size:24px}}
 .contract-season-evaluations { border-top:1px solid var(--line); }
 .contract-season-evaluations>summary { cursor:pointer; padding:12px 0; font-size:12px; color:#60728d; }
 .contract-season-evaluations table { min-width:300px; table-layout:fixed; }

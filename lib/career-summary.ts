@@ -1,6 +1,7 @@
 import {emptyRecord,getPlayer,mergeRecord} from "./sim/engine";
 import {currentSeasonAssessment} from "./sim/pro-assessment";
 import {playerSeasons} from "./player-records";
+import {clubName} from "./sim/pro-world";
 import type {GameState,Player} from "./sim/types";
 
 export function lifetimeRecords(player:Player,year:number){
@@ -33,6 +34,7 @@ export const careerHonorCategories=[{id:"national",label:"국가대표"},{id:"go
 export function careerHonors(state:GameState):Record<CareerHonorCategory,CareerHonor[]>{
   const player=getPlayer(state),result:Record<CareerHonorCategory,CareerHonor[]>={national:[],gold:[],allstar:[],individual:[]},seen=new Set<string>();
   const add=(category:CareerHonorCategory,year:number,title:string,detail?:string)=>{const key=`${category}:${year}:${title}`;if(seen.has(key))return;seen.add(key);result[category].push({year,title,...(detail?{detail}:{})});};
+  for(const honor of state.proWorld?.retiredNumbers??[])if(honor.playerId===player.id)add("individual",Number(honor.date.slice(0,4)),"영구결번",`${clubName(state,honor.club)} · ${honor.number}번`);
   for(const [year,entry] of Object.entries(state.proEvents?.wbc??{}))if(entry.roster.some(row=>row.id===player.id)){
     add("national",Number(year),"WBC 국가대표",entry.participated?"출전":entry.settled?"선발 · 불참":"선발");
     if(entry.participated&&entry.result==="WBC01:mvp")add("national",Number(year),"WBC MVP");

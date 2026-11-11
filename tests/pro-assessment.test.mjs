@@ -528,10 +528,10 @@ test("compact contract history keeps five requested columns without mutating rat
     season(s, year, 71, { firstGames: 21 });
   const before = structuredClone(p.professional.assessments),
     html = renderToStaticMarkup(createElement(ProAssessments, { state: s }));
-  assert.match(html, /<th>시즌<\/th><th>출전평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);
-  assert.match(html, /올해 예상 누적 평가/);
+  assert.match(html, /<th>시즌<\/th><th>시즌평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);
+  assert.doesNotMatch(html, /올해 예상 누적 평가/);
   assert.doesNotMatch(html, /1군 출전경기|최초 3시즌 제외|기준 연봉/);
-  assert.match(html, /85\.5 · S/);
+  assert.match(html, /85\.5<\/b><span class="player-grade grade-s" aria-label="누적 평가 등급 S">S<\/span>/);
   assert.match(html, /<td>71\.0<\/td>/);
   assert.deepEqual(p.professional.assessments, before);
 });

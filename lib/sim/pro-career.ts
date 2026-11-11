@@ -1,5 +1,5 @@
 import {firstTeamRetention} from "./pro-assessment";
-import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, pitchingRole, positions, previewPlayer, random, recovery, reputationScore, roleScore } from "./engine";
+import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, pitchingRole, positions, random, recovery, reputationScore, roleScore } from "./engine";
 import { careerLeagueTable, developmentCalendar } from "./pro-calendar";
 import { developmentalOffer, revealDraftResult } from "./draft-outcome";
 import { ensureProWorld,proNews,reviewLeagueRegistrations,BASE_SALARY } from "./pro-world";
@@ -9,7 +9,7 @@ import {syncJerseyNumbers} from "../jersey-numbers";
 import {capturePlayerEvaluations} from "./evaluation-lifecycle";
 import {tryProNationalInvitation} from "./pro-national-events";
 import {syncProClubNames,proTeamName} from "./club-names";
-import {seededPlayerName} from "./player-names";
+import {createCareerNPC,proRosterPositions} from './pro-roster';
 import {rookieDevelopmentalIds} from "./pro-squads";
 
 export type CareerChoice = "join" | "tryout" | "college" | "developmental" | "direct";
@@ -40,22 +40,7 @@ function offSeason(p: Player, from: string, to: string) {
   p.roleOffer = null; p.offerCandidate = null; p.offerWeeks = 0; delete p.transferAdaptation;
 }
 function npc(seed: string, teamId: number, index: number, mode: "pro" | "college", first = false) {
-  const n = hash(`${seed}:name`), p = previewPlayer(seed, seededPlayerName(`${seed}:player-name`), slots[index]);
-  p.id = `${mode}-npc-${teamId}-${index}`; p.teamId = teamId; p.grade = mode === "pro" ? 0 : 4;
-  p.careerMode = mode; p.age = mode === "pro" ? (first ? 24 : 20) + n % 10 : 19 + n % 4;
-  // Same absolute scale as high school. Veterans are stronger; entry itself
-  // never upgrades the user's abilities, talent, reputation or handedness.
-  const main = isPitcher(p.primaryRole) ? ["velocity","control","movement"] : ["contact","power","speed","defense"];
-  const source = { rngStates: { generation: hash(seed), training: 0, match: 0, injury: 0, draft: 0, events: 0 } };
-  const profile=mode==='pro'?(hash(`${seed}:ability-profile`)%10001/10000-.5)*(isPitcher(p.primaryRole)?22:26):0;
-  for (const key of Object.keys(p.stats) as (keyof Player["stats"])[]) {
-    const core = main.includes(key), shared = ["stamina","recovery","arm","bq"].includes(key);
-    const center = core || shared ? first ? params["pro.first_mean"] : mode === "college" ? core ? 50.5 : 55.5 : params["pro.second_mean"] : params["pro.secondary_mean"];
-    p.stats[key] = clamp(center + (core?profile:0) + (random(source,"generation") - .5) * (core&&mode==='pro'?(isPitcher(p.primaryRole)?25:28):core || shared ? 15 : 10),1);
-  }
-  p.initialStats = { ...p.stats }; p.performanceReputation = null; p.reputation = reputationScore(p);
-  if (mode === "pro") p.seasonByLevel = { first: emptyRecord(), second: emptyRecord() };
-  return p;
+  return createCareerNPC(seed,teamId,index,mode,first,(mode==='pro'?proRosterPositions:slots)[index]);
 }
 function resetWorld(s: GameState, p: Player, year: number, pro: boolean) {
   const oldDate = s.date;
@@ -108,7 +93,7 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   if(choice!=="direct")archiveCareerSeason(s,p);
   const year = s.calendar.seasonYear + 1, oldDate = s.date;
   const teams: Team[] = Array.from({ length:40 },(_,id) => ({ id,name:proTeamName(id),shortName:proTeamName(id),wins:0,losses:0,draws:0 }));
-  s.teams = teams; s.players = teams.filter(t=>t.id<20).flatMap(t => slots.map((_,i) => npc(`${s.seed}:pro:${year}:${t.id}:${i}`,t.id,i,"pro",t.id<10)));
+  s.teams = teams; s.players = teams.filter(t=>t.id<20).flatMap(t => proRosterPositions.map((_,i) => npc(`${s.seed}:pro:${year}:${t.id}:${i}`,t.id,i,"pro",t.id<10)));
   const developmentalRookies=rookieDevelopmentalIds(s.seed,year,rookies.filter(row=>row.player!.id!==p.id).map(row=>row.player!.id));
   for (const row of rookies) {
     const rookie = row.player!,developmental=developmentalRookies.has(rookie.id);rookie.teamId = draftClubs.indexOf(row.pick.club) + (developmental?30:20);rookie.proContract={status:developmental?"developmental":"regular",joinedDate:`${year}-02-01`};

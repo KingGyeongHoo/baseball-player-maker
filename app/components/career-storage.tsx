@@ -9,7 +9,7 @@ export default function CareerStorage({state,onLoad,disabled=false}:{state:GameS
   const [deleteId,setDeleteId]=useState<string|null>(null);
   const input=useRef<HTMLInputElement>(null),openRef=useRef(false);
   const refresh=useCallback(()=>listCareerSaves().then(setFiles).catch(error=>setMessage(error.message)),[]);
-  useEffect(()=>{if(!state)return;let current=true;void saveCareerInBackground(state).then(()=>{if(current){setMessage(`자동 저장 · ${state.date}`);if(openRef.current)void refresh();}}).catch(error=>{if(current)setMessage(error instanceof Error?error.message:"자동 저장 실패 · 현재 플레이는 유지됩니다.");});return()=>{current=false;};},[state,refresh]);
+  useEffect(()=>{if(!state)return;let current=true;void saveCareerInBackground(state).then(saved=>{if(current){setMessage(saved?`자동 저장 · ${state.date}`:"이 선수의 저장은 삭제됐습니다. 다시 보관하려면 수동 저장해 주세요.");if(openRef.current)void refresh();}}).catch(error=>{if(current)setMessage(error instanceof Error?error.message:"자동 저장 실패 · 현재 플레이는 유지됩니다.");});return()=>{current=false;};},[state,refresh]);
   const act=async(work:()=>Promise<void>)=>{if(busy||disabled)return;setBusy(true);try{await work();}catch(error){setMessage(error instanceof Error?error.message:"저장 작업에 실패했습니다.");}finally{setBusy(false);}};
   return <section className="career-storage"><div className="career-storage-bar"><span role="status">{message||"로컬 저장 · 선수별 자동 저장"}</span><button className="text-button" disabled={busy||disabled} onClick={()=>{openRef.current=!open;setOpen(!open);setDeleteId(null);if(!open)void refresh();}}>{open?"저장함 닫기":"저장·불러오기"}</button></div>
     {open&&<div className="career-storage-panel"><p className="micro muted">같은 선수는 자동·수동 저장을 하나의 슬롯에 덮어씁니다. 경기·선택·계약·난수와 중단 위치를 복원하며, 자동 진행은 불러오지 않습니다.</p>

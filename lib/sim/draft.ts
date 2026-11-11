@@ -1,4 +1,4 @@
-import { hash, overall, isPitcher, params, random, reputationScore, roleFor, roleScore, roles } from "./engine";
+import { hash, overall, isPitcher, params, random, reputationScore, roleFor, roleScore, roles,schoolRole } from "./engine";
 import type { DraftPick, GameState, Player, Role } from "./types";
 import {createScoutingReport} from "./scouting-report";
 import {buildEvaluationContext,createPlayerEvaluation} from "./player-evaluation";
@@ -19,7 +19,7 @@ export function draftClubOrder(s:Pick<GameState,"seed"|"calendar"|"rngStates"|"c
 export function draftAssessment(p: Player) {
   const talent = p.talent[isPitcher(p.primaryRole) ? "pitching" : "batting"];
   const fit = params["draft.fit_role_weight"] * roleScore(p) + params["draft.fit_need_weight"] * 50;
-  return params["draft.reputation_weight"] * (p.reputation ?? reputationScore(p))
+  return params["draft.reputation_weight"] * (p.reputation ?? reputationScore(p) ?? 0)
     + params["draft.talent_weight"] * (talent - 1) / 9 * 100 + params["draft.fit_weight"] * fit;
 }
 function draftSlots(s: GameState) {
@@ -45,11 +45,11 @@ function selectDraft(s: GameState, limit = Infinity): DraftPick[] {
   for (const { round, club,slot } of slots) {
     const remaining = candidates.filter(p => !selected.has(p.id));
     const best = remaining.map(p => {
-      const qualified = [...new Set(p.eligiblePositions.map(roleFor))].filter(role => isPitcher(role) === isPitcher(p.primaryRole));
+      const qualified = [...new Set(p.eligiblePositions.map(position=>{const role=roleFor(position);return !p.careerMode?schoolRole(role):role;}))].filter(role => isPitcher(role) === isPitcher(p.primaryRole));
       return qualified.map(role => {
         const ability = overall(p);
         const talent = p.talent[isPitcher(role) ? "pitching" : "batting"];
-        const reputation = p.reputation ?? reputationScore(p);
+        const reputation = p.reputation ?? reputationScore(p) ?? 0;
         const fit = params["draft.fit_role_weight"] * roleScore(p, role) + params["draft.fit_need_weight"] * needs[club][role] * 100;
         const components = {
           talent: params["draft.talent_weight"] * (talent - 1) / 9 * 100,

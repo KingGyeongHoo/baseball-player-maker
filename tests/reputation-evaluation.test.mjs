@@ -29,20 +29,20 @@ test('a tiny hot streak has less influence than a well-evidenced season',()=>{
   p.seasonStats=batting(400,200,80,40);r.updateEvaluationReputations(s);const large=r.reputationBreakdown(p);
   assert.ok(tiny.performanceWeight<.06);assert.ok(large.performanceWeight>.3&&large.performanceWeight<.4);assert.ok(large.total>tiny.total);
 });
-test('pro farm evidence remains separate, capped and less influential than first-team evidence',()=>{
+test('pro reputation is removed and farm season evidence remains less influential than first-team evidence',()=>{
   const s=fixture(true),p=e.getPlayer(s);p.seasonByLevel.first=e.emptyRecord();p.seasonByLevel.second=batting(400,240,100,40);world.reviewProfessionalReputation(s);
-  const farm=r.reputationBreakdown(p);assert.ok(farm.performance<=70);assert.ok(farm.performanceWeight<.2);assert.equal(p.reputationEvaluation.fields.batting.first,null);
-  p.seasonByLevel.first=structuredClone(p.seasonByLevel.second);p.seasonByLevel.second=e.emptyRecord();world.reviewProfessionalReputation(s);const first=r.reputationBreakdown(p);
-  assert.ok(first.performanceWeight>farm.performanceWeight);assert.ok(first.performance>farm.performance);assert.ok(first.total>farm.total);
+  const farm=e.proSelectionScore(p);assert.equal(p.reputation,null);assert.equal(p.reputationEvaluation,undefined);
+  p.seasonByLevel.first=structuredClone(p.seasonByLevel.second);p.seasonByLevel.second=e.emptyRecord();world.reviewProfessionalReputation(s);
+  assert.ok(e.proSelectionScore(p)>farm);assert.equal(p.reputation,null);
 });
 test('first-team PA 100 and pitching 30 IP never discard farm evidence or cause a threshold jump',()=>{
-  const s=fixture(true),p=e.getPlayer(s);p.seasonByLevel.first=batting(99,28,3,10);p.seasonByLevel.second=batting(200,80,15,20);r.updateEvaluationReputations(s);const before=p.reputation;
-  p.seasonByLevel.first.batting.PA++;p.seasonByLevel.first.batting.AB++;r.updateEvaluationReputations(s);assert.ok(Math.abs(p.reputation-before)<1);assert.ok(p.reputationEvaluation.fields.batting.second);
-  p.position='SP';p.primaryRole='선발';for(const n of [89,90,91]){Object.assign(p.seasonByLevel.first.pitching,{BF:120,outs:n,SO:35,BB:10,HR:2});Object.assign(p.seasonByLevel.second.pitching,{BF:100,outs:70,SO:30,BB:10,HR:1});r.updateEvaluationReputations(s);if(n===89)p.previousReputation=p.reputation;else close(p.reputation,p.previousReputation);assert.ok(p.reputationEvaluation.fields.pitching.second);}
+  const s=fixture(true),p=e.getPlayer(s);p.seasonByLevel.first=batting(99,28,3,10);p.seasonByLevel.second=batting(200,80,15,20);r.updateEvaluationReputations(s);const before=e.proSelectionScore(p);
+  p.seasonByLevel.first.batting.PA++;p.seasonByLevel.first.batting.AB++;r.updateEvaluationReputations(s);assert.ok(Math.abs(e.proSelectionScore(p)-before)<1);assert.equal(p.reputationEvaluation,undefined);
+  p.position='SP';p.primaryRole='선발';for(const n of [89,90,91]){Object.assign(p.seasonByLevel.first.pitching,{BF:120,outs:n,SO:35,BB:10,HR:2});Object.assign(p.seasonByLevel.second.pitching,{BF:100,outs:70,SO:30,BB:10,HR:1});r.updateEvaluationReputations(s);if(n===89)p.previousSelection=e.proSelectionScore(p);else close(e.proSelectionScore(p),p.previousSelection);}
 });
 test('a pitcher with incidental batting appearances is assessed on pitching rather than their batting OPS',()=>{
-  const s=fixture(true),p=e.getPlayer(s);p.position='SP';p.primaryRole='선발';p.seasonByLevel.first=batting(1,1,1);Object.assign(p.seasonByLevel.first.pitching,{BF:200,outs:150,SO:70,BB:10,HR:2});r.updateEvaluationReputations(s);const before=p.reputation;
-  p.seasonByLevel.first.batting=batting(1,0).batting;r.updateEvaluationReputations(s);close(p.reputation,before);assert.equal(r.reputationBreakdown(p).fields[0].field,'pitching');
+  const s=fixture(true),p=e.getPlayer(s);p.position='SP';p.primaryRole='선발';p.seasonByLevel.first=batting(1,1,1);Object.assign(p.seasonByLevel.first.pitching,{BF:200,outs:150,SO:70,BB:10,HR:2});r.updateEvaluationReputations(s);const before=e.proSelectionScore(p);
+  p.seasonByLevel.first.batting=batting(1,0).batting;r.updateEvaluationReputations(s);close(e.proSelectionScore(p),before);assert.equal(p.reputation,null);
 });
 test('two-way performance confidence is independent for each field and fields are averaged once',()=>{
   const s=fixture(),p=e.getPlayer(s);p.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'pitching',reputationBonus:0};p.seasonStats=batting(400,140,20,30);Object.assign(p.seasonStats.pitching,{BF:5,outs:3,SO:2,BB:1});r.updateEvaluationReputations(s);
@@ -56,8 +56,10 @@ test('role changes never count old batting records as pitching evidence',()=>{
   const s=fixture(),p=e.getPlayer(s);p.seasonStats=batting(400,180,50,40);r.updateEvaluationReputations(s);const battingScore=p.performanceReputation;e.assignRole(p,'선발');r.updateEvaluationReputations(s);
   assert.ok(battingScore!==null);assert.equal(p.performanceReputation,null);assert.ok(p.reputationEvaluation.fields.batting.school);assert.equal(p.reputationEvaluation.fields.pitching.school,null);close(p.reputation,e.roleScore(p));
 });
-test('event and pro bonuses remain additive once, capped at 100',()=>{
-  const s=fixture(true),p=e.getPlayer(s);r.updateEvaluationReputations(s);const before=p.reputation;p.reputationBonus=3;p.professional.proBonus=2;close(e.reputationScore(p),before+5);p.reputationBonus=100;assert.equal(e.reputationScore(p),100);
+test('legacy professional reputation and bonuses do not affect selection or survive migration',()=>{
+  const s=fixture(true),p=e.getPlayer(s),before=e.proSelectionScore(p);p.reputation=100;p.reputationBonus=99;p.professional.proBonus=10;p.professional.allstarBonus=8;
+  r.updateEvaluationReputations(s);assert.equal(e.reputationScore(p),null);assert.equal(e.proSelectionScore(p),before);assert.equal(p.reputation,null);assert.equal(p.reputationBonus,undefined);assert.equal(p.professional.proBonus,0);assert.equal(p.professional.allstarBonus,undefined);
+  p.reputation=99;p.reputationBonus=77;const loaded=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state,q=e.getPlayer(loaded);assert.equal(q.reputation,null);assert.equal(q.reputationBonus,undefined);assert.equal(loaded.players.length,s.players.length);
 });
 test('new reputation affects the existing 80:10:10 draft formula without changing OVR or random streams',()=>{
   const s=fixture(),p=e.getPlayer(s),other=s.players[1];for(const q of s.players){q.grade=3;q.primaryRole='센터라인';q.position='SS';q.talent={batting:5,pitching:5};}p.seasonStats=batting(400,180,45,40);other.seasonStats=batting(400,60,1,10);

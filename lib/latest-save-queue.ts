@@ -1,3 +1,6 @@
+import {careerSaveId} from "./career-save-key";
+import type {GameState} from "./sim/types";
+
 // Keep at most one in-flight snapshot and the latest pending one per career.
 // Waiting callers settle only after the snapshot that supersedes theirs is saved.
 export class LatestSaveQueue<T> {
@@ -26,5 +29,24 @@ export class LatestSaveQueue<T> {
         catch (error) { for (const waiter of job.waiters) waiter.reject(error); }
       }
     } finally { this.running = false; }
+  }
+}
+
+export type CareerSaveJob={state:GameState;manual:boolean}|{deleteId:string};
+export class CareerSaveQueue {
+  private deleted=new Set<string>();
+  private queue:LatestSaveQueue<CareerSaveJob>;
+  constructor(write:(job:CareerSaveJob)=>Promise<void>){
+    this.queue=new LatestSaveQueue(job=>"deleteId" in job||!this.deleted.has(careerSaveId(job.state))?write(job):Promise.resolve());
+  }
+  save(state:GameState,manual=false){
+    const id=careerSaveId(state);
+    if(manual)this.deleted.delete(id);
+    else if(this.deleted.has(id))return Promise.resolve(false);
+    return this.queue.enqueue(id,{state,manual}).then(()=>true);
+  }
+  delete(id:string){
+    this.deleted.add(id);
+    return this.queue.enqueue(id,{deleteId:id}).catch(error=>{this.deleted.delete(id);throw error;});
   }
 }

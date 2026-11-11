@@ -16,7 +16,8 @@ test('100 unique school names retain provenance and exclude BC teams', () => {
   const real = highSchools.filter(s => !s.fictional);
   for (let i=1; i<real.length; i++) assert.ok(real[i-1].wins/(real[i-1].wins+real[i-1].losses) >= real[i].wins/(real[i].wins+real[i].losses));
   for (const [source, name] of [['경기고','강기고'],['휘문고','하문고'],['광주제일고','제영고'],['동산고','동상고'],['군산상일고','군산영일고']]) assert.equal(real.find(s=>s.sourceName===source).name,name);
-  const documented=[...readFileSync(new URL('../docs/high-school-teams.md',import.meta.url),'utf8').matchAll(/^\|\s*(\d+)\s*\|\s*[^|]+\|\s*([^|]+?)\s*\|\s*$/gm)].map(([,number,name])=>({id:Number(number)-1,name:name.trim()}));
+  const schoolList=readFileSync(new URL('../docs/high-school-teams.md',import.meta.url),'utf8').split('## 교명 목록')[1];
+  const documented=[...schoolList.matchAll(/^\|\s*(\d+)\s*\|\s*[^|]+\|\s*([^|]+?)\s*\|\s*$/gm)].map(([,number,name])=>({id:Number(number)-1,name:name.trim()}));
   assert.equal(documented.length,100);assert.deepEqual(highSchools.map(({id,name})=>({id,name})),documented);
 });
 

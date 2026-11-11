@@ -1,6 +1,7 @@
-import {addDays,hash,params,pitchingRole,roleScore,selectionScore} from './engine';
-import type {GameState,Player} from './types';
-export const PRO_BALANCE_VERSION=2;
+import {addDays,available,hash,params,pitchingRole,roleScore,selectionScore} from './engine';
+import type {Game,GameState,Player} from './types';
+export const PRO_BALANCE_VERSION=3;
+export const proPitchingWorkloadTargets={SP:{games:26.8,innings:146.4,perGame:5.46},RP:{games:56,innings:53.3,perGame:.95},CP:{games:59.5,innings:61.1,perGame:1.03}} as const;
 
 // Calibration targets are diagnostics, never caps on a player's records.
 export const proSeasonTargets={
@@ -18,54 +19,72 @@ export function proBullpenPlan(pitchers:Player[],seed:string,date:string,side:nu
   const byAbility=(a:Player,b:Player)=>roleScore(b,pitchingRole(b))-roleScore(a,pitchingRole(a))||a.id.localeCompare(b.id);
   const closers=pitchers.filter(p=>pitchingRole(p)==='마무리').sort(byAbility);
   const relief=pitchers.filter(p=>pitchingRole(p)==='중간계투').sort(byAbility);
-  const starters=pitchers.filter(p=>pitchingRole(p)==='선발').sort(byAbility);
   const club=pitchers[0]?.teamId??side,key=`${seed}:${date}:${club}:${side}`;
   const closerId=closers[closers.length>1&&hash(`${key}:save-rest`)%100<28?1:0]?.id;
-  // The reserve closer can bridge two innings when the primary closer is on
-  // closing duty. Both hold and save opportunities still come from the score.
-  const setupId=closers.length>1&&closerId===closers[0].id&&hash(`${key}:setup`)%100<95?closers[1].id:relief[0]?.id;
-  const bridgeId=hash(`${key}:bridge`)%100<80?relief[0]?.id:undefined;
-  return {closerId,setupId,bridgeId,longReliefId:starters.at(-1)?.id};
+  const setupId=relief[hash(`${key}:setup`)%Math.max(1,Math.min(3,relief.length))]?.id;
+  const bridgeId=relief.find(p=>p.id!==setupId)?.id;
+  const longReliefId=[...relief].sort((a,b)=>b.stats.stamina-a.stats.stamina||a.id.localeCompare(b.id))[0]?.id;
+  const earlyCloser=!!closerId&&hash(`${seed}:${date}:${closerId}:length`)%100<30;
+  return {closerId,setupId,bridgeId,longReliefId,earlyCloser};
 }
 
-export function proPitcherOutLimit(p:Player,starter:boolean,seed:string,date:string,closerId?:string,bridgeId?:string,lead?:number){
-  if(!starter)return pitchingRole(p)==='마무리'?(closerId&&closerId!==p.id?6:3):pitchingRole(p)==='선발'?9:p.id===bridgeId?6:6-(hash(`${seed}:${date}:${p.id}:length`)%3===0?3:0);
-  // Approximately 5–6⅔ innings, reflecting stamina and outing-to-outing variation.
-  // A tied game moves to the rested bullpen after five innings; keep the
-  // winning starter longer rather than assigning another full inning by rank.
-  if(lead===0)return 15;
-  const situation=lead===undefined?0:lead>0?1:-1;
-  return Math.max(15,Math.min(20,Math.round(16+(p.stats.stamina-65)*.08)+(hash(`${seed}:${date}:${p.id}:length`)%3-1)+situation));
+export function proPitcherOutLimit(p:Player,starter:boolean,seed:string,date:string,_closerId?:string,_bridgeId?:string,lead?:number,runs=0,batters=0,currentOuts=0){
+  const roll=hash(`${seed}:${date}:${p.id}:length`)%100;
+  // A struggling outing can end with zero or one out. A rare good day can
+  // reach eight innings or a three-inning relief stint, without record caps.
+  if(runs>=(starter?4:2)&&batters>=(starter?12:5))return currentOuts;
+  if(!starter)return pitchingRole(p)==='마무리'?(roll<30?6:3):roll<3?9:roll<10?6:roll<12?1:roll<18?2:3;
+  if(roll<3&&runs<=1&&p.fatigue<65)return 24;
+  const variation=hash(`${seed}:${date}:${p.id}:starter-length`)%5-2;
+  return Math.max(12,Math.min(21,Math.round(18.4+(p.stats.stamina-65)*.06)+variation+(lead!==undefined&&lead<0?-1:0)));
 }
 
-export function proReliefPriority(p:Player,date:string,inning:number,lead:number,closerId?:string,longReliefId?:string,setupId?:string,bridgeId?:string){
+export function proReliefPriority(p:Player,date:string,inning:number,lead:number,closerId?:string,longReliefId?:string,setupId?:string,bridgeId?:string,teamGames=144){
   const role=pitchingRole(p),save=inning>=9&&lead>=1&&lead<=3;
   const days=p.lastPitched?(Date.parse(date)-Date.parse(p.lastPitched))/86400000:10;
   // Reserve the closer for saves; distribute middle relief rather than exhausting
   // the strongest pitcher every day. Starters are emergency long relief only.
-  const workload=p.seasonStats.pitching.outs;
-  return selectionScore(p,role)+(p.id===closerId?(save?100:-45):role==='선발'&&p.id!==longReliefId?-55:15)
-    +(p.id===setupId&&inning>=7&&inning<9&&lead>=1&&lead<=3?65:0)
-    +(p.id===bridgeId?(inning>=6&&inning<7&&lead>=1&&lead<=3?65:lead<=0||lead>3?-25:0):0)
-    +(p.id===longReliefId&&inning<7?25:0)
-    -(days<=1?35:days<3?12:0)-(p.id===closerId?0:workload/8);
+  const record=p.seasonByLevel?.[p.teamId<10?'first':'second']??p.seasonStats;
+  const outings=record.games?.pitching??record.pitching.outs/3,innings=record.pitching.outs/3;
+  const excess=Math.max(0,outings-(role==='마무리'?59.5:56)*Math.min(1,(teamGames+1)/144));
+  return selectionScore(p,role)*.35+(p.id===closerId?(save?100:inning>=8?25:-60):15)
+    +(p.id===setupId&&inning>=7&&inning<9&&lead>=1&&lead<=3?15:0)
+    +(p.id===bridgeId&&inning>=6&&inning<7?10:0)+(p.id===longReliefId&&inning<5?15:0)
+    -(days<=1?30:days<3?8:0)-outings*.65-innings*.35-excess*(role==='마무리'?25:8);
 }
-export function proReliefReady(p:Player,date:string,longReliefId?:string){
-  return pitchingRole(p)!=='선발'||!p.lastPitched||date>=addDays(p.lastPitched,p.id===longReliefId?3:4);
+export function proReliefReady(p:Player,date:string,_longReliefId?:string,recent:Game[]=[]){
+  if(pitchingRole(p)==='선발'||p.lastPitched===date)return false;
+  if(recent.length>=12){
+    const record=p.seasonByLevel?.[p.teamId<10?'first':'second'],target=pitchingRole(p)==='마무리'?59.5:56;
+    if((record?.games?.pitching??0)>target*Math.min(1,recent.length/144)+2)return false;
+  }
+  if(p.lastPitched!==addDays(date,-1))return true;
+  // Two consecutive days require a day off. Holidays and rainouts are not
+  // appearances; inspect actual pitching records instead of dates alone.
+  return !recent.some(g=>g.date===addDays(date,-2)&&(g.boxScore[p.id]?.pitching.BF??0)>0);
 }
 
+export function proRecentTeamGames(s:GameState,team:number,date:string){
+  const competition=team<10?'pro-first':'pro-second';
+  return s.calendar.events.filter(g=>g.competitionId===competition&&!g.exhibition&&g.status==='completed'&&g.date<=date&&[g.homeTeamId,g.awayTeamId].includes(team)).sort((a,b)=>a.date.localeCompare(b.date));
+}
+export function proStarterReady(s:GameState,p:Player,date:string,team=p.teamId){
+  if(pitchingRole(p)!=='선발'||!available(p,date)||p.fatigue>=params['coach.starter_fatigue']||p.lastPitched&&date<addDays(p.lastPitched,params['coach.starter_rest']+1))return false;
+  return !proRecentTeamGames(s,team,date).slice(-4).some(g=>g.lineup[g.homeTeamId===team?0:1]?.[9]===p.id||(g.boxScore[p.id]?.pitching.BF??0)>0);
+}
 export function proRotationStarter(s:GameState,pitchers:Player[],date:string){
   if(s.proWorld?.stage==='postseason')return undefined;
-  const rotation=[...pitchers].filter(p=>pitchingRole(p)==='선발').sort((a,b)=>roleScore(b,pitchingRole(b))-roleScore(a,pitchingRole(a))||a.id.localeCompare(b.id)).slice(0,5);
-  const ready=rotation.filter(p=>p.fatigue<params['coach.starter_fatigue']&&(!p.lastPitched||date>=addDays(p.lastPitched,params['coach.starter_rest']+1)));
-  if(!ready.length)return undefined;
-  const team=ready[0].teamId,competition=team<10?'pro-first':'pro-second',starts=new Map<string,number>();
-  for(const game of s.calendar.events){
-    if(game.competitionId!==competition||game.status!=='completed'||game.date>=date)continue;
-    const side=game.homeTeamId===team?0:game.awayTeamId===team?1:-1;
-    if(side<0)continue;const id=game.lineup[side]?.[9];if(id)starts.set(id,(starts.get(id)??0)+1);
+  if(!pitchers.length)return undefined;
+  const team=pitchers.find(p=>p.teamId<20)?.teamId??pitchers[0].teamId,starts=new Map<string,number>();
+  for(const game of proRecentTeamGames(s,team,date)){
+    const id=game.lineup[game.homeTeamId===team?0:1]?.[9];if(id)starts.set(id,(starts.get(id)??0)+1);
   }
-  // Calendar rest alone permits the ace to skip the fifth starter after every
-  // Monday off. Balance actual starts within the rested five-man rotation.
-  return ready.sort((a,b)=>(starts.get(a.id)??0)-(starts.get(b.id)??0)||selectionScore(b,pitchingRole(b))-selectionScore(a,pitchingRole(a))||a.id.localeCompare(b.id))[0];
+  const starters=[...pitchers].filter(p=>pitchingRole(p)==='선발').sort((a,b)=>roleScore(b,pitchingRole(b))-roleScore(a,pitchingRole(a))||a.id.localeCompare(b.id));
+  const ready=starters.slice(0,5).filter(p=>proStarterReady(s,p,date,team));
+  const backup=starters.slice(5).find(p=>proStarterReady(s,p,date,team));
+  if(backup&&!ready.length)return backup;
+  if(ready.length)return ready.sort((a,b)=>(starts.get(a.id)??0)-(starts.get(b.id)??0)||selectionScore(b,pitchingRole(b))-selectionScore(a,pitchingRole(a))||a.id.localeCompare(b.id))[0];
+  // A vacancy must be covered by a genuine reserve starter. Neither an opener
+  // nor a closer can bypass the rotation's role and rest requirements.
+  return undefined;
 }

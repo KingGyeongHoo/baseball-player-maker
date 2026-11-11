@@ -1,0 +1,833 @@
+{
+  "balanceVersion": 3,
+  "start": 0,
+  "seasons": 3,
+  "scope": "Fixed tools, real 720-game schedule, daily NPC fatigue policy and normal registration/workload relief swaps; no growth, injuries, trades or season-to-season aging. Records are not clamped.",
+  "comparison": [
+    {
+      "group": "hitters",
+      "stat": "H",
+      "kind": "max",
+      "target": [
+        185,
+        205
+      ],
+      "mean": 182,
+      "observed": [
+        168,
+        196
+      ],
+      "within": 1,
+      "seasons": 3
+    },
+    {
+      "group": "hitters",
+      "stat": "H",
+      "kind": "mean",
+      "target": [
+        75,
+        85
+      ],
+      "mean": 86.04557734204793,
+      "observed": [
+        84.79738562091504,
+        87.97333333333333
+      ],
+      "within": 1,
+      "seasons": 3
+    },
+    {
+      "group": "hitters",
+      "stat": "HR",
+      "kind": "max",
+      "target": [
+        35,
+        55
+      ],
+      "mean": 37,
+      "observed": [
+        36,
+        39
+      ],
+      "within": 3,
+      "seasons": 3
+    },
+    {
+      "group": "hitters",
+      "stat": "HR",
+      "kind": "mean",
+      "target": [
+        7,
+        11
+      ],
+      "mean": 9.74797385620915,
+      "observed": [
+        9.300653594771243,
+        10.169934640522875
+      ],
+      "within": 3,
+      "seasons": 3
+    },
+    {
+      "group": "hitters",
+      "stat": "RBI",
+      "kind": "max",
+      "target": [
+        118,
+        158
+      ],
+      "mean": 96,
+      "observed": [
+        86,
+        105
+      ],
+      "within": 0,
+      "seasons": 3
+    },
+    {
+      "group": "hitters",
+      "stat": "RBI",
+      "kind": "mean",
+      "target": [
+        36,
+        44
+      ],
+      "mean": 33.34762527233116,
+      "observed": [
+        31.84967320261438,
+        34.52
+      ],
+      "within": 0,
+      "seasons": 3
+    },
+    {
+      "group": "hitters",
+      "stat": "AVG",
+      "kind": "max",
+      "target": [
+        0.35,
+        0.38
+      ],
+      "mean": 0.3465659108449095,
+      "observed": [
+        0.33030852994555354,
+        0.3608490566037736
+      ],
+      "within": 1,
+      "seasons": 3
+    },
+    {
+      "group": "hitters",
+      "stat": "AVG",
+      "kind": "mean",
+      "target": [
+        0.26,
+        0.28
+      ],
+      "mean": 0.25325104609742444,
+      "observed": [
+        0.2499518360112511,
+        0.25665661771856463
+      ],
+      "within": 0,
+      "seasons": 3
+    },
+    {
+      "group": "hitters",
+      "stat": "OPS",
+      "kind": "max",
+      "target": [
+        0.978,
+        1.138
+      ],
+      "mean": 0.981302174829387,
+      "observed": [
+        0.9351836253369272,
+        1.0139227045028405
+      ],
+      "within": 2,
+      "seasons": 3
+    },
+    {
+      "group": "hitters",
+      "stat": "OPS",
+      "kind": "mean",
+      "target": [
+        0.71,
+        0.77
+      ],
+      "mean": 0.6994765208493506,
+      "observed": [
+        0.6874509913269153,
+        0.7071435412432849
+      ],
+      "within": 0,
+      "seasons": 3
+    },
+    {
+      "group": "ERA",
+      "stat": "ERA",
+      "kind": "min",
+      "target": [
+        1.3,
+        1.8
+      ],
+      "mean": 1.1655631301792058,
+      "observed": [
+        1.133587786259542,
+        1.2176470588235293
+      ],
+      "within": 0,
+      "seasons": 3
+    },
+    {
+      "group": "ERA",
+      "stat": "ERA",
+      "kind": "mean",
+      "target": [
+        3.9,
+        4.2
+      ],
+      "mean": 3.4874657302231604,
+      "observed": [
+        3.323750764566657,
+        3.580784974717072
+      ],
+      "within": 0,
+      "seasons": 3
+    },
+    {
+      "group": "SP",
+      "stat": "W",
+      "kind": "max",
+      "target": [
+        17,
+        23
+      ],
+      "mean": 17.666666666666668,
+      "observed": [
+        16,
+        19
+      ],
+      "within": 2,
+      "seasons": 3
+    },
+    {
+      "group": "SP",
+      "stat": "W",
+      "kind": "mean",
+      "target": [
+        9,
+        12
+      ],
+      "mean": 9.273333333333332,
+      "observed": [
+        9.2,
+        9.34
+      ],
+      "within": 3,
+      "seasons": 3
+    },
+    {
+      "group": "SP",
+      "stat": "L",
+      "kind": "max",
+      "target": [
+        13,
+        17
+      ],
+      "mean": 18.333333333333332,
+      "observed": [
+        18,
+        19
+      ],
+      "within": 0,
+      "seasons": 3
+    },
+    {
+      "group": "SP",
+      "stat": "L",
+      "kind": "mean",
+      "target": [
+        6,
+        9
+      ],
+      "mean": 9.666666666666666,
+      "observed": [
+        9.56,
+        9.78
+      ],
+      "within": 0,
+      "seasons": 3
+    },
+    {
+      "group": "RP",
+      "stat": "HLD",
+      "kind": "max",
+      "target": [
+        32,
+        41
+      ],
+      "mean": 18.666666666666668,
+      "observed": [
+        17,
+        20
+      ],
+      "within": 0,
+      "seasons": 3
+    },
+    {
+      "group": "RP",
+      "stat": "HLD",
+      "kind": "mean",
+      "target": [
+        5,
+        8
+      ],
+      "mean": 8.563658830620856,
+      "observed": [
+        8.39240506329114,
+        8.845238095238095
+      ],
+      "within": 0,
+      "seasons": 3
+    },
+    {
+      "group": "CP",
+      "stat": "SV",
+      "kind": "max",
+      "target": [
+        31,
+        37
+      ],
+      "mean": 33.333333333333336,
+      "observed": [
+        31,
+        37
+      ],
+      "within": 3,
+      "seasons": 3
+    },
+    {
+      "group": "CP",
+      "stat": "SV",
+      "kind": "mean",
+      "target": [
+        20,
+        28
+      ],
+      "mean": 23.5,
+      "observed": [
+        22.7,
+        24.2
+      ],
+      "within": 3,
+      "seasons": 3
+    }
+  ],
+  "workloadSummary": {
+    "SP": {
+      "target": {
+        "games": 26.8,
+        "innings": 146.4,
+        "perGame": 5.46
+      },
+      "samples": 149,
+      "games": 28.778523489932887,
+      "innings": 156.19015659955258,
+      "perGame": 5.427316542288557
+    },
+    "RP": {
+      "target": {
+        "games": 56,
+        "innings": 53.3,
+        "perGame": 0.95
+      },
+      "samples": 214,
+      "games": 57.126168224299064,
+      "innings": 54.311526479750775,
+      "perGame": 0.9507293796864349
+    },
+    "CP": {
+      "target": {
+        "games": 59.5,
+        "innings": 61.1,
+        "perGame": 1.03
+      },
+      "samples": 22,
+      "games": 62.45454545454545,
+      "innings": 56.93939393939393,
+      "perGame": 0.9116933527413875
+    }
+  },
+  "results": [
+    {
+      "seed": "pro-balance-0",
+      "games": 720,
+      "forfeits": 0,
+      "hitters": 153,
+      "pitchers": 139,
+      "H": {
+        "max": 168,
+        "mean": 84.79738562091504,
+        "min": 20
+      },
+      "HR": {
+        "max": 36,
+        "mean": 9.300653594771243,
+        "min": 0
+      },
+      "RBI": {
+        "max": 86,
+        "mean": 31.84967320261438,
+        "min": 2
+      },
+      "AVG": {
+        "max": 0.3608490566037736,
+        "mean": 0.2499518360112511
+      },
+      "OPS": {
+        "max": 0.9351836253369272,
+        "mean": 0.6874509913269153
+      },
+      "ERA": {
+        "min": 1.1454545454545455,
+        "mean": 3.323750764566657
+      },
+      "K": {
+        "max": 187,
+        "mean": 76,
+        "min": 19
+      },
+      "roles": {
+        "SP": {
+          "n": 50,
+          "IP": {
+            "max": 179,
+            "mean": 154.89333333333337,
+            "min": 124
+          },
+          "W": {
+            "max": 16,
+            "mean": 9.28,
+            "min": 2
+          },
+          "L": {
+            "max": 19,
+            "mean": 9.56,
+            "min": 3
+          },
+          "HLD": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "SV": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          }
+        },
+        "RP": {
+          "n": 79,
+          "IP": {
+            "max": 66.33333333333333,
+            "mean": 53.510548523206744,
+            "min": 31
+          },
+          "W": {
+            "max": 9,
+            "mean": 2.481012658227848,
+            "min": 0
+          },
+          "L": {
+            "max": 7,
+            "mean": 2.1645569620253164,
+            "min": 0
+          },
+          "HLD": {
+            "max": 20,
+            "mean": 8.39240506329114,
+            "min": 1
+          },
+          "SV": {
+            "max": 5,
+            "mean": 1.3291139240506329,
+            "min": 0
+          }
+        },
+        "CP": {
+          "n": 10,
+          "IP": {
+            "max": 66.66666666666667,
+            "mean": 56.233333333333334,
+            "min": 45
+          },
+          "W": {
+            "max": 4,
+            "mean": 1.8,
+            "min": 1
+          },
+          "L": {
+            "max": 10,
+            "mean": 2.6,
+            "min": 0
+          },
+          "HLD": {
+            "max": 10,
+            "mean": 4.2,
+            "min": 2
+          },
+          "SV": {
+            "max": 37,
+            "mean": 24.2,
+            "min": 16
+          }
+        }
+      },
+      "workload": {
+        "SP": {
+          "n": 50,
+          "games": 28.8,
+          "innings": 154.89333333333337,
+          "perGame": 5.378240740740741,
+          "maxGames": 29,
+          "maxOuting": 8
+        },
+        "RP": {
+          "n": 70,
+          "games": 58.385714285714286,
+          "innings": 55.8857142857143,
+          "perGame": 0.9571813065818449,
+          "maxGames": 67,
+          "maxOuting": 4.333333333333333
+        },
+        "CP": {
+          "n": 7,
+          "games": 63.142857142857146,
+          "innings": 53.904761904761905,
+          "perGame": 0.8536953242835595,
+          "maxGames": 64,
+          "maxOuting": 4
+        }
+      },
+      "rareOutings": {
+        "starterEightInnings": 18,
+        "reliefThreeInnings": 49,
+        "closerOneOutThenRelief": 7
+      }
+    },
+    {
+      "seed": "pro-balance-1",
+      "games": 720,
+      "forfeits": 0,
+      "hitters": 153,
+      "pitchers": 144,
+      "H": {
+        "max": 182,
+        "mean": 85.36601307189542,
+        "min": 18
+      },
+      "HR": {
+        "max": 39,
+        "mean": 10.169934640522875,
+        "min": 0
+      },
+      "RBI": {
+        "max": 105,
+        "mean": 33.673202614379086,
+        "min": 2
+      },
+      "AVG": {
+        "max": 0.33030852994555354,
+        "mean": 0.2531446845624576
+      },
+      "OPS": {
+        "max": 0.9948001946483933,
+        "mean": 0.7038350299778517
+      },
+      "ERA": {
+        "min": 1.2176470588235293,
+        "mean": 3.557861451385752
+      },
+      "K": {
+        "max": 180,
+        "mean": 71.52083333333333,
+        "min": 15
+      },
+      "roles": {
+        "SP": {
+          "n": 50,
+          "IP": {
+            "max": 175,
+            "mean": 154.44,
+            "min": 111.33333333333333
+          },
+          "W": {
+            "max": 18,
+            "mean": 9.34,
+            "min": 3
+          },
+          "L": {
+            "max": 18,
+            "mean": 9.66,
+            "min": 3
+          },
+          "HLD": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "SV": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          }
+        },
+        "RP": {
+          "n": 84,
+          "IP": {
+            "max": 66.33333333333333,
+            "mean": 50.59126984126984,
+            "min": 32
+          },
+          "W": {
+            "max": 6,
+            "mean": 2.261904761904762,
+            "min": 0
+          },
+          "L": {
+            "max": 6,
+            "mean": 1.9404761904761905,
+            "min": 0
+          },
+          "HLD": {
+            "max": 19,
+            "mean": 8.845238095238095,
+            "min": 2
+          },
+          "SV": {
+            "max": 6,
+            "mean": 1.3571428571428572,
+            "min": 0
+          }
+        },
+        "CP": {
+          "n": 10,
+          "IP": {
+            "max": 66.66666666666667,
+            "mean": 57.266666666666666,
+            "min": 48.666666666666664
+          },
+          "W": {
+            "max": 6,
+            "mean": 2.6,
+            "min": 0
+          },
+          "L": {
+            "max": 6,
+            "mean": 3.4,
+            "min": 1
+          },
+          "HLD": {
+            "max": 8,
+            "mean": 4,
+            "min": 0
+          },
+          "SV": {
+            "max": 32,
+            "mean": 22.7,
+            "min": 16
+          }
+        }
+      },
+      "workload": {
+        "SP": {
+          "n": 49,
+          "games": 28.816326530612244,
+          "innings": 155.31972789115645,
+          "perGame": 5.389990557129368,
+          "maxGames": 29,
+          "maxOuting": 8
+        },
+        "RP": {
+          "n": 74,
+          "games": 55.41891891891892,
+          "innings": 52.84684684684682,
+          "perGame": 0.9535885556368365,
+          "maxGames": 62,
+          "maxOuting": 3
+        },
+        "CP": {
+          "n": 7,
+          "games": 62,
+          "innings": 58.66666666666667,
+          "perGame": 0.946236559139785,
+          "maxGames": 64,
+          "maxOuting": 2.3333333333333335
+        }
+      },
+      "rareOutings": {
+        "starterEightInnings": 15,
+        "reliefThreeInnings": 35,
+        "closerOneOutThenRelief": 13
+      }
+    },
+    {
+      "seed": "pro-balance-2",
+      "games": 720,
+      "forfeits": 0,
+      "hitters": 150,
+      "pitchers": 135,
+      "H": {
+        "max": 196,
+        "mean": 87.97333333333333,
+        "min": 16
+      },
+      "HR": {
+        "max": 36,
+        "mean": 9.773333333333333,
+        "min": 0
+      },
+      "RBI": {
+        "max": 97,
+        "mean": 34.52,
+        "min": 2
+      },
+      "AVG": {
+        "max": 0.34854014598540145,
+        "mean": 0.25665661771856463
+      },
+      "OPS": {
+        "max": 1.0139227045028405,
+        "mean": 0.7071435412432849
+      },
+      "ERA": {
+        "min": 1.133587786259542,
+        "mean": 3.580784974717072
+      },
+      "K": {
+        "max": 183,
+        "mean": 75.45925925925926,
+        "min": 26
+      },
+      "roles": {
+        "SP": {
+          "n": 50,
+          "IP": {
+            "max": 179.66666666666666,
+            "mean": 158.34,
+            "min": 123.33333333333333
+          },
+          "W": {
+            "max": 19,
+            "mean": 9.2,
+            "min": 2
+          },
+          "L": {
+            "max": 18,
+            "mean": 9.78,
+            "min": 2
+          },
+          "HLD": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "SV": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          }
+        },
+        "RP": {
+          "n": 75,
+          "IP": {
+            "max": 67,
+            "mean": 52.84888888888889,
+            "min": 31.333333333333332
+          },
+          "W": {
+            "max": 7,
+            "mean": 2.6666666666666665,
+            "min": 0
+          },
+          "L": {
+            "max": 7,
+            "mean": 1.96,
+            "min": 0
+          },
+          "HLD": {
+            "max": 17,
+            "mean": 8.453333333333333,
+            "min": 1
+          },
+          "SV": {
+            "max": 5,
+            "mean": 1.4,
+            "min": 0
+          }
+        },
+        "CP": {
+          "n": 10,
+          "IP": {
+            "max": 67.66666666666667,
+            "mean": 57.833333333333336,
+            "min": 50.333333333333336
+          },
+          "W": {
+            "max": 4,
+            "mean": 1.8,
+            "min": 0
+          },
+          "L": {
+            "max": 9,
+            "mean": 3.7,
+            "min": 0
+          },
+          "HLD": {
+            "max": 7,
+            "mean": 3.5,
+            "min": 2
+          },
+          "SV": {
+            "max": 31,
+            "mean": 23.6,
+            "min": 17
+          }
+        }
+      },
+      "workload": {
+        "SP": {
+          "n": 50,
+          "games": 28.72,
+          "innings": 158.33999999999997,
+          "perGame": 5.513231197771588,
+          "maxGames": 29,
+          "maxOuting": 8
+        },
+        "RP": {
+          "n": 70,
+          "games": 57.67142857142857,
+          "innings": 54.285714285714285,
+          "perGame": 0.9412930393856824,
+          "maxGames": 64,
+          "maxOuting": 3.3333333333333335
+        },
+        "CP": {
+          "n": 8,
+          "games": 62.25,
+          "innings": 58.08333333333333,
+          "perGame": 0.9330655957161982,
+          "maxGames": 63,
+          "maxOuting": 2.3333333333333335
+        }
+      },
+      "rareOutings": {
+        "starterEightInnings": 9,
+        "reliefThreeInnings": 37,
+        "closerOneOutThenRelief": 11
+      }
+    }
+  ]
+}

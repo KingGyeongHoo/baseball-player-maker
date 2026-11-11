@@ -3,10 +3,47 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const e = require('../.test-build/lib/sim/engine.js');
+const {talentIntake,talentFromRoll}=require('../.test-build/lib/sim/talent-generation.js');
+const {createCareerNPC}=require('../.test-build/lib/sim/pro-roster.js');
 const pitching = ['velocity', 'control', 'movement'];
 const batting = ['contact', 'power', 'speed', 'defense'];
 const mean = values => values.reduce((sum, n) => sum + n, 0) / values.length;
 const initialOvr = (p, pitch) => e.ovr({ ...p, stats: p.initialStats }, pitch);
+const talents=(players,secondary=false)=>players.map(p=>p.talent[e.isPitcher(p.primaryRole)!==secondary?'pitching':'batting']);
+const histogram=values=>Array.from({length:10},(_,i)=>values.filter(n=>n===i+1).length);
+
+test('every fresh school class has exactly the descending 1,000-player talent intake in both primary and secondary skills',()=>{
+ const s=e.createGame('pyramid-intake','피라미드','SP');
+ assert.equal(talentIntake.reduce((sum,n)=>sum+n,0),1000);
+ for(let i=1;i<talentIntake.length;i++)assert(talentIntake[i]<talentIntake[i-1]);
+ for(const grade of [1,2,3])for(const secondary of [false,true])assert.deepEqual(histogram(talents(s.players.filter(p=>p.grade===grade),secondary)),[...talentIntake]);
+ const main=talents(s.players.filter(p=>p.grade===1));assert.equal(mean(main),3.27);
+});
+
+test('new annual school intake uses the pyramid without rerolling surviving or saved players',()=>{
+ const s=e.createGame('pyramid-next-year','보존','SS'),old=new Map(s.players.map(p=>[p.id,{...p.talent}]));
+ const p=e.getPlayer(s);p.talent={batting:10,pitching:10};old.set(p.id,{...p.talent});
+ const save=require('../.test-build/lib/career-save.js'),restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;
+ assert.deepEqual(e.getPlayer(restored).talent,{batting:10,pitching:10});
+ e.promote(restored);const incoming=restored.players.filter(p=>!old.has(p.id));
+ assert.equal(incoming.length,1000);for(const secondary of [false,true])assert.deepEqual(histogram(talents(incoming,secondary)),[...talentIntake]);
+ for(const player of restored.players.filter(p=>old.has(p.id)))assert.deepEqual(player.talent,old.get(player.id));
+});
+
+test('standalone and professional NPC generation use the same rare high-talent probabilities without elite-school inflation',()=>{
+ assert.deepEqual(histogram(Array.from({length:1000},(_,i)=>talentFromRoll((i+.5)/1000))),[...talentIntake]);
+ const players=Array.from({length:1000},(_,i)=>createCareerNPC(`pyramid-pro-${i}`,i%20,i,'pro',i%20<10,i%2?'SP':'SS'));
+ const values=talents(players),counts=histogram(values);assert(mean(values)>3&&mean(values)<3.55);assert(counts[9]<20);assert(counts[0]>counts[4]&&counts[4]>counts[9]);
+});
+
+test('professional annual rookies are selected from a pyramid cohort rather than 1,000 elite-school rolls',()=>{
+ const pc=require('../.test-build/lib/sim/pro-career.js'),life=require('../.test-build/lib/sim/pro-season.js');
+ const s=pc.createProfessionalDemo('pyramid-pro-rookies','검증','SS'),old=new Map(s.players.map(p=>[p.id,{...p.talent}]));
+ life.addRookieClass(s,2029);const rookies=s.players.filter(p=>p.id.startsWith('pro-rookie-2029-'));
+ assert(rookies.length>=90&&rookies.length<=110);assert(talents(rookies).filter(n=>n===10).length<=5);assert(talents(rookies).filter(n=>n>=8).length<=45);
+ for(const p of s.players.filter(p=>old.has(p.id)))assert.deepEqual(p.talent,old.get(p.id));
+ const snapshot=rookies.map(p=>[p.id,p.talent,p.stats]);life.addRookieClass(s,2029);assert.deepEqual(s.players.filter(p=>p.id.startsWith('pro-rookie-2029-')).map(p=>[p.id,p.talent,p.stats]),snapshot);
+});
 
 test('combined OVR adds both disciplines, exceeds 100 for two-way players, and is role independent', () => {
   const template = e.previewPlayer('combined-ovr', '검증', 'SS');

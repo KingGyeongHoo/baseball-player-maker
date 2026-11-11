@@ -8,6 +8,8 @@ const {lifetimeRecords,careerContractSummary,careerHonors}=require('../.test-bui
 const {recordRates}=require('../.test-build/lib/player-records.js'),{dashboardRecordValues}=require('../.test-build/app/components/dashboard-records.js');
 const {CareerLifetimeRecords,CareerHonors}=require('../.test-build/app/components/pro-career-summary.js'),Assessments=require('../.test-build/app/components/pro-assessments.js').default;
 const assessment=require('../.test-build/lib/sim/pro-assessment.js'),save=require('../.test-build/lib/career-save.js');
+const {retirementSummary}=require('../.test-build/lib/retirement-summary.js');
+const Retirement=require('../.test-build/app/components/pro-retirement-dashboard.js').default;
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('career-summary','통산선수','SS'));
 const fixture=()=>structuredClone(template);
 const row=(year,score,squad='first')=>({year,date:`${year}-10-31`,score,grade:score===null?'—':score>=79?'A':'C',cumulative:score,cumulativeGrade:'C',ability:76,role:'센터라인',squad,developmental:false,reserveSeason:false,firstTeam:squad==='first',secondOnly:squad==='second',firstGames:30,source:'season-end'});
@@ -37,7 +39,7 @@ test('compact contract estimates include the current season once, ignore unrated
  const s=fixture(),p=e.getPlayer(s);s.calendar.seasonYear=2031;p.professional.assessments=[row(2028,70),row(2029,80),row(2030,null),row(2040,100)];p.professional.employment='active';p.teamId=0;p.proContract.status='regular';p.fatigue=0;p.recentZ=0;for(const key of Object.keys(p.stats))p.stats[key]=76;p.professional.contract={...p.professional.contract,startYear:2031,endYear:2033,salary:100_000_000};
  const summary=careerContractSummary(s);assert.equal(summary.cumulative,75);assert.equal(summary.projected,(70+80+71)/3);assert.equal(summary.seasons,3);assert.equal(summary.salary,100_000_000);
  p.professional.assessments.push({...row(2031,82,'second'),salary:100_000_000});s.proWorld.seasonClosed=true;const frozen=careerContractSummary(s);assert.equal(frozen.cumulative,(70+80+82)/3);assert.equal(frozen.projected,frozen.cumulative);assert.equal(frozen.seasons,2);
- const html=renderToStaticMarkup(createElement(Assessments,{state:s}));assert.equal((html.match(/<thead><tr>/g)||[]).length,1);assert.match(html,/<th>시즌<\/th><th>출전평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);assert.ok(html.includes('2군'));assert.ok(!html.includes('1군 출전경기'));assert.ok(!html.includes('기준 연봉'));
+ const html=renderToStaticMarkup(createElement(Assessments,{state:s}));assert.equal((html.match(/<thead><tr>/g)||[]).length,1);assert.match(html,/<th>시즌<\/th><th>시즌평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);assert.ok(html.includes('2군'));assert.ok(!html.includes('1군 출전경기'));assert.ok(!html.includes('기준 연봉'));
  p.professional.employment='freeAgent';assert.equal(careerContractSummary(s).seasons,0);assert.equal(careerContractSummary(s).salary,null);
 });
 
@@ -45,4 +47,43 @@ test('new season assessments freeze the annual salary and final registration whi
  const s=fixture(),p=e.getPlayer(s);p.professional.assessments=[];p.professional.contract.salary=90_000_000;p.teamId=10;const assessed=assessment.recordSeasonAssessment(s,p);assert.equal(assessed.salary,90_000_000);assert.equal(assessed.squad,'second');p.professional.contract.salary=180_000_000;assert.equal(assessment.recordSeasonAssessment(s,p).salary,90_000_000);
  const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;assert.equal(e.getPlayer(restored).professional.assessments[0].salary,90_000_000);
  delete p.professional.assessments[0].salary;p.professional.salaries=[{year:s.calendar.seasonYear,club:0,amount:10_000_000,salary:60_000_000}];const html=renderToStaticMarkup(createElement(Assessments,{state:s}));assert.ok(html.includes('6,000만 원'));
+});
+
+function retiredFixture(){
+ const s=fixture(),p=e.getPlayer(s);s.calendar.seasonYear=2035;s.date='2035-11-01';s.proWorld.year=2035;s.proWorld.stage='retired';s.proWorld.retired={date:s.date,reason:'은퇴 선택',summary:'선수 생활을 마쳤습니다.',forfeited:0};
+ p.professional.employment='retired';p.professional.contract=null;p.teamId=-1;p.age=37;p.professional.entry='draft';p.professional.rookieYear=2028;p.professional.firstClub=0;
+ p.career=[{year:2027,grade:3,schoolName:'서울고',records:record(10,4),stats:p.stats},{year:2028,grade:0,careerMode:'pro',records:record(20,6),stats:p.stats,byLevel:{first:record(20,6),second:e.emptyRecord()}}];
+ s.postSchool.graduationYear=2027;s.postSchool.graduationSchool='서울고';s.draft=[{playerId:p.id,club:'서울 베어스',round:1,overall:3}];
+ p.professional.firsts={debut:'2028-04-02',start:'2028-04-03',hit:'2028-04-04',homeRun:'2028-05-01'};
+ p.professional.movements=[{date:'2028-02-01',kind:'입단',from:null,to:0,reason:'입단'},{date:'2032-11-10',kind:'FA 잔류',from:0,to:0,reason:'잔류'},{date:'2033-11-20',kind:'FA 이적',from:0,to:1,reason:'FA 계약'},{date:'2034-06-01',kind:'트레이드',from:1,to:2,reason:'트레이드'}];
+ p.professional.allstarHistory=[{year:2030,level:'first',side:'blue',method:'vote',mvp:true},{year:2030,level:'first',side:'blue',method:'vote',mvp:true},{year:2031,level:'second',side:'blue',method:'replacement',withdrawn:true}];
+ s.careerEventHistory=[{definitionId:'P08',date:'2027-08-01',choiceId:'choice-1',choice:'소집에 응한다',message:'출전'},{definitionId:'WBC01',date:'2030-03-01',choiceId:'participate',proEvent:{branchId:'WBC01:mvp'}},{definitionId:'PE27',date:'2031-10-15',choiceId:'choice-1'}];
+ s.proEvents={version:1,history:[],national:{},wbc:{2030:{evaluatedAt:'2030-03-01',sourceYear:2029,roster:[{id:p.id}],participated:true,result:'WBC01:mvp',settled:true}}};
+ const award=(kind,category)=>({year:2030,kind,category,playerId:p.id,playerName:p.name,club:0,value:1});
+ s.proWorld.seasons=[{year:2030,endDate:'2030-10-08',awardsCeremony:{presentedAt:'2030-12-06'},awards:[award('골든글러브 · 유격수','goldGlove'),award('시즌 MVP','mvp'),award('홈런')],individualAwards:[{level:'first',label:'홈런',winners:[{playerId:p.id}]}]},{year:2031,awardsCeremony:{scheduledAt:'2031-12-06'},awards:[award('시즌 MVP','mvp')]}];
+ p.seasonByLevel={first:record(100,30,38),second:record(50,20)};p.seasonPostseason=e.emptyRecord();return s;
+}
+
+test('retirement milestones follow actual dates through school, draft, firsts, honors, FA and retirement without mutating history',()=>{
+ const s=retiredFixture(),before=structuredClone(s),summary=retirementSummary(s),rows=summary.milestones;
+ assert.deepEqual(summary.counts,{allstar:2,individual:4,mvp:1,national:2});
+ assert.deepEqual(rows.map(row=>row.date),rows.map(row=>row.date).sort());assert.equal(rows[0].title,'고교 입학');assert.equal(rows[0].dateLabel,'2025년');assert.equal(rows.at(-1).title,'은퇴');
+ for(const title of ['프로 지명','첫 1군 출전','첫 안타','첫 홈런','첫 올스타 선정','첫 수상','첫 국가대표 발탁','FA 잔류','FA 이적','트레이드'])assert(rows.some(row=>row.title===title),title);
+ assert.equal(rows.find(row=>row.title==='프로 지명').detail,'서울 베어스 · 1라운드 · 전체 3순위');assert.equal(rows.find(row=>row.title==='첫 수상').detail,'WBC MVP');
+ assert.equal(rows.find(row=>row.title==='첫 청소년대표 발탁').date,'2027-08-01');assert.equal(rows.find(row=>row.title==='첫 국가대표 발탁').date,'2030-03-01');assert.equal(rows.filter(row=>row.title==='첫 올스타 선정').length,1);assert(!rows.some(row=>row.title==='첫 탈삼진'));
+ assert.equal(summary.records.batting.AB,180);assert.equal(summary.records.pitching.outs,38);assert.deepEqual(s,before);
+});
+
+test('retirement dashboard puts lifetime records first, then the timeline and four honor counters',()=>{
+ const s=retiredFixture(),html=renderToStaticMarkup(createElement(Retirement,{state:s,onRecords(){},onNew(){}}));
+ assert(html.indexOf('야구인생 통산 기록')<html.indexOf('선수생활의 발자취'));assert(html.indexOf('선수생활의 발자취')<html.indexOf('올스타 선정</h2>'));
+ for(const title of ['올스타 선정','개인 수상','시즌 MVP','국가대표 발탁','12.2','연도별·리그별 기록 보기'])assert(html.includes(title),title);
+ assert.equal((html.match(/<ol class="career-timeline">/g)||[]).length,1);assert.equal((html.match(/<dd>/g)||[]).length,14);
+ for(const title of ['출발과 전환점','성장의 기록','우승과 수상'])assert(!html.includes(title));
+});
+
+test('direct-entry and uneventful retirements display only genuine milestones and zero counters',()=>{
+ const s=retiredFixture(),p=e.getPlayer(s);p.professional.entry='direct';p.career=[];p.professional.firsts={};p.professional.allstarHistory=[];p.professional.movements=p.professional.movements.slice(0,1);s.careerEventHistory=[];delete s.proEvents;s.proWorld.seasons=[];
+ const summary=retirementSummary(s);assert.deepEqual(summary.milestones.map(row=>row.title),['프로 입단','은퇴']);assert.deepEqual(summary.counts,{allstar:0,individual:0,mvp:0,national:0});
+ const html=renderToStaticMarkup(createElement(Retirement,{state:s,onRecords(){},onNew(){}}));assert(!html.includes('고교 입학'));assert(!html.includes('프로 지명'));assert(html.includes('프로 직접 시작'));
 });

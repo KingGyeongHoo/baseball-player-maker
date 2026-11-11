@@ -260,6 +260,7 @@ export type CareerEventBranch = {
   fatigueRange?: { min: number; max: number };
   skipTraining?: boolean;
   proRoleTrial?:Position;
+  proAutoTransition?:true;
   proChanceRequest?:boolean;
   proTrialDecision?:"accept"|"keep";
   proResultId?:string;

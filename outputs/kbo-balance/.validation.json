@@ -1,0 +1,81 @@
+{
+  "sourceRows": {
+    "hitters": 1473,
+    "pitchers": 1439
+  },
+  "mergedSeasons": {
+    "hitters": 1445,
+    "pitchers": 1421
+  },
+  "included": {
+    "hitters": 759,
+    "pitchers": 731
+  },
+  "years": [
+    {
+      "year": 2021,
+      "hitters": 154,
+      "qualifiedHitters": 54,
+      "pitchers": 148,
+      "qualifiedPitchers": 19,
+      "AVG": 0.2650318056148711,
+      "HR_PA": 0.021487859747110385,
+      "ERA": 4.164828523946215,
+      "K9": 7.322918869919928,
+      "maxHR": 35,
+      "maxSO": 225
+    },
+    {
+      "year": 2022,
+      "hitters": 145,
+      "qualifiedHitters": 53,
+      "pitchers": 142,
+      "qualifiedPitchers": 22,
+      "AVG": 0.2655799512086937,
+      "HR_PA": 0.020002339454907005,
+      "ERA": 3.847553306619088,
+      "K9": 7.381584720231653,
+      "maxHR": 35,
+      "maxSO": 224
+    },
+    {
+      "year": 2023,
+      "hitters": 159,
+      "qualifiedHitters": 50,
+      "pitchers": 149,
+      "qualifiedPitchers": 17,
+      "AVG": 0.2689931650893796,
+      "HR_PA": 0.017148550516372554,
+      "ERA": 3.9026132404181184,
+      "K9": 7.089459930313589,
+      "maxHR": 31,
+      "maxSO": 209
+    },
+    {
+      "year": 2024,
+      "hitters": 146,
+      "qualifiedHitters": 56,
+      "pitchers": 154,
+      "qualifiedPitchers": 20,
+      "AVG": 0.2835715205355993,
+      "HR_PA": 0.02605342362678706,
+      "ERA": 4.6191788126555275,
+      "K9": 7.767419125488802,
+      "maxHR": 46,
+      "maxSO": 182
+    },
+    {
+      "year": 2025,
+      "hitters": 155,
+      "qualifiedHitters": 43,
+      "pitchers": 138,
+      "qualifiedPitchers": 22,
+      "AVG": 0.26708956217007496,
+      "HR_PA": 0.021865126286611487,
+      "ERA": 4.033325377409153,
+      "K9": 7.87654394653619,
+      "maxHR": 50,
+      "maxSO": 252
+    }
+  ]
+}

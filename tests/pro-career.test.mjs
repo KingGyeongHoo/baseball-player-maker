@@ -47,11 +47,11 @@ test('direct pro entry evaluates current role skills before assigning status, sa
 const advance=s=>e.advanceWeek(s,e.getPlayer(s).trainingPolicy,e.getPlayer(s).stance);
 function forceTryout(s,success){for(let seed=0;seed<100000;seed++){const probe={rngStates:{...s.rngStates,draft:seed}};const roll=e.random(probe,'draft');if(success?roll<.1:roll>.9){s.rngStates.draft=seed;return;}}assert.fail('roll');}
 
-test('joining the drafted club retains the same player, stats, talent, policy, reputation and school archive',()=>{
+test('joining the drafted club retains player, stats, talent, policy and school archive while retiring pro reputation',()=>{
   const old=graduate(),p=e.getPlayer(old),copy=structuredClone(old),next=pc.continueCareer(old,'join'),q=e.getPlayer(next);
   assert.deepEqual(old,copy);assert.equal(next.careerMode,'pro');assert.equal(q.teamId,20);assert.equal(next.postSchool.pro.level,'third');
   assert.equal(q.id,p.id);assert.deepEqual(q.stats,p.stats);assert.deepEqual(q.initialStats,p.initialStats);assert.deepEqual(q.talent,p.talent);
-  assert.deepEqual(q.trainingPolicy,p.trainingPolicy);assert.equal(q.reputation,p.reputation);assert.deepEqual(q.seasonStats,e.emptyRecord());
+  assert.deepEqual(q.trainingPolicy,p.trainingPolicy);assert.equal(q.reputation,null);assert.deepEqual(q.seasonStats,e.emptyRecord());
   assert.equal(q.career[0].schoolName,old.teams[p.teamId].name);assert.equal(q.career[0].records.batting.H,30);assert.deepEqual(next.draft,old.draft);
   assert.equal(next.date,'2028-02-01');assert.equal(q.age,19);assert.equal(next.careerNotice.kind,'entry');
   assert.equal(q.professional.entry,'draft');

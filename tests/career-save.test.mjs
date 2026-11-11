@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js');
 const save=require('../.test-build/lib/career-save.js'),{careerSaveId}=require('../.test-build/lib/career-save-key.js');
-const {LatestSaveQueue}=require('../.test-build/lib/latest-save-queue.js');
+const {LatestSaveQueue,CareerSaveQueue}=require('../.test-build/lib/latest-save-queue.js');
 const template=e.createGame('save-slot-test','같은이름','SS');template.players=[e.getPlayer(template)];template.calendar.events=[];
 
 test('one career keeps the same slot across automatic, manual, renamed and later saves',()=>{
@@ -27,4 +27,22 @@ test('deletion replaces queued saves and follows any write already running for t
   assert.deepEqual(writes,[{save:1}]);gates.shift()();await first;
   assert.deepEqual(writes,[{save:1},{deleteId:'career-a'}]);gates.shift()();await Promise.all([pending,deleted]);
   assert.deepEqual(writes,[{save:1},{deleteId:'career-a'},{save:3}]);gates.shift()();await other;
+});
+
+test('reset deletion follows an in-flight save, drops stale autosaves and keeps other careers untouched',async()=>{
+ const writes=[],gates=[],queue=new CareerSaveQueue(job=>{writes.push(job);return new Promise(resolve=>gates.push(resolve));});
+ const state=structuredClone(template),id=careerSaveId(state),other={...state,seed:'other-retired-career'};
+ const first=queue.save(state),pending=queue.save({...state,date:'2027-05-01'}),deletion=queue.delete(id);
+ assert.equal(await queue.save({...state,date:'2027-05-02'}),false);
+ gates.shift()();await first;assert.deepEqual(writes[1],{deleteId:id});gates.shift()();await Promise.all([pending,deletion]);
+ assert.equal(writes.length,2);assert.equal(await queue.save(state),false);
+ const preserved=queue.save(other);gates.shift()();assert.equal(await preserved,true);assert.equal(writes[2].state.seed,other.seed);
+ const manual=queue.save(state,true);gates.shift()();assert.equal(await manual,true);
+ const resumed=queue.save(state);gates.shift()();assert.equal(await resumed,true);
+});
+
+test('failed reset deletion leaves the career available for saving and retry',async()=>{
+ let fail=true;const writes=[],queue=new CareerSaveQueue(async job=>{if('deleteId' in job&&fail)throw Error('삭제 실패');writes.push(job);});
+ await assert.rejects(queue.delete(careerSaveId(template)),/삭제 실패/);assert.equal(await queue.save(template),true);
+ fail=false;await queue.delete(careerSaveId(template));assert.equal(await queue.save(template),false);assert.equal(writes.length,2);
 });

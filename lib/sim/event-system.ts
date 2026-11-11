@@ -1,9 +1,11 @@
 import { addDays, assignRole, available, clamp, overall, focusGrowth, getPlayer, growthMultiplier, isPitcher, lineup, params, random, refreshWeekReport, reputationScore, roleScore, roles, slowdown } from "./engine";
 import {applyProTwoWayChoice} from "./pro-two-way";
+import {clearProfessionalReputation} from "./pro-selection";
 import {beginProRoleTrial,decideProRoleTrial} from "./pro-role-evaluation";
 import {recordProChoice} from "./pro-event-ledger";
 import {eligibleStory} from "./event-stories";
 import {schoolEventCatalog} from "./event-catalog";
+import {eventCategoryPool,eventFocusPool,resolveEventFocus} from './event-selection';
 import type {ProEventResult} from "./pro-event-types";
 import { teamStrength } from "../team-strength";
 import { professionalGrowth,limitPhysicalGrowth } from "./pro-growth";
@@ -12,6 +14,8 @@ import { createCareerEvent, eventKind } from "./career-events";
 import { statKeys, type CareerEventBranch, type EventOpportunity, type EventScene, type GameState, type MatchEffect, type Player, type Stat } from "./types";
 
 export const eventLedger = (s: GameState) => s.eventLedger ??= { recent: [], centerGrades: [], nationalGrades: [], competitions: [], games: [] };
+const schoolCategories=new Map(schoolEventCatalog.map(e=>[e.id,e.category??'baseball']));
+const schoolFocuses=new Map(schoolEventCatalog.map(e=>[e.id,e.focus]));
 export function suggestedRole(p: Player) {
   if (p.twoWay || p.roleOffer || p.offerCooldown > 0) return undefined;
   const best = [...roles].sort((a, b) => roleScore(p, b) - roleScore(p, a) || roles.indexOf(a) - roles.indexOf(b))[0];
@@ -32,6 +36,8 @@ export function eventCandidates(s: GameState, date: string): EventOpportunity[] 
   const game = s.calendar.events.find(g => g.date === date && [g.homeTeamId, g.awayTeamId].includes(p.teamId));
   const pool: EventOpportunity[] = [];
   const add = (id: string, context: Partial<EventOpportunity> = {}) => {
+    const focus=schoolFocuses.get(id);
+    if(!p.twoWay&&(pitching?['contact','power','speed','defense']:['velocity','control','movement']).includes(focus??''))return;
     if (!ledger.recent.slice(-5).includes(id)) pool.push({ definitionId: id, date, ...context });
   };
   for(const definition of schoolEventCatalog){
@@ -51,7 +57,7 @@ export function eventCandidates(s: GameState, date: string): EventOpportunity[] 
   }
   if (canAct && (!game || trainDay)) add("P01");
   if (!game) { add("P02"); add("P07"); }
-  if (p.seasonStats.batting.PA || p.seasonStats.pitching.BF) add("P03");
+  if (canAct&&(trainDay||game)&&(p.seasonStats.batting.PA || p.seasonStats.pitching.BF)) add("P03");
   if (canAct && game) add("P04");
   if (pitching && canAct && (trainDay || game)) add("P05");
   for (const c of activeTournaments(s, date)) {
@@ -65,7 +71,7 @@ export function eventCandidates(s: GameState, date: string): EventOpportunity[] 
       if (next.awayTeamId === p.teamId) add("C06", context);
     }
     if (canAct) add("C03", context);
-    add("C04", context); add("C05", context);
+    if(canAct){add("C04", context); add("C05", context);}
   }
   if (canAct && game?.status === "scheduled" && !ledger.games.includes(game.id)) {
     const projected = lineup(s.players.filter(other => other.teamId === p.teamId), date);
@@ -79,8 +85,11 @@ export function planEventWeek(s: GameState): EventOpportunity | null {
   if(s.careerMode)return null;
   if (s.week - (s.lastCareerEventWeek ?? 0) < params["events.gap_weeks"] || random(s, "events") >= params["events.weekly_chance"]) return null;
   const pool = Array.from({ length: 7 }, (_, i) => eventCandidates(s, addDays(s.date, i))).flat();
-  const continuations=pool.filter(item=>item.story?.sourceId);
-  const candidates=continuations.length&&random(s,"events")<.5?continuations:pool;
+  if(!pool.length)return null;
+  const category=eventCategoryPool(pool,item=>schoolCategories.get(item.definitionId)??'baseball',random(s,'events'));
+  const p=getPlayer(s),pitching=isPitcher(p.primaryRole);
+  const candidates=schoolCategories.get(category[0].definitionId)==='daily'?category:eventFocusPool(category,item=>resolveEventFocus(schoolFocuses.get(item.definitionId),pitching,p.stats),pitching,random(s,'events'));
+  if(!candidates.length)return null;
   const kinds = [...new Set(candidates.map(item => eventKind(item.definitionId)))];
   if (!kinds.length) return null;
   const kind = kinds[Math.floor(random(s, "events") * kinds.length)];
@@ -168,25 +177,27 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   const deltas = { ...outcome.stats };
   for (const key of statKeys) if ((deltas[key] ?? 0) > 0) deltas[key]! *= professionalGrowth(p,key)*growthMultiplier(p);
   for (const [key, weeks] of Object.entries(outcome.weeks ?? {}) as [Stat, number][]) deltas[key] = eventTrainingReward(p, key, weeks);
+  if(p.professional&&(outcome.reputation??0)>0)deltas.bq=(deltas.bq??0)+eventTrainingReward(p,"bq",Math.min(4,outcome.reputation!));
   const positive = statKeys.filter(key => (deltas[key] ?? 0) > 0 || (outcome.weeks?.[key] ?? 0) > 0);
   const awakened = positive.length && random(s, "events") < params["events.awakening_chance"] ? positive : [];
   for (const key of awakened) {
     deltas[key] = Math.max(deltas[key] ?? 0, eventAwakeningReward(p, key, outcome.weeks?.[key] ?? 4));
   }
-  const changes: typeof deltas = {}, oldReputation = p.reputation ?? reputationScore(p), oldFatigue = p.fatigue;
+  const changes: typeof deltas = {}, oldReputation = p.professional?0:p.reputation ?? reputationScore(p) ?? 0, oldFatigue = p.fatigue;
   for (const [key, delta] of Object.entries(deltas) as [Stat, number][]) { const before = p.stats[key]; p.stats[key] = clamp(limitPhysicalGrowth(p,key,before + delta), 1); changes[key] = p.stats[key] - before; }
   const oldPosition = p.position;
   const opportunityChanges = applyOpportunityChoice(s, outcome);
   Object.assign(opportunityChanges,applyProTwoWayChoice(s,outcome));
   if (outcome.role) assignRole(p, outcome.role);
   let proAction:ProEventResult["action"];
-  if(outcome.proRoleTrial&&p.professional){if(event.proEvent){const trial=beginProRoleTrial(s,outcome.proRoleTrial,event.proEvent.catalogId);proAction={kind:"trial",target:trial.position,until:trial.until};}else p.professional.roleTrial={position:outcome.proRoleTrial,until:addDays(s.date,14)};}
+  if(outcome.proRoleTrial&&p.professional){if(event.proEvent){const trial=beginProRoleTrial(s,outcome.proRoleTrial,event.proEvent.catalogId,false,outcome.proAutoTransition===true);proAction={kind:"trial",target:trial.position,until:trial.until};}else p.professional.roleTrial={position:outcome.proRoleTrial,until:addDays(s.date,14)};}
   if(outcome.proTrialDecision)proAction=decideProRoleTrial(s,outcome.proTrialDecision==="accept");
   if(outcome.proChanceRequest&&p.professional){const pro=p.professional;if(pro.employment!=="active"||pro.requestAfter&&s.date<pro.requestAfter||pro.requestedEvaluationUntil&&s.date<=pro.requestedEvaluationUntil)throw new Error("평가 출전 요청의 재사용 대기가 끝나지 않았습니다.");pro.requestAfter=addDays(s.date,28);pro.requestedEvaluationUntil=addDays(s.date,21);proAction={kind:"request",until:pro.requestedEvaluationUntil};}
   if (event.definitionId === "P06") { p.roleOffer = null; p.offerWeeks = 0; p.offerCooldown = params["coach.offer_cooldown"]; }
-  if(p.professional)p.professional.proBonus=clamp(p.professional.proBonus+(outcome.reputation??0),-10,10);
+  if(p.professional)p.professional.proBonus=0;
   else if (outcome.reputation !== undefined || p.reputationBonus !== undefined) p.reputationBonus = (p.reputationBonus ?? 0) + (outcome.reputation ?? 0);
   p.reputation = reputationScore(p);
+  if(p.professional)clearProfessionalReputation(p);
   const recoveryPercent = outcome.recoveryPercent ? outcome.recoveryPercent.min + Math.floor(random(s, "events") * (outcome.recoveryPercent.max - outcome.recoveryPercent.min + 1)) : 0;
   const fatigueChange=outcome.fatigueRange?outcome.fatigueRange.min+Math.floor(random(s,"events")*(outcome.fatigueRange.max-outcome.fatigueRange.min+1)):outcome.fatigue??0;
   p.fatigue = clamp((p.fatigue + fatigueChange) * (1 - recoveryPercent / 100));
@@ -209,7 +220,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   s.careerEventHistory ??= [];
   recordProChoice(s,event,Object.values(changes).some(n=>(n??0)>0));
   s.careerEventHistory.push({ id: event.id, definitionId: event.definitionId, kind: event.kind, title: event.title, date: event.date,
-    choice: selected.label, choiceId:selected.id, ...(event.story?{story:{...event.story}}:{}), message: outcome.message, awakened:awakened.filter(key=>(changes[key]??0)>0), stats: changes, reputation: p.reputation - oldReputation, fatigue,
+    choice: selected.label, choiceId:selected.id, ...(event.story?{story:{...event.story}}:{}), message: outcome.message, awakened:awakened.filter(key=>(changes[key]??0)>0), stats: changes, reputation: (p.reputation??0) - oldReputation, fatigue,
     ...(event.proEvent?{proEvent:{version:1 as const,catalogId:event.proEvent.catalogId,channel:event.proEvent.channel,year:event.proEvent.year,branchId:outcome.proResultId??selected.id,chainId:event.proEvent.chainId,...(proAction?{action:proAction}:{})}}:{}),
     ...(outcome.injury ? { injury: structuredClone(p.injury!) } : {}), ...(p.position !== oldPosition ? { positionChange: { from: oldPosition, to: p.position } } : {}),
     ...(outcome.match ? { match: { ...outcome.match } } : {}), ...(event.scene ? { scene: event.scene } : {}) });

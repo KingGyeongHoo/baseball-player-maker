@@ -10,6 +10,44 @@ const {StateTransferCache}=require('../.test-build/lib/sim/state-transfer.js');
 const {workerStateInput,restoreWorkerState}=require('../.test-build/lib/sim/worker-state.js');
 const {LatestSaveQueue}=require('../.test-build/lib/latest-save-queue.js');
 
+test('static training defaults stay isolated and live fatigue weights retain exact loads after edits',()=>{
+  const original=e.defaultPolicy('센터라인'),changed=e.defaultPolicy('센터라인');changed.tickets.contact=99;
+  assert.deepEqual(e.defaultPolicy('센터라인'),original);assert.notEqual(changed.tickets,original.tickets);
+  const names=['training.batting_fatigue_weight','training.pitching_fatigue_weight','training.physical_fatigue_weight','training.max_each'],before=names.map(key=>e.params[key]);
+  try{
+    for(const values of [[.73,1.09,1.17,5],[1.25,.85,1.6,7]]){
+      names.forEach((key,i)=>e.params[key]=values[i]);
+      for(const role of e.roles)for(const mode of ['normal','light','hard','rest']){
+        const policy={...e.defaultPolicy(role),mode},keys=Object.keys(policy.tickets),weight=key=>key==='physical'?values[2]:['contact','power','speed','defense'].includes(key)?values[0]:values[1];
+        const maximum=keys.reduce((n,key)=>n+values[3]*weight(key),0),weighted=mode==='rest'?0:keys.reduce((n,key)=>n+policy.tickets[key]*weight(key),0);
+        assert.deepEqual(e.trainingEffort(policy),{rawTickets:mode==='rest'?0:e.ticketsUsed(policy),weightedTickets:weighted,maxWeightedTickets:maximum,equivalentTickets:weighted/maximum*e.budget('normal')});
+      }
+    }
+  }finally{names.forEach((key,i)=>e.params[key]=before[i]);}
+});
+
+test('record merging keeps every raw stat, fielding total and unknown legacy game counter',()=>{
+  const first=e.emptyRecord(),second=e.emptyRecord();let value=0;
+  for(const group of ['batting','pitching'])for(const key of Object.keys(first[group])){first[group][key]=++value/3;second[group][key]=++value/7;}
+  first.games={batting:4,pitching:2,wins:1,losses:0,holds:0,saves:0};
+  first.fielding={version:1,chances:5,plays:4,expectedPlays:3.5,outs:{SS:9}};second.fielding={version:1,chances:3,plays:2,expectedPlays:2.2,outs:{SS:6,'2B':3}};
+  const before=structuredClone(first),add=structuredClone(second);e.mergeRecord(first,second);
+  for(const group of ['batting','pitching'])for(const key of Object.keys(before[group]))assert.equal(first[group][key],before[group][key]+second[group][key]);
+  assert.equal(first.games,undefined);assert.deepEqual(first.fielding,{version:1,chances:8,plays:6,expectedPlays:5.7,outs:{SS:15,'2B':3}});assert.deepEqual(second,add);
+});
+
+test('sparse league evidence preserves active-player priority, archived retirees and year/level isolation',()=>{
+  const {evaluationLeague,recordsForYear}=require('../.test-build/lib/sim/player-evaluation.js');
+  const p=e.previewPlayer('sparse-league','현역','SS'),first=e.emptyRecord(),past=e.emptyRecord(),retired=e.emptyRecord();first.batting.PA=first.batting.AB=4;first.batting.H=2;past.pitching.BF=8;past.pitching.outs=6;retired.batting.PA=retired.batting.AB=3;
+  p.careerMode='pro';p.seasonByLevel={first,second:e.emptyRecord()};p.career=[{year:2029,careerMode:'pro',byLevel:{first:past,second:e.emptyRecord()}}];
+  const duplicate={...p,seasonByLevel:{first:retired,second:retired}},archived={...duplicate,id:'archived-only'};
+  const state={calendar:{seasonYear:2030},players:[p],proWorld:{archive:[duplicate,archived],retiredRecords:{'2030:first':retired}}};
+  const expected=e.emptyRecord();e.mergeRecord(expected,retired);e.mergeRecord(expected,first);e.mergeRecord(expected,retired);
+  assert.deepEqual(evaluationLeague(state,2030,'first'),expected);assert.deepEqual(evaluationLeague(state,2030,'school'),e.emptyRecord());assert.deepEqual(evaluationLeague(state,2028,'first'),e.emptyRecord());
+  const missing=recordsForYear(state,p,2028,'first');missing.batting.H=99;assert.deepEqual(recordsForYear(state,p,2028,'first'),e.emptyRecord());
+  first.batting.H=3;assert.equal(evaluationLeague(state,2030,'first').batting.H,3);assert.equal(evaluationLeague(state,2029,'first').pitching.outs,12);
+});
+
 test('recent evaluation reuse invalidates after real appearances, capped histories and role changes',()=>{
   const state=e.createGame('recent-cache-validation','평가확인','SS'),cache=new Map();state.players=state.players.slice(0,8);
   const check=()=>{const expected=structuredClone(state);e.updateReputation(expected);e.updateReputation(state,cache);assert.deepEqual(state,expected);};

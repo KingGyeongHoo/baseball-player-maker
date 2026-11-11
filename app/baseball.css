@@ -3294,6 +3294,7 @@ tbody tr:last-child td {
 .postseason-round-status { margin:12px 0 0; min-height:14px; font-size:10px; color:#6a7e96; }
 .postseason-note { padding:0 22px 18px; margin:0; font-size:11px; line-height:1.8; color:#77869b; }
 .postseason-champion { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; border-top:1px solid #e7dfbd; background:#fff9e9; padding:16px; color:#886c22; }
+.season-victory-text { color:#e2b000; }
 .postseason-champion span { font-size:11px; }
 .postseason-champion b { font-size:16px; }
 @media(max-width:1000px) {
@@ -3637,6 +3638,7 @@ tbody tr:last-child td {
   grid-template-columns: repeat(3,minmax(0,1fr));
   gap: 13px;
 }
+@media(min-width:761px){.pitcher-position-cards.school-pitcher-positions{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .pitcher-position-card {
   position: relative;
   padding: 23px 12px 19px;

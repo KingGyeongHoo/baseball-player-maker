@@ -12,7 +12,6 @@ import { rosterAssignments } from "../../lib/roster-status";
 import {
   compareRosterPlayers,
   rosterFieldMember,
-  rosterGrade,
   rosterGradeScore,
   rosterLevelMember,
   rosterMetrics,
@@ -25,24 +24,19 @@ import { dashboardRecordValues } from "./dashboard-records";
 import DraftRoundBadge from "./draft-round-badge";
 import { proSquad } from "../../lib/sim/pro-squads";
 import Tooltip from "./tooltip";
-import {createProWarContext,type ProWarContext} from "../../lib/sim/pro-war";
+import GradeBadge from "./grade-badge";
 
 const rosterScoreText = (score: number | null | undefined) => score != null && Number.isFinite(score) ? score.toFixed(1) : "—";
 
 export function PlayerGrade({
   player,
   pro = player.careerMode === "pro",
-  state,
-  warContext,
 }: {
   player: Player;
   pro?: boolean;
   state?:GameState;
-  warContext?:ProWarContext;
 }) {
-  const context=useMemo(()=>warContext??(pro&&state?createProWarContext(state):undefined),[warContext,pro,state]);
-  const score = rosterGradeScore(player, pro,context),
-    grade = rosterGrade(score, pro),
+  const score = rosterGradeScore(player, pro),
     source = pro ? "출전평가" : "평판";
   return (
     <Tooltip
@@ -54,12 +48,7 @@ export function PlayerGrade({
         </>
       }
     >
-      <span
-        className={`player-grade grade-${grade === "—" ? "unknown" : grade.toLowerCase()}`}
-        aria-label={`${source} 등급 ${grade}`}
-      >
-        {grade}
-      </span>
+      <GradeBadge score={score} pro={pro} label={source}/>
     </Tooltip>
   );
 }
@@ -89,7 +78,6 @@ export function RosterTable({
 }) {
   const pro = state.careerMode === "pro",
     metrics = rosterMetrics[field];
-  const warContext=useMemo(()=>pro?createProWarContext(state):undefined,[pro,state]);
   return (
     <div className="table-scroll roster-table roster-records-table">
       <table>
@@ -189,7 +177,7 @@ export function RosterTable({
                 <b>{scoreText(ovr(p, field === "pitching"))}</b>
               </td>
               <td>
-                <PlayerGrade player={p} pro={pro} warContext={warContext}/>
+                <PlayerGrade player={p} pro={pro}/>
               </td>
               <td>{state.teams[p.teamId]?.name ?? "무소속"}</td>
               <td>{pro ? (p.age ?? "—") : `${p.grade}학년`}</td>
@@ -201,8 +189,8 @@ export function RosterTable({
                 <td key={label}>{value}</td>
               ))}
               <td>
-                <b title={pro ? "타격·투구·수비·포지션 WAR를 기존 점수로 환산한 출전평가" : "역할별 능력·경기 성적·이벤트 보너스를 반영한 평판"}>
-                  {rosterScoreText(rosterGradeScore(p, pro,warContext))}
+                <b title={pro ? "보직 기량 + 시즌 중심 성적 보정(최대 ±7점) · 피로 감점 없음" : "역할별 능력·경기 성적·이벤트 보너스를 반영한 평판"}>
+                  {rosterScoreText(rosterGradeScore(p, pro))}
                 </b>
               </td>
             </tr>
@@ -227,7 +215,6 @@ function PlayerRoster({
 }) {
   const mine = getPlayer(state),
     pro = state.careerMode === "pro";
-  const warContext=useMemo(()=>pro?createProWarContext(state):undefined,[pro,state]);
   const [scope, setScope] = useState("team"),
     [field, setField] = useState<RosterField>(
       isPitcher(mine.primaryRole) ? "pitching" : "batting",
@@ -240,9 +227,9 @@ function PlayerRoster({
   const assignments = useMemo(
     () =>
       rosterAssignments(
-        state.players.filter((p) => p.teamId >= 0 && p.teamId < 20),
+        state.players.filter((p) => p.teamId >= 0 && (!pro || p.teamId < 20)),
       ),
-    [state.players],
+    [state.players, pro],
   );
   const rows = useMemo(() => {
     const club =
@@ -262,9 +249,9 @@ function PlayerRoster({
             (state.teams[p.teamId]?.name ?? "무소속").includes(query)),
       )
       .sort((a, b) =>
-        compareRosterPlayers(a, b, field, pro ? level : "total", sort, pro,warContext),
+        compareRosterPlayers(a, b, field, pro ? level : "total", sort, pro),
       );
-  }, [state, mine.teamId, field, level, scope, query, sort, pro,warContext]);
+  }, [state, mine.teamId, field, level, scope, query, sort, pro]);
   const projections = useMemo(
     () =>
       new Map<string, DraftPick>(
@@ -403,7 +390,7 @@ function PlayerRoster({
         </p>
         <p>
           {pro
-            ? "프로 출전평가는 타격·투구·수비·포지션 WAR를 기존 점수로 환산합니다. 능력치는 경기 결과와 선발·승격 판단에 사용하며 평가 점수에 직접 더하지 않습니다."
+            ? "프로 출전평가는 보직 기량과 시즌 전체 성적이 중심이며 최근 성적은 약하게 반영합니다. 성적 보정은 최대 ±7점이고 피로 감점은 없습니다. WAR는 시즌평가에 사용합니다."
             : "고교 등급은 역할별 능력과 표본을 보정한 경기 성적, 이벤트 보너스를 포함한 평판을 사용합니다."}{" "}
           OVR을 다시 더하지 않습니다. {pro ? "출전평가" : "평판"} 열은 소수 첫째 자리까지 표시하며
           등급도 이 점수로 판정합니다.

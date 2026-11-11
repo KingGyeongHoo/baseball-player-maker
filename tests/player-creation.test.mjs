@@ -16,7 +16,7 @@ const Setup = require('../.test-build/app/components/player-setup.js').default;
 const sharp = require('sharp');
 
 function entropy(team, seed) { return { getRandomValues(array) { array[0] = team; return array; }, randomUUID() { return seed; } }; }
-const picker = (kind, value) => renderToStaticMarkup(createElement(Picker, { kind, value, disabled: false, onChange() {}, onKindChange() {} }));
+const picker = (kind, value, mode='school') => renderToStaticMarkup(createElement(Picker, { kind, value, mode, disabled: false, onChange() {}, onKindChange() {} }));
 
 test('initial creation asks only for name, type and position without revealing a school or ability', () => {
   const html = renderToStaticMarkup(createElement(Setup, { onStart() { assert.fail('SSR must not generate a player'); } }));
@@ -42,8 +42,10 @@ test('batter field contains all eight fielders and a separate designated hitter,
   assert.ok([p.LF, p.CF, p.RF].every(p => p.y < 40));
 });
 
-test('pitcher selection has three distinct pose cards and hides the batter field', async () => {
-  const html = picker('pitcher', 'SP');
+test('school selection unifies relievers as bullpen while pro retains three distinct pitcher roles', async () => {
+  const school=picker('pitcher','RP');
+  assert.equal((school.match(/type="radio"/g)||[]).length,4);assert.ok(school.includes('value="SP"'));assert.ok(school.includes('value="RP"'));assert.ok(!school.includes('value="CP"'));assert.ok(school.includes('>불펜</b>'));assert.ok(school.includes('BULLPEN'));
+  const html = picker('pitcher', 'SP','pro');
   assert.equal((html.match(/type="radio"/g) || []).length, 5);
   assert.ok(!html.includes('selection-ballpark'));
   for (const pose of pitchingPositions) {

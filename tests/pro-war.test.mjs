@@ -61,14 +61,14 @@ function fixture(base = 75) {
   return s;
 }
 
-test("equal selection scores produce different season grades and salaries from actual batting contribution without changing live selection", () => {
+test("season contribution affects selection and WAR grades independently without changing raw abilities", () => {
   const good = fixture(), bad = fixture(), p = e.getPlayer(good), q = e.getPlayer(bad);
   p.seasonByLevel.first = batting("good"); q.seasonByLevel.first = batting("bad");
   const before = structuredClone(p), rng = structuredClone(good.rngStates);
   const estimate = a.currentSeasonAssessment(good, p);
   assert.deepEqual(p, before); assert.deepEqual(good.rngStates, rng);
   const high = a.recordSeasonAssessment(good, p), low = a.recordSeasonAssessment(bad, q);
-  assert.equal(e.selectionScore(p), e.selectionScore(q));
+  assert.ok(e.selectionScore(p)>e.selectionScore(q));
   assert.ok(high.score > 75 && low.score < 75);
   assert.ok(high.war.first.batting > low.war.first.batting);
   assert.notEqual(high.grade, low.grade);
@@ -241,8 +241,9 @@ test("the UI retains appearance grades and explains WAR conversion, defense and 
   const s = fixture(), p = e.getPlayer(s);
   p.seasonByLevel.first = batting("good"); a.recordSeasonAssessment(s, p);
   const html = renderToStaticMarkup(createElement(Assessments, { state: s }));
-  for (const label of ["출전평가", "올해 시즌 출전평가", "WAR 환산", "타격·투구·수비·포지션", "수비는 기록이 생긴 경기부터", "2군 수준"]) assert.ok(html.includes(label));
-  assert.match(html, /<th>시즌<\/th><th>출전평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);
+  for (const label of ["출전평가", "시즌 평가", "WAR 환산", "타격·투구·수비·포지션", "수비는 기록이 생긴 경기부터", "2군 수준"]) assert.ok(html.includes(label));
+  assert.match(html, /<th>시즌<\/th><th>시즌평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);
+  assert.doesNotMatch(html,/→ 출전평가|올해 시즌 출전평가/);
 });
 
 test("WAR is the entire point rating: identical records stay identical when ability, fatigue, reputation or registration changes",()=>{

@@ -1,4 +1,4 @@
-import {clamp,emptyRecord,isPitcher,mergeRecord,ops,ovr,positions,roleScore} from "./engine";
+import {clamp,emptyRecord,isPitcher,mergeRecord,ops,ovr,positions,roleScore,proSelectionScore} from "./engine";
 import type {GameState,Player,Position,RecordLine} from "./types";
 import type {ProAward} from "./pro-types";
 
@@ -15,7 +15,7 @@ export function contractValue(p:Player,year:number) {
     performance+=weight*(blend*performanceValue(p,first)+(1-blend)*performanceValue(p,second,true));weights+=weight;
   }
   const age=p.age??19,potential=age<=23?80:age<=29?65:Math.max(15,65-(age-29)*5),availability=p.injury?Math.max(20,100-p.injury.penaltyRemaining*5):100-p.fatigue*.3;
-  return .45*(weights?performance/weights:50)+.3*roleScore(p)+.1*potential+.1*availability+.05*(p.reputation??50);
+  return .45*(weights?performance/weights:50)+.3*roleScore(p)+.1*potential+.1*availability+.05*proSelectionScore(p);
 }
 function recordAwardMerit(r:RecordLine,league:RecordLine,pitching:boolean) {
   const b=r.batting,q=r.pitching,n=pitching?q.outs/3:b.PA;

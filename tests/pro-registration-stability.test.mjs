@@ -5,11 +5,32 @@ const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/e
 const base=pc.acknowledgeCareer(pc.createProfessionalDemo('stable-registration','안정검증','SS'));
 function fixture(){const s=structuredClone(base),p=e.getPlayer(s);s.date='2028-05-01';s.proWorld.stage='regular';for(const q of s.players){q.fatigue=0;q.forcedRest=false;q.injury=null;delete q.professional.lastRegistration;}
  for(const q of s.players.filter(q=>q.teamId===0&&q.position==='SS'))q.teamId=10;p.teamId=0;p.proContract.status='regular';s.postSchool.pro.club=0;s.postSchool.pro.level='first';for(const k of Object.keys(p.stats))p.stats[k]=70;p.recentZ=0;
+ while(s.players.filter(q=>q.teamId===0).length<29){const q=s.players.find(q=>q.teamId===10&&q.position!=='SS'&&!e.isPitcher(q.primaryRole));if(!q)break;q.teamId=0;}
  Object.assign(p.seasonByLevel.first.batting,{PA:110,AB:100,H:35});return s;
 }
 test('fatigue-only forced rest keeps a high-grade hitter in the first team instead of causing repeated demotion',()=>{
  const s=fixture(),p=e.getPlayer(s);for(const k of Object.keys(p.stats))p.stats[k]=90;p.fatigue=100;p.forcedRest=true;assert.ok(e.selectionScore(p)>=70);
  for(let i=0;i<3;i++){w.reviewLeagueRegistrations(s);assert.equal(p.teamId,0);s.date=e.addDays(s.date,14);}
+});
+
+test('a dominant season survives a terrible recent week and farm candidates need sustained evidence',()=>{
+ const s=fixture(),p=e.getPlayer(s),farm=s.players.filter(q=>q.teamId===10&&q.position==='SS'),up=farm[0];
+ for(const q of farm){for(const k of Object.keys(q.stats))q.stats[k]=30;q.recentZ=0;q.seasonByLevel.second=e.emptyRecord();}
+ for(const k of Object.keys(p.stats))p.stats[k]=76;
+ Object.assign(p.seasonByLevel.first.batting,{PA:600,AB:550,H:220,HR:100,RBI:200,BB:50});
+ p.recentZ=0;const seasonScore=e.selectionScore(p);p.recentZ=-3;assert.ok(seasonScore-e.selectionScore(p)<=1.05+1e-9);
+ for(const k of Object.keys(up.stats))up.stats[k]=80;
+ Object.assign(up.seasonByLevel.second.batting,{PA:400,AB:350,H:145,HR:40,BB:50});up.recentZ=3;
+ w.reviewLeagueRegistrations(s);assert.equal(p.teamId,0);
+ // A few spectacular farm appearances cannot displace even a struggling incumbent.
+ for(const k of Object.keys(p.stats))p.stats[k]=70;
+ Object.assign(p.seasonByLevel.first.batting,{PA:400,AB:380,H:50,HR:2,RBI:10,BB:20});p.recentZ=0;
+ for(const k of Object.keys(up.stats))up.stats[k]=75;
+ up.seasonByLevel.second=e.emptyRecord();Object.assign(up.seasonByLevel.second.batting,{PA:4,AB:4,H:4,HR:4});
+ s.date=e.addDays(s.date,14);w.reviewLeagueRegistrations(s);assert.equal(p.teamId,0);
+ // A substantial excellent farm season can earn that same challenger a real promotion.
+ Object.assign(up.seasonByLevel.second.batting,{PA:400,AB:350,H:150,HR:50,BB:50});
+ s.date=e.addDays(s.date,14);w.reviewLeagueRegistrations(s);assert.equal(up.teamId,0);assert.equal(p.teamId,10);
 });
 test('an established .350 first-team hitter is retained against a small temporary selection-score gap',()=>{
  const s=fixture(),p=e.getPlayer(s);for(const q of s.players.filter(q=>q.teamId===10&&q.position==='SS')){for(const k of Object.keys(q.stats))q.stats[k]=76;q.recentZ=0;q.proContract.status='regular';}

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import './pro-stove.test.mjs';
+import './pro-retirement.test.mjs';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js'),life=require('../.test-build/lib/sim/pro-season.js'),world=require('../.test-build/lib/sim/pro-world.js'),market=require('../.test-build/lib/sim/pro-market.js'),growth=require('../.test-build/lib/sim/pro-growth.js'),evaluation=require('../.test-build/lib/sim/pro-evaluation.js');
@@ -77,8 +78,8 @@ test('a trade changes both memberships atomically, keeps contracts/records/statu
   const success=market.tradePlayer(s,p);assert.equal(success,true);assert.notEqual(p.teamId%10,0);assert.equal(p.seasonByLevel.second.batting.PA,30);assert.equal(p.professional.movements.at(-1).kind,'트레이드');assert.deepEqual(new Set(s.players.map(p=>p.id)),ids);assert.equal(p.professional.contract.club,p.teamId%10);
   s.proWorld.stage='regular';s.date=e.addDays(s.calendar.events.filter(g=>g.competitionId==='pro-first')[360].date,1);assert.equal(market.tradePlayer(s,p),false);
 });
-test('requests have a four-week cooldown; role evaluation waits for explicit choice and retains old eligibility',()=>{
-  const s=fixture(),p=e.getPlayer(s),eligible=[...p.eligiblePositions],original=p.position;market.careerRequest(s,'position','3B');assert.ok(p.professional.roleTrial);assert.throws(()=>market.careerRequest(s,'manage'),/이후/);const trial=p.professional.roleTrial;trial.trainingDates=s.calendar.trainingDays.filter(date=>date>=trial.started&&date<trial.until).slice(0,5);s.date=trial.until;delete s.careerNotice;market.finishRoleTrial(s);assert.equal(p.position,original);assert.ok(require('../.test-build/lib/sim/pro-role-evaluation.js').reviewProRoleTrial(s));const accepted=e.answerCareerEvent(s,'accept'),result=e.getPlayer(accepted);assert.equal(result.position,'3B');assert.ok(eligible.every(pos=>result.eligiblePositions.includes(pos)));
+test('requests have a four-week cooldown; an accepted role request settles without another choice and retains eligibility',()=>{
+  const s=fixture(),p=e.getPlayer(s),eligible=[...p.eligiblePositions],original=p.position;market.careerRequest(s,'position','3B');assert.ok(p.professional.roleTrial);assert.throws(()=>market.careerRequest(s,'manage'),/이후/);const trial=p.professional.roleTrial;trial.trainingDates=s.calendar.trainingDays.filter(date=>date>=trial.started&&date<trial.until).slice(0,5);s.date=trial.until;delete s.careerNotice;market.finishRoleTrial(s);assert.equal(p.position,original);assert.ok(require('../.test-build/lib/sim/pro-role-evaluation.js').reviewProRoleTrial(s));assert.equal(p.position,'3B');assert.ok(eligible.every(pos=>p.eligiblePositions.includes(pos)));assert.equal(s.careerEvent,null);assert.equal(s.careerNotice.title,'보직 평가 결과');
 });
 test('an older player can request an evaluation without falsifying their actual last appearance',()=>{
   const s=fixture(),p=e.getPlayer(s);p.age=32;p.professional.rookieYear=2020;p.professional.lastAppearance=s.date;

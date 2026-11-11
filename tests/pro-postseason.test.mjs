@@ -5,6 +5,8 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js'),life=require('../.test-build/lib/sim/pro-season.js');
 const {encodeCareerSave,decodeCareerSave}=require('../.test-build/lib/career-save.js');
+const {clubName}=require('../.test-build/lib/sim/pro-world.js');
+const {CareerNoticeDialog}=require('../.test-build/app/components/career-continuation.js');
 const Bracket=require('../.test-build/app/components/postseason-bracket.js').default,Dashboard=require('../.test-build/app/components/pro-dashboard.js').default,League=require('../.test-build/app/components/pro-league.js').default;
 e.params['pro_events.enabled']=0;
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('postseason-ladder','가을선수','SS'));
@@ -18,6 +20,21 @@ test('top five enter the stepladder, only ranks four and five start, and the adv
  const before=structuredClone(template),s=fixture(),p=s.proWorld.postseason;
  assert.equal(p.format,'kbo-v1');assert.deepEqual(p.seeds,[0,1,2,3,4]);assert.equal(p.series.length,1);assert.deepEqual(round(s,'wildcard').clubs,[3,4]);assert.deepEqual(round(s,'wildcard').wins,[1,0]);assert.equal(round(s,'wildcard').target,2);
  assert.equal(s.calendar.events.filter(g=>g.competitionId.startsWith('pro-playoffs-')).length,1);assert.equal(next(s,'wildcard').homeTeamId,3);assert.deepEqual(s.rngStates,before.rngStates);assert.deepEqual(template,before);
+});
+
+test('regular-season notices follow the parent club rank and put non-first-team registration last',()=>{
+ for(let rank=1;rank<=10;rank++)for(const level of [0,10,20,30]){
+  const s=structuredClone(template),p=e.getPlayer(s);p.teamId=rank-1+level;s.careerNotice=null;s.noticeQueue=[];
+  s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';life.finishProfessionalDay(s);
+  const notice=s.careerNotice,team=clubName(s,rank-1);
+  assert.equal(notice.code,`PRO10:postseason:${s.proWorld.year}`);
+  assert.equal(notice.title,rank===1?`${team} 정규시즌 우승!`:rank<=5?`${team} 포스트시즌 진출 성공 !`:`${team}는 포스트 시즌 진출에 실패했습니다.`);
+  const entry=rank===1?'1위로 한국시리즈에 진출합니다':rank===2?'2위로 플레이오프에 진출합니다.':rank===3?'3위로 준플레이오프에 직행합니다':rank<=5?`${rank}위로 와일드카드 결정전에 진출합니다`:'포스트시즌 종료 후 시즌이 종료됩니다.';
+  const suffix='아쉽게도 포스트시즌 엔트리에는 등록되지 못했습니다';
+  assert.equal(notice.message,[entry,...(level?[suffix]:[])].filter(Boolean).join('\n\n'));
+  assert.doesNotMatch(notice.message,/다른 선수|리그 이력|고정 명단|기록과 분리/);
+  if(rank===4&&level===10){s.careerNotice={...notice,title:'정규 시즌 종료·포스트시즌 개막',message:'포스트시즌에는 등록되지 않았으며 다른 선수·구단의 우승 결과도 리그 이력에 보관됩니다.'};const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));assert.ok(html.includes(`<p>${entry}</p><p>${suffix}</p>`));assert.ok(html.includes(`${team} 포스트시즌 진출 성공 !`));assert.doesNotMatch(html,/다른 선수|리그 이력/);}
+ }
 });
 test('rank four advances on one actual win or tie and cannot get credited twice',()=>{
  for(const tie of [false,true]){const s=fixture();play(s,'wildcard',3,{tie});assert.equal(round(s,'wildcard').winner,3);assert.deepEqual(round(s,'wildcard').wins,tie?[1,0]:[2,0]);assert.deepEqual(round(s,'semi').clubs,[2,3]);

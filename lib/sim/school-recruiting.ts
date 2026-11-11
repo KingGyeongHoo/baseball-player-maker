@@ -16,9 +16,6 @@ export function recruitmentProfile(team?: Team) {
   const prestige = Math.max(0, Math.min(100, team?.schoolPrestige ?? 50));
   return { abilityOffset: (prestige - 50) * .18, talentBias: (prestige - 50) / 62.5 };
 }
-export function recruitedTalent(roll: number, bias: number) {
-  return Math.max(1, Math.min(10, 1 + Math.floor(10 * (roll + bias * roll * (1 - roll)))));
-}
 
 // Called before resetting records and removing graduating seniors.
 export function updateSchoolPrestige(s: GameState, draft: GameState["draft"] = s.draft) {

@@ -123,11 +123,6 @@ export function proWarAssessment(p: Player, context: ProWarContext = {
   return { version: 1, score, equivalentWins, first, second };
 }
 
-export function proAppearanceScore(p:Player,context?:ProWarContext):number|null{
-  const frozen=context?p.professional?.assessments?.find(row=>row.year===context.year):undefined;
-  return frozen?frozen.score:proWarAssessment(p,context).score;
-}
-
 export function validProWarAssessment(value: unknown): value is ProWarAssessment {
   if (!value || typeof value !== "object") return false;
   const w = value as ProWarAssessment;

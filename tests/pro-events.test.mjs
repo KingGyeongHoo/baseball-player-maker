@@ -29,11 +29,18 @@ function ids(s){return runtime.proGeneralCandidates(s).map(c=>c.id);}
 test('the catalog contains exactly PE01-PE75, two or three choices, and 100 percent per choice',()=>{
  assert.deepEqual(catalog.proEventCatalog.map(c=>c.id),Array.from({length:75},(_,i)=>'PE'+String(i+1).padStart(2,'0')));
  for(const definition of catalog.proEventCatalog){assert.ok(definition.choices.length>=2&&definition.choices.length<=3);for(const choice of definition.choices)assert.equal(choice.outcomes.reduce((n,o)=>n+o.weight,0),100);}
- assert.equal(catalog.proEventCatalog.reduce((n,c)=>n+c.choices.length,0),170);
+ assert.equal(catalog.proEventCatalog.reduce((n,c)=>n+c.choices.length,0),163);
 });
 test('opening freezes stat aliases and shows only actions before a choice',()=>{
  const s=fixture(),p=e.getPlayer(s);p.stats.contact=10;p.stats.power=20;const event=open(s,'PE03');assert.equal(event.choices[0].outcomes[0].weeks.contact,4);p.stats.contact=90;p.stats.power=5;assert.equal(event.choices[0].outcomes[0].weeks.contact,4);
  const html=renderToStaticMarkup(createElement(Dialog,{event,outcome:null,disabled:false,onChoose(){return true;},onDone(){}}));for(const word of ['70%','각성','+4','피로 +4','기록과 동작을 함께 보니'])assert.ok(!html.includes(word));assert.ok(html.includes('약점을 고치는 연습을 한다'));
+});
+
+test('new technical choices render leg kicks, double kicks and pitches without exposing outcome odds',()=>{
+ for(const [position,id,label]of [['SS','PE32','레그킥을 도입해 하체 힘을 싣는다'],['SP','PE33','이중 키킹으로 투구 균형을 바꾼다'],['SP','PE62','직구처럼 던지는 커터를 익힌다']]){
+  const s=fixture(position),event=open(s,id),html=renderToStaticMarkup(createElement(Dialog,{event,outcome:null,disabled:false,onChoose(){return true;},onDone(){}}));
+  assert(html.includes(label));assert.doesNotMatch(html,/70%|60%|75%|능력치 -0.8|변화 없음/);
+ }
 });
 test('all catalog outcomes resolve using saved choices and growth never advances the calendar or changes allocation',()=>{
  for(const definition of catalog.proEventCatalog){for(const choice of definition.choices){const s=fixture(),p=e.getPlayer(s),extra={target:'3B',...(Number(definition.id.slice(2))>=20&&Number(definition.id.slice(2))<=24?{channel:'game'}:{})};
@@ -69,7 +76,7 @@ test('training eligibility respects field, fatigue, current-level samples and on
  s.proWorld.stage='camp';p.fatigue=30;assert.ok(ids(s).includes('PE08'));open(s,'PE08');s.careerEvent=null;assert.ok(!ids(s).includes('PE08'));s.proEvents.history.push(...['PE03','PE06','PE07'].map((catalogId,i)=>({id:'later-'+i,catalogId,date:'2028-08-01',season:2028,channel:'general',teamId:p.teamId,level:'second',budget:true})));s.date='2029-03-10';s.calendar.seasonYear=2029;s.calendar.trainingDays=[s.date];assert.ok(ids(s).includes('PE08'));
 });
 test('zero allocation allows rest stories, injury permits only rehabilitation, and free agents/college are excluded',()=>{
- const s=fixture(),p=e.getPlayer(s);for(const key of Object.keys(p.trainingPolicy.tickets))p.trainingPolicy.tickets[key]=0;assert.ok(ids(s).includes('PE19'));assert.ok(!ids(s).some(id=>Number(id.slice(2))<=8));p.forcedRest=true;assert.deepEqual(ids(s),['PE19']);p.injury={severity:'moderate',startDate:'2028-04-01',unavailableUntil:'2028-04-15',originalPenalty:4,penaltyRemaining:4,penaltyRecoverDays:7};assert.deepEqual(ids(s),['PE18']);
+ const s=fixture(),p=e.getPlayer(s);for(const key of Object.keys(p.trainingPolicy.tickets))p.trainingPolicy.tickets[key]=0;assert.ok(ids(s).includes('PE19'));assert.ok(!ids(s).some(id=>Number(id.slice(2))<=8));p.forcedRest=true;assert.deepEqual(ids(s),[]);p.injury={severity:'moderate',startDate:'2028-04-01',unavailableUntil:'2028-04-15',originalPenalty:4,penaltyRemaining:4,penaltyRecoverDays:7};assert.deepEqual(ids(s),['PE18']);
  open(s,'PE18',{injuryKey:p.id+':'+p.injury.startDate});s.careerEvent=null;assert.deepEqual(ids(s),[]);p.professional.employment='freeAgent';p.teamId=-1;assert.deepEqual(ids(s),[]);s.careerMode='college';assert.equal(runtime.openProGeneralEvent(s),false);
 });
 test('a stronger old injury is retained and rehabilitation never shortens it or grants eligibility',()=>{
@@ -93,15 +100,39 @@ test('absence and slump conditions use dates and current levels, never a young s
  const s=fixture('SP');assert.ok(ids(s).includes('PE10'));ledger.ensureProEvents(s).introducedAt=s.date;assert.ok(!ids(s).includes('PE10'));s.proEvents.introducedAt='2028-03-01';completed(s,{BF:20,started:false,known:false});assert.ok(!ids(s).includes('PE10'));s.calendar.events=[];completed(s,{BF:20,started:true});assert.ok(!ids(s).includes('PE10'));
  const t=fixture(),q=e.getPlayer(t);completed(t,{PA:20,level:'pro-first'});q.recentZ=-.4;assert.ok(!ids(t).includes('PE17'));completed(t,{PA:20});assert.ok(ids(t).includes('PE17'));assert.ok(!ids(t).includes('PE03'));
 });
-test('14-day role evaluation counts normal training once and waits for an explicit transition choice',()=>{
+test('14-day role evaluation applies the original accepted transition without creating another choice',()=>{
  const s=fixture(),p=e.getPlayer(s),policy=structuredClone(p.trainingPolicy),old=p.position;roles.beginProRoleTrial(s,'3B','PE09');const trial=p.professional.roleTrial,start=s.date;
- for(let i=0;i<5;i++){s.date=e.addDays(start,i);roles.recordProRoleTraining(s,p);roles.recordProRoleTraining(s,p);}assert.equal(trial.trainingDates.length,5);s.date=trial.until;assert.equal(roles.reviewProRoleTrial(s,true),false);assert.equal(p.position,old);assert.equal(roles.reviewProRoleTrial(s),true);assert.equal(p.position,old);
- const accepted=e.answerCareerEvent(s,'accept'),q=e.getPlayer(accepted);assert.equal(q.position,'3B');assert.deepEqual(q.trainingPolicy,policy);assert.equal(q.professional.roleTrial,undefined);assert.equal(accepted.careerEventHistory.at(-1).proEvent.action.kind,'accepted');
- const kept=e.answerCareerEvent(s,'keep');assert.equal(e.getPlayer(kept).position,old);assert.deepEqual(e.getPlayer(kept).stats,p.stats);assert.equal(e.getPlayer(kept).professional.roleTrial,undefined);
+ for(let i=0;i<5;i++){s.date=e.addDays(start,i);roles.recordProRoleTraining(s,p);roles.recordProRoleTraining(s,p);}assert.equal(trial.trainingDates.length,5);s.date=trial.until;assert.equal(roles.reviewProRoleTrial(s,true),false);assert.equal(p.position,old);assert.equal(roles.reviewProRoleTrial(s),true);
+ assert.equal(p.position,'3B');assert.deepEqual(p.trainingPolicy,policy);assert.equal(p.professional.roleTrial,undefined);assert.equal(s.careerEvent,null);assert.match(s.careerNotice.message,/처음 수락한 전환/);
+ assert.equal(s.careerEventHistory.length,0);
 });
 test('insufficient training or ending health fails a new trial while old pending trials retain their old completion rule',()=>{
  const s=fixture(),p=e.getPlayer(s);roles.beginProRoleTrial(s,'3B','PE09');s.date=p.professional.roleTrial.until;assert.equal(roles.reviewProRoleTrial(s),false);assert.ok(s.careerNotice.title.includes('마치지'));assert.equal(p.position,'SS');assert.equal(p.professional.roleTrial,undefined);
  const old=fixture(),q=e.getPlayer(old);q.professional.roleTrial={position:'3B',until:old.date};market.finishRoleTrial(old);assert.equal(q.position,'3B');
+});
+
+test('an old evaluation without advance consent never changes position or creates another choice',()=>{
+ const s=fixture(),p=e.getPlayer(s);roles.beginProRoleTrial(s,'3B','PE09');const trial=p.professional.roleTrial;
+ delete trial.autoTransition;trial.trainingDates=Array.from({length:5},(_,i)=>e.addDays(s.date,i));s.date=trial.until;
+ assert(roles.reviewProRoleTrial(s));assert.equal(p.position,'SS');assert.equal(s.careerEvent,null);assert.equal(p.professional.roleTrial,undefined);assert.match(s.careerNotice.message,/미리 동의한 기록이 없어/);
+});
+
+test('an already open legacy role decision survives save/load and keeps the original explicit choice',()=>{
+ const s=fixture(),p=e.getPlayer(s);roles.beginProRoleTrial(s,'3B','PE09');const trial=p.professional.roleTrial;
+ delete trial.autoTransition;trial.decision={date:s.date,qualified:true,reason:'기존 저장의 평가'};
+ open(s,'PE09',{target:'3B'});s.careerEvent.definitionId='PE09_FOLLOWUP';s.careerEvent.proEvent.channel='followup';
+ s.careerEvent.choices=[{id:'keep',label:'현재 역할을 유지한다',outcomes:[{weight:100,message:'기존 선택 결과',proTrialDecision:'keep'}]}];
+ const loaded=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(s))).state;
+ const next=e.answerCareerEvent(loaded,'keep');assert.equal(e.getPlayer(next).position,'SS');assert.equal(e.getPlayer(next).professional.roleTrial,undefined);assert.equal(next.careerEventHistory.at(-1).proEvent.action.kind,'kept');
+});
+
+test('choosing a legacy saved trial invitation does not invent advance consent to a later role switch',()=>{
+ const s=fixture();open(s,'PE09',{target:'3B'});
+ for(const c of s.careerEvent.choices)for(const b of c.outcomes)delete b.proAutoTransition;
+ const loaded=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(s))).state;
+ const next=e.answerCareerEvent(loaded,'choice-1'),p=e.getPlayer(next),trial=p.professional.roleTrial;
+ assert.equal(trial.autoTransition,undefined);trial.trainingDates=Array.from({length:5},(_,i)=>e.addDays(next.date,i));next.date=trial.until;
+ assert(roles.reviewProRoleTrial(next));assert.equal(p.position,'SS');assert.equal(next.careerEvent,null);
 });
 test('menu and event requests share the 28-day cooldown without granting playing time or regular status',()=>{
  const s=fixture(),p=e.getPlayer(s);p.proContract.status='developmental';open(s,'PE12');const before=structuredClone(p.seasonByLevel),next=e.answerCareerEvent(s,'choice-1'),q=e.getPlayer(next);assert.equal(q.professional.requestedEvaluationUntil,e.addDays(s.date,21));assert.equal(q.professional.requestAfter,e.addDays(s.date,28));assert.equal(q.proContract.status,'developmental');assert.deepEqual(q.seasonByLevel,before);assert.throws(()=>market.careerRequest(next,'position','3B'),/이후/);
@@ -148,17 +179,33 @@ test('postseason preparation respects roster and elimination priority, then reco
  const fresh=fixture(),q=e.getPlayer(fresh);cursor(fresh);q.teamId=p.teamId;fresh.proWorld.postseason={seeds:series.clubs,series:[{...series,wins:[0,0],rosters:{[p.teamId]:[q.id]}}]};assert.equal(runtime.openProPreparation(fresh,game,[{field:[],starter:'other'},{field:[],starter:'other'}]),true);assert.equal(fresh.careerEvent.definitionId,'PE25');
 });
 function nationalFixture(){
- const s=fixture(),base=e.getPlayer(s),players=[];const add=(position,n)=>{for(let i=0;i<n;i++){const p=structuredClone(base);p.id=position+'-'+i;p.position=position;p.primaryRole=e.roleFor(position);p.teamId=0;p.reputation=90-i;p.seasonByLevel.first=e.emptyRecord();p.seasonByLevel.second=e.emptyRecord();if(e.isPitcher(p.primaryRole)){p.seasonByLevel.first.pitching.outs=90;p.seasonByLevel.first.pitching.BF=130;}else{p.seasonByLevel.first.batting.PA=100;p.seasonByLevel.first.batting.AB=90;}players.push(p);}};
+ const s=fixture(),base=e.getPlayer(s),players=[];const add=(position,n)=>{for(let i=0;i<n;i++){const p=structuredClone(base);p.id=position+'-'+i;p.position=position;p.primaryRole=e.roleFor(position);p.teamId=0;p.reputation=null;p.seasonByLevel.first=e.emptyRecord();p.seasonByLevel.second=e.emptyRecord();if(e.isPitcher(p.primaryRole)){p.seasonByLevel.first.pitching.outs=90;p.seasonByLevel.first.pitching.BF=130;}else{p.seasonByLevel.first.batting.PA=100;p.seasonByLevel.first.batting.AB=90;}players.push(p);}};
  add('SP',8);add('RP',8);add('C',3);for(const pos of ['1B','2B','3B','SS'])add(pos,2);for(const pos of ['LF','CF','RF'])add(pos,2);add('DH',2);
  s.playerId=players.find(p=>p.position==='SS').id;s.players=players;s.phase='ended';s.proWorld.stage='summary';s.proWorld.seasonClosed=true;s.date='2028-10-20';return s;
 }
+
+test('national selection follows the supplied season performance and ignores legacy professional reputation',()=>{
+ const s=nationalFixture(),shortstops=s.players.filter(p=>p.position==='SS'),[bad,good]=shortstops;
+ bad.reputation=100;good.reputation=1;Object.assign(good.seasonByLevel.first.batting,{PA:400,AB:350,H:150,HR:50,BB:50});
+ const choose=()=>national.selectProNationalRoster(s,p=>p.seasonByLevel.first);
+ const first=choose();assert.ok(first.some(row=>row.id===good.id));assert.ok(!first.some(row=>row.id===bad.id));
+ for(const p of s.players)p.reputation=p===bad?0:100;
+ assert.deepEqual(choose(),first);assert.ok(first.every(row=>Number.isFinite(row.selectionScore)&&row.reputation===undefined));
+});
+
+test('legacy professional reputation rewards become actual growth without creating another rating',()=>{
+ const s=fixture(),p=e.getPlayer(s),before=p.stats.bq;open(s,'PE02');
+ s.careerEvent.choices=[{id:'experience',label:'경험을 정리한다',outcomes:[{weight:100,message:'경기 경험을 정리했다.',reputation:3}]}];
+ const result=e.answerCareerEvent(s,'experience'),q=e.getPlayer(result);
+ assert.ok(q.stats.bq>before);assert.equal(q.reputation,null);assert.equal(q.professional.proBonus,0);assert.equal(result.careerEventHistory.at(-1).reputation,0);
+});
 test('adult training invitation freezes at most 23 with exact role quotas and first-team current-year samples',()=>{
  const s=nationalFixture(),p=e.getPlayer(s),rng={...s.rngStates};national.freezeProNational(s);const entry=s.proEvents.national['2028'];assert.equal(entry.roster.length,23);assert.equal(new Set(entry.roster.map(p=>p.id)).size,23);assert.equal(entry.roster.filter(p=>p.position==='SP').length,6);assert.equal(entry.roster.filter(p=>p.position==='RP').length,6);assert.equal(entry.roster.filter(p=>p.position==='C').length>=2,true);assert.deepEqual(s.rngStates,rng);const frozen=JSON.stringify(entry.roster);for(const q of s.players)q.reputation=1;const appended=structuredClone(p);appended.id='new-superstar';appended.reputation=100;s.players.push(appended);national.freezeProNational(s);assert.equal(JSON.stringify(entry.roster),frozen);
  const second=nationalFixture();for(const q of second.players){q.seasonByLevel.second=structuredClone(q.seasonByLevel.first);q.seasonByLevel.first=e.emptyRecord();}national.freezeProNational(second);assert.equal(second.proEvents.national['2028'].roster.length,0);
  const sparse=nationalFixture();sparse.players=sparse.players.filter(q=>q.id===sparse.playerId);national.freezeProNational(sparse);assert.equal(sparse.proEvents.national['2028'].roster.length,1);
 });
 test('selected adult invitation occurs next day after settlement and resolves while the season stays ended',()=>{
- const s=nationalFixture(),p=e.getPlayer(s);p.reputation=100;national.freezeProNational(s);const roster=JSON.stringify(s.proEvents.national['2028'].roster),before=structuredClone(p.seasonByLevel);s.careerNotice={id:'season',date:s.date,kind:'seasonComplete',title:'결산',message:'완료'};assert.equal(national.tryProNationalInvitation(s),false);
+ const s=nationalFixture(),p=e.getPlayer(s);national.freezeProNational(s);const roster=JSON.stringify(s.proEvents.national['2028'].roster),before=structuredClone(p.seasonByLevel);s.careerNotice={id:'season',date:s.date,kind:'seasonComplete',title:'결산',message:'완료'};assert.equal(national.tryProNationalInvitation(s),false);
  const next=pc.acknowledgeCareer(s);assert.equal(next.careerEvent.definitionId,'PE27');assert.equal(next.date,'2028-10-21');assert.equal(next.phase,'ended');force(next,.3,.5);const result=e.answerCareerEvent(next,'choice-1');assert.equal(result.phase,'ended');assert.equal(result.proEvents.national['2028'].settled,true);assert.deepEqual(e.getPlayer(result).seasonByLevel,before);assert.equal(JSON.stringify(result.proEvents.national['2028'].roster),roster);assert.equal(national.tryProNationalInvitation(result),false);
  const pending=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(next,false)));assert.equal(pending.state.careerEvent.definitionId,'PE27');assert.deepEqual(e.answerCareerEvent(pending.state,'choice-1'),result);
 });
@@ -183,8 +230,8 @@ test('first-game preparation saves a fixed lineup before any pitch and records d
  const input=realGame(true),p=e.getPlayer(input);let paused=e.advanceWeek(input,p.trainingPolicy,p.stance);while(paused.careerNotice){paused=pc.acknowledgeCareer(paused);paused=e.advanceWeek(paused,p.trainingPolicy,p.stance);}assert.equal(paused.careerEvent.definitionId,'PE13');assert.equal(paused.calendar.events[0].status,'scheduled');assert.ok(paused.calendar.events[0].proPreparedLineup);assert.equal(paused.matchProgress,undefined);assert.deepEqual(paused.calendar.events[0].boxScore,{});assert.equal(e.getPlayer(paused).professional.firsts.debut,undefined);
  const loaded=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(paused,false))).state,chosen=e.answerCareerEvent(loaded,'choice-3'),resumed=finishWeek(chosen);assert.ok(e.getPlayer(resumed).seasonByLevel.first.batting.PA>0);assert.equal(e.getPlayer(resumed).professional.firsts.debut,input.date);assert.equal(resumed.careerEventHistory.filter(row=>row.definitionId==='PE13').length,1);
 }));
-test('weekly training supplies trial evidence and a completed trial never auto-switches the role',()=>withParams(noRandom,()=>{
- let s=fixture();roles.beginProRoleTrial(s,'3B','PE09');s=finishWeek(s);assert.equal(e.getPlayer(s).professional.roleTrial.trainingDates.length,6);s=finishWeek(s);const next=e.advanceWeek(s,e.getPlayer(s).trainingPolicy,e.getPlayer(s).stance);assert.equal(next.careerEvent.definitionId,'PE09_FOLLOWUP');assert.equal(e.getPlayer(next).position,'SS');assert.equal(e.getPlayer(e.answerCareerEvent(next,'keep')).position,'SS');
+test('weekly training settles the accepted role evaluation with a notice and no follow-up choice',()=>withParams(noRandom,()=>{
+ let s=fixture();roles.beginProRoleTrial(s,'3B','PE09');s=finishWeek(s);assert.equal(e.getPlayer(s).professional.roleTrial.trainingDates.length,6);s=finishWeek(s);const next=e.advanceWeek(s,e.getPlayer(s).trainingPolicy,e.getPlayer(s).stance);assert.equal(next.careerEvent,null);assert.equal(e.getPlayer(next).position,'3B');assert.equal(e.getPlayer(next).professional.roleTrial,undefined);assert.equal(next.careerNotice.title,'보직 평가 결과');
 }));
 
 test('existing two-way proposals respect the new daily choice limit and wait until the next day',()=>{
@@ -193,5 +240,5 @@ test('existing two-way proposals respect the new daily choice limit and wait unt
 });
 
 test('a manual cross-field role trial preserves training but never grants unqualified pro two-way eligibility',()=>{
- const s=fixture(),p=e.getPlayer(s),policy=structuredClone(p.trainingPolicy);roles.beginProRoleTrial(s,'SP','ROLE_REQUEST');const trial=p.professional.roleTrial;trial.trainingDates=s.calendar.trainingDays.filter(date=>date>=s.date&&date<trial.until).slice(0,5);s.date=trial.until;assert.ok(roles.reviewProRoleTrial(s));const result=e.answerCareerEvent(s,'accept'),q=e.getPlayer(result);assert.equal(q.position,'SP');assert.equal(q.twoWay,undefined);assert.ok(q.eligiblePositions.every(pos=>['SP','RP','CP'].includes(pos)));assert.deepEqual(q.trainingPolicy,policy);
+ const s=fixture(),p=e.getPlayer(s),policy=structuredClone(p.trainingPolicy);roles.beginProRoleTrial(s,'SP','ROLE_REQUEST');const trial=p.professional.roleTrial;trial.trainingDates=s.calendar.trainingDays.filter(date=>date>=s.date&&date<trial.until).slice(0,5);s.date=trial.until;assert.ok(roles.reviewProRoleTrial(s));assert.equal(p.position,'SP');assert.equal(p.twoWay,undefined);assert.ok(p.eligiblePositions.every(pos=>['SP','RP','CP'].includes(pos)));assert.deepEqual(p.trainingPolicy,policy);assert.equal(s.careerEvent,null);
 });

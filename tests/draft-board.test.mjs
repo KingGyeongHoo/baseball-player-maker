@@ -9,6 +9,12 @@ const {DraftForecast,DraftRoundTable}=require('../.test-build/app/components/dra
 const state=e.createGame('draft-ui','표검증','SS');
 const render=props=>renderToStaticMarkup(createElement(DraftRoundTable,{year:2029,onSelect(){},playerId:'mine',...props}));
 
+test('school draft results display old middle-relief and closer picks as bullpen without rewriting saved roles',()=>{
+ const sample=e.draftForecast(state)[0];
+ for(const role of ['중간계투','마무리']){const pick={...sample,role},before=structuredClone(pick),html=render({picks:[pick]});assert.match(html,/<em>불펜<\/em>/);assert.ok(!html.includes(`<em>${role}</em>`));assert.deepEqual(pick,before);}
+ assert.match(render({picks:[{...sample,role:'선발'}]}),/<em>선발<\/em>/);
+});
+
 test('forecast displays this season senior top ten instead of the OVR top ten',()=>{
   const html=renderToStaticMarkup(createElement(DraftForecast,{state}));
   assert.match(html,/2027년 예상 드래프트 TOP10/);assert.match(html,/평판 80%/);assert.ok(!html.includes('OVR TOP10'));

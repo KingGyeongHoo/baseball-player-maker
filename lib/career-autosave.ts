@@ -1,14 +1,12 @@
-import { LatestSaveQueue } from "./latest-save-queue";
+import { CareerSaveQueue } from "./latest-save-queue";
 import type { GameState } from "./sim/types";
 import {StateTransferCache} from "./sim/state-transfer";
-import {careerSaveId} from "./career-save-key";
 import {SaveWorkerClient,SaveWorkerUnavailableError} from "./save-worker-client";
 
 let transfer = new StateTransferCache();
 let useDirectStorage=false;
 const client=new SaveWorkerClient(()=>new Worker(new URL("./career-save-worker.ts",import.meta.url)));
-type SaveJob={state:GameState;manual:boolean}|{deleteId:string};
-const queue = new LatestSaveQueue<SaveJob>(async job=>{
+const queue = new CareerSaveQueue(async job=>{
   if(!useDirectStorage){
     try{await client.request(()=>"deleteId" in job?{deleteId:job.deleteId}:{manual:job.manual,...transfer.encode(job.state)});return;}
     catch(error){transfer=new StateTransferCache();if(!(error instanceof SaveWorkerUnavailableError))throw error;useDirectStorage=true;}
@@ -21,9 +19,10 @@ const queue = new LatestSaveQueue<SaveJob>(async job=>{
 });
 
 export function saveCareerInBackground(state: GameState,manual=false) {
-  return queue.enqueue(careerSaveId(state), {state,manual});
+  return queue.save(state,manual);
 }
 
 // A deletion supersedes queued saves for this career and waits for an in-flight
 // write, so an older autosave cannot recreate the deleted slot afterward.
-export function deleteCareerInBackground(id:string){return queue.enqueue(id,{deleteId:id});}
+export function deleteCareerInBackground(id:string){return queue.delete(id);}
+

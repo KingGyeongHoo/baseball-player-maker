@@ -1,20 +1,23 @@
 import { useEffect, useRef, useState } from "react";
-import { getPlayer, labels } from "../../lib/sim/engine";
+import { getPlayer, labels,roleLabel } from "../../lib/sim/engine";
 import { developmentalOffer } from "../../lib/sim/draft-outcome";
 import { acknowledgeCareer, continueCareer, type CareerChoice } from "../../lib/sim/pro-career";
 import type { GameState } from "../../lib/sim/types";
 import ScoutingReportButton from "./scouting-report";
 import {SeasonAwards} from "./pro-awards";
+import {regularSeasonFinishNotice,professionalSeasonFinishNotice} from "../../lib/pro-postseason";
 
 export function CareerNoticeDialog({ state, onChange }: { state: GameState; onChange: (state: GameState) => void }) {
   const dialog=useRef<HTMLDialogElement>(null),title=useRef<HTMLHeadingElement>(null);
   useEffect(()=>{const el=dialog.current;el?.showModal();title.current?.focus();return ()=>el?.close();},[]);
-  const notice=state.careerNotice;
-  if(!notice)return null;
+  const storedNotice=state.careerNotice;
+  if(!storedNotice)return null;
+  const seasonYear=storedNotice.kind==='seasonComplete'&&/^season:\d{4}$/.test(storedNotice.code??'')?Number(storedNotice.code!.split(':')[1]):undefined;
+  const notice=storedNotice.code?.startsWith('PRO10:postseason:')?{...storedNotice,...regularSeasonFinishNotice(state)}:seasonYear!==undefined?{...storedNotice,...professionalSeasonFinishNotice(state,seasonYear)}:storedNotice;
   const awards=notice.code?.startsWith('awards:')?state.proWorld?.seasons.find(row=>row.year===Number(notice.code!.split(':')[1])):undefined;
   return <dialog ref={dialog} className="modal career-event-modal" aria-labelledby="career-notice-title" onCancel={e=>{e.preventDefault();onChange(acknowledgeCareer(state));}}>
-    <div className="modal-header"><h2 id="career-notice-title" tabIndex={-1} ref={title}>{notice.title}</h2><span className="position-tag">CAREER LIFE</span></div>
-    <div className="guide-content"><p>{notice.message}</p>{awards&&<SeasonAwards state={state} season={awards}/>}<div className="modal-actions"><button className="primary" onClick={()=>onChange(acknowledgeCareer(state))}>{awards&&state.proWorld?.resumeCampAfterAwards?'시상식 마치고 캠프로':'확인'}</button></div></div>
+    <div className="modal-header"><h2 id="career-notice-title" tabIndex={-1} ref={title}>{seasonYear!==undefined?<>{notice.title.slice(0,-3)}<span className="season-victory-text">우승!</span></>:notice.title}</h2><span className="position-tag">CAREER LIFE</span></div>
+    <div className="guide-content">{notice.message.split("\n\n").filter(Boolean).map((paragraph,index)=><p key={index}>{paragraph}</p>)}{awards&&<SeasonAwards state={state} season={awards}/>}<div className="modal-actions"><button className="primary" onClick={()=>onChange(acknowledgeCareer(state))}>{awards&&state.proWorld?.resumeCampAfterAwards?'시상식 마치고 캠프로':'확인'}</button></div></div>
   </dialog>;
 }
 export default function CareerContinuation({ state, onChange, onRetire }: { state:GameState;onChange:(state:GameState)=>void;onRetire?:()=>void }) {
@@ -28,7 +31,7 @@ export default function CareerContinuation({ state, onChange, onRetire }: { stat
   return <div className="draft-result-summary draft-next-chapter">
     <div className="draft-next-copy"><span className="eyebrow">THE NEXT CHAPTER</span>
       <div className="draft-pick-heading"><h3>{pick ? `${pick.club} · 전체 ${pick.overall}순위 지명` : offer ? "드래프트 지명은 받지 못했지만, 신고선수로 입단 제의를 받았습니다." : "이번 드래프트에서는 지명받지 못했습니다."}</h3>{pick&&<ScoutingReportButton state={state} pick={pick} year={state.calendar.seasonYear}/>}</div>
-      {pick ? <p>{pick.round}라운드 · {pick.slot}순번 · {pick.role}<br/>고교 기록과 능력치를 이어 {pick.club}의 신인 시즌을 시작합니다.</p>
+      {pick ? <p>{pick.round}라운드 · {pick.slot}순번 · {roleLabel(pick.role)}<br/>고교 기록과 능력치를 이어 {pick.club}의 신인 시즌을 시작합니다.</p>
         : offer ? <><p><b>{offer.club}</b> · {offer.reason === "topSkill" ? `${labels[offer.stat!]} 전국 TOP${offer.rank}` : "지명권과 근소한 평가 차이로 가능성을 인정받았습니다."}</p><p>신고선수는 프로 입단은 가능하지만, 성장과 기회가 제한적입니다.</p><p>성장 90% · 출전 기회 감소 · 2군 경기 성과를 쌓으면 정식 선수 전환과 제한 해제</p></>
         : <p>고교에서 쌓은 기록은 아래에서 확인할 수 있습니다.<br/>은퇴를 선택하면 첫 화면으로 돌아갑니다.</p>}
       {error&&<p className="error" role="alert">{error}</p>}

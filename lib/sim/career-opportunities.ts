@@ -95,7 +95,7 @@ export function joinPendingTransfer(s: GameState) {
   if(s.careerMode)return false;
   const ledger = opportunityState(s), transfer = ledger.pendingTransfer;
   if (!transfer || s.date < transfer.effectiveDate) return false;
-  const p = getPlayer(s), oldFatigue = p.fatigue, oldReputation = p.reputation ?? reputationScore(p);
+  const p = getPlayer(s), oldFatigue = p.fatigue, oldReputation = p.reputation ?? reputationScore(p) ?? 0;
   const from = s.teams[transfer.fromTeamId].name, to = s.teams[transfer.toTeamId].name;
   for (const season of p.career) { season.schoolId ??= transfer.fromTeamId; season.schoolName ??= from; }
   p.teamId = transfer.toTeamId;
@@ -113,7 +113,7 @@ export function joinPendingTransfer(s: GameState) {
   s.careerEventHistory ??= [];
   s.careerEventHistory.push({ id: `${transfer.offerId}:joined`, definitionId: "S02_JOIN", kind: "special", title: "새 학교에 합류했습니다", date: s.date, choice: `${from} → ${to}`,
     message: "이전 학교의 기록을 간직한 채 새 학년을 시작했다. 새로운 환경에 적응하는 첫 두 훈련 주간은 훈련 효율이 90%로 적용된다.",
-    stats: changes, reputation: p.reputation - oldReputation, fatigue, awakened, transfer: { from, to, effectiveDate: transfer.effectiveDate, status: "joined" } });
+    stats: changes, reputation: (p.reputation??0) - oldReputation, fatigue, awakened, transfer: { from, to, effectiveDate: transfer.effectiveDate, status: "joined" } });
   s.weekProgress?.report.messages.push(`${to}에 합류했습니다. 첫 두 훈련 주간은 적응 기간입니다.`);
   delete ledger.pendingTransfer;
   return true;
