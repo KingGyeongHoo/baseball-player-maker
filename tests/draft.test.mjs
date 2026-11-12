@@ -62,7 +62,7 @@ test('draft score uses exactly reputation 80%, talent 10%, fit 10% with no extra
   for(const pick of picks) {
     assert.deepEqual(Object.keys(pick.components).sort(),['fit','reputation','talent']);
     close(pick.components.reputation,.8*pick.reputation);
-    close(pick.components.talent,.1*(pick.talent-1)/9*100);
+    close(pick.components.talent,.1*pick.talent/10*100);
     close(pick.components.fit,.1*pick.fit);
     close(pick.score,Object.values(pick.components).reduce((a,b)=>a+b,0));
     assert.ok(pick.fit>=0 && pick.fit<=100);

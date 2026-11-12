@@ -1,5 +1,6 @@
 import { addDays, fatigueForecast, labels, policyForMode, ticketsUsed, trainingLoad, validPolicy } from "../../lib/sim/engine";
 import { scoreText } from "../../lib/display";
+import PlayerTalents from './player-talents';
 import type { GameState, Player, Policy, Ticket } from "../../lib/sim/types";
 
 export const trainingLabel = (policy:Policy) => policy.mode==="rest" || ticketsUsed(policy)===0 ? "회복 중심" : "훈련 배분";
@@ -12,7 +13,7 @@ const symbols:Record<Ticket,string>={velocity:"V",control:"K",movement:"M",conta
 const amount=(n:number)=>Math.abs(n)>0&&Math.abs(n)<1?"1 미만":scoreText(Math.abs(n));
 const deltaText=(n:number)=>Math.abs(n)<1e-9?"피로 유지":n<0?"피로 회복 "+amount(n):"피로 쌓임 "+amount(n);
 
-export default function TrainingEditor({player,policy,setPolicy,date,context}:{player:Player;policy:Policy;setPolicy:(p:Policy)=>void;date?:string;context?:Pick<GameState,"calendar"|"report">}){
+export default function TrainingEditor({player,policy,setPolicy,date,context,showTalents=false}:{player:Player;policy:Policy;setPolicy:(p:Policy)=>void;date?:string;context?:Pick<GameState,"calendar"|"report">;showTalents?:boolean}){
   const used=policy.mode==="rest"?0:ticketsUsed(policy),load=trainingLoad(player.stats.recovery,policy),forecast=fatigueForecast(player,policy,date);
   const training=used>0,previous=policy.mode==="rest"?policy.previousTraining:undefined;
   const update=(tickets:Policy["tickets"])=>setPolicy({mode:"normal",tickets});
@@ -20,6 +21,7 @@ export default function TrainingEditor({player,policy,setPolicy,date,context}:{p
   const scheduled=date?context?.calendar.events.filter(game=>game.status==="scheduled"&&game.date>=date&&game.date<=addDays(date,6)&&[game.homeTeamId,game.awayTeamId].includes(player.teamId)).length??0:0;
   const report=context?.report,actual=report?.fatigue;
   return <>
+    {showTalents&&<PlayerTalents player={player}/>}
     {policy.mode==="rest"&&<div className="recovery-return"><div><b>이전 휴식 설정을 유지하고 있습니다.</b><p>배분을 추가하면 훈련을 시작합니다. 전체 0은 회복에 집중합니다.</p></div>{previous&&<button className="secondary" onClick={()=>{const restored=policyForMode(policy,previous.mode);if(validPolicy(restored))setPolicy({...restored,mode:"normal"});}}>이전 배분 복원</button>}</div>}
     <section className="ticket-summary training-load-summary" aria-label="훈련과 회복 균형">
       <div className="ticket-summary-main"><div className="ticket-remaining"><span>현재 배분</span><strong>{used}<small>개</small></strong></div><div className="ticket-allocation"><b>항목마다 0~5 · 자유롭게 투자</b><span>회복력 {scoreText(player.stats.recovery)} · 훈련 부하 {scoreText(load.loadRatio*100)}%</span><span>유지 경계 · 부하 {scoreText(load.neutralRatio*100)}%</span></div></div>

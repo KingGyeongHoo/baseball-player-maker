@@ -1,3 +1,5 @@
+import {resolveNationalContext} from "./national-tournament";
+import {nationalRoster,rememberNational,nationalRole} from "./national-teams";
 import { addDays, assignRole, available, clamp, overall, focusGrowth, getPlayer, growthMultiplier, isPitcher, lineup, params, random, refreshWeekReport, reputationScore, roleScore, roles, slowdown } from "./engine";
 import {applyProTwoWayChoice} from "./pro-two-way";
 import {clearProfessionalReputation} from "./pro-selection";
@@ -14,6 +16,7 @@ import { createCareerEvent, eventKind } from "./career-events";
 import { statKeys, type CareerEventBranch, type EventOpportunity, type EventScene, type GameState, type MatchEffect, type Player, type Stat } from "./types";
 
 import {canPlayRole,assertPositionEligible} from './position-eligibility';
+import {talentMultiplier} from './talent';
 export const eventLedger = (s: GameState) => s.eventLedger ??= { recent: [], centerGrades: [], nationalGrades: [], competitions: [], games: [] };
 const schoolCategories=new Map(schoolEventCatalog.map(e=>[e.id,e.category??'baseball']));
 const schoolFocuses=new Map(schoolEventCatalog.map(e=>[e.id,e.focus]));
@@ -113,13 +116,14 @@ function open(s: GameState, opportunity: EventOpportunity, scene?: EventScene) {
   return true;
 }
 export function tryNationalEvent(s: GameState) {
-  if(s.careerMode)return false;
-  const p = getPlayer(s);
-  if (s.phase === "ended" || s.careerEvent || p.roleOffer || ![2, 3].includes(p.grade) || p.reputation === null
-    || (p.grade === 3 && s.date >= s.calendar.draftDate) || eventLedger(s).nationalGrades.includes(p.grade)) return false;
-  const ranked = [...s.players].sort((a, b) => (b.reputation ?? -1) - (a.reputation ?? -1) || a.id.localeCompare(b.id));
-  if (!ranked.slice(0, 23).some(other => other.id === p.id)) return false;
-  return open(s, { definitionId: "P08", date: s.date });
+  if(s.careerMode||s.date.slice(5,7)!=='09')return false;
+  const p=getPlayer(s);if(s.phase==='ended'||s.careerEvent||p.roleOffer)return false;
+  let entry=s.nationalTeams?.find(row=>row.kind==='youth'&&row.year===s.calendar.seasonYear);
+  if(!entry)entry=rememberNational(s,'youth',nationalRoster(s,p=>p.seasonStats,'youth'));
+  if(entry.offered||entry.settled)return false;
+  if(!entry.roster.some(row=>row.id===p.id)){entry.settled=true;return false;}
+  const opened=open(s,{definitionId:'P08',date:s.date,field:nationalRole(p).pitching?'pitching':'batting'});
+  if(opened){entry.offered=true;s.careerEvent!.choices[0].outcomes=[{weight:100,message:"청소년대표팀에 합류한다. 국제대회 경기 성적에 따라 경험과 수상이 결정된다."}];}return opened;
 }
 export function openScheduledEvent(s: GameState, phase: "beforeGames" | "training" | "game", scene?: EventScene) {
   const planned = s.weekProgress?.opportunity;
@@ -142,7 +146,7 @@ export function eventTrainingReward(player: Player, key: Stat, weeks: number) {
   const physical = ["stamina", "recovery", "arm"].includes(key);
   const pitching = ["velocity", "control", "movement"].includes(key);
   const talent = player.talent[pitching ? "pitching" : "batting"];
-  const multiplier = params["talent.min_mult"] + (talent - 1) / 9 * (params["talent.max_mult"] - params["talent.min_mult"]);
+  const multiplier = talentMultiplier(talent,params['talent.min_mult'],params['talent.max_mult']);
   const rate = key === "bq" ? params["training.bq"] : physical ? focusGrowth(5) / 3
     : (focusGrowth(5) + params["training.base"]) * multiplier;
   for (let i = 0; i < weeks * days; i++) value = clamp(limitPhysicalGrowth(player,key,value + rate * professionalGrowth(player,key) * growthMultiplier(player) * slowdown(value) / days), 1);
@@ -167,7 +171,7 @@ export function applyMatchEffect<T extends { bb: number; hit: number; hr: number
 }
 export function resolveCareerEvent(input: GameState, choiceId: string): GameState {
   const national=input.careerEvent?.proEvent?.catalogId==="PE27"?input.proEvents?.national[String(input.careerEvent.proEvent.year)]:undefined;
-  if (!input.careerEvent||input.phase === "ended"&&!(input.careerMode==="pro"&&input.proWorld?.stage==="summary"&&national?.offered&&!national.settled)) throw new Error("선택할 이벤트가 없습니다.");
+  if (!input.careerEvent||input.phase === "ended"&&!(input.careerMode==="pro"&&["summary","offseason"].includes(input.proWorld?.stage??"")&&(!!input.careerEvent?.nationalContext||(national?.offered||!!input.careerEvent?.proEvent?.nationalKind)&&!national?.settled))) throw new Error("선택할 이벤트가 없습니다.");
   // An unchosen event from the previous fixed-point policy must not retain its
   // old +8/+12/+24 rewards after upgrading. Settled history is never rerolled.
   const pending = input.careerEvent;
@@ -227,8 +231,10 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
     ...(outcome.injury ? { injury: structuredClone(p.injury!) } : {}), ...(p.position !== oldPosition ? { positionChange: { from: oldPosition, to: p.position } } : {}),
     ...(outcome.match ? { match: { ...outcome.match } } : {}), ...(event.scene ? { scene: event.scene } : {}) });
   Object.assign(s.careerEventHistory.at(-1)!, opportunityChanges);
+  const nationalKind=event.proEvent?.nationalKind??(event.definitionId==="P08"?"youth":undefined);if(nationalKind){const row=s.nationalTeams?.find(row=>row.kind===nationalKind&&row.year===Number(event.date.slice(0,4)));if(row){row.simulationVersion=1;row.settled=true;row.participated=selected.id===event.choices[0].id;row.result=outcome.proResultId??selected.id;}}
   if(event.proEvent?.catalogId==="PE27"){const invitation=s.proEvents?.national[String(event.proEvent.year)];if(invitation)invitation.settled=true;}
   if(event.proEvent?.wbcYear){const entry=s.proEvents?.wbc?.[event.proEvent.wbcYear];if(entry){entry.settled=true;entry.participated=selected.id==="participate";entry.result=outcome.proResultId;}}
+  resolveNationalContext(s,event,outcome,selected.id);
   observeTwoWayQualification(s);
   s.careerEvent = null;
   if (s.weekProgress) {

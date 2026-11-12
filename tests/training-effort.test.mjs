@@ -26,7 +26,7 @@ test('an equal weighted mixed plan remains at the 25 percent neutral point with 
 });
 test('actual weekly fatigue and forecasts match for equivalent full batting/pitching plans without a growth bonus',()=>{
   const results=[];
-  for(const [role,position,keys] of [['센터라인','SS',batting],['선발','SP',pitching]]){const s=structuredClone(template),p=e.getPlayer(s),policy=plan(keys);p.position=position;p.primaryRole=role;for(const key of Object.keys(p.stats))p.stats[key]=40;p.stats.recovery=50;p.fatigue=30;p.talent={batting:1,pitching:1};s.calendar.events=[];s.calendar.competitions=[];const before=e.ovr(p),forecast=e.fatigueForecast(p,policy,s.date),next=e.advanceWeek(s,policy,p.stance),q=e.getPlayer(next);close(q.fatigue,30+125/7);close(q.fatigue,forecast.end);close(e.ovr(q)-before,.28);assert.deepEqual(q.trainingPolicy,policy);results.push(q.fatigue);}
+  for(const [role,position,keys] of [['센터라인','SS',batting],['선발','SP',pitching]]){const s=structuredClone(template),p=e.getPlayer(s),policy=plan(keys);p.position=position;p.primaryRole=role;for(const key of Object.keys(p.stats))p.stats[key]=40;p.stats.recovery=50;p.fatigue=30;p.talent={batting:0,pitching:0};s.calendar.events=[];s.calendar.competitions=[];const before=e.ovr(p),forecast=e.fatigueForecast(p,policy,s.date),next=e.advanceWeek(s,policy,p.stance),q=e.getPlayer(next);close(q.fatigue,30+125/7);close(q.fatigue,forecast.end);close(e.ovr(q)-before,.28);assert.deepEqual(q.trainingPolicy,policy);results.push(q.fatigue);}
   close(results[0],results[1]);
 });
 test('UI keeps the actual investment count but shows equal load and marker for equivalent disciplines',()=>{

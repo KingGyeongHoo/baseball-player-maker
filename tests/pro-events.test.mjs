@@ -142,6 +142,7 @@ test('menu and event requests share the 28-day cooldown without granting playing
 test('every general catalog event has a reachable eligible situation',()=>{
  const seen=new Set(),collect=s=>ids(s).forEach(id=>seen.add(id));collect(fixture());collect(fixture('SP'));
  const camp=fixture();camp.proWorld.stage='camp';collect(camp);
+ const scheduled=fixture(),scheduledPlayer=e.getPlayer(scheduled);scheduled.calendar.events=[{id:'scheduled-farm',date:scheduled.date,status:'scheduled',competitionId:'pro-second',homeTeamId:scheduledPlayer.teamId,awayTeamId:19}];collect(scheduled);
  const form=fixture(),p=e.getPlayer(form);p.seasonByLevel.second.batting.PA=40;completed(form,{PA:30});p.recentZ=.4;p.fatigue=45;collect(form);p.recentZ=-.4;collect(form);
  const duo=fixture();e.getPlayer(duo).twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'batting',reputationBonus:0};collect(duo);
  const away=fixture(),a=e.getPlayer(away);away.calendar.events=[1,2].map(i=>({id:'away'+i,date:e.addDays(away.date,i),status:'scheduled',homeTeamId:99,awayTeamId:a.teamId}));collect(away);
@@ -180,8 +181,8 @@ test('postseason preparation respects roster and elimination priority, then reco
 });
 function nationalFixture(){
  const s=fixture(),base=e.getPlayer(s),players=[];const add=(position,n)=>{for(let i=0;i<n;i++){const p=structuredClone(base);p.id=position+'-'+i;p.position=position;p.primaryRole=e.roleFor(position);p.teamId=0;p.reputation=null;p.seasonByLevel.first=e.emptyRecord();p.seasonByLevel.second=e.emptyRecord();if(e.isPitcher(p.primaryRole)){p.seasonByLevel.first.pitching.outs=90;p.seasonByLevel.first.pitching.BF=130;}else{p.seasonByLevel.first.batting.PA=100;p.seasonByLevel.first.batting.AB=90;}players.push(p);}};
- add('SP',8);add('RP',8);add('C',3);for(const pos of ['1B','2B','3B','SS'])add(pos,2);for(const pos of ['LF','CF','RF'])add(pos,2);add('DH',2);
- s.playerId=players.find(p=>p.position==='SS').id;s.players=players;s.phase='ended';s.proWorld.stage='summary';s.proWorld.seasonClosed=true;s.date='2028-10-20';return s;
+ add('SP',8);add('RP',10);add('CP',3);add('C',3);for(const pos of ['1B','2B','3B','SS'])add(pos,2);for(const pos of ['LF','CF','RF'])add(pos,2);add('DH',2);
+ s.playerId=players.find(p=>p.position==='SS').id;s.players=players;s.phase='ended';s.proWorld.stage='summary';s.proWorld.seasonClosed=true;s.date='2027-10-20';s.calendar.seasonYear=2027;return s;
 }
 
 test('national selection follows the supplied season performance and ignores legacy professional reputation',()=>{
@@ -199,14 +200,14 @@ test('legacy professional reputation rewards become actual growth without creati
  const result=e.answerCareerEvent(s,'experience'),q=e.getPlayer(result);
  assert.ok(q.stats.bq>before);assert.equal(q.reputation,null);assert.equal(q.professional.proBonus,0);assert.equal(result.careerEventHistory.at(-1).reputation,0);
 });
-test('adult training invitation freezes at most 23 with exact role quotas and first-team current-year samples',()=>{
- const s=nationalFixture(),p=e.getPlayer(s),rng={...s.rngStates};national.freezeProNational(s);const entry=s.proEvents.national['2028'];assert.equal(entry.roster.length,23);assert.equal(new Set(entry.roster.map(p=>p.id)).size,23);assert.equal(entry.roster.filter(p=>p.position==='SP').length,6);assert.equal(entry.roster.filter(p=>p.position==='RP').length,6);assert.equal(entry.roster.filter(p=>p.position==='C').length>=2,true);assert.deepEqual(s.rngStates,rng);const frozen=JSON.stringify(entry.roster);for(const q of s.players)q.reputation=1;const appended=structuredClone(p);appended.id='new-superstar';appended.reputation=100;s.players.push(appended);national.freezeProNational(s);assert.equal(JSON.stringify(entry.roster),frozen);
- const second=nationalFixture();for(const q of second.players){q.seasonByLevel.second=structuredClone(q.seasonByLevel.first);q.seasonByLevel.first=e.emptyRecord();}national.freezeProNational(second);assert.equal(second.proEvents.national['2028'].roster.length,0);
- const sparse=nationalFixture();sparse.players=sparse.players.filter(q=>q.id===sparse.playerId);national.freezeProNational(sparse);assert.equal(sparse.proEvents.national['2028'].roster.length,1);
+test('adult training invitation freezes at most 30 with exact role quotas and first-team current-year samples',()=>{
+ const s=nationalFixture(),p=e.getPlayer(s),rng={...s.rngStates};national.freezeProNational(s);const entry=s.proEvents.national['2027'];assert.equal(entry.roster.length,30);assert.equal(new Set(entry.roster.map(p=>p.id)).size,30);assert.equal(entry.roster.filter(p=>p.position==='SP').length,5);assert.equal(entry.roster.filter(p=>p.position==='RP').length,8);assert.equal(entry.roster.filter(p=>p.position==='C').length>=2,true);assert.deepEqual(s.rngStates,rng);const frozen=JSON.stringify(entry.roster);for(const q of s.players)q.reputation=1;const appended=structuredClone(p);appended.id='new-superstar';appended.reputation=100;s.players.push(appended);national.freezeProNational(s);assert.equal(JSON.stringify(entry.roster),frozen);
+ const second=nationalFixture();for(const q of second.players){q.seasonByLevel.second=structuredClone(q.seasonByLevel.first);q.seasonByLevel.first=e.emptyRecord();}national.freezeProNational(second);assert.equal(second.proEvents.national['2027'].roster.length,0);
+ const sparse=nationalFixture();sparse.players=sparse.players.filter(q=>q.id===sparse.playerId);national.freezeProNational(sparse);assert.equal(sparse.proEvents.national['2027'].roster.length,1);
 });
-test('selected adult invitation occurs next day after settlement and resolves while the season stays ended',()=>{
- const s=nationalFixture(),p=e.getPlayer(s);national.freezeProNational(s);const roster=JSON.stringify(s.proEvents.national['2028'].roster),before=structuredClone(p.seasonByLevel);s.careerNotice={id:'season',date:s.date,kind:'seasonComplete',title:'결산',message:'완료'};assert.equal(national.tryProNationalInvitation(s),false);
- const next=pc.acknowledgeCareer(s);assert.equal(next.careerEvent.definitionId,'PE27');assert.equal(next.date,'2028-10-21');assert.equal(next.phase,'ended');force(next,.3,.5);const result=e.answerCareerEvent(next,'choice-1');assert.equal(result.phase,'ended');assert.equal(result.proEvents.national['2028'].settled,true);assert.deepEqual(e.getPlayer(result).seasonByLevel,before);assert.equal(JSON.stringify(result.proEvents.national['2028'].roster),roster);assert.equal(national.tryProNationalInvitation(result),false);
+test('selected adult invitation occurs in November after settlement and resolves while the season stays ended',()=>{
+ const s=nationalFixture(),p=e.getPlayer(s);national.freezeProNational(s);const roster=JSON.stringify(s.proEvents.national['2027'].roster),before=structuredClone(p.seasonByLevel);s.careerNotice={id:'season',date:s.date,kind:'seasonComplete',title:'결산',message:'완료'};assert.equal(national.tryProNationalInvitation(s),false);
+ const next=pc.acknowledgeCareer(s);assert.equal(next.careerEvent.definitionId,'PE27');assert.equal(next.date,'2027-11-01');assert.equal(next.phase,'ended');force(next,.3,.5);const result=e.answerCareerEvent(next,'choice-1');assert.equal(result.phase,'ended');assert.equal(result.proEvents.national['2027'].settled,true);assert.deepEqual(e.getPlayer(result).seasonByLevel,before);assert.equal(JSON.stringify(result.proEvents.national['2027'].roster),roster);assert.equal(national.tryProNationalInvitation(result),false);
  const pending=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(next,false)));assert.equal(pending.state.careerEvent.definitionId,'PE27');assert.deepEqual(e.answerCareerEvent(pending.state,'choice-1'),result);
 });
 test('reservations, role decisions and frozen event choices round-trip through saves without rerolls',()=>{

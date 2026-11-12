@@ -1,5 +1,6 @@
 import type {Game,GameState} from "./types";
 import {allstarSeriesDate} from "./pro-allstar-calendar";
+import {upgradeFarmSchedule} from './pro-farm-schedule';
 const add=(date:string,n:number)=>new Date(Date.parse(date)+n*86400000).toISOString().slice(0,10);
 const weekday=(date:string)=>new Date(date+"T00:00:00Z").getUTCDay();
 function seriesDate(date:string){while(![2,5].includes(weekday(date)))date=add(date,1);return date;}
@@ -20,12 +21,13 @@ export function threeGameSchedule(year:number,ids:number[],cycles:number,start:s
   const used=new Set<number>();for(const start of ids){const stack=[start];while(stack.length){const home=stack.at(-1)!,list=adj.get(home)!;while(list.length&&used.has(list.at(-1)!))list.pop();if(!list.length){stack.pop();continue;}const edge=list.pop()!,g=edges[edge],away=g.homeTeamId===home?g.awayTeamId:g.homeTeamId;used.add(edge);for(let day=0;day<3;day++){games[edge*3+day].homeTeamId=home;games[edge*3+day].awayTeamId=away;}stack.push(away);}}
   return games;
 }
-export function needsProScheduleUpgrade(s:GameState){return s.careerMode==="pro"&&!!s.proWorld&&["camp","regular"].includes(s.proWorld.stage)&&s.calendar.proSeriesVersion!==1&&!s.weekProgress&&!s.matchProgress;}
+export function needsProScheduleUpgrade(s:GameState){return s.careerMode==="pro"&&!!s.proWorld&&["camp","regular"].includes(s.proWorld.stage)&&(s.calendar.proSeriesVersion!==1||s.calendar.proFarmScheduleVersion!==1)&&!s.weekProgress&&!s.matchProgress;}
 export function upgradeProSchedule(s:GameState){
   if(!needsProScheduleUpgrade(s))return false;
+  if(s.calendar.proSeriesVersion===1)return upgradeFarmSchedule(s);
   delete s.calendar.proAllstarScheduleVersion;
   const removed=new Set<string>();
-  for(const competition of s.calendar.competitions.filter(c=>["pro-first","pro-second"].includes(c.id))){
+  for(const competition of s.calendar.competitions.filter(c=>c.id==="pro-first"||c.id==="pro-second"&&s.calendar.proFarmScheduleVersion!==1)){
     const pending=s.calendar.events.filter(g=>g.competitionId===competition.id&&!g.tiebreaker&&g.status==="scheduled"),remaining=new Map(competition.participantTeamIds.map(id=>[id,0]));
     for(const game of pending){removed.add(game.id);remaining.set(game.homeTeamId,(remaining.get(game.homeTeamId)??0)+1);remaining.set(game.awayTeamId,(remaining.get(game.awayTeamId)??0)+1);}
     let date=seriesDate(pending.length?[s.date,pending[0].date].sort().at(-1)!:s.date),block=0;
@@ -50,5 +52,5 @@ export function upgradeProSchedule(s:GameState){
   for(const c of s.calendar.competitions.filter(c=>["pro-first","pro-second"].includes(c.id))){const dates=s.calendar.events.filter(g=>g.competitionId===c.id).map(g=>g.date).sort();if(dates.length){c.startDate=dates[0];c.endDate=dates.at(-1)!;}}
   s.calendar.seasonEnd=s.calendar.events.at(-1)?.date??s.calendar.seasonEnd;s.proWorld!.regularEnd=s.calendar.competitions.find(c=>c.id==="pro-first")!.endDate;
   s.calendar.trainingDays=[];for(let date=`${s.calendar.seasonYear}-03-01`;date<=s.calendar.seasonEnd;date=add(date,1))if(weekday(date)!==1)s.calendar.trainingDays.push(date);
-  s.calendar.proSeriesVersion=1;return true;
+  s.calendar.proSeriesVersion=1;upgradeFarmSchedule(s);return true;
 }

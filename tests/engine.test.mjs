@@ -126,7 +126,7 @@ test('log growth, diminishing increments, talent multiplier and daily normalizat
   const p = e.getPlayer(newGame());
   uniform(p, 40);
   p.trainingPolicy = e.defaultPolicy('센터라인');
-  p.talent.batting = 1;
+  p.talent.batting = 0;
   const a = structuredClone(p),
     b = structuredClone(p);
   b.talent.batting = 10;
@@ -364,7 +364,8 @@ test('three seasons preserve roster size, promote, draft once and block further 
   const p = e.getPlayer(s);
   assert.equal(p.grade, 3);
   assert.equal(p.career.length, 2);
-  assert.equal(s.date, s.calendar.draftDate);
+  assert.equal(s.draftEvaluatedAt, s.calendar.draftDate);
+  assert.ok(s.date>=s.calendar.draftDate);
   assert.ok(s.draft.length >= 90 && s.draft.length <= 110);
   assert.equal(new Set(s.draft.map(d => d.playerId)).size, s.draft.length);
   assert.equal(s.calendar.seasonYear, 2029);

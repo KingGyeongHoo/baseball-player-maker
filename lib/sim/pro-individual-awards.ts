@@ -1,6 +1,7 @@
 import {leaderMetrics,requiredLeaderSample,type LeaderField,type LeaderMetric} from "../league-leaders";
 import type {GameState,ProLevel} from "./types";
 import type {ProIndividualAward} from "./pro-types";
+import {farmSeasonGames} from './pro-farm-schedule';
 
 const titleNames:Record<LeaderField,Record<string,string>>={batting:{avg:'타격왕',H:'안타왕',SB:'도루왕',RBI:'타점왕'},pitching:{wins:'다승왕',holds:'홀드왕',saves:'세이브왕',era:'평균자책점왕'}};
 export function individualTitleName(row:{field?:LeaderField;metric?:string;label?:string}){
@@ -21,7 +22,7 @@ export function individualAwards(s:GameState):ProIndividualAward[]{
   const result:ProIndividualAward[]=[];
   const metrics=individualAwardMetrics();
   for(const level of ["first","second"] as ProLevel[])for(const field of ["batting","pitching"] as LeaderField[])for(const metric of metrics[field]){
-    const games=level==="first"?144:72;
+    const games=level==="first"?144:farmSeasonGames;
     const rows=s.players.flatMap(p=>{const r=p.seasonByLevel?.[level];if(!p.professional||!r)return [];
       const sample=field==="batting"?r.batting.PA:r.pitching.outs;
       if(sample<=0||metric.qualified&&sample<requiredLeaderSample(p,field,games))return [];

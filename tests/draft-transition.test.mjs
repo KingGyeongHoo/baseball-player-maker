@@ -82,11 +82,11 @@ test('only qualified farm-game performance converts once, without stat gifts, an
   assert.equal(pc.reviewDevelopmentContract(s),false);delete s.careerNotice;assert.equal(pc.reviewDevelopmentContract(s),false);
   assert.equal(e.growthMultiplier(p),1);const regular=structuredClone(p);delete regular.proContract;close(e.selectionScore(p),e.selectionScore(regular));
 });
-test('starter conversion requires 20 innings, ERA <=4 and strikeout rate >=18%; two-way players can qualify in either field',()=>{
+test('starter conversion requires 20 innings, ERA <=6 and two wins; two-way players can qualify in either field',()=>{
   const s=developmental(),p=e.getPlayer(s);e.assignRole(p,'선발');const r=p.seasonByLevel.second.pitching;
-  Object.assign(r,{outs:59,BF:90,ER:8,SO:17});assert.equal(pc.developmentProgress(p).qualified,false);
-  r.outs=60;assert.equal(pc.developmentProgress(p).qualified,true);r.SO=16;assert.equal(pc.developmentProgress(p).qualified,false);
-  r.SO=17;r.ER=9;assert.equal(pc.developmentProgress(p).qualified,false);
+  p.seasonByLevel.second.games={wins:2};Object.assign(r,{outs:59,BF:90,ER:8,SO:0});assert.equal(pc.developmentProgress(p).qualified,false);
+  r.outs=60;assert.equal(pc.developmentProgress(p).qualified,true);p.seasonByLevel.second.games.wins=1;assert.equal(pc.developmentProgress(p).qualified,false);p.seasonByLevel.second.games.wins=2;
+  r.ER=14;assert.equal(pc.developmentProgress(p).qualified,false);
   p.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'batting',reputationBonus:0};
   Object.assign(p.seasonByLevel.second.batting,{PA:80,AB:72,H:25,BB:8,HR:2,'2B':5});assert.equal(pc.developmentProgress(p).qualified,true);
 });
@@ -95,6 +95,7 @@ test('relievers and closers can convert after eight one-inning appearances while
   for(const role of ['중간계투','마무리']){
     const s=developmental(),p=e.getPlayer(s);e.assignRole(p,role);
     const r=p.seasonByLevel.second.pitching;
+    p.seasonByLevel.second.games={holds:5,saves:3};
     assert.equal(pc.developmentProgress(p).pitchingInningsRequired,8);
     // A successful short outing counts toward the same season, without needing
     // starter-sized workloads or credits for simulated innings not pitched.
@@ -103,8 +104,8 @@ test('relievers and closers can convert after eight one-inning appearances while
       assert.equal(pc.developmentProgress(p).qualified,game===7);
     }
     r.outs=23;assert.equal(pc.developmentProgress(p).qualified,false);
-    r.outs=24;r.ER=4;assert.equal(pc.developmentProgress(p).qualified,false);
-    r.ER=3;r.SO=7;assert.equal(pc.developmentProgress(p).qualified,false);
+    r.outs=24;r.ER=6;assert.equal(pc.developmentProgress(p).qualified,false);
+    r.ER=5;r.SO=0;assert.equal(pc.developmentProgress(p).qualified,true);p.seasonByLevel.second.games[role==='마무리'?'saves':'holds']--;assert.equal(pc.developmentProgress(p).qualified,false);p.seasonByLevel.second.games[role==='마무리'?'saves':'holds']++;
     r.BF=50;r.SO=9;assert.equal(pc.developmentProgress(p).qualified,true);
     const stats={...p.stats};
     assert.equal(pc.reviewDevelopmentContract(s),true);assert.equal(p.proContract.status,'regular');
@@ -118,7 +119,7 @@ test('conversion uses the two-way pitching role and ignores first-team or previo
   Object.assign(p.seasonByLevel.first.pitching,{outs:24,BF:40,SO:8});
   p.career.push({year:s.calendar.seasonYear-1,grade:0,records:e.emptyRecord(),stats:{...p.stats},schoolId:p.teamId,schoolName:'전 시즌',byLevel:structuredClone(p.seasonByLevel)});
   assert.equal(pc.developmentProgress(p).qualified,false);
-  Object.assign(p.seasonByLevel.second.pitching,{outs:24,BF:40,SO:8});
+  Object.assign(p.seasonByLevel.second.pitching,{outs:24,BF:40,SO:0});p.seasonByLevel.second.games={saves:3};
   p.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'batting',reputationBonus:0};
   assert.equal(pc.developmentProgress(p).pitchingInningsRequired,20);assert.equal(pc.developmentProgress(p).qualified,false);
   p.twoWay.pitchingPosition='CP';assert.equal(pc.developmentProgress(p).qualified,true);

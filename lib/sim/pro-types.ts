@@ -8,6 +8,7 @@ export type FaTerms={plan:"starter"|"money"|"contender"|"security"|"rebuild"|"co
 export type SalaryContract = { id:string; club:number; startYear:number; endYear:number; salary:number; segments:{from:string;salary:number}[]; source:"rookie"|"renewal"|"fa"|"released";faTerms?:FaTerms };
 export type AgingProfile={version:1;physical:number;peakStart:number;declineStart:number;loss:Partial<Stats>};
 export type ProfessionalPlayer = {
+  nationalBonus?:number;
   allstarBonus?:number;allstarHistory?:AllstarSelection[];
   assessments?:ProSeasonAssessment[];
   lastSquad?:ProSquad;
@@ -29,11 +30,11 @@ export type ProfessionalPlayer = {
   guarantees?:{year:number;club:number;amount:number}[];
   service:{club:number;from:number;to:number}[];
 };
-export type ClubRecords = {first:RecordLine;second:RecordLine;postseason:RecordLine};
+export type ClubRecords = {first:RecordLine;second:RecordLine;postseason:RecordLine;farmPostseason?:RecordLine};
 export type ProAward = {year:number;kind:string;playerId:string;playerName:string;club:number;value:number;category?:"goldGlove"|"mvp";position?:Position|"P";field?:"pitching"|"batting";records?:RecordLine};
 export type Standing = LeagueStanding;
 export type ProIndividualAward={level:"first"|"second";field:"batting"|"pitching";metric:string;label:string;value:number;format?:"rate"|"decimal"|"innings"|"percent";winners:{playerId:string;playerName:string;club:number}[]};
-export type ProSeasonArchive = {year:number;endDate?:string;standings:Standing[];farmStandings:Standing[];champion:number|null;awards:ProAward[];draft:DraftPick[];allstar?:ProAllstarSeason;awardsCeremony?:{version:1;scheduledAt:string;presentedAt?:string};individualAwards?:ProIndividualAward[]};
+export type ProSeasonArchive = {year:number;endDate?:string;standings:Standing[];farmStandings:Standing[];champion:number|null;farmChampion?:number|null;farmPostseason?:{seeds:number[];series:ProSeries[];champion?:number};awards:ProAward[];draft:DraftPick[];allstar?:ProAllstarSeason;awardsCeremony?:{version:1;scheduledAt:string;presentedAt?:string};individualAwards?:ProIndividualAward[]};
 export type ProSeries = {id:string;stage:"wildcard"|"semi"|"playoff"|"final";clubs:[number,number];wins:[number,number];target:number;game:number;lastDate:string;winner?:number;rosters:Record<string,string[]>;excluded:string[];drawHomes?:number[];processedGame?:number};
 export type ContractOffer = {id:string;club:number;year:number;years:number;salary:number;role:string;kind:"renewal"|"fa"|"released";faRetention?:boolean;faTerms?:FaTerms;startingLevel?:ProSquad;lastChance?:true;negotiated:boolean;final:boolean;competition:string[];registration?:"developmental";assessment?:{current:number|null;cumulative:number|null;score:number}};
 export type RetiredNumber={club:number;number:number;playerId:string;playerName:string;date:string;score:number};
@@ -46,6 +47,7 @@ export type ProWorld = {
   clubs:{id:number;direction:"contend"|"balanced"|"rebuild";budget:number;deadMoney:Record<string,number>;nextReview?:string}[];
   seasons:ProSeasonArchive[]; archive:Player[]; retiredRecords?:Record<string,RecordLine>; news:{id:string;date:string;text:string}[];
   postseason?:ProPostseason;
+  farmPostseason?:{seeds:number[];series:ProSeries[];champion?:number};
   postseasonExpansion?:{year:number;clubs:number[];calledUp:string[]};
   openingRosterDate?:string;
   replacedPostseason?:{year:number;date:string;postseason:ProPostseason;games:Game[];competitions:Competition[];records:{playerId:string;records:RecordLine;byClub:Record<string,RecordLine>}[]};

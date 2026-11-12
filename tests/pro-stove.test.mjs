@@ -146,5 +146,5 @@ test('immediate camp entry requires a signed next-season contract and the footer
 });
 test('new pro careers and leap-year calendars include February training and late-March games',()=>{
  const s=pc.createProfessionalDemo('february-camp','캠프검증','SP');assert.equal(s.date.slice(5),'02-01');
- for(const year of [2028,2029]){const c=calendar.developmentCalendar(year,true);assert.ok(c.trainingDays.some(d=>d.startsWith(`${year}-02-`)));assert.ok(c.events.every(g=>g.date>=`${year}-03-22`));}
+ for(const year of [2028,2029]){const c=calendar.developmentCalendar(year,true);assert.ok(c.trainingDays.some(d=>d.startsWith(`${year}-02-`)));assert.ok(c.events.filter(g=>!g.exhibition).every(g=>g.date>=`${year}-03-22`));}
 });

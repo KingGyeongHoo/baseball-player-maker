@@ -11,6 +11,7 @@ const {CareerNoticeDialog}=require('../.test-build/app/components/career-continu
 const Bracket=require('../.test-build/app/components/postseason-bracket.js').default,Dashboard=require('../.test-build/app/components/pro-dashboard.js').default,League=require('../.test-build/app/components/pro-league.js').default;
 e.params['pro_events.enabled']=0;
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('postseason-ladder','가을선수','SS'));
+template.proWorld.farmPostseason={seeds:[10,11,12,13],series:[],champion:10};
 function fixture(){const s=structuredClone(template);s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';life.finishProfessionalDay(s);return s;}
 const round=(s,id)=>s.proWorld.postseason.series.find(v=>v.id===id);
 const next=(s,id)=>{const r=round(s,id);return s.calendar.events.find(g=>g.id===`${s.proWorld.year}:${id}:${r.game-1}`);};

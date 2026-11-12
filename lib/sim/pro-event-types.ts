@@ -1,6 +1,6 @@
 import type {Position,ProSquad,Role,Stats} from "./types";
 export type ProEventChannel="general"|"game"|"major"|"followup"|"external";
-export type ProEventContext={version:1;catalogId:string;channel:ProEventChannel;year:number;playerId:string;teamId:number;level:ProSquad;field:"batting"|"pitching";openedAt:string;chainId?:string;target?:Position;partnerId?:string;gameId?:string;seriesId?:string;injuryKey?:string;nationalYear?:number;wbcYear?:number;sourceStats?:Stats;story?:import("./event-stories").EventStory};
+export type ProEventContext={version:1;catalogId:string;channel:ProEventChannel;year:number;playerId:string;teamId:number;level:ProSquad;field:"batting"|"pitching";openedAt:string;chainId?:string;target?:Position;partnerId?:string;gameId?:string;seriesId?:string;injuryKey?:string;nationalYear?:number;nationalKind?:import("./national-teams").NationalKind;wbcYear?:number;sourceStats?:Stats;story?:import("./event-stories").EventStory};
 export type ProEventRecord={id:string;catalogId:string;date:string;season:number;channel:ProEventChannel;teamId:number;level:ProSquad;budget:boolean;injuryKey?:string;seriesId?:string;chainId?:string};
 export type NationalRosterMember={id:string;position:Position;selectionScore?:number;reputation?:number;roleScore:number};
 export type WbcEntry={sourceYear:number;evaluatedAt:string;roster:NationalRosterMember[];offered:boolean;settled:boolean;skipped?:boolean;participated?:boolean;result?:string};

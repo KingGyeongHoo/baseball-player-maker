@@ -1,3 +1,4 @@
+import {advanceNationalOffseason} from "./national-tournament";
 import {firstTeamAppearances,recordSeasonAssessment,requiresDevelopmentalOffer,seasonExit} from "./pro-assessment";
 import {createProWarContext} from "./pro-war";
 import {ensurePlayableFarmRosters} from "./pro-farm";
@@ -26,6 +27,7 @@ import {needsAllstarScheduleUpgrade,upgradeAllstarSchedule} from "./pro-allstar-
 import {ensureAllstarSeason} from "./pro-allstar";
 import {awardsDate,ensureAwardsCeremony,presentAwardsCeremony} from "./pro-awards-ceremony";
 import {individualAwards} from "./pro-individual-awards";
+import {reviewFarmPostseason} from './pro-farm-postseason';
 import {archiveProfessionalSeason,registerRetiredNumber,retireProfessional} from "./pro-retirement";
 export {archiveProfessionalSeason,retireProfessional} from "./pro-retirement";
 
@@ -119,9 +121,11 @@ export function finishProfessionalDay(s:GameState){
   ensureProWorld(s);const w=s.proWorld!;
   if(s.phase==="ended")return true;
   if(migrateActivePostseason(s))return false;
+  reviewFarmPostseason(s);
   if(w.stage==="camp"&&s.date>=s.calendar.competitions.find(c=>c.id==="pro-first")!.startDate){prepareOpeningRegistrations(s);w.stage="regular";}
   if(w.stage==="regular"&&s.date>=w.regularEnd){
-    const tiePending=["pro-first","pro-second"].map(id=>advanceLeagueTiebreakers(s.calendar,id,s.date)).some(Boolean);
+    if(w.farmPostseason?.champion===undefined&&(!!w.farmPostseason||s.calendar.events.some(g=>g.competitionId==='pro-second'&&['scheduled','inProgress'].includes(g.status))))return false;
+    const tiePending=advanceLeagueTiebreakers(s.calendar,'pro-first',s.date);
     if(tiePending)return false;
     for(const id of ["pro-first","pro-second"]){const competition=s.calendar.competitions.find(c=>c.id===id);if(competition)competition.championTeamId=careerLeagueTable(s.calendar,id)[0]?.teamId??null;}
     w.stage="postseason";const standings=careerLeagueTable(s.calendar,"pro-first"),seeds=standings.slice(0,5).map(v=>v.teamId);w.postseason={format:"kbo-v1",seeds,series:[]};
@@ -168,7 +172,7 @@ export function closeProfessionalSeason(s:GameState){
   applySeasonExitPolicies(s);
   freezeProNational(s);
   for(const p of s.players){if(!p.professional)continue;p.professional.proBonus=0;if(p.professional.employment==="freeAgent")p.professional.unattachedYears++;}
-  const awards=regularAwards(s);w.seasons.push({year:w.year,endDate:s.date,standings:careerLeagueTable(s.calendar,"pro-first"),farmStandings:careerLeagueTable(s.calendar,"pro-second"),champion:w.postseason?.champion??null,awards,draft:[],...(w.allstar?{allstar:structuredClone(w.allstar)}:{})});
+  const awards=regularAwards(s);w.seasons.push({year:w.year,endDate:s.date,standings:careerLeagueTable(s.calendar,"pro-first"),farmStandings:careerLeagueTable(s.calendar,"pro-second"),champion:w.postseason?.champion??null,farmChampion:w.farmPostseason?.champion??null,...(w.farmPostseason?{farmPostseason:structuredClone(w.farmPostseason)}:{}),awards,draft:[],...(w.allstar?{allstar:structuredClone(w.allstar)}:{})});
   const archived=w.seasons.at(-1)!;archived.individualAwards=individualAwards(s);if(awards.some(a=>a.category))archived.awardsCeremony={version:1,scheduledAt:awardsDate(w.year)};
   const p=getPlayer(s),notice=professionalSeasonFinishNotice(s);
   proNotice(s,`season:${w.year}`,notice.title,notice.message,"seasonComplete");
@@ -240,15 +244,16 @@ function processStoveRound(s:GameState){
 export function advanceStoveLeague(s:GameState){
   prepareOffseason(s);const w=s.proWorld!,stove=w.stove!;
   if(w.stage==="retired")return;
-  if(s.careerNotice)return;
+  if(s.careerNotice||s.careerEvent||tryProNationalInvitation(s)||advanceNationalOffseason(s))return;
   if(w.market?.retentionOnly&&!w.market.settled)throw new Error("원소속팀의 마지막 계약 제안 또는 은퇴를 선택해 주세요.");
   if(stove.closed)throw new Error("스토브리그가 마감됐습니다. 최종 계약을 결정한 뒤 2월 캠프로 이동하세요.");
-  const before=s.date;s.date=stove.nextUpdate;
+  const before=s.date;s.date=[s.date,stove.nextUpdate].sort().at(-1)!;
   for(const p of s.players)recoverOffseason(p,before,s.date);
   stove.round++;stove.closed=s.date>=stove.closesAt;stove.nextUpdate=[addDays(s.date,7),stove.closesAt].sort()[0];
   if(w.market)w.market.round=stove.round;
   processStoveRound(s);
   if(w.retired)return;
+  if(tryProNationalInvitation(s))return;
   presentAwardsCeremony(s);
 }
 export function settleNPCFreeAgents(s:GameState,year:number){
@@ -275,8 +280,8 @@ export function canEnterNextProCamp(s:GameState){
 }
 export function continueToNextProCamp(s:GameState){
   const w=s.proWorld!;prepareOffseason(s);
-  while(!w.stove!.closed&&!s.careerNotice)advanceStoveLeague(s);
-  if(s.careerNotice){w.resumeCampAfterAwards=true;return;}
+  while(!w.stove!.closed&&!s.careerNotice&&!s.careerEvent)advanceStoveLeague(s);
+  if(s.careerNotice||s.careerEvent){w.resumeCampAfterAwards=true;return;}
   delete w.resumeCampAfterAwards;startNextProSeason(s);
 }
 export function startNextProSeason(s:GameState,unattached=false){
@@ -289,13 +294,13 @@ export function startNextProSeason(s:GameState,unattached=false){
   const campDate=[s.date,`${year}-02-01`].sort().at(-1)!;
   for(const q of s.players){const pro=q.professional!;recoverOffseason(q,oldDate,campDate);
     if(pro.agedYear<year){q.age=(q.age??19)+1;applyAging(q,year);}
-    q.seasonStats=emptyRecord();q.seasonByLevel={first:emptyRecord(),second:emptyRecord()};q.seasonPostseason=emptyRecord();q.seasonByClub={};q.lastPitched=null;q.recentAppearances=[];q.recentZ=0;
+    q.seasonStats=emptyRecord();q.seasonByLevel={first:emptyRecord(),second:emptyRecord()};q.seasonPostseason=emptyRecord();q.seasonFarmPostseason=emptyRecord();q.seasonSpring=emptyRecord();q.seasonByClub={};q.lastPitched=null;q.recentAppearances=[];q.recentZ=0;
     pro.registration={year,days:0};if(pro.twoWayReview){pro.twoWayReview.qualifiedDays=pro.twoWayReview.belowDays=0;delete pro.twoWayReview.lastDate;}const stint=pro.service.at(-1);if(stint&&pro.employment==="active")stint.to=year;
   }
   for(const club of w.clubs){club.nextReview=campDate;const rank=w.seasons.at(-1)?.standings.findIndex(r=>r.teamId===club.id)??5;club.direction=rank<3?"contend":rank>6?"rebuild":"balanced";}
   s.calendar=developmentCalendar(year,true);s.date=campDate;s.phase="weekStart";s.report=null;s.records=emptyRecord();delete s.weekProgress;delete s.matchProgress;delete s.matchEffect;s.careerEvent=null;delete s.pendingEventOutcome;s.pendingEvents=[];
   for(const team of s.teams){team.wins=0;team.losses=0;team.draws=0;}
-  w.year=year;w.stage="camp";w.regularEnd=s.calendar.competitions.find(c=>c.id==="pro-first")!.endDate;w.seasonClosed=false;delete w.postseason;delete w.market;
+  w.year=year;w.stage="camp";w.regularEnd=s.calendar.competitions.find(c=>c.id==="pro-first")!.endDate;w.seasonClosed=false;delete w.postseason;delete w.farmPostseason;delete w.market;
   for(let club=0;club<10;club++)normalizeFirstTeamRoster(s,club);
   ensurePlayableFarmRosters(s);
   delete w.monthly;delete w.lastMonthly;delete w.allstar;delete w.stove;
@@ -308,7 +313,7 @@ export function actOnProCareer(input:GameState,action:ProAction):GameState{
   if(input.careerNotice||input.careerEvent||input.weekProgress||input.matchProgress)throw new Error("진행 중인 경기·선택·통보를 먼저 마쳐 주세요.");
   const s=structuredClone(input);ensureProWorld(s);const w=s.proWorld!,p=getPlayer(s);const finish=()=>{syncJerseyNumbers(s);if(["market","negotiate","accept"].includes(action.type))capturePlayerEvaluations(s,"contract",[p.id]);return captureEvaluationChange(s,getPlayer(input));};
   if(w.stage==="retired")throw new Error("은퇴한 커리어입니다.");
-  if(tryProNationalInvitation(s))return finish();
+  if(tryProNationalInvitation(s)||advanceNationalOffseason(s))return finish();
   if(action.type==="goal"){if(action.goal)w.customGoal=action.goal;else delete w.customGoal;return finish();}
   if(action.type==="request"){careerRequest(s,action.kind,action.position);return finish();}
   if(!w.seasonClosed)throw new Error("시즌 결산 후 선택할 수 있습니다.");
@@ -337,6 +342,7 @@ export function advanceUnattachedMonth(input:GameState,advance:(s:GameState)=>Ga
 export function upgradeProfessionalState(input:GameState){
   if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===1&&!needsPostseasonUpgrade(input)&&!needsPostseasonRosterUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input))return input;
   const s=structuredClone(input);ensureProWorld(s);upgradeContractRules(s);
+  if(getPlayer(input).professional?.employment==="freeAgent"&&getPlayer(s).professional?.employment==="active")openContractMarket(s);
   migrateActivePostseason(s);
   if(expandPostseasonRosters(s)){
     for(const notice of [s.careerNotice,...s.noticeQueue??[]])if(notice?.code===`PRO10:postseason:${s.proWorld!.year}`)Object.assign(notice,regularSeasonFinishNotice(s));

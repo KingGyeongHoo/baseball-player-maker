@@ -109,7 +109,7 @@ test('multiple stat rewards use the same pre-choice basis and only modify declar
 test('awakening is one result-level draw that replaces every positive effect and preserves other effects',()=>{
   const s=fixture(),p=e.getPlayer(s);for(const key of Object.keys(p.stats))p.stats[key]=40;
   const n=answer(s,'T10',0,[0,.05],true),after=e.getPlayer(n),out=n.careerEventHistory.at(-1);
-  assert.equal(out.awakened.length,11);for(const key of Object.keys(p.stats)){const gain=system.eventAwakeningReward(p,key,8);close(after.stats[key],40+gain);close(out.stats[key],gain);assert.ok(gain>=4.5&&gain<5);}
+  assert.equal(out.awakened.length,11);for(const key of Object.keys(p.stats)){const gain=system.eventAwakeningReward(p,key,8);close(after.stats[key],40+gain);close(out.stats[key],gain);assert.ok(gain>=4.5&&gain<=100-p.stats[key]);}
   assert.deepEqual(after.talent,p.talent);
   const ordinary=answer(fixture(),'T10',0,[.05,1],true).careerEventHistory.at(-1);
   assert.equal(ordinary.awakened.length,4);for(const key of Object.keys(ordinary.stats))close(ordinary.stats[key],system.eventAwakeningReward(e.getPlayer(fixture()),key,4));close(ordinary.fatigue,10);
@@ -151,24 +151,23 @@ test('event effects and reward calculation use only the event RNG and preserve s
   assert.deepEqual(s.players,before.players);assert.equal(n.careerEvent,null);assert.equal(n.careerEventHistory.length,1);
   assert.deepEqual(n,e.answerCareerEvent(s,s.careerEvent.choices[1].id));
 });
-test('national selection uses all grades, exact reputation and ID ties, including 23rd but excluding 24th',()=>{
-  const s=fixture(),p=e.getPlayer(s);p.grade=2;p.reputation=80.1;
-  for(const other of s.players)if(other.id!==p.id){other.reputation=1;other.grade=1;}
-  const others=s.players.filter(other=>other.id!==p.id);for(const other of others.slice(0,22))other.reputation=80.2;
-  assert.ok(system.tryNationalEvent(s));assert.equal(s.careerEvent.definitionId,'P08');
-  const excluded=fixture(),me=e.getPlayer(excluded);me.grade=2;me.reputation=80.1;for(const other of excluded.players)other.reputation=1;me.reputation=80.1;
-  for(const other of excluded.players.filter(o=>o.id!==me.id).slice(0,23)){other.reputation=80.2;other.grade=1;}
-  assert.equal(system.tryNationalEvent(excluded),false);
-  const tied=fixture(),ranked=[...tied.players].sort((a,b)=>a.id.localeCompare(b.id));for(const other of tied.players)other.reputation=50;
-  tied.playerId=ranked[22].id;ranked[22].grade=2;assert.ok(system.tryNationalEvent(tied));
-  tied.careerEvent=null;tied.eventLedger.nationalGrades=[];tied.playerId=ranked[23].id;ranked[23].grade=2;assert.equal(system.tryNationalEvent(tied),false);
+test('youth selection ranks fifteen per field across all grades in September and freezes the announced roster',()=>{
+  const s=fixture(),p=e.getPlayer(s);s.date='2027-09-01';p.grade=1;p.reputation=80.1;
+  for(const other of s.players)if(other.id!==p.id)other.reputation=1;
+  const others=s.players.filter(other=>other.id!==p.id&&!e.isPitcher(other.primaryRole));for(const other of others.slice(0,14))other.reputation=80.2;
+  assert.ok(system.tryNationalEvent(s));assert.equal(s.careerEvent.definitionId,'P08');assert.equal(s.nationalTeams[0].roster.length,30);
+  const excluded=fixture(),me=e.getPlayer(excluded);excluded.date='2027-09-01';for(const other of excluded.players)other.reputation=1;me.reputation=80.1;
+  for(const other of excluded.players.filter(o=>o.id!==me.id&&!e.isPitcher(o.primaryRole)).slice(0,15))other.reputation=80.2;
+  assert.equal(system.tryNationalEvent(excluded),false);me.reputation=100;assert.equal(system.tryNationalEvent(excluded),false);
 });
-test('national offers ignore weekly chance, occur once per eligible grade and never occur after career end',()=>{
-  const s=fixture(),p=e.getPlayer(s);p.reputationBonus=50;p.reputation=e.reputationScore(p);assert.equal(system.tryNationalEvent(s),false);p.grade=2;
+
+test('youth offers ignore weekly chance, occur once per September and never after career end',()=>{
+  const s=fixture(),p=e.getPlayer(s);p.reputationBonus=100;p.reputation=e.reputationScore(p);assert.equal(system.tryNationalEvent(s),false);s.date='2027-09-01';
   assert.ok(withParams({'events.weekly_chance':0},()=>system.tryNationalEvent(s)));forceRolls(s,[0,.25]);
-  let n=e.answerCareerEvent(s,'choice-1');assert.equal(system.tryNationalEvent(n),false);e.getPlayer(n).grade=3;assert.ok(system.tryNationalEvent(n));
-  n.careerEvent=null;n.eventLedger.nationalGrades=[];n.phase='ended';assert.equal(system.tryNationalEvent(n),false);
+  let n=e.answerCareerEvent(s,'choice-1');assert.equal(system.tryNationalEvent(n),false);n.date='2028-09-01';n.calendar.seasonYear=2028;e.getPlayer(n).grade=2;assert.ok(system.tryNationalEvent(n));
+  n.careerEvent=null;n.phase='ended';assert.equal(system.tryNationalEvent(n),false);
 });
+
 test('national injury lasts 14 days, blocks training, and never shortens an existing worse injury',()=>{
   const s=fixture(),p=e.getPlayer(s);p.grade=2;s.eventLedger={recent:[],centerGrades:[],nationalGrades:[2],competitions:[],games:[]};
   const injured=answer(s,'P08',0,[.2875,.525]),q=e.getPlayer(injured);assert.equal(q.injury.unavailableUntil,e.addDays(s.date,14));assert.equal(q.injury.severity,'moderate');
@@ -225,21 +224,19 @@ test('a benched pitcher never sees a mound choice and a lost scheduled opportuni
   const s=gameFixture('SP'),p=e.getPlayer(s);for(const other of s.players.filter(other=>other.teamId===p.teamId))for(const key of Object.keys(other.stats))other.stats[key]=100;for(const key of Object.keys(p.stats))p.stats[key]=1;
   schedule(s,'G04');const n=e.advanceWeek(s,p.trainingPolicy,p.stance);assert.equal(n.careerEvent,null);assert.equal(e.getPlayer(n).seasonStats.pitching.BF,0);assert.equal(n.week,s.week+1);
 });
-test('national call-up has priority over a planned scene and its injury cancels impossible player activity',()=>{
-  const s=gameFixture('SP'),p=e.getPlayer(s);p.grade=2;p.reputationBonus=100;p.reputation=100;schedule(s,'G04');
+test('national call-up has priority over a club scene and participation reserves domestic appearances',()=>{
+  const s=gameFixture('SP'),p=e.getPlayer(s);p.grade=2;p.reputationBonus=100;p.reputation=100;s.date='2027-09-01';s.calendar.events[0].date=s.date;s.calendar.trainingDays=Array.from({length:7},(_,i)=>e.addDays(s.date,i));schedule(s,'G04');
   const called=e.advanceWeek(s,p.trainingPolicy,p.stance);assert.equal(called.careerEvent.definitionId,'P08');assert.equal(called.matchProgress,undefined);
   forceRolls(called,[.2875,.525]);const injured=e.answerCareerEvent(called,'choice-1'),resumed=fullWeek(injured);
-  assert.equal(e.getPlayer(resumed).seasonStats.pitching.BF,0);assert.ok(e.getPlayer(resumed).injury);assert.deepEqual(resumed.careerEventHistory.map(o=>o.definitionId),['P08']);
+  assert.equal(e.getPlayer(resumed).seasonStats.pitching.BF,0);assert.equal(injured.careerEventHistory[0].definitionId,'P08');assert.equal(injured.careerEventHistory[0].injury,undefined);assert.ok(!resumed.careerEventHistory.some(o=>o.definitionId==='G04'));
 });
-test('a new qualification after a scene is checked immediately and an injured pending pitcher is substituted before any pitch',()=>{
+test('reputation earned outside September cannot trigger an out-of-season youth invitation',()=>{
   const s=gameFixture('SP'),p=e.getPlayer(s);p.grade=2;p.reputationBonus=-50;p.reputation=e.reputationScore(p);schedule(s,'G04');
   const scene=e.advanceWeek(s,p.trainingPolicy,p.stance);assert.equal(scene.careerEvent.definitionId,'G04');
-  scene.careerEvent.choices[0].outcomes=[{weight:100,message:'새로운 평가',reputation:100}];const chosen=e.answerCareerEvent(scene,'choice-1');
-  const called=e.advanceWeek(chosen,p.trainingPolicy,p.stance);assert.equal(called.careerEvent.definitionId,'P08');assert.ok(called.matchProgress);
-  forceRolls(called,[.2875,.525]);const resumed=fullWeek(e.answerCareerEvent(called,'choice-1'));
-  assert.equal(e.getPlayer(resumed).seasonStats.pitching.BF,0);assert.equal(resumed.calendar.events[0].status,'completed');assert.equal(resumed.matchProgress,undefined);
-  assert.deepEqual(resumed.careerEventHistory.map(o=>o.definitionId),['G04','P08']);
+  scene.careerEvent.choices[0].outcomes=[{weight:100,message:'새로운 평가',reputation:100}];
+  const resumed=fullWeek(e.answerCareerEvent(scene,'choice-1'));assert.equal(resumed.calendar.events[0].status,'completed');assert.equal(resumed.matchProgress,undefined);assert.ok(!resumed.careerEventHistory.some(row=>row.definitionId==='P08'));
 });
+
 test('match probability changes are percentage points with valid conditional hit-type intervals',()=>{
   const base={bb:.2,hit:.3,hr:.1,k:.4,double:.2,triple:.1};const changed=system.applyMatchEffect(base,{hit:.02,bb:-.025,hr:.04,k:-.02});close(changed.hit,.32);close(changed.bb,.175);close(changed.hr,.14);close(changed.k,.38);
   const bounded=system.applyMatchEffect(base,{hit:2,bb:-2,hr:2,k:2});assert.equal(bounded.hit,1);assert.equal(bounded.bb,0);assert.equal(bounded.k,1);close(bounded.hr+bounded.double+bounded.triple,1);assert.deepEqual(base,{bb:.2,hit:.3,hr:.1,k:.4,double:.2,triple:.1});

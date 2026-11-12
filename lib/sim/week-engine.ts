@@ -1,3 +1,5 @@
+import {playNationalDay} from "./national-tournament";
+import {nationalAway} from "./national-teams";
 import {proGameTeam} from "./pro-farm-roster";
 import { tryTrainingFocus } from "./training-focus";
 import { finishCompetitionDay, prepareCompetitions } from "./calendar";
@@ -22,6 +24,8 @@ import {upgradeProSchedule} from "./pro-schedule";
 import type {RecentReputationCache} from "./engine";
 import {upgradeAllstarSchedule,allstarDates} from "./pro-allstar-calendar";
 import {allstarGameOn,allstarRules,finishAllstarDay,playAllstarDay,prepareAllstarDay} from "./pro-allstar";
+import {ensureSpringSchedule} from './pro-spring';
+import {tryScheduledNational} from "./national-teams";
 import {tryWbcInvitation} from "./pro-wbc";
 
 export function refreshWeekReport(s: GameState) {
@@ -62,7 +66,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
     if (p.recentAppearances.some(record => !Array.isArray(record))) p.recentAppearances = p.recentAppearances.map(packRecentRecord);
   }
   ensureProWorld(s);
-  upgradeProSchedule(s);
+  upgradeProSchedule(s);ensureSpringSchedule(s);
   upgradeAllstarSchedule(s);
   tickProEvents(s);
   const reputationCache:RecentReputationCache=new Map();
@@ -99,7 +103,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       prepareCompetitions(s.calendar, date, s.seed);
       const games = s.calendar.events.filter(g => g.date === date && g.status === "scheduled");
       const playingTeams = new Set(games.flatMap(g => [g.homeTeamId, g.awayTeamId]));
-      for (const p of s.players) if (p.id !== s.playerId) npcPolicy(p, date, playingTeams.has(s.careerMode==="pro"?proGameTeam(p):p.teamId));
+      for (const p of s.players) if (p.id !== s.playerId) npcPolicy(p, date, playingTeams.has(s.careerMode==="pro"?proGameTeam(p):p.teamId)||games.some(g=>g.exhibition==='spring'&&p.teamId>=0&&[g.homeTeamId,g.awayTeamId].includes(p.teamId%10)));
       progress.day = { phase: "beforeGames", fatigue: { date, start: player.fatigue, training: 0, game: 0, recovered: 0, peak: player.fatigue, end: player.fatigue, events: 0 },
         recovery: [], active: [], appearances: [], gameIds: games.map(g => g.id), gameIndex: 0, playerIndex: 0 };
       if (joinPendingTransfer(s)) {
@@ -118,7 +122,11 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
     if (day.phase === "beforeGames") {
       // Registration reviews can move NPCs without opening a user notice.
       rosters=s.teams.map(()=>[]);for(const p of s.players)if(p.teamId>=0)rosters[p.teamId].push(p);
-      if(tryWbcInvitation(s))return pause();
+      if(tryWbcInvitation(s)||tryScheduledNational(s))return pause();
+      const beforeNational=player.fatigue,nationalPaused=playNationalDay(s);
+      day.fatigue.game+=player.fatigue-beforeNational;
+      for(const entry of s.nationalTeams??[])for(const g of entry.tournament?.games??[])if(g.date===s.date&&!g.national?.carried)for(const [id,r] of Object.entries(g.boxScore))if(r.batting.PA||r.pitching.BF){if(!day.active.includes(id))day.active.push(id);if(!day.appearances.includes(id))day.appearances.push(id);}
+      if(nationalPaused)return pause();
       if(prepareAllstarDay(s))return pause();
       const beforeAllstar=player.fatigue,allstarPaused=playAllstarDay(s);
       day.fatigue.game+=player.fatigue-beforeAllstar;
@@ -132,7 +140,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       if(s.careerMode==="pro"){rosters=s.teams.map(()=>[]);for(const p of s.players)if(p.teamId>=0)rosters[p.teamId].push(p);}
       if(s.careerMode==="pro"&&(reviewProRoleTrial(s,proMajorDueToday(s))||s.careerNotice))return pause();
       if (tryDevelopmentEvent(s)) return pause();
-      if (tryCareerOpportunity(s)) return pause();
+      if (!nationalAway(s,player)&&tryCareerOpportunity(s)) return pause();
       if (openScheduledEvent(s, "beforeGames")) return pause();
       day.phase = "games";
     }
@@ -149,8 +157,8 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
           : game.score[0] === game.score[1] ? random(s, "match") < .5 ? game.homeTeamId : game.awayTeamId : game.score[0] > game.score[1] ? game.homeTeamId : game.awayTeamId;
         const home = s.teams[game.homeTeamId], away = s.teams[game.awayTeamId];
         const outcome = game.status === "forfeit" ? game.forfeitTeamId === home.id ? -1 : 1 : Math.sign(game.score[0] - game.score[1]);
-        if(!game.competitionId.startsWith("pro-playoffs-")&&!game.tiebreaker){if (outcome > 0) { home.wins++; away.losses++; } else if (outcome < 0) { home.losses++; away.wins++; } else { home.draws++; away.draws++; }}
-        if ([game.homeTeamId, game.awayTeamId].includes(player.teamId)) report.games.push(game.id);
+        if(!game.exhibition&&!game.competitionId.startsWith("pro-farm-playoffs-")&&!game.competitionId.startsWith("pro-playoffs-")&&!game.tiebreaker){if (outcome > 0) { home.wins++; away.losses++; } else if (outcome < 0) { home.losses++; away.wins++; } else { home.draws++; away.draws++; }}
+        if ([game.homeTeamId, game.awayTeamId].includes(game.exhibition==='spring'?player.teamId%10:proGameTeam(player))) report.games.push(game.id);
         day.gameIndex++;
       }
       finishCompetitionDay(s.calendar, date);
@@ -164,17 +172,17 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       const active = new Set(day.active), appearances = new Set(day.appearances);
       const playingTeams = new Set(day.gameIds.flatMap(id => { const g = s.calendar.events.find(game => game.id === id)!; return [g.homeTeamId, g.awayTeamId]; }));
       const evaluationPlayers=new Set(day.gameIds.flatMap(id=>s.calendar.events.find(game=>game.id===id)?.evaluationPlayers??[]));
-      const exhibitionPlayers=new Set(Object.entries(allstarGameOn(s)?.boxScore??{}).filter(([,r])=>r.batting.PA||r.pitching.BF).map(([id])=>id));
+      const exhibitionPlayers=new Set([...Object.entries(allstarGameOn(s)?.boxScore??{}),...day.gameIds.flatMap(id=>{const g=s.calendar.events.find(g=>g.id===id);return g?.exhibition==='spring'?Object.entries(g.boxScore):[];})].filter(([,r])=>r.batting.PA||r.pitching.BF).map(([id])=>id));
       const allstarRest=s.careerMode==="pro"&&date>=allstarDates(s.calendar.seasonYear).restStart&&date<=allstarDates(s.calendar.seasonYear).restEnd;
       while (day.playerIndex < s.players.length) {
         const p = s.players[day.playerIndex];
         if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
-        if (p.id === s.playerId && (openProGeneralEvent(s) || tryTrainingFocus(s) || openScheduledEvent(s, "training"))) { day.active = [...active]; return pause(); }
+        if (p.id === s.playerId && ((!nationalAway(s,p)&&openProGeneralEvent(s)) || tryTrainingFocus(s) || openScheduledEvent(s, "training"))) { day.active = [...active]; return pause(); }
         const injured = !!p.injury && date < p.injury.unavailableUntil;
         let trained = false;
         if (p.id === s.playerId && injured) s.injuryDays++;
         if (training && available(p, date) && ticketsUsed(p.trainingPolicy) && !(p.id===s.playerId && day.skipPlayerTraining)) {
-          const hasGame = playingTeams.has(s.careerMode==="pro"?proGameTeam(p):p.teamId)||evaluationPlayers.has(p.id)||exhibitionPlayers.has(p.id);
+          const hasGame = nationalAway(s,p)||playingTeams.has(s.careerMode==="pro"?proGameTeam(p):p.teamId)||evaluationPlayers.has(p.id)||exhibitionPlayers.has(p.id);
           const a = hasGame ? appearances.has(p.id) ? params["training.game_fraction"] : params["training.bench_fraction"] : 1;
           train(p, a);
           if (p.id === s.playerId && p.transferAdaptation?.weeksRemaining) progress.adaptationTrained = true;
@@ -215,10 +223,13 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
     recordEvaluationDay(s);capturePlayerEvaluations(s);
     finishAllstarDay(s);
     if (finishDevelopmentSeason(s)) {if(s.phase==="ended")capturePlayerEvaluations(s,"season-end");break;}
-    if (!s.careerMode && player.grade === 3 && date >= s.calendar.draftDate) {
+    if(!s.careerMode&&player.grade===3&&date>=s.calendar.draftDate&&!s.draftEvaluatedAt){
+      updateReputation(s,reputationCache);capturePlayerEvaluations(s,"draft",s.players.filter(p=>p.grade===3).map(p=>p.id));s.draft=draftPlayers(s);s.draftEvaluatedAt=date;
+    }
+    if (!s.careerMode && player.grade === 3 && date >= s.calendar.draftDate && !s.nationalTeams?.some(e=>e.kind==='youth'&&e.year===s.calendar.seasonYear&&e.tournament&&!e.tournament.finished)) {
       updateReputation(s,reputationCache);
       capturePlayerEvaluations(s,"draft",s.players.filter(p=>p.grade===3).map(p=>p.id));
-      s.draft = draftPlayers(s); s.phase = "ended";
+      s.phase = "ended";
       s.draftOutcome = {revealed:false,offer:developmentalOffer(s)};
       s.pendingEvents = [{ type: "draft", date, playerId: s.playerId }]; report.messages.push("고교 3시즌의 여정이 끝났습니다. 드래프트 결과를 확인하세요.");
       break;

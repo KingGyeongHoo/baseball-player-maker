@@ -4,6 +4,7 @@ import { buildCalendar } from "./calendar";
 import { seededPlayerName } from "./player-names";
 import { createSchool, recruitmentProfile, updateSchoolPrestige } from "./school-recruiting";
 import {createTalentCohort,talentFromRoll} from "./talent-generation";
+import {talentBand,talentMultiplier} from './talent';
 import { draftPlayers as selectSchoolDraft } from "./draft";
 import { simulateGame } from "./match-engine";
 import { advanceWeek, refreshWeekReport } from "./week-engine";
@@ -228,7 +229,7 @@ export function train(p: Player, a: number) {
     }
     const pitching = ["velocity", "control", "movement"].includes(key);
     const talent = p.talent[pitching ? "pitching" : "batting"];
-    const mult = params["talent.min_mult"] + (talent - 1) / 9 * (params["talent.max_mult"] - params["talent.min_mult"]);
+    const mult = talentMultiplier(talent,params['talent.min_mult'],params['talent.max_mult']);
     p.stats[key] = clamp(limitPhysicalGrowth(p,key,p.stats[key] + (params["training.base"] + g) * mult * slowdown(p.stats[key]) * growthDays * professionalGrowth(p,key) / params["training.days"]), 1);
   }
   p.stats.bq = clamp(p.stats.bq + params["training.bq"] * slowdown(p.stats.bq) * growthDays * professionalGrowth(p,"bq") / params["training.days"], 1);
@@ -249,7 +250,7 @@ export function roleScore(p:Player,role=p.primaryRole){
 export const reputationScore = (p: Player) => p.careerMode==="pro"||p.professional?null:reputationBreakdown(p).total;
 export function talentLabel(p: Player, type: "batting" | "pitching") {
   const n = p.talentExposure[type];
-  return n < params["talent.hint"] ? "미상" : n < params["talent.reveal"] ? p.talent[type] <= 3 ? "낮음" : p.talent[type] <= 7 ? "보통" : "높음" : `${p.talent[type]} / 10`;
+  return n < params["talent.hint"] ? "미상" : n < params["talent.reveal"] ? talentBand(p.talent[type]).label : `${p.talent[type]} / 10`;
 }
 function makePlayer(s: GameState, teamId: number, grade: number, index: number, year: number, pos: Position, talent?:Player["talent"]): Player {
   const recruitment = recruitmentProfile(s.teams[teamId]);

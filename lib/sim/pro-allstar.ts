@@ -1,3 +1,4 @@
+import {nationalAway} from "./national-teams";
 import {available,clamp,emptyRecord,getPlayer,hash,isPitcher,params,roleFor,roleScore,selectionScore,simulateGame} from "./engine";
 import {eventTrainingReward} from "./event-system";
 import {clearProfessionalReputation} from "./pro-selection";
@@ -88,7 +89,7 @@ export function finalizeAllstars(s:GameState){
   const used=new Set<string>();
   for(const level of allstarLevels)for(const side of allstarSides){
     if(season.levels[level].cancelled)continue;
-    const target=season.levels[level][side],players=pool(s,level,side).filter(p=>available(p,s.date)&&p.fatigue<85);
+    const target=season.levels[level][side],players=pool(s,level,side).filter(p=>available(p,s.date)&&p.fatigue<85&&!nationalAway(s,p));
     for(const slot of allstarSlots){
       const candidates=allstarBallot(s,level,side,slot).map(row=>players.find(p=>p.id===row.playerId)).filter((p):p is Player=>!!p&&!used.has(p.id)&&fits(p,slot));
       const best=candidates[0]??players.filter(p=>!used.has(p.id)&&fits(p,slot)).sort((a,b)=>allstarMerit(b,level,slot)-allstarMerit(a,level,slot)||a.id.localeCompare(b.id))[0];
@@ -114,7 +115,7 @@ function replaceUnavailable(s:GameState,level:AllstarLevel){
   for(const side of allstarSides){const target=season.levels[level][side];
     for(let i=target.roster.length-1;i>=0;i--){
       const row=target.roster[i],p=s.players.find(p=>p.id===row.playerId);
-      if(p?.professional?.employment==="active"&&available(p,s.date)&&p.fatigue<85)continue;
+      if(p?.professional?.employment==="active"&&available(p,s.date)&&p.fatigue<85&&!nationalAway(s,p))continue;
       target.withdrawn.push(row.playerId);const history=p?.professional?.allstarHistory?.find(r=>r.year===season.year);if(history)history.withdrawn=true;
       const candidates=pool(s,level,side).filter(p=>!used.has(p.id)&&available(p,s.date)&&p.fatigue<85);
       const replacement=candidates.filter(p=>fits(p,row.slot)).sort((a,b)=>allstarMerit(b,level,row.slot)-allstarMerit(a,level,row.slot)||a.id.localeCompare(b.id))[0]??(row.method!=="vote"?candidates.sort((a,b)=>allstarMerit(b,level)-allstarMerit(a,level)||a.id.localeCompare(b.id))[0]:undefined);
@@ -189,7 +190,7 @@ export function playAllstarDay(s:GameState){
   entry.resultShown=true;const mvp=entry.mvp?.playerId===mine.id;
   if(params["pro_events.enabled"]===0)return false;
   const precision=isPitcher(mine.primaryRole)?"control":"contact";
-  userEvent(s,`AS-RESULT-${level}`,mvp?"미스터 올스타에 선정됐다":"올스타의 하루를 마쳤다",`BLUE ${entry.game!.score[0]} : ${entry.game!.score[1]} WHITE · ${mine.name} ${line.batting.PA}타석 ${line.batting.H}안타 ${line.batting.HR}홈런 / ${Math.floor(line.pitching.outs/3)}.${line.pitching.outs%3}이닝 ${line.pitching.SO}탈삼진. ${entry.mvp?`미스터 올스타: ${entry.mvp.name}.`:""} ${mvp?"추가 평판 보상이 반영됐다.":"정규 성적과 분리해 이 무대를 커리어에 남겼다."}`, [
+  userEvent(s,`AS-RESULT-${level}`,mvp?"미스터 올스타에 선정됐다":"올스타의 하루를 마쳤다",`BLUE ${entry.game!.score[0]} : ${entry.game!.score[1]} WHITE · ${mine.name} ${line.batting.AB}타수 ${line.batting.H}안타 ${line.batting.HR}홈런 / ${Math.floor(line.pitching.outs/3)}.${line.pitching.outs%3}이닝 ${line.pitching.SO}탈삼진. ${entry.mvp?`미스터 올스타: ${entry.mvp.name}.`:""} ${mvp?"추가 평판 보상이 반영됐다.":"정규 성적과 분리해 이 무대를 커리어에 남겼다."}`, [
     {id:"remember",label:mvp?"별들의 무대에서 받은 박수를 기억한다":"함께한 무대를 기억한다",outcomes:[{weight:100,message:"올스타전의 기록과 경험을 간직하고 후반기를 준비한다."}]},
     {id:"review",label:"교류하며 배운 기술을 짧게 복습한다",outcomes:[{weight:30,message:"동료의 조언이 실제 승부 장면과 연결되며 감각으로 남았다.",weeks:{[precision]:1},fatigue:1},{weight:70,message:"경험을 노트에 남기고 충분한 회복을 준비했다."}]},
   ]);

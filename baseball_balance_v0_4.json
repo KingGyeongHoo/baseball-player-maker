@@ -126,7 +126,7 @@
     {
       "key": "talent.min",
       "label": "재능 최솟값",
-      "value": 1,
+      "value": 0,
       "unit": "점",
       "status": "채택 방향",
       "note": "대화에서 채택한 설계 방향"

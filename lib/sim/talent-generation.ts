@@ -1,11 +1,11 @@
 import type {Player} from "./types";
 
 // Primary and secondary talents each use this national intake of 1,000.
-export const talentIntake=[250,200,160,130,100,70,45,25,15,5] as const;
+export const talentIntake=[250,200,160,130,100,70,35,25,15,10,5] as const;
 const total=talentIntake.reduce((sum,n)=>sum+n,0);
 export function talentFromRoll(roll:number){
   const value=Math.max(0,Math.min(1,roll))*total;let cumulative=0;
-  for(let i=0;i<talentIntake.length;i++){cumulative+=talentIntake[i];if(value<cumulative)return i+1;}
+  for(let i=0;i<talentIntake.length;i++){cumulative+=talentIntake[i];if(value<cumulative)return i;}
   return 10;
 }
 
@@ -21,8 +21,8 @@ export function createTalentCohort(candidates:{id:string;pitching:boolean;bias:n
     const ranked=candidates.map(candidate=>{const u=roll();return {...candidate,priority:u+candidate.bias*u*(1-u)};})
       .sort((a,b)=>a.priority-b.priority||a.id.localeCompare(b.id));
     let index=0;
-    for(let talent=1;talent<=counts.length;talent++)for(let n=0;n<counts[talent-1];n++){
-      const p=ranked[index++],value=result.get(p.id)??{batting:1,pitching:1};
+    for(let talent=0;talent<counts.length;talent++)for(let n=0;n<counts[talent];n++){
+      const p=ranked[index++],value=result.get(p.id)??{batting:0,pitching:0};
       value[p.pitching!==secondary?"pitching":"batting"]=talent;result.set(p.id,value);
     }
   }

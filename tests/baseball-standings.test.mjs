@@ -33,8 +33,8 @@ test('unfinished or future regular games do not generate premature tiebreakers',
  const c=calendar();game(c,0,1);const g=game(c,1,0);g.status='inProgress';assert.equal(advanceLeagueTiebreakers(c,'pro-first','2028-09-10'),false);assert.ok(!c.events.some(g=>g.tiebreaker));
 });
 test('pro seasons have Monday off and two three-game series per week with balanced home dates',()=>{
- for(const year of [2028,2030]){const c=developmentCalendar(year,true);assert.equal(c.events.length,1080);assert.ok(c.events.every(g=>new Date(g.date).getUTCDay()!==1));assert.ok(c.trainingDays.every(d=>new Date(d).getUTCDay()!==1));
-  for(let team=0;team<20;team++){const games=c.events.filter(g=>[g.homeTeamId,g.awayTeamId].includes(team));assert.equal(games.length,team<10?144:72);assert.equal(games.filter(g=>g.homeTeamId===team).length,games.length/2);
+ for(const year of [2028,2030]){const c=developmentCalendar(year,true);assert.equal(c.events.length,1350);assert.ok(c.events.filter(g=>!g.exhibition).every(g=>new Date(g.date).getUTCDay()!==(g.competitionId==='pro-second'?4:1)));assert.ok(c.trainingDays.every(d=>new Date(d).getUTCDay()!==1));
+  for(let team=0;team<20;team++){const games=c.events.filter(g=>!g.exhibition&&[g.homeTeamId,g.awayTeamId].includes(team));assert.equal(games.length,team<10?144:117);assert.ok(Math.abs(games.filter(g=>g.homeTeamId===team).length-games.length/2)<=.5);if(team>=10)continue;
     for(let i=0;i<games.length;i+=3){const set=games.slice(i,i+3);assert.equal(set.length,3);assert.ok([2,5].includes(new Date(set[0].date).getUTCDay()));assert.ok(set.every(g=>g.homeTeamId===set[0].homeTeamId&&g.awayTeamId===set[0].awayTeamId));assert.equal(set[2].date,e.addDays(set[0].date,2));if(i>=3)assert.notEqual(games[i-3].homeTeamId+games[i-3].awayTeamId,set[0].homeTeamId+set[0].awayTeamId);}
   }
  }
@@ -44,5 +44,5 @@ test('old future schedules are rebuilt without changing completed games, counts 
  for(const g of c.events)if(g.date<s.date){g.status='completed';g.score=[2,1];}
  const completed=structuredClone(c.events.filter(g=>g.status==='completed')),counts=Array.from({length:20},(_,id)=>c.events.filter(g=>[g.homeTeamId,g.awayTeamId].includes(id)).length);
  assert.equal(needsProScheduleUpgrade(s),true);assert.equal(upgradeProSchedule(s),true);assert.deepEqual(c.events.filter(g=>g.status==='completed'),completed);assert.deepEqual(Array.from({length:20},(_,id)=>c.events.filter(g=>[g.homeTeamId,g.awayTeamId].includes(id)).length),counts);
- assert.ok(c.events.filter(g=>g.status==='scheduled').every(g=>new Date(g.date).getUTCDay()!==1));assert.equal(upgradeProSchedule(s),false);
+ assert.ok(c.events.filter(g=>g.status==='scheduled'&&!g.exhibition).every(g=>new Date(g.date).getUTCDay()!==(g.competitionId==='pro-second'?4:1)));assert.equal(upgradeProSchedule(s),false);
 });

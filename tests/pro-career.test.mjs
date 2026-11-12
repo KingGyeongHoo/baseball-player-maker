@@ -69,10 +69,10 @@ test('pro entry focuses former high-school two-way players below the pro thresho
   assert.ok(mean(n.players.filter(p=>p.teamId<10))>e.ovr(q)+10);
 });
 
-test('pro calendar has 144 first-team and 72 second-team games per club, balanced home/away and no same-day conflicts',()=>{
-  const c=developmentCalendar(2030,true);assert.equal(c.events.length,1080);assert.equal(c.sourceKind,'fictional');
+test('pro calendar has 144 first-team, 117 second-team and nine spring games per club, balanced home/away and no same-day conflicts',()=>{
+  const c=developmentCalendar(2030,true);assert.equal(c.events.length,1350);assert.equal(c.sourceKind,'fictional');
   const dates=new Set();for(const g of c.events){for(const id of [g.homeTeamId,g.awayTeamId]){const key=`${g.date}:${id}`;assert.ok(!dates.has(key));dates.add(key);}assert.notEqual(g.homeTeamId,g.awayTeamId);}
-  for(let id=0;id<20;id++){const games=c.events.filter(g=>[g.homeTeamId,g.awayTeamId].includes(id));assert.equal(games.length,id<10?144:72);assert.equal(games.filter(g=>g.homeTeamId===id).length,games.length/2);}
+  for(let id=0;id<20;id++){const games=c.events.filter(g=>!g.exhibition&&[g.homeTeamId,g.awayTeamId].includes(id));assert.equal(games.length,id<10?144:117);assert.ok(Math.abs(games.filter(g=>g.homeTeamId===id).length-games.length/2)<=.5);}
   assert.equal(c.seasonEnd,c.events.at(-1).date);assert.ok(c.trainingDays.every(date=>date<=c.seasonEnd));
 });
 
@@ -117,7 +117,7 @@ test('pro games commit first/second records only when completed and sum to the s
   const s=fixture(),p=e.getPlayer(s);for(const key of Object.keys(p.stats))p.stats[key]=95;
   for(const level of ['first','second']) {
     const team=level==='first'?0:10;p.teamId=team;p.lastPitched=null;
-    const g=s.calendar.events.find(g=>[g.homeTeamId,g.awayTeamId].includes(team));s.date=g.date;
+    const g=s.calendar.events.find(g=>!g.exhibition&&[g.homeTeamId,g.awayTeamId].includes(team));s.date=g.date;
     assert.equal(e.simulateGame(s,g,[g.homeTeamId,g.awayTeamId].map(id=>s.players.filter(p=>p.teamId===id))),true);assert.equal(g.status,'completed');assert.ok(p.seasonByLevel[level].batting.PA>0);
   }
   const sum=e.emptyRecord();e.mergeRecord(sum,p.seasonByLevel.first);e.mergeRecord(sum,p.seasonByLevel.second);assert.deepEqual(sum,p.seasonStats);
@@ -149,15 +149,15 @@ test('college keeps legacy development events with normal training-week rewards 
   assert.equal(tryDevelopmentEvent(resumed),false);assert.ok(e.getPlayer(resumed).stats.contact>=p.stats.contact);
 });
 
-test('full pro rookie season completes all 1080 games with bounded depth recruitment, level records and no extra draft/promotion years',{timeout:90000},()=>{
+test('full pro rookie season completes all 1305 regular games plus spring and farm playoffs with bounded depth recruitment, level records and no extra draft/promotion years',{timeout:90000},()=>{
   let s=pc.acknowledgeCareer(pc.createProfessionalDemo('full-rookie-test','신인','SP'));const originalIds=new Set(s.players.map(p=>p.id)),stats={...e.getPlayer(s).stats},school=s.postSchool.graduationSchool;
   let guard=0;
   while(s.phase!=='ended'&&guard++<100){if(s.careerNotice)s=pc.acknowledgeCareer(s);if(s.careerEvent)s=e.answerCareerEvent(s,s.careerEvent.choices.at(-1).id);s=advance(s);}
-  assert.equal(s.phase,'ended');assert.equal(s.date,s.calendar.seasonEnd);assert.ok([...originalIds].every(id=>s.players.some(p=>p.id===id)));assert.ok(s.players.filter(p=>!originalIds.has(p.id)).every(p=>p.id.startsWith('farm-depth:')));assert.equal(s.calendar.events.filter(g=>!g.competitionId.startsWith('pro-playoffs-')&&!g.tiebreaker&&['completed','forfeit'].includes(g.status)).length,1080);assert.ok(s.calendar.events.some(g=>g.competitionId.startsWith('pro-playoffs-')));
+  assert.equal(s.phase,'ended');assert.equal(s.date,s.calendar.seasonEnd);assert.ok([...originalIds].every(id=>s.players.some(p=>p.id===id)));assert.ok(s.players.filter(p=>!originalIds.has(p.id)).every(p=>p.id.startsWith('farm-depth:')));assert.equal(s.calendar.events.filter(g=>['pro-first','pro-second'].includes(g.competitionId)&&!g.tiebreaker&&['completed','forfeit'].includes(g.status)).length,1305);assert.ok(s.calendar.events.some(g=>g.competitionId.startsWith('pro-playoffs-')));
   for(let club=0;club<10;club++){const active=s.players.filter(p=>p.teamId>=0&&p.teamId%10===club);assert.ok(active.length<=75);assert.ok(active.filter(p=>p.teamId>=10).length<=45);assert.ok(active.filter(p=>p.teamId===club+10).length<=30);}
   const farmGames=s.calendar.events.filter(g=>g.competitionId==='pro-second'&&!g.tiebreaker);
-  assert.equal(farmGames.length,360);assert.ok(farmGames.every(g=>g.status==='completed'),'all farm games need actual completed records, not forfeits');
-  assert.ok(s.calendar.competitions.every(c=>c.championTeamId!==null));const p=e.getPlayer(s);assert.equal(p.career[0].schoolName,school);assert.ok(p.stats.velocity>=stats.velocity);
+  assert.equal(farmGames.length,585);assert.ok(farmGames.every(g=>g.status==='completed'),'all farm games need actual completed records, not forfeits');
+  assert.ok(s.calendar.competitions.filter(c=>c.id!=='pro-spring').every(c=>c.championTeamId!==null));const p=e.getPlayer(s);assert.equal(p.career[0].schoolName,school);assert.ok(p.stats.velocity>=stats.velocity);
   const sum=e.emptyRecord();e.mergeRecord(sum,p.seasonByLevel.first);e.mergeRecord(sum,p.seasonByLevel.second);assert.deepEqual(p.seasonStats,sum);assert.ok(p.seasonStats.pitching.BF>0);
   assert.equal(s.careerNotice.kind,'seasonComplete');assert.throws(()=>advance(s),/종료/);assert.throws(()=>pc.continueCareer(pc.acknowledgeCareer(s),'join'),/계약 화면/);
 });

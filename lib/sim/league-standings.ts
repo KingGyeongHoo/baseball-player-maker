@@ -17,12 +17,12 @@ export function leagueStandings(calendar:Calendar,id:string,group?:number):Leagu
     }
   }
   const resolved=(a:number,b:number)=>{const tie=competition?.tiebreaks?.find(t=>t.done&&t.teams.includes(a)&&t.teams.includes(b));return tie?tie.ordered.indexOf(a)-tie.ordered.indexOf(b):0;};
-  const table=[...rows.values()].sort((a,b)=>compareLeagueRecords(a,b)||resolved(a.teamId,b.teamId)||a.teamId-b.teamId),leader=table[0];
+  const table=[...rows.values()].sort((a,b)=>compareLeagueRecords(a,b)||resolved(a.teamId,b.teamId)||(id==="pro-second"?b.difference-a.difference:0)||a.teamId-b.teamId),leader=table[0];
   table.forEach((row,i)=>{
     row.percentage=row.wins+row.losses?row.wins/(row.wins+row.losses):0;
     row.gamesBehind=i?((leader.wins-row.wins)+(row.losses-leader.losses))/2:0;
-    row.tiePending=table.some(other=>other!==row&&compareLeagueRecords(row,other)===0&&resolved(row.teamId,other.teamId)===0);
-    row.rank=i&&compareLeagueRecords(table[i-1],row)===0&&!resolved(table[i-1].teamId,row.teamId)?table[i-1].rank:i+1;
+    row.tiePending=id!=="pro-second"&&table.some(other=>other!==row&&compareLeagueRecords(row,other)===0&&resolved(row.teamId,other.teamId)===0);
+    row.rank=id!=="pro-second"&&i&&compareLeagueRecords(table[i-1],row)===0&&!resolved(table[i-1].teamId,row.teamId)?table[i-1].rank:i+1;
   });return table;
 }
 const add=(date:string,n:number)=>new Date(Date.parse(date)+n*86400000).toISOString().slice(0,10);
@@ -37,9 +37,9 @@ function schedule(calendar:Calendar,competition:Competition,tie:LeagueTiebreak,d
 // Resolve equal winning percentages and wins through actual games, never run
 // differential or team ID. Multi-team ties use match-based binary insertion.
 export function advanceLeagueTiebreakers(calendar:Calendar,id:string,date:string){
-  const competition=calendar.competitions.find(c=>c.id===id);if(!competition||competition.kind!=="league"||id.startsWith("pro-playoffs-"))return false;
+  const competition=calendar.competitions.find(c=>c.id===id);if(!competition||competition.kind!=="league"||id==="pro-second"||id.startsWith("pro-farm-playoffs-")||id.startsWith("pro-playoffs-"))return false;
   const regular=calendar.events.filter(g=>g.competitionId===id&&!g.tiebreaker);
-  if(!regular.length)return false;
+  if(!regular.length||regular.some(g=>g.exhibition))return false;
   if(competition.participantTeamIds.some(id=>!regular.some(g=>g.homeTeamId===id||g.awayTeamId===id)))return false;
   if(!competition.tiebreaks){
     if(date<competition.endDate||regular.some(g=>!["completed","forfeit"].includes(g.status)))return false;

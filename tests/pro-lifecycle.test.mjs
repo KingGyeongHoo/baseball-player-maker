@@ -8,6 +8,7 @@ const {eventTrainingReward}=require('../.test-build/lib/sim/event-system.js');
 const {encodeCareerSave,decodeCareerSave,validateCareerState}=require('../.test-build/lib/career-save.js');
 e.params['pro_events.enabled']=0;
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('lifecycle-tests','긴커리어','SS'));
+template.proWorld.farmPostseason={seeds:[10,11,12,13],series:[],champion:10};
 const fixture=()=>{const s=structuredClone(template),p=e.getPlayer(s);p.teamId=p.teamId%10+10;s.postSchool.pro.level='second';return s;},close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 const acknowledge=s=>{while(s.careerNotice)s=pc.acknowledgeCareer(s);return s;};
 function summary(){const s=fixture();s.date=s.proWorld.regularEnd;life.closeProfessionalSeason(s);return acknowledge(s);}

@@ -10,14 +10,14 @@ const batting = ['contact', 'power', 'speed', 'defense'];
 const mean = values => values.reduce((sum, n) => sum + n, 0) / values.length;
 const initialOvr = (p, pitch) => e.ovr({ ...p, stats: p.initialStats }, pitch);
 const talents=(players,secondary=false)=>players.map(p=>p.talent[e.isPitcher(p.primaryRole)!==secondary?'pitching':'batting']);
-const histogram=values=>Array.from({length:10},(_,i)=>values.filter(n=>n===i+1).length);
+const histogram=values=>Array.from({length:11},(_,i)=>values.filter(n=>n===i).length);
 
 test('every fresh school class has exactly the descending 1,000-player talent intake in both primary and secondary skills',()=>{
  const s=e.createGame('pyramid-intake','피라미드','SP');
  assert.equal(talentIntake.reduce((sum,n)=>sum+n,0),1000);
  for(let i=1;i<talentIntake.length;i++)assert(talentIntake[i]<talentIntake[i-1]);
  for(const grade of [1,2,3])for(const secondary of [false,true])assert.deepEqual(histogram(talents(s.players.filter(p=>p.grade===grade),secondary)),[...talentIntake]);
- const main=talents(s.players.filter(p=>p.grade===1));assert.equal(mean(main),3.27);
+ const main=talents(s.players.filter(p=>p.grade===1));assert.equal(mean(main),2.305);
 });
 
 test('new annual school intake uses the pyramid without rerolling surviving or saved players',()=>{
@@ -33,7 +33,7 @@ test('new annual school intake uses the pyramid without rerolling surviving or s
 test('standalone and professional NPC generation use the same rare high-talent probabilities without elite-school inflation',()=>{
  assert.deepEqual(histogram(Array.from({length:1000},(_,i)=>talentFromRoll((i+.5)/1000))),[...talentIntake]);
  const players=Array.from({length:1000},(_,i)=>createCareerNPC(`pyramid-pro-${i}`,i%20,i,'pro',i%20<10,i%2?'SP':'SS'));
- const values=talents(players),counts=histogram(values);assert(mean(values)>3&&mean(values)<3.55);assert(counts[9]<20);assert(counts[0]>counts[4]&&counts[4]>counts[9]);
+ const values=talents(players),counts=histogram(values);assert(mean(values)>2&&mean(values)<2.6);assert(counts[9]<20);assert(counts[0]>counts[4]&&counts[4]>counts[9]);
 });
 
 test('professional annual rookies are selected from a pyramid cohort rather than 1,000 elite-school rolls',()=>{

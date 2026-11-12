@@ -261,8 +261,13 @@
 .calendar-reference p { margin: 5px 0; }
 .calendar-reference a { display: inline-block; color: var(--navy); margin-right: 18px; text-underline-offset: 3px; }
 .bracket-details { margin-top: 15px; font-size: 12px; }
-.bracket-rounds { display: flex; gap: 20px; overflow: auto; max-height: 550px; padding: 12px 0; align-items: start; }
-.bracket-round { flex: 0 0 210px; }
+.bracket-rounds { overflow: auto; max-height: 550px; padding: 12px 0; }
+.bracket-canvas { display:flex; gap:20px; align-items:stretch; width:max-content; min-width:100%; }
+.bracket-round { flex: 0 0 210px; display:flex; flex-direction:column; }
+.bracket-matches { flex:1; display:flex; flex-direction:column; justify-content:space-around; gap:10px; }
+.bracket-matches .bracket-game { flex-shrink:0; margin-bottom:0; }
+.national-rosters { margin-bottom:20px; }
+.national-rosters .panel-heading label { display:flex; align-items:center; gap:8px; }
 .bracket-round h4 { margin: 0 0 10px; font-size: 12px; color: var(--navy); }
 .bracket-round h4 span { float: right; color: var(--muted); font-weight: 400; }
 .bracket-game { border: 1px solid var(--line); border-radius: 3px; margin-bottom: 10px; background: #fafbfd; }
@@ -868,20 +873,40 @@ h3 {
 .stat-bar-row small {
   font-size: 10px;
 }
-.talent-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 23px;
+.player-talents {
+  margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid #e9ecf1;
-  font-size: 10px;
-  color: #8c94a2;
+  border-top: 1px solid var(--line);
+  min-width: 0;
 }
-.talent-row b {
-  padding-left: 10px;
-  color: #5d6778;
+.talent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
+.talent-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  min-width: 0;
+  border: 1px solid #e7eaf0;
+  border-radius: 5px;
+  background: #f8f9fb;
+}
+.talent-caption { font-size: 11px; color: #687383; font-weight: 600; }
+.talent-value { padding: 4px 9px; border-radius: 4px; font-size: 13px; line-height: 1.5; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.talent-unknown { color: #7c8592; background: #edf0f4; }
+.talent-none { color: #17191d; background: #e6e8eb; }
+.talent-low { color: #747b87; background: #e9ecf0; }
+.talent-normal { color: #936c05; background: #fff1bf; }
+.talent-high { color: #bb5515; background: #ffead6; }
+.talent-genius { color: #c52f34; background: #ffe6e8; }
+.talent-note { margin: 10px 0 0; color: #798391; font-size: 10px; line-height: 1.7; }
+.training-settings-body>.player-talents,.season-records>.player-talents { margin-bottom: 20px; }
+.season-records>.player-talents { max-width: 440px; }
+.training-settings-body .player-talents { margin-top: 0; padding-top: 0; border-top: 0; margin-bottom: 20px; }
 .player-card>.micro {
   margin-top: 10px;
   font-size: 9px;
@@ -2167,10 +2192,6 @@ tbody tr:last-child td {
   min-width: 52px;
   text-align: right;
 }
-.all-stats+.talent-row {
-  margin: 0 23px;
-  padding-top: 16px;
-}
 .draft-hero {
   padding: 38px 36px;
   margin-bottom: 25px;
@@ -2822,10 +2843,6 @@ tbody tr:last-child td {
   .setup-grid .ovr strong {
     font-size: 42px;
   }
-  .setup-grid .talent-row {
-    margin-top: 20px;
-    padding-top: 14px;
-  }
   .setup-grid .player-card>.micro,.setup-grid>.panel .panel-heading>.small {
     display: none;
   }
@@ -3108,7 +3125,7 @@ tbody tr:last-child td {
     padding: 16px 20px;
     font-size: 9px;
   }
-  .training-layout .player-card,.training-layout .side-column .condition-note {
+  .training-layout .side-column .condition-note {
     display: none;
   }
   .game-list {
@@ -4343,3 +4360,8 @@ tbody tr:last-child td {
     animation-duration: .01ms!important;
   }
 }
+
+.national-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.national-tabs button{padding:7px 10px;border:1px solid var(--line,#d6dce3);border-radius:8px;background:transparent;color:inherit;font-size:12px}.national-tabs button.selected{background:#152b4b;color:#fff}.national-rounds{display:flex;gap:18px;overflow:auto;padding:12px 0;align-items:stretch;max-width:100%}.national-round{min-width:235px;display:flex;flex-direction:column;justify-content:space-around;gap:12px}.national-round h3{font-size:14px}.national-knockout{display:flex;flex:1;flex-direction:column;justify-content:space-around;gap:14px}.national-knockout .bracket-game{margin:auto 0;min-width:230px}.national-awards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:12px 0}.national-awards article{display:flex;flex-direction:column;gap:7px;padding:12px;background:var(--soft,#edf2f7);border-radius:8px}.national-awards small{font-size:11px}.national-tournament{min-width:0}.national-tournament details{margin:8px 0}.national-tournament td details{max-width:280px;font-size:12px}
+
+.international-upcoming{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;padding:16px}.international-upcoming article{display:flex;flex-direction:column;gap:7px;padding:14px;border:1px solid var(--line,#d6dce3);border-radius:10px}.international-upcoming small,.international-upcoming span{font-size:12px;color:var(--muted,#6b7280)}.international-hub{display:grid;gap:18px;min-width:0}
+.national-tournament{margin:0 16px 16px}.national-rounds{max-height:610px}.national-round{height:560px;flex-shrink:0}.national-round:has(table){overflow-y:auto;justify-content:flex-start;padding-right:6px}.national-round h3{flex-shrink:0;position:sticky;top:0;z-index:1;background:var(--panel,#fff);padding:6px 0;margin:0}.national-knockout{min-height:0}.national-round .table-scroll{flex-shrink:0}

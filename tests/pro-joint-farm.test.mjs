@@ -22,12 +22,12 @@ function player(s,id,position,team,score=60){
 function roster(s,club){
  return [...positions,...Array(5).fill('SP'),...Array(5).fill('RP'),'CP'].map((pos,i)=>player(s,`club-${club}-${i}`,pos,club+10,55));
 }
-test('every third-team player joins the farm game pool without registration changes, while first-team and developmental players stay out',()=>{
+test('second, third and developmental squads share the farm pool without registration changes, while first-team players stay out',()=>{
  const s=fixture(),mine=e.getPlayer(s),club=mine.teamId%10;mine.teamId=club+20;
- const first=s.players.find(p=>p.teamId===club),dev=player(s,'developmental-outside-pool','SP',club+30,90);s.players.push(dev);assert.ok(first);
+ const first=s.players.find(p=>p.teamId===club),dev=player(s,'developmental-in-farm','SP',club+30,90);s.players.push(dev);assert.ok(first);
  const before=new Map(s.players.map(p=>[p.id,p.teamId])),pool=farmGameRoster(s,club+10);
- assert.ok(pool.includes(mine));assert.ok(!pool.includes(first));assert.ok(!pool.includes(dev));
- assert.equal(pool.length,s.players.filter(p=>[club+10,club+20].includes(p.teamId)).length);
+ assert.ok(pool.includes(mine));assert.ok(!pool.includes(first));assert.ok(pool.includes(dev));
+ assert.equal(pool.length,s.players.filter(p=>[club+10,club+20,club+30].includes(p.teamId)).length);
  assert.deepEqual(new Map(s.players.map(p=>[p.id,p.teamId])),before);
 });
 test('second-team registration outranks a stronger third-team player at the same current position for hitters, rotation and relief',()=>{

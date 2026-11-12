@@ -52,7 +52,8 @@ export function contractPlacement(s:GameState,p:Player,club:number,developmental
   const first=members.filter(q=>q.teamId===club),lower=members.filter(q=>q.teamId>=10),second=lower.filter(q=>q.teamId===club+10),moves:{player:Player;level:ProSquad}[]=[];
   const capacity=firstTeamRosterCapacity(s,club);
   const prior=proSquad(p.teamId)??p.professional?.lastSquad??p.professional?.assessments?.at(-1)?.squad;
-  const desired=developmental?(p.teamId>=10&&p.teamId<20&&startingLevel!=="developmental"?"second":"developmental"):startingLevel??prior??(lower.length>=45&&first.length<capacity?"first":second.length<30?"second":"third");
+  const requested=developmental?(p.teamId>=10&&p.teamId<20&&startingLevel!=="developmental"?"second":"developmental"):startingLevel??prior??(lower.length>=45&&first.length<capacity?"first":second.length<30?"second":"third");
+  const desired=!developmental&&requested==='developmental'?'third':requested;
   if(desired==="first"&&(p.teamId>=20||p.teamId<0&&(prior==="third"||prior==="developmental")))return null;
   const rosterDate=`${s.proWorld!.year+(s.proWorld!.seasonClosed?1:0)}-03-01`;
   const movable=(q:Player)=>q.id!==s.playerId&&!guaranteedProStarter(q,q.position,s.date)&&!guaranteedProStarter(q,q.position,rosterDate);

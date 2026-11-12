@@ -62,7 +62,7 @@ test('qualified relievers rank the top ten holds and saves separately by level',
 });
 
 test('starter and bullpen qualification uses separate out boundaries for rates, holds and saves in both leagues',()=>{
- for(const [level,games] of [['first',144],['second',72]]){
+ for(const [level,games] of [['first',144],['second',117]]){
   const s=fixture(),competition=level==='first'?'pro-first':'pro-second';
   for(const game of s.calendar.events.filter(g=>g.competitionId===competition)){game.status='completed';game.score=[3,1];}
   for(const [role,multiplier] of [['선발',3],['중간계투',1],['마무리',1]])for(const short of [false,true]){

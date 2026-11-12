@@ -1,3 +1,6 @@
+import {openNationalMatchChoice} from "./national-tournament";
+import {springRoster,springLineup,springPriority,springSelectionScore} from './pro-spring';
+import {nationalAway} from './national-teams';
 import {currentProPosition} from "./pro-positions";
 import {farmGameRoster,farmSelectionTier} from "./pro-farm-roster";
 import { accumulation, advanceRunners, available, clamp, effective, emptyRecord, hash, isPitcher, mergeRecord, params, pitchingRole, probabilities, random, roleFor, selectionScore } from "./engine";
@@ -12,22 +15,26 @@ import type {ProAppearance} from "./pro-event-types";
 import {packRecentRecord,recentSample} from "./recent-records";
 import {finishGameRecords,pitcherEntered,recordLeadChange} from "./game-records";
 import {proBullpenPlan,proMatchParameters,proPitcherOutLimit,proRecentTeamGames,proReliefPriority,proReliefReady} from './pro-balance';
+import {farmPlayoffRoster,isFarmPostseason} from './pro-farm-postseason';
 import {stolenBaseAttempt} from './base-stealing';
 
 // Every cursor and runner is serializable: returning at a choice never replays
 // an inning, consumes a match draw early, or commits a partial game twice.
 export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boolean {
-  const pro=s.careerMode==='pro',configuration=pro?proMatchParameters(params):params;
+  const regulation=game.national?.youth?7:params["match.regular_innings"];
+  const pro=s.careerMode==='pro',tier=(p:Player)=>game.exhibition==='spring'?springPriority(s,p):farmSelectionTier(p),configuration=pro?proMatchParameters(params):params;
   if(game.status==="completed"||game.status==="forfeit")return true;
-  if(game.competitionId==="pro-second")rosters=[game.homeTeamId,game.awayTeamId].map(team=>farmGameRoster(s,team,game.evaluationPlayers));
-  rosters=rosters.map(roster=>playoffRosterFor(s,game,roster));
+  if(game.competitionId==="pro-second")rosters=[game.homeTeamId,game.awayTeamId].map(team=>farmGameRoster(s,team));
+  if(isFarmPostseason(game.competitionId))rosters=farmPlayoffRoster(s,game);
+  if(game.exhibition==='spring')rosters=[game.homeTeamId,game.awayTeamId].map(team=>springRoster(s,team));
+  rosters=rosters.map(roster=>playoffRosterFor(s,game,roster).filter(p=>!nationalAway(s,p,game.date)));
   const players = new Map(rosters.flat().map(p => [p.id, p]));
   const player = (id: string) => {const p=players.get(id);if(!p)throw new Error(`경기 명단 누락: ${id} / ${game.id} / 소속 ${s.players.find(p=>p.id===id)?.teamId}`);return p;};
   if (!s.matchProgress) {
     recordEvaluationEnvironment(s,game,rosters);
     const prepared=game.proPreparedLineup;
     const valid=prepared?.every(side=>[...side.field,...side.order,...side.pitchers,side.starter].every(id=>players.has(id))&&(!pro||pitchingRole(player(side.starter))==='선발'));
-    const sides = prepared&&valid?prepared.map(side=>({field:side.field.map(player),order:side.order.map(player),starter:player(side.starter),pitchers:side.pitchers.map(player)})):rosters.map(roster => professionalLineup(s,roster,game.date,game.evaluationPlayers));
+    const sides = prepared&&valid?prepared.map(side=>({field:side.field.map(player),order:side.order.map(player),starter:player(side.starter),pitchers:side.pitchers.map(player)})):rosters.map(roster => game.exhibition==='spring'?springLineup(s,roster,game.date):professionalLineup(s,roster,game.date,game.evaluationPlayers));
     if (sides.some(side => side.field.length < 9 || !side.starter)) {
       game.status = "forfeit";
       game.forfeitTeamId = sides[0].field.length < 9 || !sides[0].starter ? game.homeTeamId : game.awayTeamId;
@@ -65,7 +72,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   const pregame=new Map(m.original.map(p=>[p.id,p]));
   const bullpenPlans=m.sides.map((side,index)=>proBullpenPlan(rosters[index].filter(p=>isPitcher(pitchingRole(p))).map(p=>{
     const original=pregame.get(p.id);return original?{...p,fatigue:original.fatigue,lastPitched:original.lastPitched}:p;
-  }),s.seed,game.date,index,recentTeamGames[index],new Set(side.pitchers)));
+  }),s.seed,game.date,index,recentTeamGames[index],new Set(side.pitchers),new Set(game.evaluationPlayers??[])));
   const line = (p: Player) => game.boxScore[p.id] ??= emptyRecord();
   const forfeit = (side: number) => {
     game.status = "forfeit"; game.forfeitTeamId = side === 0 ? game.homeTeamId : game.awayTeamId;
@@ -79,17 +86,18 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   const finishHalf = () => {
     game.innings[m.battingSide].push(m.runs);
     if (m.battingSide === 0) {
-      if (m.inning >= params["match.regular_innings"] && game.score[0] !== game.score[1]) ended = true;
+      if (m.inning >= regulation && game.score[0] !== game.score[1]) ended = true;
       m.inning++; m.battingSide = 1;
     } else m.battingSide = 0;
     m.outs = 0; m.pa = 0; m.runs = 0; m.bases = [null, null, null]; m.ready = false;
   };
-  const maxInnings=game.exhibition?9:game.competitionId.startsWith("pro-playoffs-")?15:params["match.max_innings"];
+  const maxInnings=game.national?Number.POSITIVE_INFINITY:game.exhibition?9:game.competitionId.startsWith("pro-playoffs-")?15:params["match.max_innings"];
   while (m.inning <= maxInnings && !ended) {
     const side = m.battingSide, pitchingSide = 1 - side;
-    if (side === 0 && m.inning >= params["match.regular_innings"] && game.score[0] > game.score[1] && m.pa === 0) break;
+    if (side === 0 && m.inning >= regulation && game.score[0] > game.score[1] && m.pa === 0) break;
     if (m.outs >= 3) { finishHalf(); continue; }
     if (m.ready && !available(player(m.pitchers[pitchingSide]), game.date)) { m.ready = false; m.pa--; }
+    if(game.national&&m.inning>regulation&&m.pa===0&&m.outs===0&&!m.bases.some(Boolean)){const order=m.sides[side].order,index=(m.battingIndex[side]+8)%9;m.bases[1]={playerId:order[index],pitcherId:m.pitchers[pitchingSide]};}
     if (!m.ready) {
       if (++m.pa > params["match.max_pa"]) throw new Error(`타석 안전 한도 초과: seed=${s.seed}, game=${game.id}`);
       const current = player(m.pitchers[pitchingSide]);
@@ -115,10 +123,10 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
         const priority=(p:Player)=>{
           if(pro&&!game.exhibition)return proReliefPriority(p,game.date,m.inning,lead,closerId,longReliefId,setupId,bridgeId,recentTeamGames[pitchingSide].length);
           const closing=!game.exhibition&&p.id===closerId?(m.inning>=9&&lead>=1&&lead<=3?100:-100):0;
-          return closing+selectionScore(p,pitchingRole(p));
+          return closing+(game.exhibition==='spring'?springSelectionScore(p):selectionScore(p,pitchingRole(p)));
         };
         const next = saveEntry?unused.find(p=>p.id===closerId):(rested.length?rested:pool)
-          .sort((a, b) => (pro?farmSelectionTier(a)-farmSelectionTier(b):0)||Number(game.evaluationPlayers?.includes(b.id)??false)-Number(game.evaluationPlayers?.includes(a.id)??false)||priority(b)-priority(a)||a.id.localeCompare(b.id))[0];
+          .sort((a, b) => Number(game.evaluationPlayers?.includes(b.id)??false)-Number(game.evaluationPlayers?.includes(a.id)??false)||(pro?tier(a)-tier(b):0)||priority(b)-priority(a)||a.id.localeCompare(b.id))[0];
         if (next) { pitcherEntered(m,game,next.id,pitchingSide);m.pitchers[pitchingSide] = next.id; m.usedPitchers[pitchingSide].push(next.id); m.pitchOuts[pitchingSide] = 0; }
         else if(!saveEntry&&!(pro&&!starter&&available(current,game.date)&&current.fatigue<params['coach.replace_fatigue']&&m.pitchOuts[pitchingSide]<15))return forfeit(pitchingSide);
       }
@@ -146,7 +154,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     if(game.exhibition&&m.inning>=4){
       const fieldIndex=m.sides[side].field.indexOf(batter.id),position=(["C","SS","CF","2B","1B","3B","LF","RF","DH"] as Position[])[fieldIndex];
       const substitute=rosters[side].filter(p=>!isPitcher(p.primaryRole)&&available(p,game.date)&&!game.lineup[side].includes(p.id)&&p.eligiblePositions.includes(position))
-        .sort((a,b)=>(pro?farmSelectionTier(a)-farmSelectionTier(b):0)||Number(pro&&currentProPosition(b,position))-Number(pro&&currentProPosition(a,position))||selectionScore(b,roleFor(position))-selectionScore(a,roleFor(position))||a.id.localeCompare(b.id))[0];
+        .sort((a,b)=>(pro?tier(a)-tier(b):0)||Number(pro&&currentProPosition(b,position))-Number(pro&&currentProPosition(a,position))||selectionScore(b,roleFor(position))-selectionScore(a,roleFor(position))||a.id.localeCompare(b.id))[0];
       if(substitute){m.sides[side].field[fieldIndex]=substitute.id;m.sides[side].order[orderIndex]=substitute.id;game.lineup[side].push(substitute.id);batter=substitute;
         m.defense[side]=m.sides[side].field.slice(0,8).reduce((sum,id)=>sum+effective(player(id)).defense,0)/8;
         m.arm[side]=[2,6,7].reduce((sum,i)=>sum+effective(player(m.sides[side].field[i])).arm/3,0);
@@ -156,11 +164,12 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       const fieldIndex = m.sides[side].field.indexOf(batter.id);
       const position = (["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH"] as Position[])[fieldIndex];
       const substitute = rosters[side].filter(p => available(p, game.date) && p.twoWay?.nextAssignment !== "pitching" && !m.sides[side].field.includes(p.id) && !m.usedPitchers[side].includes(p.id) && p.eligiblePositions.includes(position))
-        .sort((a, b) => (pro?farmSelectionTier(a)-farmSelectionTier(b):0)||Number(pro&&currentProPosition(b,position))-Number(pro&&currentProPosition(a,position))||selectionScore(b, roleFor(position)) - selectionScore(a, roleFor(position)) || a.id.localeCompare(b.id))[0];
+        .sort((a, b) => (pro?tier(a)-tier(b):0)||Number(pro&&currentProPosition(b,position))-Number(pro&&currentProPosition(a,position))||selectionScore(b, roleFor(position)) - selectionScore(a, roleFor(position)) || a.id.localeCompare(b.id))[0];
       if (!substitute) return forfeit(side);
       m.sides[side].field[fieldIndex] = substitute.id; m.sides[side].order[orderIndex] = substitute.id; game.lineup[side].push(substitute.id); batter = substitute;
     }
-    const scene={
+    if(openNationalMatchChoice(s,game,batter,pitcher))return false;
+    const scene ={
       gameId: game.id, inning: m.inning, battingSide: side, outs: m.outs, score: [...game.score], batting: batter.id === s.playerId,
       bases: m.bases.map(runner => runner ? player(runner.playerId).name : null), batterName: batter.name, pitcherName: pitcher.name,batterId:batter.id,pitcherId:pitcher.id,
     };
@@ -223,17 +232,19 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   for (const [id, record] of Object.entries(game.boxScore)) {
     if(s.careerMode==="pro"&&(record.batting.PA||record.pitching.BF||record.pitching.outs)){const p=player(id),side=m.sides.findIndex(row=>row.field.includes(id)||row.pitchers.includes(id));(game.proAppearances??={})[id]=m.proStarts?.[id]??{teamId:side===0?game.homeTeamId:game.awayTeamId,level:game.competitionId.startsWith("pro-playoffs-")?"postseason":game.competitionId==="pro-first"?"first":"second",position:p.position,startedField:false,startedPitching:false};}
     if(game.evaluationEnvironment)(game.evaluationEnvironment.playerTeams??={})[id]=game.proAppearances?.[id]?.teamId??player(id).teamId;
-    const p=player(id),postseason=game.competitionId.startsWith("pro-playoffs-");
+    const p=player(id),farmPostseason=isFarmPostseason(game.competitionId),postseason=game.competitionId.startsWith("pro-playoffs-")||farmPostseason;
+    if(game.exhibition==='spring'){p.seasonSpring??=emptyRecord();mergeRecord(p.seasonSpring,record);continue;}
     if(!postseason)mergeRecord(p.seasonStats,record);
     if(s.careerMode==="pro") {
       p.seasonByLevel ??= {first:emptyRecord(),second:emptyRecord()};
-      if(postseason){p.seasonPostseason??=emptyRecord();mergeRecord(p.seasonPostseason,record);}else mergeRecord(p.seasonByLevel[game.competitionId==="pro-first"?"first":"second"],record);
-      const club=String(p.teamId%10);p.seasonByClub??={};p.seasonByClub[club]??={first:emptyRecord(),second:emptyRecord(),postseason:emptyRecord()};mergeRecord(p.seasonByClub[club][postseason?"postseason":game.competitionId==="pro-first"?"first":"second"],record);
+      if(farmPostseason){p.seasonFarmPostseason??=emptyRecord();mergeRecord(p.seasonFarmPostseason,record);}else if(postseason){p.seasonPostseason??=emptyRecord();mergeRecord(p.seasonPostseason,record);}else mergeRecord(p.seasonByLevel[game.competitionId==="pro-first"?"first":"second"],record);
+      const club=String(p.teamId%10);p.seasonByClub??={};p.seasonByClub[club]??={first:emptyRecord(),second:emptyRecord(),postseason:emptyRecord()};const clubRecords=p.seasonByClub[club];if(farmPostseason)clubRecords.farmPostseason??=emptyRecord();mergeRecord(clubRecords[farmPostseason?'farmPostseason':postseason?"postseason":game.competitionId==="pro-first"?"first":"second"]!,record);
       if(p.professional&&(record.batting.PA||record.pitching.BF||record.pitching.outs)){
         p.professional.lastAppearance=game.date;
+        if(game.evaluationPlayers?.includes(p.id)){p.professional.lastEvaluation=game.date;delete p.professional.requestedEvaluationUntil;}
         if(game.competitionId==="pro-first"){
           const first=p.professional.firsts,debuts=!first.debut;first.debut??=game.date;if(game.lineup.some(side=>side.slice(0,10).includes(id)))first.start??=game.date;
-          if(debuts&&id===s.playerId)proNotice(s,"first-team-debut","첫 1군 경기의 기록을 남겼습니다",`${game.date} · 실제 1군 경기에서 ${record.batting.PA}타석·${record.pitching.BF}타자를 상대했습니다. 능력 보너스 없이 이 순간을 커리어에 보관합니다.`);
+          if(debuts&&id===s.playerId)proNotice(s,"first-team-debut","첫 1군 경기의 기록을 남겼습니다",`${game.date} · 실제 1군 경기에서 ${record.batting.AB}타수·${record.pitching.BF}타자를 상대했습니다. 능력 보너스 없이 이 순간을 커리어에 보관합니다.`);
           if(record.batting.H)first.hit??=game.date;if(record.batting.HR)first.homeRun??=game.date;if(record.pitching.SO)first.strikeout??=game.date;
         }
       }

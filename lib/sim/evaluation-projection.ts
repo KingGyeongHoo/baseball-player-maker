@@ -1,4 +1,5 @@
 import {statKeys,type Stat,type Stats} from "./types";
+import {talentMultiplier} from './talent';
 import type {EvaluationProjection,EvaluationSnapshot} from "./player-evaluation-types";
 
 const batter:Stat[]=["contact","power","speed","defense"],pitcher:Stat[]=["velocity","control","movement"];
@@ -23,7 +24,7 @@ export function evaluationProjections(report:EvaluationSnapshot,configuration:Re
       const physical=neutral<8/35?1:2;
       for(const k of statKeys){
         const field=pitcher.includes(k)?"pitching":"batting",known=report.publicTalent[field],talent=scenario===0?known.min:scenario===2?known.max:(known.min+known.max)/2;
-        const mult=c["talent.min_mult"]+(talent-1)/9*(c["talent.max_mult"]-c["talent.min_mult"]);
+        const mult=talentMultiplier(talent,c['talent.min_mult'],c['talent.max_mult']);
         const allocation=report.twoWay?1:(report.role==="선발"||report.role==="중간계투"||report.role==="마무리"?pitcher:batter).includes(k)?2:0;
         const adaptation=date-start<report.health.transferWeeks*step?.9:1;
         const days=c["training.days"]*participation*efficiency*developmental*(report.health.unattached?.6:1)*adaptation*fraction;

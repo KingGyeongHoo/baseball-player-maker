@@ -48,7 +48,7 @@ test('camp shortcut pauses for the December ceremony and confirming resumes dire
 });
 
 test('winner presentation uses snapshotted season records even after an offseason position or club change',()=>{
- const s=closed();s.date='2028-12-06';ceremonies.presentAwardsCeremony(s);const season=s.proWorld.seasons[0],html=renderToStaticMarkup(createElement(SeasonAwards,{state:s,season}));assert.ok(html.includes('550타석'));assert.ok(html.includes('180.0이닝'));assert.ok(html.includes('나'));
+ const s=closed();s.date='2028-12-06';ceremonies.presentAwardsCeremony(s);const season=s.proWorld.seasons[0],html=renderToStaticMarkup(createElement(SeasonAwards,{state:s,season}));assert.ok(html.includes('500타수'));assert.ok(html.includes('180.0이닝'));assert.ok(html.includes('나'));
  for(const p of s.players){p.teamId=39;p.position='DH';p.seasonByLevel.first=e.emptyRecord();}assert.equal(renderToStaticMarkup(createElement(SeasonAwards,{state:s,season})),html);
 });
 
@@ -68,7 +68,7 @@ test('individual awards freeze only category leaders, retain ties and separate f
 
 test('individual pitching titles share starter and relief qualification and require innings for holds and saves',()=>{
  const s=fixture();s.players=[];
- for(const [level,games] of [['first',144],['second',72]])for(const [role,multiple] of [['선발',3],['중간계투',1],['마무리',1]])for(const short of [false,true]){
+ for(const [level,games] of [['first',144],['second',117]])for(const [role,multiple] of [['선발',3],['중간계투',1],['마무리',1]])for(const short of [false,true]){
   const p=structuredClone(template.players.find(p=>p.id===template.playerId));p.id=`${level}-${role}-${short}`;p.primaryRole=role;p.teamId=level==='first'?0:10;p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};
   const r=p.seasonByLevel[level];Object.assign(r.pitching,{outs:games*multiple-Number(short),BF:700,SO:100,ER:1,H:10,BB:2});r.games={...r.games,holds:short?999:5,saves:short?999:5};s.players.push(p);
  }

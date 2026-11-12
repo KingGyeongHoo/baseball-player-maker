@@ -9,7 +9,7 @@ const {createTrainingFocus,tryTrainingFocus}=require('../.test-build/lib/sim/tra
 const Dialog=require('../.test-build/app/components/career-event.js').default;
 const base=e.createGame('training-focus','집중훈련','SS');
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
-function fixture(pitching=false){const s=structuredClone(base),p=e.getPlayer(s);if(pitching)e.assignRole(p,'선발');for(const k of Object.keys(p.stats))p.stats[k]=40;p.talent={batting:1,pitching:1};s.week=6;s.calendar.events=[];s.calendar.competitions=[];return s;}
+function fixture(pitching=false){const s=structuredClone(base),p=e.getPlayer(s);if(pitching)e.assignRole(p,'선발');for(const k of Object.keys(p.stats))p.stats[k]=40;p.talent={batting:0,pitching:0};s.week=6;s.calendar.events=[];s.calendar.competitions=[];return s;}
 function rolls(s,predicate){for(let seed=0;seed<100000;seed++){const probe={rngStates:{...s.rngStates,events:seed}},first=e.random(probe,'events'),second=e.random(probe,'events');if(predicate(first,second)){s.rngStates.events=seed;return;}}assert.fail('roll');}
 function answer(s,id){s.careerEvent=createTrainingFocus(e.getPlayer(s),s.date,s.week);return e.answerCareerEvent(s,id);}
 function withParams(changes,fn){const old={};for(const key of Object.keys(changes)){old[key]=e.params[key];e.params[key]=changes[key];}try{return fn();}finally{Object.assign(e.params,old);}}

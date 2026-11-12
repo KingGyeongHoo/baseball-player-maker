@@ -13,7 +13,7 @@ const technical=['velocity','control','movement','contact','power','speed','defe
 function player(position='SS') {
   const p=e.previewPlayer('both-base-'+position,'양쪽성장',position);
   for(const key of Object.keys(p.stats))p.stats[key]=40;
-  p.talent={batting:1,pitching:1};return p;
+  p.talent={batting:0,pitching:0};return p;
 }
 
 test('every pitching and batting skill grows at zero individual tickets while participating in training, independent of role',()=>{
@@ -37,7 +37,7 @@ test('tickets accelerate the selected skill above both-field basic growth, with 
     }
     close(values[0]-40,.03);close(values[1]-values[0],.1);close(values[2]-values[0],.25);
   }
-  const p=player('SS');p.talent={batting:1,pitching:10};p.trainingPolicy.tickets.physical=1;e.train(p,5);
+  const p=player('SS');p.talent={batting:0,pitching:10};p.trainingPolicy.tickets.physical=1;e.train(p,5);
   close(p.stats.velocity-40,.06);close(p.stats.power-40,.03);
 });
 

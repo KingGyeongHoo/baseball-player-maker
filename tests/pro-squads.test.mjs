@@ -35,6 +35,8 @@ test('at equal selection scores third-squad players precede developmental player
 });
 test('a reserve can play a real second-team evaluation without changing squads and gets only real records',()=>{
  const s=fixture(),p=e.getPlayer(s),team=p.teamId,club=team%10;skills(p,80);const game=s.calendar.events.find(g=>g.competitionId==='pro-second'&&[g.homeTeamId,g.awayTeamId].includes(club+10));s.date=game.date;s.proWorld.stage='regular';
+ // Isolate this reserve's turn; other players have already had real appearances.
+ for(const other of s.players)if(other.id!==p.id&&other.professional)other.professional.lastAppearance=e.addDays(s.date,-1);
  for(const other of s.players)if(other.id!==p.id&&other.teamId>=10&&other.teamId%10===club&&other.position===p.position)other.trainingPolicy.mode='rest';
  world.prepareEvaluationOpportunities(s,[game.id]);assert.ok(game.evaluationPlayers.includes(p.id));e.simulateGame(s,game,[game.homeTeamId,game.awayTeamId].map(team=>s.players.filter(p=>p.teamId===team)));
  assert.equal(game.status,'completed');assert.equal(p.teamId,team);assert.ok(p.seasonByLevel.second.batting.PA>0);assert.equal(p.seasonStats.games.batting,1);assert.equal(game.proAppearances[p.id].teamId,club+10);assert.equal(p.professional.faDays,0);

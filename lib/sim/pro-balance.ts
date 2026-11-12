@@ -17,8 +17,8 @@ export function proMatchParameters(base:Record<string,number>):Record<string,num
     'match.double_base':.175,'match.k_base':.29,'match.k_slope':.003,'match.k_max':.48};
 }
 
-export function proBullpenPlan(pitchers:Player[],seed:string,date:string,side:number,recent:Game[]=[],eligibleIds?:Set<string>){
-  const byAbility=(a:Player,b:Player)=>farmSelectionTier(a)-farmSelectionTier(b)||Number(guaranteedProStarter(b,b.position,date))-Number(guaranteedProStarter(a,a.position,date))||roleScore(b,pitchingRole(b))-roleScore(a,pitchingRole(a))||a.id.localeCompare(b.id);
+export function proBullpenPlan(pitchers:Player[],seed:string,date:string,side:number,recent:Game[]=[],eligibleIds?:Set<string>,evaluationIds?:Set<string>){
+  const byAbility=(a:Player,b:Player)=>Number(evaluationIds?.has(b.id)??false)-Number(evaluationIds?.has(a.id)??false)||farmSelectionTier(a)-farmSelectionTier(b)||Number(guaranteedProStarter(b,b.position,date))-Number(guaranteedProStarter(a,a.position,date))||roleScore(b,pitchingRole(b))-roleScore(a,pitchingRole(a))||a.id.localeCompare(b.id);
   const closers=pitchers.filter(p=>pitchingRole(p)==='마무리').sort(byAbility);
   const relief=pitchers.filter(p=>pitchingRole(p)==='중간계투').sort(byAbility);
   const club=pitchers[0]?proGameTeam(pitchers[0]):side,key=`${seed}:${date}:${club}:${side}`;
@@ -74,7 +74,7 @@ export function proReliefReady(p:Player,date:string,_longReliefId?:string,recent
 
 export function proRecentTeamGames(s:GameState,team:number,date:string){
   const competition=team<10?'pro-first':'pro-second';
-  return s.calendar.events.filter(g=>g.competitionId===competition&&!g.exhibition&&g.status==='completed'&&g.date<=date&&[g.homeTeamId,g.awayTeamId].includes(team)).sort((a,b)=>a.date.localeCompare(b.date));
+  return s.calendar.events.filter(g=>(g.competitionId===competition||competition==='pro-second'&&g.competitionId.startsWith('pro-farm-playoffs-'))&&!g.exhibition&&g.status==='completed'&&g.date<=date&&[g.homeTeamId,g.awayTeamId].includes(team)).sort((a,b)=>a.date.localeCompare(b.date));
 }
 export function proStarterReady(s:GameState,p:Player,date:string,team=proGameTeam(p)){
   if(pitchingRole(p)!=='선발'||!available(p,date)||p.fatigue>=params['coach.starter_fatigue']||p.lastPitched&&date<addDays(p.lastPitched,params['coach.starter_rest']+1))return false;

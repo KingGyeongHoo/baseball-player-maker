@@ -19,6 +19,7 @@ export function upgradeAllstarSchedule(s:GameState){
   if(!needsAllstarScheduleUpgrade(s))return false;
   const year=s.calendar.seasonYear;
   for(const id of ["pro-first","pro-second"]){
+    if(id==='pro-second'&&s.calendar.proFarmScheduleVersion===1)continue;
     const pending=s.calendar.events.filter(g=>g.competitionId===id&&!g.tiebreaker&&g.status==="scheduled"&&g.date>=s.date);
     const rounds=new Map<number,typeof pending>();
     for(const game of pending){const round=game.round??0,list=rounds.get(round)??[];list.push(game);rounds.set(round,list);}
@@ -34,6 +35,6 @@ export function upgradeAllstarSchedule(s:GameState){
   const dates=allstarDates(year);s.calendar.trainingDays=s.calendar.trainingDays.filter(day=>day<dates.restStart||day>dates.restEnd);
   for(let date=add(s.calendar.trainingDays.at(-1)??`${year}-03-01`,1);date<=s.calendar.seasonEnd;date=add(date,1))if(new Date(date+"T00:00:00Z").getUTCDay()!==1&&(date<dates.restStart||date>dates.restEnd))s.calendar.trainingDays.push(date);
   s.calendar.proAllstarScheduleVersion=1;
-  s.proWorld!.regularEnd=s.calendar.competitions.filter(c=>c.id==="pro-first"||c.id==="pro-second").map(c=>c.endDate).sort().at(-1)??s.proWorld!.regularEnd;
+  s.proWorld!.regularEnd=s.calendar.competitions.find(c=>c.id==='pro-first')?.endDate??s.proWorld!.regularEnd;
   return true;
 }

@@ -32,8 +32,8 @@ function form(record:RecordLine|undefined,pitching:boolean){
 }
 
 export function proSeasonForm(p:Player,role:Role=p.primaryRole,records:Records|undefined=p.seasonByLevel){
-  const pitching=isPitcher(role),first=form(records?.first,pitching),second=form(records?.second,pitching);
-  return {value:clamp(first.value+second.value*proSelectionRules.farmWeight*(1-first.reliability),-1,1),sample:first.sample+second.sample};
+  const pitching=isPitcher(role),spring=form(records===p.seasonByLevel?p.seasonSpring:undefined,pitching),first=form(records?.first,pitching),second=form(records?.second,pitching);
+  return {value:clamp(first.value+second.value*proSelectionRules.farmWeight*(1-first.reliability)+spring.value*.65*(1-first.reliability)*(1-second.reliability),-1,1),sample:first.sample+second.sample+spring.sample};
 }
 
 export function proSelectionScore(p:Player,role:Role=p.primaryRole,records:Records|undefined=p.seasonByLevel,includeRecent=true){
@@ -43,5 +43,5 @@ export function proSelectionScore(p:Player,role:Role=p.primaryRole,records:Recor
   const recent=includeRecent?Math.sign(p.recentZ)*clamp(Math.abs(p.recentZ)-proSelectionRules.recentDeadband,0,1)
     *Math.min(1,season.sample/(pitching?proSelectionRules.pitchingPrior:params["coach.recent_pa"])):0;
   return clamp(roleScore(p,role)*leftPitcherMultiplier(p,role)+params["coach.pro_recent_max"]*(proSelectionRules.seasonWeight*season.value+proSelectionRules.recentWeight*recent)
-    -(p.proContract?.status==="developmental"?6:0)-(p.professional?.managedUntil?12:0),0,100);
+    +(p.professional?.nationalBonus??0)-(p.proContract?.status==="developmental"?6:0)-(p.professional?.managedUntil?12:0),0,100);
 }

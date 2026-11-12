@@ -28,7 +28,7 @@ export function createScoutingReport(pick:DraftPick,year:number,snapshot?:{stats
     {title:clubNeed!==undefined&&clubNeed>=65?"구단의 보직 보강 수요":"보직 적합성",description:clubNeed!==undefined&&clubNeed>=65?`${roleLabel(pick.role)} 자원을 보강하려던 구단의 평가에 맞는 후보로 검토됐다. 보직 적합도는 ${number(pick.fit)}점이다.`:`${roleLabel(pick.role)} 역할의 능력과 구단 수요를 함께 본 적합도는 ${number(pick.fit)}점이었다.`}];
   if(pick.talent>=8)reasons.push({title:"앞으로의 성장 가능성",description:"주 분야의 성장 가능성도 지명 평가에 힘을 보탰다. 실제 성장은 훈련과 출전, 몸 관리에 달려 있다."});
   const records=snapshot?.records;
-  if(!pitching&&records&&records.batting.PA>=40)reasons.push({title:"타석에서 쌓은 경험",description:`당해 시즌 ${records.batting.PA}타석, ${records.batting.H}안타, ${records.batting.HR}홈런을 남겼다. 이 기록과 당시 기량을 함께 살펴볼 수 있다.`});
+  if(!pitching&&records&&records.batting.PA>=40)reasons.push({title:"타석에서 쌓은 경험",description:`당해 시즌 ${records.batting.AB}타수, ${records.batting.H}안타, ${records.batting.HR}홈런을 남겼다. 이 기록과 당시 기량을 함께 살펴볼 수 있다.`});
   if(pitching&&records&&records.pitching.outs>=30)reasons.push({title:"마운드에서 쌓은 경험",description:`당해 시즌 ${Math.floor(records.pitching.outs/3)}이닝 ${records.pitching.outs%3}아웃, ${records.pitching.SO}탈삼진을 기록했다. 투구 경험과 당시 기량을 함께 살펴볼 수 있다.`});
   const lowest=snapshot?[...keys].sort((a,b)=>snapshot.stats[a]-snapshot.stats[b]||keys.indexOf(a)-keys.indexOf(b))[0]:null;
   const development=lowest?`${labels[lowest]}을 더 다듬고 주력 도구를 꾸준히 경기에서 보여주는 것이 입단 후 과제다. 실제 출전은 구단 내 경쟁과 컨디션에 따라 결정된다.`:"입단 뒤의 기회는 실제 기량과 경기 성과, 구단 내 경쟁과 컨디션에 따라 결정된다.";

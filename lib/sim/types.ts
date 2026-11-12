@@ -90,6 +90,8 @@ export type Player = {
   proContract?: { status: "developmental" | "regular"; joinedDate: string; convertedDate?: string };
   professional?: ProfessionalPlayer;
   seasonPostseason?: RecordLine;
+  seasonFarmPostseason?:RecordLine;
+  seasonSpring?:RecordLine;
   seasonByClub?: Record<string,ClubRecords>;
   stats: Stats;
   initialStats: Stats;
@@ -118,6 +120,8 @@ export type Player = {
     age?: number;
     byLevel?: Record<ProLevel, RecordLine>;
     postseason?:RecordLine;
+    farmPostseason?:RecordLine;
+    spring?:RecordLine;
     byClub?:Record<string,ClubRecords>;
   }[];
   recentAppearances: import("./recent-records").RecentRecord[];
@@ -142,6 +146,7 @@ export type Team = {
   draws: number;
 };
 export type Game = {
+  national?:{stage:string;group:number;knockout:boolean;youth:boolean;carried?:boolean;eventOpened?:boolean};
   proAppearances?:Record<string,ProAppearance>;
   proAppearanceComplete?:boolean;
   proPreparationChecked?:boolean;
@@ -163,7 +168,7 @@ export type Game = {
   advancingTeamId?: number;
   evaluationPlayers?:string[];
   tiebreaker?:boolean;
-  exhibition?:"allstar";
+  exhibition?:"allstar"|"spring";
 };
 export type Competition = {
   id: string;
@@ -183,6 +188,8 @@ export type Competition = {
 export type LeagueTiebreak={key:string;group:number;teams:number[];ordered:number[];next:number;low:number;high:number;gameCount:number;gameId?:string;done:boolean};
 export type Calendar = {
   proSeriesVersion?:1;
+  proFarmScheduleVersion?:1;
+  proSpringScheduleVersion?:1;
   proAllstarScheduleVersion?:1;
   seasonYear: number;
   sourceKind: "reference" | "fictional";
@@ -282,6 +289,7 @@ export type EventScene = {
   batterId?:string;pitcherId?:string;
 };
 export type CareerEvent = {
+  nationalContext?:{kind:import("./national-teams").NationalKind;year:number;phase:"preparation"|"match"|"result";gameId?:string};
   story?:import("./event-stories").EventStory;
   proEvent?:ProEventContext;
   id: string;
@@ -359,11 +367,13 @@ export type GameState = {
     ovrScale?: 100;
     fatigue: number;
   }[];
+  draftEvaluatedAt?:string;
   draft: DraftPick[];
   injuryDays: number;
   careerEvent?: CareerEvent | null;
   careerEventHistory?: CareerEventOutcome[];
   lastCareerEventWeek?: number;
+  nationalTeams?:import("./national-teams").NationalSelection[];
   eventLedger?: { recent: string[]; centerGrades: number[]; nationalGrades: number[]; competitions: string[]; games: string[] };
   weekProgress?: WeekProgress; matchProgress?: MatchProgress;
   matchEffect?: MatchEffect & { gameId: string; batterId: string; pitcherId: string };

@@ -6,7 +6,7 @@ import type {GameState,Player} from "./types";
 export function archiveProfessionalSeason(s:GameState,p:Player){
   const year=s.calendar.seasonYear;if(p.career.some(r=>r.year===year))return;
   p.career.push({year,grade:p.grade,careerMode:"pro",age:p.age,records:structuredClone(p.seasonStats),stats:{...p.stats},schoolId:p.teamId,
-    schoolName:p.teamId<0?"무소속":clubName(s,p.teamId%10),byLevel:structuredClone(p.seasonByLevel!),postseason:structuredClone(p.seasonPostseason??emptyRecord()),byClub:structuredClone(p.seasonByClub??{})});
+    schoolName:p.teamId<0?"무소속":clubName(s,p.teamId%10),byLevel:structuredClone(p.seasonByLevel!),postseason:structuredClone(p.seasonPostseason??emptyRecord()),farmPostseason:structuredClone(p.seasonFarmPostseason??emptyRecord()),spring:structuredClone(p.seasonSpring??emptyRecord()),byClub:structuredClone(p.seasonByClub??{})});
 }
 
 export function registerRetiredNumber(s:GameState,p:Player){

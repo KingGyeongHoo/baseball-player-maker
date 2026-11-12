@@ -9,6 +9,7 @@ import { careerLabel, developmentProgress } from "../../lib/sim/pro-career";
 import { AutoProgress, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } from "../../lib/auto-progress";
 import {restoreWorkerState,workerStateInput} from "../../lib/sim/worker-state";
 import ProLeague from "./pro-league";
+import InternationalHub from './international-hub';
 import PlayerRoster, {RosterTable} from "./player-roster";
 import { formatInnings } from "../../lib/player-records";
 import DashboardRecords from "./dashboard-records";
@@ -20,6 +21,7 @@ import ProgressControls from "./progress-controls";
 import ProDashboard from "./pro-dashboard";
 import {ScoutingReportContent} from "./scouting-report";
 import SeasonRecords from "./season-records";
+import NationalHonors from "./national-honors";
 import CareerStorage from "./career-storage";
 import {deleteCareerInBackground,saveCareerInBackground} from "../../lib/career-autosave";
 import CareerRegenerationDialog from "./career-regeneration-dialog";
@@ -41,8 +43,8 @@ export function DevelopmentContract({player}:{player:Player}) {
   const progress=developmentProgress(player),pending=player.proContract.status==="developmental";
   return <section className="development-contract-note" aria-label="선수 등록 상태"><div><b>{pending?"신고선수 · 성장 90%":"정식 선수 · 제한 해제"}</b>
     <p>{pending?"출전 경쟁에서 불리하며, 정식 전환 후 1군 승격이 가능합니다.":`${player.proContract.convertedDate} 경기 성과로 정식 선수 전환 · 성장 100% · 출전 불이익 해제`}</p></div>
-    {pending&&<div className="development-contract-progress">{(player.twoWay||!["SP","RP","CP"].includes(player.position))&&<p>타자 {progress.PA}/80타석 · OPS .750 이상</p>}
-      {(player.twoWay||["SP","RP","CP"].includes(player.position))&&<p>{progress.pitchingInningsRequired===20?"선발":"계투·마무리"} {formatInnings(progress.outs)}/{progress.pitchingInningsRequired}.0이닝 · ERA 4.00 이하 · 탈삼진율 18% 이상</p>}
+    {pending&&<div className="development-contract-progress">{(player.twoWay||!["SP","RP","CP"].includes(player.position))&&<p>타자 {progress.AB}타수 · 규정 타석 {progress.PA}/80 · OPS .750 이상</p>}
+      {(player.twoWay||["SP","RP","CP"].includes(player.position))&&<p>{progress.pitchingMilestone.key==='wins'?"선발":progress.pitchingMilestone.key==='saves'?"마무리":"중간계투"} {formatInnings(progress.outs)}/{progress.pitchingInningsRequired}.0이닝 · {progress.pitchingMilestoneCount}/{progress.pitchingMilestone.required}{progress.pitchingMilestone.label} · ERA 6.00 이하</p>}
       {player.twoWay&&<p>투수·타자 중 한 조건 달성 시 전환</p>}</div>}
   </section>;
 }
@@ -118,14 +120,15 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
 
   return <><div className="utility-bar"><div><span>나만의 야구선수 만들기</span><span>CAREER LIFE · v0.7.4</span></div></div>
     <header className="site-header"><div className="header-main pro-header"><button className="pro-brand" onClick={()=>setTab("home")}>BASEBALL <b>LIFE.</b></button><span className="live-badge">{state.calendar.seasonYear} · {state.careerMode==="pro"?"PRO CAREER":"COLLEGE DEVELOPMENT"}</span><button className="text-button" disabled={busy} onClick={()=>{stop();setReset(true);}}>선수 재생성</button></div>
-      <nav className="main-nav" aria-label="프로 라이프 메뉴"><div>{[["home","주간 대시보드"],["training","훈련 센터"],["roster","선수·로스터"],["records","개인 기록"],["league","리그"],...(state.careerMode==='pro'?[["awards","어워드"]]:[]),["career","커리어"]].map(([id,label])=><button className={tab===id?"active":""} key={id} onClick={()=>setTab(id)}>{label}</button>)}</div></nav>
+      <nav className="main-nav" aria-label="프로 라이프 메뉴"><div>{[["home","주간 대시보드"],["training","훈련 센터"],["roster","선수·로스터"],["records","개인 기록"],["league","리그"],["international","국제대회"],...(state.careerMode==='pro'?[["awards","어워드"]]:[]),["career","커리어"]].map(([id,label])=><button className={tab===id?"active":""} key={id} onClick={()=>setTab(id)}>{label}</button>)}</div></nav>
     </header><main className="app-main pro-main"><CareerStorage state={state} onLoad={load} disabled={busy||auto}/><div className="page-kicker"><span>{state.careerMode==="pro"?"PRO LIFE":"THE NEXT CHANCE"} · {careerLabel(p)}</span><span>{dateLabel(state.date)} · {p.teamId<0?(state.proWorld?.stage==="retired"?"은퇴":"무소속"):pro?squadLabel(p.teamId)+" 등록":"대학 육성 시즌"}</span></div>
       {error&&<div className="error-banner" role="alert">{error}<button onClick={()=>setError("")}>닫기</button></div>}
       {tab==="home"&&state.proWorld?.stage==="retired"&&<ProRetirement state={state} onRecords={()=>openRecords()} onNew={()=>setReset(true)}/>}
       {tab==="home"&&state.proWorld?.stage!=="retired"&&<ProDashboard state={state} onTab={tab=>tab==="records"?openRecords():setTab(tab)} onTraining={openTraining} trainingDisabled={editing} records={<ProSeasonStats player={p}/>} notice={<DevelopmentContract player={p}/>}/>}
       {tab==="training"&&<TrainingCenter state={state} policy={policy} setPolicy={next=>{setPolicy(next);setTrainingMessage("");}} stance={stance} setStance={next=>{setStance(next);setTrainingMessage("");}} onSave={saveTraining} disabled={editing} message={trainingMessage} onChange={onChange}/>}
+      {tab==="international"&&<InternationalHub state={state} onRecords={openRecords}/>}
       {tab==="roster"&&<><PlayerRoster state={state} onSelect={openRecords}/>{rivals.length>0&&<Panel title="나의 포지션 경쟁"><RosterTable state={state} players={rivals.slice(0,6)} field={isPitcher(p.primaryRole)?"pitching":"batting"} onSelect={openRecords}/><p className="draft-board-note">현재 주포지션이 같은 선수의 출전평가순입니다. 14일마다 같은 포지션의 1·2군 출전평가를 비교합니다. FA 주전 보장·부상·휴식·이동 후 14일 재등록 제한을 반영합니다. 기록은 시즌 합계이며 승격과 경기 선발은 별도로 결정됩니다.</p><p className="draft-board-note">{proRegistrationStatus(state,p)}</p></Panel>}</>}
-      {tab==="records"&&<><div className="records-evaluation-action"><PlayerEvaluationButton state={state} player={recordsPlayer}/></div><SeasonRecords key={recordsPlayer.id} player={recordsPlayer} year={state.calendar.seasonYear} school={(recordsPlayer.professional?.employment==="retired"?"은퇴 선수":state.teams[recordsPlayer.teamId]?.name??"무소속")} ended={ended} mine={recordsPlayer.id===p.id} onMyRecords={()=>openRecords()}/></>}
+      {tab==="records"&&<><div className="records-evaluation-action"><PlayerEvaluationButton state={state} player={recordsPlayer}/></div><NationalHonors state={state} playerId={recordsPlayer.id}/><SeasonRecords key={recordsPlayer.id} player={recordsPlayer} year={state.calendar.seasonYear} school={(recordsPlayer.professional?.employment==="retired"?"은퇴 선수":state.teams[recordsPlayer.teamId]?.name??"무소속")} ended={ended} mine={recordsPlayer.id===p.id} onMyRecords={()=>openRecords()}/></>}
       {tab==="league"&&<ProLeague state={state} onRecords={openRecords}/>}
       {tab==="awards"&&<ProAwardsHub state={state} onRecords={openRecords}/>}
       {tab==="career"&&<>

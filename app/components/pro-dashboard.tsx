@@ -1,3 +1,5 @@
+import {proGameTeam} from '../../lib/sim/pro-farm-roster';
+import {nationalAway,nationalRules} from '../../lib/sim/national-teams';
 import type {ReactNode} from "react";
 import {addDays,getPlayer} from "../../lib/sim/engine";
 import type {GameState} from "../../lib/sim/types";
@@ -11,13 +13,16 @@ import {allstarDates} from "../../lib/sim/pro-allstar-calendar";
 function ProWeekSchedule({state}:{state:GameState}) {
   const player=getPlayer(state);
   return <div className="week-schedule">{Array.from({length:7},(_,i)=>{
-    const date=addDays(state.date,i),game=state.calendar.events.find(g=>g.date===date&&[g.homeTeamId,g.awayTeamId].includes(player.teamId));
-    const opponent=game?state.teams[game.homeTeamId===player.teamId?game.awayTeamId:game.homeTeamId]:undefined;
+    const date=addDays(state.date,i),game=state.calendar.events.find(g=>g.date===date&&[g.homeTeamId,g.awayTeamId].includes(g.exhibition==='spring'?player.teamId%10:proGameTeam(player))&&!nationalAway(state,player,date));
+    const opponent=game?state.teams[game.homeTeamId===(game.exhibition==='spring'?player.teamId%10:proGameTeam(player))?game.awayTeamId:game.homeTeamId]:undefined;
     const allstar=state.careerMode==="pro"?allstarDates(state.calendar.seasonYear):undefined;
     const selected=player.professional?.allstarHistory?.find(row=>row.year===state.calendar.seasonYear&&!row.withdrawn);
     const allstarLabel=allstar&&(date===allstar.second||date===allstar.first)?`${date===allstar.first?"1군":"2군"} 올스타${selected&&allstar[selected.level]===date?" · 출전":""}`:allstar&&date>=allstar.restStart&&date<=allstar.restEnd?"올스타 휴식기":null;
     const stove=state.proWorld?.stove;
-    const label=stove?(stove.closed?"계약 마무리·휴식":date===stove.nextUpdate?"시장 갱신":"스토브리그"):allstarLabel??(game?`${game.homeTeamId===player.teamId?"홈":"원정"} · ${opponent?.shortName??opponent?.name??"대진 미정"}`:state.calendar.trainingDays.includes(date)?"훈련":"휴식");
+    const national=state.nationalTeams?.find(row=>nationalAway(state,player,date)&&date>=row.start&&date<=row.end&&row.roster.some(p=>p.id===player.id));
+    const international=national?.tournament?.games.find(g=>g.date===date&&[g.homeTeamId,g.awayTeamId].includes(0));
+    const nationalLabel=national?nationalRules[national.kind].name+(international?' · '+national.tournament!.countries[international.homeTeamId===0?international.awayTeamId:international.homeTeamId].name:' · 훈련·휴식'):'';
+    const label=national?nationalLabel:stove?(stove.closed?"계약 마무리·휴식":date===stove.nextUpdate?"시장 갱신":"스토브리그"):allstarLabel??(game?`${game.exhibition==='spring'?'시범 · ':''}${game.homeTeamId===(game.exhibition==='spring'?player.teamId%10:proGameTeam(player))?"홈":"원정"} · ${opponent?.shortName??opponent?.name??"대진 미정"}`:state.calendar.trainingDays.includes(date)?"훈련":"휴식");
     const dow=new Date(date+"T00:00:00Z").getUTCDay();
     return <div key={date} className={`schedule-day ${i===0?"today":""} ${game?"game-day":""}`} title={`${date} · ${label}`}><span>{["SUN","MON","TUE","WED","THU","FRI","SAT"][dow]}</span><b>{Number(date.slice(-2))}</b><small>{label}</small><i/></div>;
   })}</div>;

@@ -24,11 +24,11 @@ test('alliances and yearly Friday/Saturday break dates are exact across calendar
 
 test('both regular leagues preserve game totals, home balance, 3-game opponents and break while second spans the season',()=>{
  for(const year of [2027,2028,2029]){const cal=calendar.developmentCalendar(year,true),d=c.allstarDates(year);
-  for(const [id,n] of [['pro-first',144],['pro-second',72]])for(let team=id==='pro-first'?0:10;team<(id==='pro-first'?10:20);team++){
-   const games=cal.events.filter(g=>g.competitionId===id&&[g.homeTeamId,g.awayTeamId].includes(team));assert.equal(games.length,n);assert.equal(games.filter(g=>g.homeTeamId===team).length,n/2);
-   assert.ok(games.every(g=>new Date(g.date).getUTCDay()!==1&&!c.allstarBreak(g.date,year)));
-   for(let i=0;i<games.length;i+=3){assert.equal(games[i].homeTeamId,games[i+2].homeTeamId);assert.equal(games[i].awayTeamId,games[i+2].awayTeamId);assert.equal(e.addDays(games[i].date,2),games[i+2].date);}
-   if(id==='pro-second'){assert.ok(games.some(g=>g.date<d.second));assert.ok(games.some(g=>g.date>d.restEnd));assert.ok(games.at(-1).date>=`${year}-08-20`);}
+  for(const [id,n] of [['pro-first',144],['pro-second',117]])for(let team=id==='pro-first'?0:10;team<(id==='pro-first'?10:20);team++){
+   const games=cal.events.filter(g=>g.competitionId===id&&[g.homeTeamId,g.awayTeamId].includes(team));assert.equal(games.length,n);assert.ok(Math.abs(games.filter(g=>g.homeTeamId===team).length-n/2)<=.5);
+   assert.ok(games.every(g=>new Date(g.date).getUTCDay()!==(id==='pro-second'?4:1)&&!c.allstarBreak(g.date,year)));
+   if(id==='pro-first')for(let i=0;i<games.length;i+=3){assert.equal(games[i].homeTeamId,games[i+2].homeTeamId);assert.equal(games[i].awayTeamId,games[i+2].awayTeamId);assert.equal(e.addDays(games[i].date,2),games[i+2].date);}
+   if(id==='pro-second'){assert.ok(games.some(g=>g.date<d.second));assert.ok(games.some(g=>g.date>d.restEnd));assert.ok(games.at(-1).date<cal.competitions.find(c=>c.id==='pro-first').endDate);}
   }
   assert.ok(cal.trainingDays.every(date=>date<d.restStart||date>d.restEnd));assert.equal(cal.proAllstarScheduleVersion,1);
  }

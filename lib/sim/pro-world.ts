@@ -1,6 +1,7 @@
+import {repairConversionRegistrations} from "./pro-conversion";
 import {canAssignProSquad,currentProPosition,guaranteedProStarter} from "./pro-positions";
 import {ensurePlayableFarmRosters} from "./pro-farm";
-import {farmGameRoster,farmSelectionTier} from "./pro-farm-roster";
+import {farmAssignmentPosition,farmGameRoster,farmSelectionTier} from "./pro-farm-roster";
 import {canPromoteToFirst} from "./pro-squads";
 import {firstTeamDemotionMargin,hydrateAssessments,recordAssessmentDay} from "./pro-assessment";
 import {clearProfessionalReputation} from "./pro-selection";
@@ -54,6 +55,7 @@ export function ensureProWorld(s:GameState) {
   s.proWorld??={version:1,contractRulesVersion:3,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
     clubs:Array.from({length:10},(_,id)=>({id,direction:"balanced",budget:(220+hash(`${s.seed}:club-budget:${id}`)%81)*BASE_SALARY,deadMoney:{},nextReview:`${year}-03-15`})),
     seasons:[],archive:[],news:[],squadsVersion:s.teams.length>=40?2:undefined,goal:p.proContract?.status==="developmental"?"정식 선수 전환":"1군 정착",longGoal:"1군 데뷔와 꾸준한 출전",draftedYears:[year]};
+  repairConversionRegistrations(s);
   const drafted=new Set([...s.draft,...s.postSchool?.collegeDraft??[]].map(pick=>pick.playerId));
   for(const q of s.players){initializeProfessional(s,q,q.teamId<0?-1:q.teamId%10,q.id===p.id?info?.entry??"draft":drafted.has(q.id)?"draft":"veteran");hydrateAssessments(s,q);}
   if(info&&p.professional){p.professional.rookieYear=info.rookieYear;if(info.debutDate)p.professional.firsts.debut??=info.debutDate;}
@@ -83,7 +85,7 @@ export function recordProfessionalDay(s:GameState) {
     for(const key of Object.keys(p.stats) as (keyof Player["stats"])[])pro.peak[key]=Math.max(pro.peak[key],p.stats[key]);
   }
   const month=s.date.slice(0,7);if(w.lastMonthly&&w.lastMonthly!==month){
-    const p=getPlayer(s);w.monthly={month:w.lastMonthly,text:`${p.name} · ${clubName(s,p.teamId<0?null:p.teamId%10)} · ${p.seasonByLevel?.first.batting.PA??0}타석 / ${Math.floor((p.seasonByLevel?.first.pitching.outs??0)/3)}이닝 · 피로 ${Math.trunc(p.fatigue)}`};
+    const p=getPlayer(s);w.monthly={month:w.lastMonthly,text:`${p.name} · ${clubName(s,p.teamId<0?null:p.teamId%10)} · ${p.seasonByLevel?.first.batting.AB??0}타수 / ${Math.floor((p.seasonByLevel?.first.pitching.outs??0)/3)}이닝 · 피로 ${Math.trunc(p.fatigue)}`};
   }w.lastMonthly=month;
 }
 export function reviewProMilestones(s:GameState){
@@ -186,19 +188,18 @@ export function balanceSquadDepth(s:GameState){
   const mine=getPlayer(s);if(mine.teamId!==previousTeam&&s.postSchool?.pro){s.postSchool.pro.level=mine.teamId<10?"first":"second";if(!s.careerNotice)proNotice(s,`depth:${s.date}`,"등록 명단을 조정했습니다","포지션 공백과 대체 인력 확보를 위한 명단 조정입니다.",mine.teamId<10?"promoted":"demoted");}
 }
 export function prepareEvaluationOpportunities(s:GameState,gameIds:string[]){
-  if(!s.proWorld||s.proWorld.stage==="postseason")return;
-  const farmClubs=[...new Set(gameIds.flatMap(id=>{const g=s.calendar.events.find(g=>g.id===id);return g?.competitionId==="pro-second"&&g.status==="scheduled"?[g.homeTeamId%10,g.awayTeamId%10]:[];}))];
+  if(!s.proWorld||s.proWorld.seasonClosed||!['camp','regular'].includes(s.proWorld.stage))return;
+  const farmClubs=[...new Set(gameIds.flatMap(id=>{const g=s.calendar.events.find(g=>g.id===id);return g?.competitionId==="pro-second"&&g.status==="scheduled"&&g.date===s.date?[g.homeTeamId%10,g.awayTeamId%10]:[];}))];
   if(farmClubs.length)ensurePlayableFarmRosters(s,farmClubs);
-  for(const id of gameIds){const game=s.calendar.events.find(g=>g.id===id)!;if(game.competitionId!=="pro-second"||game.evaluationPlayers)continue;
+  for(const id of gameIds){const game=s.calendar.events.find(g=>g.id===id);if(!game||game.competitionId!=="pro-second"||game.status!=='scheduled'||game.date!==s.date||game.evaluationPlayers)continue;
     game.evaluationPlayers=[];
-    for(const team of [game.homeTeamId,game.awayTeamId]){const roster=farmGameRoster(s,team),reserves=reservePromotionCandidates(s,team%10).filter(p=>(!p.professional?.lastEvaluation||s.date>=addDays(p.professional.lastEvaluation,14))&&(!isPitcher(p.primaryRole)||p.fatigue<65&&(!p.lastPitched||s.date>=addDays(p.lastPitched,5))));
-      const candidates=[...reserves,...evaluationCandidates(s,roster,s.date)].sort((a,b)=>(a.professional?.lastEvaluation??"1900-01-01").localeCompare(b.professional?.lastEvaluation??"1900-01-01")||selectionScore(b)-selectionScore(a)||Number(a.proContract?.status==="developmental")-Number(b.proContract?.status==="developmental")||a.id.localeCompare(b.id)),positions=new Set<Position>();let batters=0,pitchers=0;
-      for(const p of candidates){const pitching=isPitcher(p.primaryRole);if(pitching?pitchers>=1:batters>=2||positions.has(p.position))continue;
-        if(farmSelectionTier(p)>0&&roster.some(q=>q.id!==p.id&&available(q,s.date)&&farmSelectionTier(q)<farmSelectionTier(p)&&currentProPosition(q,p.position)))continue;
-        if(pitching)pitchers++;else {batters++;positions.add(p.position);}game.evaluationPlayers.push(p.id);if(p.professional){p.professional.lastEvaluation=s.date;delete p.professional.requestedEvaluationUntil;}
+    const reserved=new Set(s.calendar.events.filter(g=>g.id!==game.id&&g.date===s.date&&['scheduled','inProgress'].includes(g.status)).flatMap(g=>g.evaluationPlayers??[]));
+    for(const team of [game.homeTeamId,game.awayTeamId]){const roster=farmGameRoster(s,team);
+      const candidates=evaluationCandidates(s,roster,s.date).filter(p=>!reserved.has(p.id)).sort((a,b)=>(a.professional?.lastEvaluation??"1900-01-01").localeCompare(b.professional?.lastEvaluation??"1900-01-01")||farmSelectionTier(a)-farmSelectionTier(b)||selectionScore(b)-selectionScore(a)||a.id.localeCompare(b.id)),positions=new Set<Position>();let batters=0,pitchers=0;
+      for(const p of candidates){const position=farmAssignmentPosition(p),pitching=isPitcher(roleFor(position));if(pitching?pitchers>=1:batters>=2||positions.has(position))continue;
+        if(pitching)pitchers++;else {batters++;positions.add(position);}game.evaluationPlayers.push(p.id);
       }
     }
-    if(game.evaluationPlayers.includes(s.playerId))proNotice(s,`evaluation:${game.id}`,"2군 평가 출전 기회가 잡혔습니다","최근 출전이 없던 육성 선수를 위한 평가 기회입니다. 실제 수비·투구 자격과 컨디션을 지키며 경기 결과는 그대로 기록합니다.");
   }
 }
 export function professionalLineup(s:GameState,roster:Player[],date:string,ids:string[]=[]){
@@ -225,9 +226,9 @@ export function professionalLineup(s:GameState,roster:Player[],date:string,ids:s
   if(!s.proWorld||!ids.length||result.field.length!==9)return result;
   const positions:Position[]=["C","SS","CF","2B","1B","3B","LF","RF","DH"];
   for(const id of ids){const p=roster.find(q=>q.id===id);if(!p||!available(p,date))continue;
-    if(isPitcher(p.primaryRole)){if(p.primaryRole==="선발"&&result.pitchers.includes(p)&&(!result.starter||farmSelectionTier(p)<=farmSelectionTier(result.starter))&&proStarterReady(s,p,date))result.starter=p;continue;}
-    const slot=positions.indexOf(p.position);if(slot<0||!p.eligiblePositions.includes(positions[slot]))continue;
-    if(result.field[slot]?.id!==p.id&&farmSelectionTier(result.field[slot])<farmSelectionTier(p))continue;
+    const position=farmAssignmentPosition(p);
+    if(isPitcher(roleFor(position))){if(position==="SP"&&result.pitchers.includes(p)&&(!result.starter||result.starter.id===p.id||!guaranteedProStarter(result.starter,result.starter.position,date))&&proStarterReady(s,p,date))result.starter=p;continue;}
+    const slot=positions.indexOf(position);if(slot<0||!p.eligiblePositions.includes(positions[slot])||result.starter?.id===p.id)continue;
     if(result.field[slot]?.id!==p.id&&guaranteedProStarter(result.field[slot],positions[slot],date))continue;
     const previous=result.field.indexOf(p);if(previous>=0){if(previous===slot)continue;const displaced=result.field[slot];if(!displaced?.eligiblePositions.includes(positions[previous]))continue;result.field[previous]=displaced;}
     result.field[slot]=p;
@@ -235,9 +236,10 @@ export function professionalLineup(s:GameState,roster:Player[],date:string,ids:s
   result.order=[...result.field];return result;
 }
 export function evaluationCandidates(s:GameState,roster:Player[],date:string) {
-  return roster.filter(p=>p.teamId>=10&&p.teamId<20&&p.professional?.employment==="active"&&((p.age??19)<=25||s.calendar.seasonYear-p.professional.rookieYear<3||!!p.professional.requestedEvaluationUntil&&date<=p.professional.requestedEvaluationUntil)&&available(p,date)
-    &&(!p.professional.managedUntil||date>p.professional.managedUntil)&&(date>=addDays(p.professional.lastAppearance??`${s.calendar.seasonYear}-03-01`,14)||!!p.professional.requestedEvaluationUntil&&date<=p.professional.requestedEvaluationUntil)
-    &&(isPitcher(p.primaryRole)?p.fatigue<65&&(!p.lastPitched||date>=addDays(p.lastPitched,5)):true))
+  return roster.filter(p=>p.teamId>=10&&p.teamId<40&&p.professional?.employment==="active"&&(p.teamId>=20||(p.age??19)<=25||s.calendar.seasonYear-p.professional.rookieYear<3||!!p.professional.requestedEvaluationUntil&&date<=p.professional.requestedEvaluationUntil)&&available(p,date)
+    &&(!p.professional.lastEvaluation||date>=addDays(p.professional.lastEvaluation,14))
+    &&(!p.professional.managedUntil||date>p.professional.managedUntil)&&(p.teamId>=20&&!p.professional.lastAppearance||date>=addDays(p.professional.lastAppearance??`${s.calendar.seasonYear}-03-01`,14)||!!p.professional.requestedEvaluationUntil&&date<=p.professional.requestedEvaluationUntil)
+    &&(isPitcher(roleFor(farmAssignmentPosition(p)))?p.fatigue<65&&(!p.lastPitched||date>=addDays(p.lastPitched,5)):true))
     .sort((a,b)=>(a.professional!.lastAppearance??"1900").localeCompare(b.professional!.lastAppearance??"1900")||roleScore(b)-roleScore(a)||a.id.localeCompare(b.id));
 }
 export function reviewProfessionalReputation(s:GameState) {

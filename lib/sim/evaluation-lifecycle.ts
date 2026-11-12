@@ -53,7 +53,7 @@ export function recordEvaluationDay(s:GameState) {
 }
 export function recordEvaluationEnvironment(s:GameState,game:Game,rosters:Player[][]) {
   if(game.evaluationEnvironment)return;
-  const teams=[game.homeTeamId,game.awayTeamId].map(teamId=>{const roster=rosters[teamId]??[],batters=roster.filter(p=>p.eligiblePositions.some(pos=>!["SP","RP","CP"].includes(pos))),pitchers=roster.filter(p=>p.eligiblePositions.some(pos=>["SP","RP","CP"].includes(pos)));
+  const teams=[game.homeTeamId,game.awayTeamId].map((teamId,side)=>{const roster=rosters[side]??[],batters=roster.filter(p=>p.eligiblePositions.some(pos=>!["SP","RP","CP"].includes(pos))),pitchers=roster.filter(p=>p.eligiblePositions.some(pos=>["SP","RP","CP"].includes(pos)));
     const mean=(rows:Player[],value:(p:Player)=>number)=>rows.length?rows.reduce((n,p)=>n+value(p),0)/rows.length:0;
     return {teamId,batting:mean(batters,p=>ovr(p,false)),pitching:mean(pitchers,p=>ovr(p,true)),defense:mean(batters,p=>p.stats.defense),arm:mean(batters,p=>p.stats.arm)};
   });

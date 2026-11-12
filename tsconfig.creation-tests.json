@@ -11,6 +11,10 @@
     "plugins": []
   },
   "include": [
+    "app/components/international-hub.tsx",
+    "app/components/national-honors.tsx",
+    "app/components/national-rosters.tsx",
+    "app/components/competition-schedule.tsx",
     "app/components/training-center.tsx",
     "app/components/progress-controls.tsx",
     "app/components/position-picker.tsx",

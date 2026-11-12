@@ -3,6 +3,7 @@ import {proSquad} from "./pro-squads";
 import {addDays,available,getPlayer,isPitcher,ovr,params,random,roleFor,roleScore,ticketsUsed} from "./engine";
 import {professionalLineup} from "./pro-world";
 import {createProEvent,proMainField,proEventCatalog} from "./pro-event-catalog";
+import type {EventCategory} from "./event-stories";
 import {eligibleStory} from "./event-stories";
 import {eventCategoryPool,eventFieldsFor,eventFocusPool,resolveEventFocus} from './event-selection';
 import {cancelProReservation,ensureProEvents,equivalentProId,proChannelFree,proDayFree,proEventsEnabled,proIdFree,recordProChoice} from "./pro-event-ledger";
@@ -11,8 +12,11 @@ import type {ProEventContext} from "./pro-event-types";
 import type {EventScene,Game,GameState,Player,Position} from "./types";
 
 const onceIds=new Set(["PE08","PE09","PE10","PE11","PE28","PE29","PE30"]);
-const proCategories=new Map(proEventCatalog.map(e=>[e.id,e.category??'baseball']));
-const proFocuses=new Map(proEventCatalog.map(e=>[e.id,e]));
+// Event factories and the engine share a module graph; defer catalog reads
+// until simulation starts so ESM prerendering cannot observe an uninitialized export.
+let categoryCache:Map<string,EventCategory>|undefined,focusCache:Map<string,(typeof proEventCatalog)[number]>|undefined;
+const proCategories=()=>categoryCache??=new Map(proEventCatalog.map(e=>[e.id,e.category??'baseball']));
+const proFocuses=()=>focusCache??=new Map(proEventCatalog.map(e=>[e.id,e]));
 function context(s:GameState,id:string,date:string,extra:Partial<ProEventContext>={}):ProEventContext {const p=getPlayer(s);return {version:1,catalogId:id,channel:"general",year:s.calendar.seasonYear,playerId:p.id,teamId:p.teamId,level:proSquad(p.teamId)??"third",field:proMainField(s),openedAt:date,...extra};}
 const active=(p:Player)=>p.professional?.employment==="active"&&p.teamId>=0;
 function once(s:GameState,id:string){return !ensureProEvents(s).history.some(row=>row.season===s.calendar.seasonYear&&equivalentProId(row,id));}
@@ -24,7 +28,7 @@ export function proGeneralCandidates(s:GameState,date=s.date){
   const evidence=recentProEvidence(s,p,date),stats=evidence.records,ownGames=s.calendar.events.filter(g=>g.date===date&&[g.homeTeamId,g.awayTeamId].includes(proGameTeam(p)));
   const teammate=s.players.filter(q=>q.id!==p.id&&active(q)&&q.teamId%10===p.teamId%10).sort((a,b)=>a.id.localeCompare(b.id))[0];
   const recent=ledger.history.filter(row=>row.channel==="general").slice(-3);
-  const add=(id:string,extra:Partial<ProEventContext>={})=>{if(recent.some(row=>equivalentProId(row,id))||!proIdFree(s,id,"general",date)||onceIds.has(id)&&!once(s,id))return;const definition=proFocuses.get(id),focus=definition?.pitchingFocus||definition?.battingFocus?undefined:definition?.focus;for(const field of eventFieldsFor(p,focus,extra.field??definition?.rule?.field))pool.push({id,context:context(s,id,date,{...extra,field})});};
+  const add=(id:string,extra:Partial<ProEventContext>={})=>{if(recent.some(row=>equivalentProId(row,id))||!proIdFree(s,id,"general",date)||onceIds.has(id)&&!once(s,id))return;const definition=proFocuses().get(id),focus=definition?.pitchingFocus||definition?.battingFocus?undefined:definition?.focus;for(const field of eventFieldsFor(p,focus,extra.field??definition?.rule?.field))pool.push({id,context:context(s,id,date,{...extra,field})});};
   if(injured){const injuryKey=`${p.id}:${p.injury!.startDate}`;if(p.injury!.unavailableUntil<=addDays(date,7)&&!ledger.history.some(row=>row.injuryKey===injuryKey))add("PE18",{injuryKey});return pool;}
   if(!p.forcedRest&&!ownGames.length&&(!s.calendar.trainingDays.includes(date)||!ticketsUsed(p.trainingPolicy))&&teammate)add("PE19",{partnerId:teammate.id});
   if(p.forcedRest)return pool;
@@ -64,7 +68,7 @@ export function proGeneralCandidates(s:GameState,date=s.date){
       if(regular&&p.teamId<10&&!pitching&&p.position!=="DH"&&evidence.tracked&&stats.batting.PA<=8&&evidence.teamGames>=5&&ovr(p,false)>=45&&roleScore(p,roleFor("DH"))>=45)add("PE11",{target:"DH"});
     }
   }
-  if(healthy&&p.teamId>=10&&(!pro.requestAfter||date>=pro.requestAfter)&&(!pro.requestedEvaluationUntil||date>pro.requestedEvaluationUntil)&&evidence.tracked&&!stats.batting.PA&&!stats.pitching.BF&&ledger.history.filter(row=>row.season===s.calendar.seasonYear&&equivalentProId(row,"PE12")).length<2)add("PE12");
+  if(s.proWorld?.stage==='regular'&&ownGames.some(g=>g.competitionId==='pro-second'&&g.status==='scheduled')&&healthy&&p.teamId>=10&&(!pro.requestAfter||date>=pro.requestAfter)&&(!pro.requestedEvaluationUntil||date>pro.requestedEvaluationUntil)&&evidence.tracked&&!stats.batting.PA&&!stats.pitching.BF&&ledger.history.filter(row=>row.season===s.calendar.seasonYear&&equivalentProId(row,"PE12")).length<2)add("PE12");
   return pool;
 }
 export function planProEventWeek(s:GameState){
@@ -72,9 +76,9 @@ export function planProEventWeek(s:GameState){
   if(params["pro_events.general_chance"]<=0)return;
   const pool=Array.from({length:7},(_,day)=>{const date=addDays(s.date,day);return proChannelFree(s,"general",date)?proGeneralCandidates(s,date).map(c=>({...c,date})):[];}).flat();
   if(!pool.length||random(s,"events")>=params["pro_events.general_chance"])return;
-  const category=eventCategoryPool(pool,c=>proCategories.get(c.id)??'baseball',random(s,'events'));
+  const category=eventCategoryPool(pool,c=>proCategories().get(c.id)??'baseball',random(s,'events'));
   const p=getPlayer(s),pitching=isPitcher(p.primaryRole);
-  const options=proCategories.get(category[0].id)==='daily'?category:eventFocusPool(category,c=>{const d=proFocuses.get(c.id),fieldPitching=c.context.field==='pitching';return resolveEventFocus((fieldPitching?d?.pitchingFocus:d?.battingFocus)??d?.focus,fieldPitching,p.stats);},pitching,random(s,'events'),!!p.twoWay);
+  const options=proCategories().get(category[0].id)==='daily'?category:eventFocusPool(category,c=>{const d=proFocuses().get(c.id),fieldPitching=c.context.field==='pitching';return resolveEventFocus((fieldPitching?d?.pitchingFocus:d?.battingFocus)??d?.focus,fieldPitching,p.stats);},pitching,random(s,'events'),!!p.twoWay);
   if(!options.length)return;
   let ids=[...new Set(options.map(c=>c.id))];const stages=ids.filter(id=>onceIds.has(id)||id==="PE18");if(stages.length)ids=stages;
   const id=ids[Math.floor(random(s,"events")*ids.length)],dates=options.filter(c=>c.id===id),chosen=dates[Math.floor(random(s,"events")*dates.length)];ledger.reservation={week:s.week,date:chosen.date,id,context:chosen.context};
@@ -100,7 +104,7 @@ function preparationOptions(s:GameState,game:Game,sides:{field:string[];starter:
 }
 export function proMajorDueToday(s:GameState){
   if(!proEventsEnabled(s)||!proDayFree(s))return false;
-  const mine=getPlayer(s);return s.calendar.events.filter(g=>g.date===s.date&&g.status==="scheduled"&&[g.homeTeamId,g.awayTeamId].includes(proGameTeam(mine))).some(game=>{const series=s.proWorld?.postseason?.series.find(row=>game.competitionId===`pro-playoffs-${row.id}`);const sides=[game.homeTeamId,game.awayTeamId].map(team=>professionalLineup(s,game.competitionId==="pro-second"?farmGameRoster(s,team,game.evaluationPlayers):s.players.filter(p=>p.teamId===team&&(!series||series.rosters[String(team)]?.includes(p.id))),s.date,game.evaluationPlayers));return sides.every(side=>side.field.length===9&&side.starter)&&preparationOptions(s,game,sides.map(side=>({field:side.field.map(p=>p.id),starter:side.starter!.id}))).length>0;});
+  const mine=getPlayer(s);return s.calendar.events.filter(g=>g.date===s.date&&g.status==="scheduled"&&[g.homeTeamId,g.awayTeamId].includes(proGameTeam(mine))).some(game=>{const series=s.proWorld?.postseason?.series.find(row=>game.competitionId===`pro-playoffs-${row.id}`);const sides=[game.homeTeamId,game.awayTeamId].map(team=>professionalLineup(s,game.competitionId==="pro-second"?farmGameRoster(s,team):s.players.filter(p=>p.teamId===team&&(!series||series.rosters[String(team)]?.includes(p.id))),s.date,game.evaluationPlayers));return sides.every(side=>side.field.length===9&&side.starter)&&preparationOptions(s,game,sides.map(side=>({field:side.field.map(p=>p.id),starter:side.starter!.id}))).length>0;});
 }
 export function openProPreparation(s:GameState,game:Game,sides:{field:string[];starter:string}[]){
   if(!proEventsEnabled(s)||!s.weekProgress||s.careerEvent||s.careerNotice||!proDayFree(s))return false;

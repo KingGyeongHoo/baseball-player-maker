@@ -21,7 +21,7 @@ export function draftAssessment(p: Player) {
   const talent = p.talent[isPitcher(p.primaryRole) ? "pitching" : "batting"];
   const fit = params["draft.fit_role_weight"] * roleScore(p) + params["draft.fit_need_weight"] * 50;
   return params["draft.reputation_weight"] * (p.reputation ?? reputationScore(p) ?? 0)
-    + params["draft.talent_weight"] * (talent - 1) / 9 * 100 + params["draft.fit_weight"] * fit;
+    + params["draft.talent_weight"] * talent / 10 * 100 + params["draft.fit_weight"] * fit;
 }
 export type DraftClubContext={roster:Player[];order?:number[]};
 function draftSlots(s: GameState,clubOrder?:number[]) {
@@ -61,7 +61,7 @@ function selectDraft(s: GameState, limit = Infinity,clubContext?:DraftClubContex
         const need=clubContext?Math.min(1,.35+demand(club,p.position)/Math.max(1,targets[club][p.position])):needs[club][role];
         const fit = params["draft.fit_role_weight"] * roleScore(p, role) + params["draft.fit_need_weight"] * need * 100;
         const components = {
-          talent: params["draft.talent_weight"] * (talent - 1) / 9 * 100,
+          talent: params["draft.talent_weight"] * talent / 10 * 100,
           reputation: params["draft.reputation_weight"] * reputation,
           fit: params["draft.fit_weight"] * fit,
         };

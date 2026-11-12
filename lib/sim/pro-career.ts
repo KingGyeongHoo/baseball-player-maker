@@ -11,7 +11,7 @@ import {capturePlayerEvaluations} from "./evaluation-lifecycle";
 import {tryProNationalInvitation} from "./pro-national-events";
 import {syncProClubNames,proTeamName} from "./club-names";
 import {createCareerNPC,proRosterPositions} from './pro-roster';
-import {rookieDevelopmentalIds} from "./pro-squads";
+import {rookieDevelopmentalIds,setProSquad} from "./pro-squads";
 
 export type CareerChoice = "join" | "tryout" | "college" | "developmental" | "direct";
 const slots: Position[] = ["C","C","C","1B","1B","2B","2B","3B","3B","SS","SS","LF","LF","CF","CF","RF","RF","DH","SP","SP","SP","SP","SP","SP","RP","RP","RP","RP","CP","CP"];
@@ -27,7 +27,7 @@ export function archiveCareerSeason(s: GameState, p: Player) {
   const year = s.calendar.seasonYear;
   if (p.career.some(row => row.year === year)) return;
   p.career.push({ year, grade: p.grade, records: structuredClone(p.seasonStats), stats: { ...p.stats }, schoolId: p.teamId, schoolName: s.teams[p.teamId].name,
-    ...(s.careerMode ? { careerMode: s.careerMode, age: p.age } : {}), ...(p.seasonByLevel ? { byLevel: structuredClone(p.seasonByLevel) } : {}),...(p.seasonPostseason?{postseason:structuredClone(p.seasonPostseason),byClub:structuredClone(p.seasonByClub??{})}:{}) });
+    ...(s.careerMode ? { careerMode: s.careerMode, age: p.age } : {}), ...(p.seasonByLevel ? { byLevel: structuredClone(p.seasonByLevel) } : {}),...(p.seasonSpring?{spring:structuredClone(p.seasonSpring)}:{}),...(p.seasonFarmPostseason?{farmPostseason:structuredClone(p.seasonFarmPostseason)}:{}),...(p.seasonPostseason?{postseason:structuredClone(p.seasonPostseason),byClub:structuredClone(p.seasonByClub??{})}:{}) });
 }
 function offSeason(p: Player, from: string, to: string) {
   const days = Math.max(0, (Date.parse(to) - Date.parse(from)) / 86400000);
@@ -119,17 +119,19 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
 export function developmentProgress(p: Player) {
   const records = p.seasonByLevel?.second ?? emptyRecord(), b = records.batting, pitch = records.pitching;
   const pitchingInningsRequired = pitchingRole(p) === "선발" ? 20 : 8;
+  const pitchingMilestone=pitchingRole(p)==='선발'?{key:'wins' as const,required:2,label:'승'}:pitchingRole(p)==='마무리'?{key:'saves' as const,required:3,label:'세이브'}:{key:'holds' as const,required:5,label:'홀드'};
+  const pitchingMilestoneCount=records.games?.[pitchingMilestone.key]??0;
   const batting = b.PA >= 80 && b.AB > 0 && (b.H + b.BB) / b.PA + (b.H + b["2B"] + 2*b["3B"] + 3*b.HR) / b.AB >= .75;
-  const pitching = pitch.outs >= pitchingInningsRequired * 3 && pitch.BF > 0 && pitch.ER * 27 / pitch.outs <= 4 && pitch.SO / pitch.BF >= .18;
+  const pitching = pitch.outs >= pitchingInningsRequired * 3 && pitch.BF > 0 && pitch.ER * 27 / pitch.outs <= 6 && pitchingMilestoneCount>=pitchingMilestone.required;
   const qualified = p.twoWay ? batting || pitching : isPitcher(p.primaryRole) ? pitching : batting;
-  return {qualified,batting,pitching,PA:b.PA,outs:pitch.outs,pitchingInningsRequired};
+  return {qualified,batting,pitching,PA:b.PA,AB:b.AB,outs:pitch.outs,pitchingInningsRequired,pitchingMilestone,pitchingMilestoneCount};
 }
 export function reviewDevelopmentContract(s: GameState) {
   const p = getPlayer(s);
   if(s.proWorld){
     let notified=false;
-    for(const q of s.players){if(q.proContract?.status!=="developmental"||!developmentProgress(q).qualified)continue;
-      q.proContract.status="regular";q.proContract.convertedDate=s.date;const contract=q.professional?.contract;if(contract){contract.segments.push({from:s.date,salary:BASE_SALARY});contract.salary=Math.max(contract.salary,BASE_SALARY);}
+    for(const q of s.players){if(q.proContract?.status!=="developmental"||q.professional?.employment!=="active"||q.teamId<0||!developmentProgress(q).qualified)continue;
+      q.proContract.status="regular";q.proContract.convertedDate=s.date;if(q.teamId>=30)setProSquad(s,q,"third");if(q.id===s.playerId){if(s.postSchool?.pro)s.postSchool.pro.level=q.teamId<10?"first":q.teamId<20?"second":"third";if(s.proWorld.goal==="정식 선수 전환")s.proWorld.goal="1군 승격";}const contract=q.professional?.contract;if(contract){contract.segments.push({from:s.date,salary:BASE_SALARY});contract.salary=Math.max(contract.salary,BASE_SALARY);}
       if(q.id===p.id){notice(s,"registered","경기력으로 따낸 정식 선수 전환","2군의 실제 경기 성과로 정식 선수가 됐습니다. 앞으로 성장 100%·출전 불이익 해제가 적용되며, 다음 엔트리 평가에서 1군에 도전합니다. 전환일부터 정식 기본 연봉을 적용합니다.");notified=true;}
       proNews(s,`${q.name} · 2군 성과로 정식 선수 전환`,`${s.calendar.seasonYear}:registered:${q.id}`);
     }return notified;

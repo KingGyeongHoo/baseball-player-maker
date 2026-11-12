@@ -3,6 +3,7 @@ import {draftAssessment} from "./draft";
 import {evaluationReference,EVALUATION_MODEL,gradeTool,standardMatchup} from "./evaluation-reference";
 import {performanceEvidence,weightedRecords} from "./evaluation-metrics";
 import {reputationBreakdown} from "./evaluation-reputation";
+import {talentBand} from './talent';
 import {statKeys,type GameState,type Player,type RecordLine,type Role,type Stat} from "./types";
 import type {EvaluationField,EvaluationReason,EvaluationSnapshot,EvaluationObservation,EvaluationContextArchive,PerformanceEvidence} from "./player-evaluation-types";
 import {gameCounterKeys} from "./game-records";
@@ -60,8 +61,8 @@ export function multiyearEvidence(s:GameState,p:Player,level:"first"|"second"|"s
 }
 function publicTalent(p:Player,field:EvaluationField){
   const exposure=p.talentExposure[field],label=talentLabel(p,field);
-  if(exposure<params["talent.hint"])return {label:"미상",min:1,max:10};
-  if(exposure<params["talent.reveal"]){const n=p.talent[field];return {label,min:n<=3?1:n<=7?4:8,max:n<=3?3:n<=7?7:10};}
+  if(exposure<params["talent.hint"])return {label:"미상",min:0,max:10};
+  if(exposure<params["talent.reveal"]){const band=talentBand(p.talent[field]);return {label,min:band.min,max:band.max};}
   return {label,min:p.talent[field],max:p.talent[field]};
 }
 function roleTools(role:Role):Stat[]{return role==="선발"?[...pitchingKeys,"stamina","recovery"]:isPitcher(role)?[...pitchingKeys,"recovery"]:role==="포수"?["defense","arm","bq","contact","power"]:role==="센터라인"?["defense","speed","arm","contact"]:["contact","power","defense","arm"];}
@@ -73,7 +74,7 @@ function createEvaluationInputs(s:GameState,p:Player,context:Context,reason:Eval
   for(const game of games){const team=game.evaluationEnvironment?.playerTeams?.[p.id]??(game.lineup[0]?.includes(p.id)?game.homeTeamId:game.lineup[1]?.includes(p.id)?game.awayTeamId:undefined);if(team!==undefined)opponents.add(game.homeTeamId===team?game.awayTeamId:game.homeTeamId);
     const comp=competitions.get(game.competitionId)??{id:game.competitionId,name:s.calendar.competitions.find(c=>c.id===game.competitionId)?.name??game.competitionId,games:0,records:emptyRecord()};comp.games++;mergeRecord(comp.records,game.boxScore[p.id]);competitions.set(comp.id,comp);
   }
-  const recentGames=games.filter(g=>!g.competitionId.startsWith("pro-playoffs-")&&Date.parse(s.date)-Date.parse(g.date)<=30*86400000).slice(-10);
+  const recentGames=games.filter(g=>!g.competitionId.startsWith("pro-playoffs-")&&!g.competitionId.startsWith("pro-farm-playoffs-")&&Date.parse(s.date)-Date.parse(g.date)<=30*86400000).slice(-10);
   for(const game of recentGames){const level=school?"school":game.competitionId==="pro-first"?"first":"second";mergeRecord(recent[level],game.boxScore[p.id]);recent.from??=game.date;recent.to=game.date;recent.games++;}
   const tools=statKeys.map(stat=>{const ref=reference.tools[stat],field=pitchingKeys.includes(stat)?"pitching":battingKeys.includes(stat)?"batting":isPitcher(p.primaryRole)?"pitching":"batting",member=!!p.twoWay||isPitcher(p.primaryRole)===(field==="pitching"),cohort=member?context.cohorts.get(`${p.grade}:${field}`)?.get(stat):undefined;return {stat,value:p.stats[stat],...gradeTool(p.stats[stat],ref),mean:ref.mean,sd:ref.sd,population:ref.size,fallback:ref.fallback,...(cohort?.size?{cohortRank:cohortRank(cohort.values,p.stats[stat]),cohortSize:cohort.size}:{})};});
   const previous=p.evaluationHistory?.filter(r=>r.date<s.date).at(-1),changes=previous?Object.fromEntries(statKeys.filter(k=>Math.abs(p.stats[k]-previous.stats[k])>1e-8).map(k=>[k,p.stats[k]-previous.stats[k]])):null;

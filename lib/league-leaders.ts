@@ -11,7 +11,7 @@ const batting:LeaderMetric[]=[
   {id:"slg",label:"장타율",value:r=>recordRates(r).slugging,format:"rate",qualified:true},
   {id:"ops",label:"OPS",value:r=>recordRates(r).ops,format:"rate",qualified:true},
   {id:"SB",label:"도루",value:r=>r.batting.SB??0},
-  ...([['HR','홈런'],['H','안타'],['RBI','타점'],['R','득점'],['2B','2루타'],['3B','3루타'],['BB','볼넷'],['PA','타석'],['AB','타수'],['SO','삼진'],['GB','땅볼'],['FB','뜬공']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>r.batting[id],ascending:id==="SO"})),
+  ...([['HR','홈런'],['H','안타'],['RBI','타점'],['R','득점'],['2B','2루타'],['3B','3루타'],['BB','볼넷'],['AB','타수'],['SO','삼진'],['GB','땅볼'],['FB','뜬공']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>r.batting[id],ascending:id==="SO"})),
 ];
 const pitching:LeaderMetric[]=[
   {id:"era",label:"평균자책점",value:r=>recordRates(r).era,format:"decimal",ascending:true,qualified:true},

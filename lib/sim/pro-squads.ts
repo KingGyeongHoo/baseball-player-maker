@@ -1,3 +1,4 @@
+import {needsConversionRepair,repairConversionRegistrations} from "./pro-conversion";
 import {available,hash,roleScore,selectionScore} from "./engine";
 import {proTeamName} from "./club-names";
 import type {GameState,Player,Position,ProSquad} from "./types";
@@ -17,6 +18,7 @@ export function canPromoteToFirst(s:GameState,p:Player){
     &&(!p.professional?.lastRegistration||p.professional.lastRegistration<s.date);
 }
 export function setProSquad(s:GameState,p:Player,level:ProSquad){
+  if(level==='developmental'&&p.proContract?.status==='regular')return false;
   if(!canAssignProSquad(p,level,s.date))return false;
   if(level==="first"&&p.teamId>=10&&!canPromoteToFirst(s,p))return false;
   const club=p.teamId>=0?p.teamId%10:p.professional?.contract?.club;if(club===undefined)return false;
@@ -55,9 +57,10 @@ export function ensureProSquadTeams(s:GameState){
   if(s.careerMode!=="pro")return;
   while(s.teams.length<40){const id=s.teams.length;s.teams.push({id,name:proTeamName(id),shortName:proTeamName(id),wins:0,losses:0,draws:0});}
 }
-export function needsProSquadUpgrade(s:GameState){return s.careerMode==="pro"&&!!s.proWorld&&s.proWorld.squadsVersion!==2&&!s.weekProgress&&!s.matchProgress;}
+export function needsProSquadUpgrade(s:GameState){return s.careerMode==="pro"&&!!s.proWorld&&(s.proWorld.squadsVersion!==2||needsConversionRepair(s))&&!s.weekProgress&&!s.matchProgress;}
 export function reorganizeProSquads(s:GameState){
   if(!needsProSquadUpgrade(s))return false;ensureProSquadTeams(s);
+  if(s.proWorld?.squadsVersion===2)return repairConversionRegistrations(s);
   for(let club=0;club<10;club++){
     const members=s.players.filter(p=>p.teamId>=0&&p.teamId%10===club&&p.professional?.employment==="active"),regular=members.filter(p=>p.proContract?.status!=="developmental").sort((a,b)=>Number(!!guaranteedProSquad(b,s.date))-Number(!!guaranteedProSquad(a,s.date))||organizationScore(b)-organizationScore(a)||a.id.localeCompare(b.id));
     const used=new Set<string>();

@@ -1,3 +1,4 @@
+import {conversionYear} from "./pro-conversion";
 import { selectionScore, roleScore } from "./engine";
 import { rosterGrade } from "../roster-grades";
 import { proContractRules as rules } from "./pro-contract-rules";
@@ -5,6 +6,7 @@ import type { GameState, Player, ProSquad, RecordLine } from "./types";
 import type { ProSeasonAssessment } from "./pro-types";
 import { createProWarContext, proWarAssessment, type ProWarContext } from "./pro-war";
 import {proSeasonForm} from "./pro-selection";
+import {farmSeasonGames} from './pro-farm-schedule';
 const squad = (id: number): ProSquad | null =>
   id < 0
     ? null
@@ -115,6 +117,13 @@ export function hydrateAssessments(s: GameState, p: Player): boolean {
   if (!p.professional) return false;
   if (p.professional.assessments !== undefined) {
     let changed = false;
+    for(const row of p.professional.assessments)if(conversionYear(p)===row.year){
+      if(row.reserveSeason||row.developmental||row.squad==='developmental'){
+        row.reserveSeason=false;row.developmental=false;
+        if(row.squad==='developmental')row.squad='third';
+        changed=true;
+      }
+    }
     for (const row of p.professional.assessments) {
       if (
         row.firstTeam !== undefined &&
@@ -160,7 +169,7 @@ export function hydrateAssessments(s: GameState, p: Player): boolean {
       ability = roleScore({ ...p, stats: season.stats }, role);
     const score = observation?.comparison.legacyRegistration ?? ability;
     const level = squad(season.schoolId ?? -1),
-      developmental = level === "developmental";
+      developmental = conversionYear(p)!==season.year&&level === "developmental";
     const first = season.byLevel?.first,
       firstTeam =
         level === "first" ||
@@ -177,7 +186,7 @@ export function hydrateAssessments(s: GameState, p: Player): boolean {
           role,
           squad: level,
           developmental,
-          reserveSeason: level === "third" || developmental,
+          reserveSeason: conversionYear(p)!==season.year&&(level === "third" || developmental),
           firstTeam,
           secondOnly: level === "second" && !firstTeam,
           firstGames: firstGameCount(
@@ -257,7 +266,7 @@ export function recordSeasonAssessment(
     (pa >= rules.upperPA || outs >= rules.upperOuts);
   // A successful trial conversion starts a fresh reserve streak next season.
   const convertedTrial =
-    pro.developmentalRetry?.year === s.calendar.seasonYear &&
+    (pro.developmentalRetry?.year === s.calendar.seasonYear||conversionYear(p)===s.calendar.seasonYear) &&
     p.proContract?.status === "regular";
   const lower =
     !convertedTrial &&
@@ -331,7 +340,7 @@ export function clubGamesShortage(s:GameState,p:Player){
   const completed=farm.filter(g=>g.status==="completed").length;
   const first=p.seasonByLevel?.first;
   const firstGames=Math.max(first?.games?.batting??0,first?.games?.pitching??0);
-  return farm.length>=24&&completed<farm.length/2&&firstGames<=rules.firstGamesLimit;
+  return farm.length>=Math.ceil(farmSeasonGames/3)&&completed<farm.length/2&&firstGames<=rules.firstGamesLimit;
 }
 export function assessmentValue(p: Player, year: number) {
   const rows = (p.professional?.assessments ?? []).filter(
@@ -393,7 +402,7 @@ export function seasonExit(
   for (const row of rows) {
     if (row.year !== expected--) break;
     if(row.clubGamesShortage)continue;
-    if(!row.reserveSeason)break;
+    if(conversionYear(p)===row.year||!row.reserveSeason)break;
     reserve++;
   }
   if (reserve >= rules.reserveSeasons)
@@ -413,6 +422,7 @@ export function seasonExit(
         : rules.reviewYears;
   // A successful reentry gets a fresh review period, while lifetime salary history is retained.
   const reviewStart = Math.max(
+    conversionYear(p)!==undefined?conversionYear(p)!+1:-Infinity,
     (pro.nonRenewal?.year ?? -Infinity) + 1,
     pro.developmentalRetry && p.proContract?.status === "regular"
       ? pro.developmentalRetry.year + 1
@@ -465,7 +475,7 @@ export function requiresDevelopmentalOffer(p: Player, year: number) {
   if(pro.employment==="active"&&pro.developmentalRetry&&latest?.clubGamesShortage
     &&latest.year>=pro.developmentalRetry.year&&pro.developmentalRetry.club===pro.contract?.club)return false;
   const converted =
-    !!pro.developmentalRetry &&
+    (conversionYear(p)!==undefined&&conversionYear(p)!>=denied.year)||!!pro.developmentalRetry &&
     !!latest &&
     latest.year >= pro.developmentalRetry.year &&
     !latest.developmental;
