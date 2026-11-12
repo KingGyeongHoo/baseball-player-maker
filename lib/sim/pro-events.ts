@@ -13,7 +13,8 @@ export function tryDevelopmentEvent(s: GameState) {
   ledger.games.push(key);ledger.games=ledger.games.slice(-30);
   const rehabilitation=!!p.injury&&s.date<p.injury.unavailableUntil&&addDays(s.date,7)>=p.injury.unavailableUntil;
   if(s.week-(s.lastCareerEventWeek??0)<2 || !available(p,s.date)&&!rehabilitation || !ticketsUsed(p.trainingPolicy) || !s.calendar.trainingDays.includes(s.date) || random(s,"events")>=params["events.weekly_chance"])return false;
-  const skill:Stat=isPitcher(p.primaryRole)?"control":"contact",other:Stat=isPitcher(p.primaryRole)?"movement":"power";
+  const pitching=p.twoWay?random(s,'events')<.5:isPitcher(p.primaryRole);
+  const skill:Stat=pitching?"control":"contact",other:Stat=pitching?"movement":"power";
   const events:Omit<CareerEvent,"id"|"date"|"rewardVersion"|"kind">[]=[
     {definitionId:"D01",title:"선배의 개인 레슨",description:"훈련을 지켜보던 선배가 자신이 터득한 요령을 알려주겠다고 했다.",choices:[
       {id:"learn",label:"선배에게 배우며 연습한다",outcomes:[{weight:75,message:"조언을 내 동작에 적용할 실마리를 찾았다.",weeks:{[skill]:3},fatigue:1},{weight:25,message:"당장 손에 익지는 않았지만 뜻깊은 대화였다.",reputation:1}]},

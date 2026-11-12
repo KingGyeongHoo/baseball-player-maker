@@ -5,7 +5,7 @@ import {beginProRoleTrial,decideProRoleTrial} from "./pro-role-evaluation";
 import {recordProChoice} from "./pro-event-ledger";
 import {eligibleStory} from "./event-stories";
 import {schoolEventCatalog} from "./event-catalog";
-import {eventCategoryPool,eventFocusPool,resolveEventFocus} from './event-selection';
+import {eventCategoryPool,eventFieldsFor,eventFocusPool,resolveEventFocus} from './event-selection';
 import type {ProEventResult} from "./pro-event-types";
 import { teamStrength } from "../team-strength";
 import { professionalGrowth,limitPhysicalGrowth } from "./pro-growth";
@@ -13,12 +13,14 @@ import { applyOpportunityChoice, observeTwoWayQualification } from "./career-opp
 import { createCareerEvent, eventKind } from "./career-events";
 import { statKeys, type CareerEventBranch, type EventOpportunity, type EventScene, type GameState, type MatchEffect, type Player, type Stat } from "./types";
 
+import {canPlayRole,assertPositionEligible} from './position-eligibility';
 export const eventLedger = (s: GameState) => s.eventLedger ??= { recent: [], centerGrades: [], nationalGrades: [], competitions: [], games: [] };
 const schoolCategories=new Map(schoolEventCatalog.map(e=>[e.id,e.category??'baseball']));
 const schoolFocuses=new Map(schoolEventCatalog.map(e=>[e.id,e.focus]));
+const schoolFields=new Map(schoolEventCatalog.map(e=>[e.id,e.rule?.field]));
 export function suggestedRole(p: Player) {
   if (p.twoWay || p.roleOffer || p.offerCooldown > 0) return undefined;
-  const best = [...roles].sort((a, b) => roleScore(p, b) - roleScore(p, a) || roles.indexOf(a) - roles.indexOf(b))[0];
+  const best = roles.filter(role=>canPlayRole(p,role)).sort((a, b) => roleScore(p, b) - roleScore(p, a) || roles.indexOf(a) - roles.indexOf(b))[0];
   return best !== p.primaryRole && roleScore(p, best) > roleScore(p) ? best : undefined;
 }
 export function activeTournaments(s: GameState, date: string) {
@@ -38,7 +40,7 @@ export function eventCandidates(s: GameState, date: string): EventOpportunity[] 
   const add = (id: string, context: Partial<EventOpportunity> = {}) => {
     const focus=schoolFocuses.get(id);
     if(!p.twoWay&&(pitching?['contact','power','speed','defense']:['velocity','control','movement']).includes(focus??''))return;
-    if (!ledger.recent.slice(-5).includes(id)) pool.push({ definitionId: id, date, ...context });
+    if (!ledger.recent.slice(-5).includes(id))for(const field of eventFieldsFor(p,focus,context.field??schoolFields.get(id)))pool.push({definitionId:id,date,...context,field});
   };
   for(const definition of schoolEventCatalog){
     if(!definition.rule)continue;
@@ -47,8 +49,8 @@ export function eventCandidates(s: GameState, date: string): EventOpportunity[] 
   }
   if (canTrain) {
     for (const id of ["T04", "T08"]) add(id);
-    if (!pitching) { add("T01"); if (p.position !== "DH") add("T02"); if (p.trainingPolicy.tickets.speed > 0) add("T07"); }
-    else { add("T06"); if (p.trainingPolicy.tickets.movement > 0) add("T03"); }
+    if (!pitching||p.twoWay) { add("T01"); if ((p.twoWay?.battingPosition??p.position) !== "DH") add("T02"); if (p.trainingPolicy.tickets.speed > 0) add("T07"); }
+    if (pitching||p.twoWay) { add("T06"); if (p.trainingPolicy.tickets.movement > 0) add("T03"); }
     if (p.trainingPolicy.tickets.physical > 0) add("T05");
     if (p.fatigue >= 40) add("T09");
     if (!ledger.centerGrades.includes(p.grade)) add("T10");
@@ -59,7 +61,7 @@ export function eventCandidates(s: GameState, date: string): EventOpportunity[] 
   if (!game) { add("P02"); add("P07"); }
   if (canAct&&(trainDay||game)&&(p.seasonStats.batting.PA || p.seasonStats.pitching.BF)) add("P03");
   if (canAct && game) add("P04");
-  if (pitching && canAct && (trainDay || game)) add("P05");
+  if ((pitching||p.twoWay) && canAct && (trainDay || game)) add("P05",{field:'pitching'});
   for (const c of activeTournaments(s, date)) {
     if (ledger.competitions.includes(c.id)) continue;
     const next = s.calendar.events.find(g => g.competitionId === c.id && g.date >= date && g.status === "scheduled" && [g.homeTeamId, g.awayTeamId].includes(p.teamId));
@@ -77,7 +79,7 @@ export function eventCandidates(s: GameState, date: string): EventOpportunity[] 
     const projected = lineup(s.players.filter(other => other.teamId === p.teamId), date);
     const ids = projected.order.some(other => other.id === p.id) ? ["G01", "G02", "G03"]
       : projected.pitchers.some(other => other.id === p.id) ? ["G04", "G05", "G06"] : [];
-    for (const id of ids) add(id, { gameId: game.id });
+    for (const id of ids) add(id, { gameId: game.id,field:Number(id.slice(1))<=3?'batting':'pitching' });
   }
   return pool;
 }
@@ -88,7 +90,7 @@ export function planEventWeek(s: GameState): EventOpportunity | null {
   if(!pool.length)return null;
   const category=eventCategoryPool(pool,item=>schoolCategories.get(item.definitionId)??'baseball',random(s,'events'));
   const p=getPlayer(s),pitching=isPitcher(p.primaryRole);
-  const candidates=schoolCategories.get(category[0].definitionId)==='daily'?category:eventFocusPool(category,item=>resolveEventFocus(schoolFocuses.get(item.definitionId),pitching,p.stats),pitching,random(s,'events'));
+  const candidates=schoolCategories.get(category[0].definitionId)==='daily'?category:eventFocusPool(category,item=>resolveEventFocus(schoolFocuses.get(item.definitionId),item.field?item.field==='pitching':pitching,p.stats),pitching,random(s,'events'),!!p.twoWay);
   if(!candidates.length)return null;
   const kinds = [...new Set(candidates.map(item => eventKind(item.definitionId)))];
   if (!kinds.length) return null;
@@ -130,7 +132,7 @@ export function openScheduledEvent(s: GameState, phase: "beforeGames" | "trainin
     return open(s, planned, scene);
   }
   if (phase === "training" ? kind !== "training" : kind === "training" || kind === "game") return false;
-  const candidate = eventCandidates(s, s.date).find(item => item.definitionId === planned.definitionId && item.competitionId === planned.competitionId);
+  const candidate = eventCandidates(s, s.date).find(item => item.definitionId === planned.definitionId && item.competitionId === planned.competitionId&&(!planned.field||item.field===planned.field));
   s.weekProgress!.opportunity = null;
   return candidate ? open(s, candidate) : false;
 }
@@ -190,7 +192,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   Object.assign(opportunityChanges,applyProTwoWayChoice(s,outcome));
   if (outcome.role) assignRole(p, outcome.role);
   let proAction:ProEventResult["action"];
-  if(outcome.proRoleTrial&&p.professional){if(event.proEvent){const trial=beginProRoleTrial(s,outcome.proRoleTrial,event.proEvent.catalogId,false,outcome.proAutoTransition===true);proAction={kind:"trial",target:trial.position,until:trial.until};}else p.professional.roleTrial={position:outcome.proRoleTrial,until:addDays(s.date,14)};}
+  if(outcome.proRoleTrial&&p.professional){assertPositionEligible(p,outcome.proRoleTrial);if(event.proEvent){const trial=beginProRoleTrial(s,outcome.proRoleTrial,event.proEvent.catalogId,false,outcome.proAutoTransition===true);proAction={kind:"trial",target:trial.position,until:trial.until};}else p.professional.roleTrial={position:outcome.proRoleTrial,until:addDays(s.date,14)};}
   if(outcome.proTrialDecision)proAction=decideProRoleTrial(s,outcome.proTrialDecision==="accept");
   if(outcome.proChanceRequest&&p.professional){const pro=p.professional;if(pro.employment!=="active"||pro.requestAfter&&s.date<pro.requestAfter||pro.requestedEvaluationUntil&&s.date<=pro.requestedEvaluationUntil)throw new Error("평가 출전 요청의 재사용 대기가 끝나지 않았습니다.");pro.requestAfter=addDays(s.date,28);pro.requestedEvaluationUntil=addDays(s.date,21);proAction={kind:"request",until:pro.requestedEvaluationUntil};}
   if (event.definitionId === "P06") { p.roleOffer = null; p.offerWeeks = 0; p.offerCooldown = params["coach.offer_cooldown"]; }

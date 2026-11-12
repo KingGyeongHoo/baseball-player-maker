@@ -23,8 +23,9 @@
     { "key": "pro.first_mean", "label": "프로 1군 초기 주력 OVR 중심", "value": 65, "unit": "점", "status": "사용자 합의", "note": "신규 프로 세계 기본 선수에만 적용. 기존 선수 능력은 재배정하지 않음." },
     { "key": "pro.second_mean", "label": "프로 2군 초기 주력 OVR 중심", "value": 55, "unit": "점", "status": "사용자 합의", "note": "개인 능력별 중심 ±7.5 무작위. 이후 신인은 고교 성장 분포 유지." },
     { "key": "pro.secondary_mean", "label": "프로 기본 선수 비주력 중심", "value": 15, "unit": "점", "status": "사용자 합의", "note": "비주력 능력별 중심 ±5. 초기 기본 NPC가 임의로 겸업 능력을 얻지 않음." },
-    { "key": "pro.two_way_entry", "label": "프로 겸업 진입 OVR", "value": 75, "unit": "점", "status": "사용자 합의", "note": "투수·타자 OVR 모두 충족. 입단 시 기존 겸업 유지 또는 입단 후 4주 유지 후 제안." },
-    { "key": "pro.two_way_maintain", "label": "프로 겸업 유지 OVR", "value": 70, "unit": "점", "status": "사용자 합의", "note": "한 분야가 미달한 상태로 4주 지속되면 단일 역할 전환 면담. 피로·부상 저하 제외." },
+    { "key": "school.two_way_ratio", "label": "고교 겸업 투타 OVR 비율", "value": 0.6, "unit": "비율", "status": "사용자 합의", "note": "낮은 OVR이 높은 OVR의 60% 이상인 상태를 2주 유지하면 제안. 최소 OVR 제한 없음." },
+    { "key": "pro.two_way_entry", "label": "프로 겸업 진입 OVR 비율", "value": 0.75, "unit": "비율", "status": "사용자 합의", "note": "낮은 OVR이 높은 OVR의 75% 이상. 입단 시 기존 겸업 유지 또는 입단 후 4주 유지 후 제안. 최소 OVR 제한 없음." },
+    { "key": "pro.two_way_maintain", "label": "프로 겸업 유지 OVR 비율", "value": 0.75, "unit": "비율", "status": "사용자 합의", "note": "낮은 OVR이 높은 OVR의 75% 미만인 상태가 4주 지속되면 단일 역할 전환 면담. 피로·부상 저하 제외." },
     { "key": "pro.two_way_days", "label": "프로 겸업 지속 평가 기간", "value": 28, "unit": "일", "status": "사용자 합의", "note": "캠프·정규 시즌 연속 완료일. 중단/재개는 같은 날을 중복 계산하지 않음." },
     {
       "key": "stat.min",

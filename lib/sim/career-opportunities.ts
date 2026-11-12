@@ -1,12 +1,14 @@
-import { available, clamp, getPlayer, hash, isPitcher, ovr, positions, random, reputationScore, roleFor, roleScore } from "./engine";
+import { available, clamp, getPlayer, hash, isPitcher, ovr, params, positions, random, reputationScore, roleFor, roleScore } from "./engine";
 import { eventAwakeningReward, eventTrainingReward } from "./event-system";
 import { teamStrength } from "../team-strength";
 import type { CareerEvent, CareerEventBranch, CareerEventOutcome, GameState, Player, Position, Stat, TransferOffer } from "./types";
 
+import {assertPositionEligible,canPlayPosition} from './position-eligibility';
+import {meetsTwoWayRatio} from './two-way-qualification';
 export const opportunityState = (s: GameState) => s.careerOpportunities ??= {
   rng: hash(`${s.seed}:career-opportunities`), qualifiedWeeks: 0, twoWayOfferedGrades: [], transferRollYears: [], transferOffered: false,
 };
-export const twoWayQualified = (p: Player) => ovr(p, true) >= 55 && ovr(p, false) >= 55;
+export const twoWayQualified = (p: Player) => meetsTwoWayRatio(ovr(p,true),ovr(p,false),params['school.two_way_ratio']);
 const inSeason = (s: GameState) => s.date.slice(5, 7) >= "03" && s.date.slice(5, 7) <= "09" && (getPlayer(s).grade !== 3 || s.date < s.calendar.draftDate);
 export function observeTwoWayQualification(s: GameState) {
   if (twoWayQualified(getPlayer(s)) && inSeason(s)) return;
@@ -20,7 +22,7 @@ export function recordTwoWayWeek(s: GameState) {
   ledger.lastCountedWeek = s.week;
 }
 export function twoWayPositions(p: Player) {
-  const best = (list: Position[]) => [...list].sort((a, b) => roleScore(p, roleFor(b)) - roleScore(p, roleFor(a)) || list.indexOf(a) - list.indexOf(b))[0];
+  const best = (list: Position[]) => list.filter(pos=>canPlayPosition(p,pos)).sort((a, b) => roleScore(p, roleFor(b)) - roleScore(p, roleFor(a)) || list.indexOf(a) - list.indexOf(b))[0];
   return { pitchingPosition: isPitcher(p.primaryRole) ? p.position : best(["SP", "RP", "CP"]),
     battingPosition: isPitcher(p.primaryRole) ? best(["2B", "CF", "1B", "3B", "SS", "LF", "RF", "C", "DH"]) : p.position };
 }
@@ -76,6 +78,7 @@ export function applyOpportunityChoice(s: GameState, branch: CareerEventBranch):
   const event = s.careerEvent!, p = getPlayer(s);
   if (branch.opportunity?.action === "twoWay" && event.twoWayProposal) {
     const pair = event.twoWayProposal;
+    assertPositionEligible(p,pair.battingPosition);
     p.twoWay = { ...pair, nextAssignment: isPitcher(p.primaryRole) ? "pitching" : "batting", reputationBonus: 0 };
     p.eligiblePositions = [...new Set([...p.eligiblePositions, pair.battingPosition, "SP", "RP", "CP"] as Position[])];
     return { twoWay: { ...pair } };

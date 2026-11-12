@@ -9,12 +9,13 @@ const {addRookieClass}=require('../.test-build/lib/sim/pro-season.js');
 const valid=name=>n.surnamePool.some(surname=>name.startsWith(surname)&&n.givenNamePool.includes(name.slice(surname.length)));
 const total=n.surnamePopulations.reduce((a,b)=>a+b,0);
 
-test('pools contain 100 ranked weighted surnames and 2000 unique whole male given names',()=>{
-  for(const [pool,size] of [[n.surnamePool,100],[n.givenNamePool,2000]]){assert.equal(pool.length,size);assert.equal(new Set(pool).size,size);}
+test('pools contain 100 ranked weighted surnames and 724 unique supplied given names',()=>{
+  for(const [pool,size] of [[n.surnamePool,100],[n.givenNamePool,724]]){assert.equal(pool.length,size);assert.equal(new Set(pool).size,size);}
   assert.equal(n.surnamePopulations.length,100);
   assert.deepEqual(n.surnamePool.slice(0,3),['김','이','박']);
   assert.ok(n.surnamePopulations.every((v,i)=>Number.isInteger(v)&&v>0&&(!i||n.surnamePopulations[i-1]>=v)));
-  assert.ok(n.givenNamePool.every(s=>/^[가-힣]{1,2}$/.test(s)));
+  assert.ok(n.givenNamePool.every(s=>/^[가-힣]{1,3}$/.test(s)));
+  for(const name of ['다니엘','성문','자욱','종진','수종','준완','동열','종범','효조','한이']) assert.ok(n.givenNamePool.includes(name));
   assert.ok(n.givenNamePool.some(s=>s.length===1));
 });
 
@@ -32,8 +33,8 @@ test('every surname receives its population interval and the extreme draws remai
 });
 
 test('each complete given name has an equal interval, including single-syllable names',()=>{
-  for(let i=0;i<2000;i++){
-    let calls=0;const result=n.generatePlayerName(()=>calls++===0?0:(i+.5)/2000);
+  for(let i=0;i<n.givenNamePool.length;i++){
+    let calls=0;const result=n.generatePlayerName(()=>calls++===0?0:(i+.5)/n.givenNamePool.length);
     assert.equal(calls,2);assert.equal(result,'김'+n.givenNamePool[i]);
   }
 });

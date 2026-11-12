@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import PositionPicker, { Ballpark } from "./position-picker";
-import { createRandomCareer, createRandomProCareer, type PlayerKind } from "@/lib/player-creation";
+import { createRandomCareer, createRandomProCareer, kindForPosition, type PlayerKind } from "@/lib/player-creation";
+import {generatePlayerName} from "@/lib/sim/player-names";
 import {randomJerseyNumber} from "@/lib/jersey-numbers";
-import {handednessLabel} from "@/lib/player-handedness";
-import { positionName } from "@/lib/sim/engine";
-import type { GameState, PlayerHands, Position } from "@/lib/sim/types";
+import { positionName, positions } from "@/lib/sim/engine";
+import type { GameState, Position } from "@/lib/sim/types";
 
-function RandomAssignmentCard({ name, position, mode, number, onReroll, disabled, hands }: { name: string; position: Position | null; mode:"school"|"pro";number:number|null;onReroll:()=>void;disabled:boolean;hands:PlayerHands }) {
+function RandomAssignmentCard({ name, position, mode, number, onReroll, disabled }: { name: string; position: Position | null; mode:"school"|"pro";number:number|null;onReroll:()=>void;disabled:boolean }) {
   return <aside className="random-assignment-card">
     <span className="eyebrow">YOUR FIRST CHAPTER</span><span className="unrevealed-number" aria-hidden="true">{number??"—"}</span>
     <div className="unrevealed-jersey"><svg viewBox="0 0 100 110" aria-hidden="true"><path d="m26 10 16-7q8 9 16 0l16 7 25 23-17 19-6-9v62H24V43l-6 9L1 33Z" fill="currentColor" /><text x="50" y="76" textAnchor="middle" fill="white" fontFamily="Arial, sans-serif" fontSize="30" fontWeight="700">{number??"—"}</text></svg></div>
-    <h2>{name.trim() || "나의 선수"}</h2><p className="unrevealed-position">{position ? positionName(position,mode==="pro"?"pro":undefined) : "포지션을 선택하세요"} · {handednessLabel(hands)}</p>
+    <h2>{name.trim() || "나의 선수"}</h2><p className="unrevealed-position">{position ? positionName(position,mode==="pro"?"pro":undefined) : "포지션을 선택하세요"} · 투타 손은 시작 시 무작위</p>
     <div className="jersey-setting"><span>등번호 <b aria-live="polite">{number??"—"}</b></span><button type="button" className="secondary" onClick={onReroll} disabled={disabled}>등번호 설정</button><p>{mode==="school"?"11~23번에서 무작위 재배정 · 주전이 되면 포지션 번호로 변경됩니다.":"1~99번에서 무작위로 다시 배정합니다."}</p></div>
   </aside>;
 }
@@ -23,19 +23,30 @@ export default function PlayerSetup({ onStart }: { onStart: (state: GameState) =
   const [error, setError] = useState("");
   const [mode,setMode]=useState<"school"|"pro">("school");
   const [jerseyNumber,setJerseyNumber]=useState<number|null>(null);
-  const [hands,setHands]=useState<PlayerHands>({throws:"R",bats:"R"});
   useEffect(()=>{const timer=setTimeout(()=>setJerseyNumber(randomJerseyNumber("school")),0);return()=>clearTimeout(timer);},[]);
   const creating = useRef(false);
   const position = kind ? choices[kind] : null;
-  const start = () => {
+  const randomizeName = () => { setName(generatePlayerName(Math.random)); setError(""); };
+  const randomizePlayer = () => {
+    const rolls = globalThis.crypto.getRandomValues(new Uint32Array(1));
+    const options = Object.keys(positions) as Position[];
+    const nextPosition = options[Math.floor(rolls[0] / 2 ** 32 * options.length)];
+    const nextKind = kindForPosition(nextPosition);
+    const nextName = generatePlayerName(Math.random);
+    setName(nextName);
+    setKind(nextKind);
+    setChoices(previous => ({ ...previous, [nextKind]: nextPosition }));
+    start(nextName, nextPosition);
+  };
+  const start = (playerName = name, playerPosition = position) => {
     if (creating.current) return;
-    if (!name.trim()) { setError("선수 이름을 입력해 주세요."); return; }
-    if (!position) { setError("투수·타자와 희망 포지션을 선택해 주세요."); return; }
+    if (!playerName.trim()) { setError("선수 이름을 입력해 주세요."); return; }
+    if (!playerPosition) { setError("투수·타자와 희망 포지션을 선택해 주세요."); return; }
     creating.current = true;
     setBusy(true);
     setError("");
     setTimeout(() => {
-      try { onStart(mode==="school"?createRandomCareer(name, position,globalThis.crypto,jerseyNumber??undefined,hands):createRandomProCareer(name,position,jerseyNumber??undefined,globalThis.crypto,hands)); }
+      try { onStart(mode==="school"?createRandomCareer(playerName, playerPosition,globalThis.crypto,jerseyNumber??undefined):createRandomProCareer(playerName,playerPosition,jerseyNumber??undefined,globalThis.crypto)); }
       catch (error) { setError(error instanceof Error ? error.message : "선수 생성에 실패했습니다. 다시 시도해 주세요."); creating.current = false; setBusy(false); }
     }, 30);
   };
@@ -48,21 +59,21 @@ export default function PlayerSetup({ onStart }: { onStart: (state: GameState) =
     </section>
     <div className="creation-layout">
       <section className="panel player-creation-panel">
-        <div className="panel-heading"><div><span className="eyebrow">NEW PLAYER</span><h2>나의 선수 만들기</h2></div><span className="small muted">이름 · 투타 손 · 포지션</span></div>
+        <div className="creation-mode-section"><div className="career-mode-picker" role="group" aria-label="시작할 커리어 선택">
+          <button type="button" className={mode==="school"?"selected":""} aria-pressed={mode==="school"} disabled={busy} onClick={()=>{setMode("school");setJerseyNumber(randomJerseyNumber("school",jerseyNumber));}}><b>고교 선수로 시작하기</b><span>3년 동안 성장시켜 더 높은 능력치로 프로 입성을 노릴 수 있습니다.</span></button>
+          <button type="button" className={mode==="pro"?"selected":""} aria-pressed={mode==="pro"} disabled={busy} onClick={()=>{setMode("pro");setJerseyNumber(randomJerseyNumber("pro",jerseyNumber));}}><b>프로 선수로 시작하기</b><span>무작위 능력치로 프로에 도전합니다. 현재 보직 기량에 따라 정식선수 또는 신고선수로 입단합니다.</span></button>
+        </div></div>
+        <div className="panel-heading"><div><span className="eyebrow">NEW PLAYER</span><h2>나의 선수 만들기</h2></div><button type="button" className="primary" disabled={busy} onClick={randomizePlayer}>{mode==="school"?"랜덤 고교 선수로 시작":"랜덤 프로 선수로 시작"}</button></div>
         <form className="player-creation-form" onSubmit={event => { event.preventDefault(); start(); }}>
-          <label className="creation-name">선수 이름<input value={name} onChange={event => setName(event.target.value)} maxLength={16} placeholder="이름을 입력하세요" autoComplete="off" required disabled={busy} /></label>
-          <div className="creation-hands">{([['throws','투구 손','우투','좌투'],['bats','타격 손','우타','좌타']] as const).map(([key,label,right,left])=><fieldset key={key} disabled={busy}><legend>{label}</legend><div className="segmented">{([['R',right],['L',left]] as const).map(([hand,text])=><button type="button" key={hand} aria-pressed={hands[key]===hand} className={hands[key]===hand?'selected':''} onClick={()=>setHands(previous=>({...previous,[key]:hand}))}>{text}</button>)}</div></fieldset>)}</div>
+          <div className="creation-name"><label htmlFor="creation-player-name">선수 이름</label><div className="creation-name-controls"><input id="creation-player-name" value={name} onChange={event => setName(event.target.value)} maxLength={16} placeholder="이름을 입력하세요" autoComplete="off" required disabled={busy} /><button type="button" className="secondary" onClick={randomizeName} disabled={busy}>랜덤 이름 생성</button></div></div>
           <PositionPicker kind={kind} value={position} onKindChange={setKind} onChange={value => { if (kind) setChoices(previous => ({ ...previous, [kind]: value })); }} disabled={busy} mode={mode}/>
           {error && <p role="alert" className="error">{error}</p>}
-          <div className="creation-start"><div className="career-mode-picker" role="group" aria-label="시작할 커리어 선택">
-            <button type="button" className={mode==="school"?"selected":""} aria-pressed={mode==="school"} disabled={busy} onClick={()=>{setMode("school");setJerseyNumber(randomJerseyNumber("school",jerseyNumber));}}><b>고교 선수로 시작하기</b><span>3년 동안 성장시켜 더 높은 능력치로 프로 입성을 노릴 수 있습니다.</span></button>
-            <button type="button" className={mode==="pro"?"selected":""} aria-pressed={mode==="pro"} disabled={busy} onClick={()=>{setMode("pro");setJerseyNumber(randomJerseyNumber("pro",jerseyNumber));}}><b>프로 선수로 시작하기</b><span>무작위 능력치로 프로에 도전합니다. 현재 보직 기량에 따라 정식선수 또는 신고선수로 입단합니다.</span></button>
-          </div><button className="primary start-button" type="submit" disabled={busy || !name.trim() || !position}><span>{busy ? "나의 선수와 소속을 배정하는 중…" : "나의 커리어 시작하기"}</span><span aria-hidden="true">→</span></button>
+          <div className="creation-start"><button className="primary start-button" type="submit" disabled={busy || !name.trim() || !position}><span>{busy ? "나의 선수와 소속을 배정하는 중…" : "나의 커리어 시작하기"}</span><span aria-hidden="true">→</span></button>
             <p className="micro muted center">커리어는 이 브라우저에 자동 저장됩니다. 저장·불러오기에서 이어갈 수 있습니다.</p>
           </div>
         </form>
       </section>
-      <RandomAssignmentCard name={name} position={position} mode={mode} number={jerseyNumber} onReroll={()=>setJerseyNumber(randomJerseyNumber(mode,jerseyNumber))} disabled={busy} hands={hands}/>
+      <RandomAssignmentCard name={name} position={position} mode={mode} number={jerseyNumber} onReroll={()=>setJerseyNumber(randomJerseyNumber(mode,jerseyNumber))} disabled={busy}/>
     </div>
   </>;
 }

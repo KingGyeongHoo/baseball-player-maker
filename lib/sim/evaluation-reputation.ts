@@ -5,6 +5,7 @@ import type {EvaluationField,ReputationAssessment,ReputationBreakdown,Reputation
 import type {GameState,Player,RecordLine,Role} from "./types";
 import {clearProfessionalReputation} from "./pro-selection";
 
+import {leftPitcherMultiplier} from './handedness';
 export const REPUTATION_MODEL="evaluation-reputation-v1";
 type Level="school"|"first"|"second";
 const fields:EvaluationField[]=["batting","pitching"];
@@ -61,6 +62,7 @@ export function reputationBreakdown(p:Player):ReputationBreakdown {
   const performanceWeight=parts.reduce((n,p)=>n+p.performanceWeight,0)/parts.length;
   const performance=parts.length===1?parts[0].performance:performanceWeight?parts.reduce((n,p)=>n+(p.performance??0)*p.performanceWeight,0)/(parts.length*performanceWeight):null;
   const ability=parts.reduce((n,p)=>n+p.ability,0)/parts.length,base=parts.reduce((n,p)=>n+p.score,0)/parts.length;
-  const bonus=(p.reputationBonus??0)+twoWayReputation(p);
+  const handedBonus=parts.reduce((sum,part)=>sum+part.score*(leftPitcherMultiplier(p,part.role)-1),0)/parts.length;
+  const bonus=(p.reputationBonus??0)+twoWayReputation(p)+handedBonus;
   return {modelVersion:REPUTATION_MODEL,assessedAt:assessment?.date??null,ability,performance,performanceWeight,base,bonus,total:clamp(base+bonus),fields:parts};
 }

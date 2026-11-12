@@ -11,6 +11,7 @@
     "plugins": []
   },
   "include": [
+    "app/components/training-center.tsx",
     "app/components/progress-controls.tsx",
     "app/components/position-picker.tsx",
     "app/components/player-setup.tsx",

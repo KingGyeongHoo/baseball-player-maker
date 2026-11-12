@@ -23,6 +23,14 @@ function fixture(grade=1) {
   return s;
 }
 const step = s => e.advanceWeek(s,e.getPlayer(s).trainingPolicy,e.getPlayer(s).stance);
+test('school qualification compares both directions at the exact 60% boundary without an absolute minimum',()=>{
+  const p=e.getPlayer(fixture());
+  for(const [bat,pitch,qualified] of [[50,35,true],[50,30,true],[50,29.999,false],[35,50,true],[30,50,true],[29.999,50,false],[20,20,true]]){
+    for(const key of ['contact','power','speed','defense'])p.stats[key]=bat;
+    for(const key of ['velocity','control','movement'])p.stats[key]=pitch;
+    assert.equal(o.twoWayQualified(p),qualified,`${bat}/${pitch}`);
+  }
+});
 function complete(s) {
   const target=s.week+1;
   for(let i=0;i<12&&s.week<target;i++) {
@@ -44,7 +52,7 @@ function winter(s, success=true) {
 }
 function acceptTwoWay(s) { o.opportunityState(s).qualifiedWeeks=2;assert.equal(o.tryCareerOpportunity(s),true);return e.answerCareerEvent(s,'accept'); }
 
-test('coach proposal requires both OVRs >=55 for two complete weeks and pauses before the next day',()=>{
+test('coach proposal requires the 60% OVR ratio for two complete weeks and pauses before the next day',()=>{
   let s=fixture();s=step(s);assert.ok(!s.careerEvent);assert.equal(o.opportunityState(s).qualifiedWeeks,1);
   s=step(s);assert.equal(o.opportunityState(s).qualifiedWeeks,2);const p=e.getPlayer(s),before=structuredClone(p);
   const paused=step(s);assert.equal(paused.careerEvent.definitionId,'S01');assert.equal(paused.week,s.week);assert.equal(paused.date,s.date);
@@ -60,15 +68,15 @@ test('current-school proposals can arrive in every grade, but never after the se
   for(const grade of [1,2,3]) {
     let s=acceptTwoWay(fixture(grade));assert.equal(e.getPlayer(s).grade,grade);assert.equal(e.getPlayer(s).teamId,0);
     assert.equal(o.tryCareerOpportunity(s),false);
-    s=fixture(grade);o.opportunityState(s).qualifiedWeeks=2;e.getPlayer(s).stats.velocity=54.99;assert.equal(o.tryCareerOpportunity(s),false);
+    s=fixture(grade);o.opportunityState(s).qualifiedWeeks=2;for(const key of ["velocity","control","movement"])e.getPlayer(s).stats[key]=32.999;assert.equal(o.tryCareerOpportunity(s),false);
     assert.equal(o.opportunityState(s).qualifiedWeeks,0);
   }
   const s=fixture(3);s.date=s.calendar.draftDate;o.opportunityState(s).qualifiedWeeks=2;assert.equal(o.tryCareerOpportunity(s),false);
 });
 
 test('falling below threshold resets the streak; declining blocks this grade but permits the next',()=>{
-  let s=fixture();o.opportunityState(s).qualifiedWeeks=2;e.getPlayer(s).stats.power=54;o.observeTwoWayQualification(s);
-  assert.equal(o.opportunityState(s).qualifiedWeeks,0);e.getPlayer(s).stats.power=55;assert.equal(o.tryCareerOpportunity(s),false);
+  let s=fixture();o.opportunityState(s).qualifiedWeeks=2;for(const key of ["contact","power","speed","defense"])e.getPlayer(s).stats[key]=32.999;o.observeTwoWayQualification(s);
+  assert.equal(o.opportunityState(s).qualifiedWeeks,0);for(const key of ["contact","power","speed","defense"])e.getPlayer(s).stats[key]=33;assert.equal(o.tryCareerOpportunity(s),false);
   o.opportunityState(s).qualifiedWeeks=2;o.tryCareerOpportunity(s);s=e.answerCareerEvent(s,'decline');assert.equal(o.tryCareerOpportunity(s),false);
   e.getPlayer(s).grade=2;assert.equal(o.tryCareerOpportunity(s),true);
   assert.equal(system.suggestedRole(e.getPlayer(acceptTwoWay(fixture()))),undefined);

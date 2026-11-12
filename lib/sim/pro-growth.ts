@@ -1,5 +1,6 @@
 import { statKeys, type Player, type Stats, type Stat } from "./types";
 import type { AgingProfile } from "./pro-types";
+import {handednessGrowth} from './handedness';
 
 const physicalStats: readonly Stat[] = [
   "power",
@@ -69,7 +70,7 @@ export function ageEfficiency(player: Player, key?: Stat) {
 }
 export function professionalGrowth(player: Player, key?: Stat) {
   return (
-    ageEfficiency(player, key) *
+    ageEfficiency(player, key) * handednessGrowth(player,key) *
     (player.professional?.employment === "freeAgent" ? 0.6 : 1)
   );
 }

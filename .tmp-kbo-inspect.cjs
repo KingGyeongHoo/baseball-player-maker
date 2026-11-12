@@ -1,2 +1,0 @@
-const fs=require('fs');
-(async()=>{const response=await fetch('https://www.koreabaseball.com/Record/Player/HitterBasic/Basic1.aspx');const html=await response.text();fs.writeFileSync('.tmp-kbo-page.html',html);console.log('status',response.status,'bytes',html.length);console.log((html.match(/<select[\s\S]*?<\/select>/gi)||[]).map(s=>s.slice(0,900)).join('\n'));console.log((html.match(/<input[^>]+(?:__VIEWSTATE|__EVENTVALIDATION)[^>]*>/gi)||[]).map(s=>s.slice(0,150)).join('\n'));})();

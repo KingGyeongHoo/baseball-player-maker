@@ -1,4 +1,5 @@
 import {assessmentValue,hydrateAssessments,requiresDevelopmentalOffer,salaryUnits,seasonExit} from "./pro-assessment";
+import {canPlayPosition} from './position-eligibility';
 import {proContractRules as rules} from "./pro-contract-rules";
 import {addDays,assignRole,getPlayer,hash,ovr,roleScore} from "./engine";
 import {contractValue} from "./pro-evaluation";
@@ -284,7 +285,7 @@ export function careerRequest(s:GameState,kind:"chance"|"position"|"manage"|"tra
 }
 export function finishRoleTrial(s:GameState){
   for(const p of s.players){const trial=p.professional?.roleTrial;if(!trial||trial.version===1||s.date<trial.until)continue;delete p.professional!.roleTrial;
-    const pitching=["SP","RP","CP"].includes(trial.position);if(ovr(p,pitching)>=45){const pos=trial.position;if(!p.eligiblePositions.includes(pos))p.eligiblePositions.push(pos);assignRole(p,pitching?pos==="SP"?"선발":pos==="CP"?"마무리":"중간계투":pos==="C"?"포수":["SS","2B","CF"].includes(pos)?"센터라인":"코너 야수");p.position=pos;if(p.twoWay){if(pitching)p.twoWay.pitchingPosition=pos;else p.twoWay.battingPosition=pos;}
+    const pitching=["SP","RP","CP"].includes(trial.position);if(canPlayPosition(p,trial.position)&&ovr(p,pitching)>=45){const pos=trial.position;if(!p.eligiblePositions.includes(pos))p.eligiblePositions.push(pos);assignRole(p,pitching?pos==="SP"?"선발":pos==="CP"?"마무리":"중간계투":pos==="C"?"포수":["SS","2B","CF"].includes(pos)?"센터라인":"코너 야수");p.position=pos;if(p.twoWay){if(pitching)p.twoWay.pitchingPosition=pos;else p.twoWay.battingPosition=pos;}
       if(p.professional?.twoWayReview){const pair=p.professional.twoWayReview.positions;if(pitching)pair.pitchingPosition=pos;else pair.battingPosition=pos;}
       if(!p.twoWay)focusProRole(p,pitching);
       if(p.id===s.playerId)proNotice(s,`role:${s.date}`,"보직 평가를 마쳤습니다","새 보직을 적용했습니다. 능력·기록은 유지되며 해당 분야에서 경쟁합니다. 프로 겸업은 별도 기준과 감독 제안으로 결정됩니다.");}

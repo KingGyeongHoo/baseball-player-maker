@@ -3,6 +3,7 @@ import {continueCareer} from "./sim/pro-career";
 import {choosePlayerJersey} from "./jersey-numbers";
 import {choosePlayerHands} from "./player-handedness";
 import type { PlayerHands, Position } from "./sim/types";
+import {applySwitchContact} from './sim/handedness';
 
 export type PlayerKind = "batter" | "pitcher";
 export const fieldPositions: { id: Position; x: number; y: number; description: string }[] = [
@@ -42,7 +43,7 @@ export function createRandomProCareer(name:string,position:Position,jerseyNumber
   for(const key of Object.keys(p.stats) as (keyof typeof p.stats)[]){
     if(main.includes(key)||["stamina","recovery","arm","bq"].includes(key))p.stats[key]=Math.max(1,Math.min(100,center+(hash(`${s.seed}:direct:${key}`)%1201)/100-6));
   }
-  p.initialStats={...p.stats};p.grade=3;p.reputation=reputationScore(p);
+  if(main.includes('contact'))applySwitchContact(p);p.initialStats={...p.stats};p.grade=3;p.reputation=reputationScore(p);
   delete p.evaluationHistory;delete p.evaluationAvailability;delete s.evaluationSystem;
   s.date=s.calendar.draftDate;s.phase="ended";s.draftOutcome={revealed:true,offer:null};
   s.postSchool={graduationYear:s.calendar.seasonYear,graduationSchool:"프로 직접 시작",collegeYears:0,tryouts:[]};

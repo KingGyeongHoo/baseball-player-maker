@@ -35,6 +35,8 @@ export const labels: Record<Ticket | Stat, string> = {
   arm: "어깨",
   bq: "야구 지능"
 };
+import {assertPositionEligible,canPlayPosition} from './position-eligibility';
+import {randomPlayerHands,applySwitchContact,leftPitcherMultiplier} from './handedness';
 export const positions: Record<Position, string> = {
   C: "포수",
   "1B": "1루수",
@@ -307,6 +309,10 @@ function makePlayer(s: GameState, teamId: number, grade: number, index: number, 
   for (const key of secondaryKeys) {
     p.stats[key] = clamp(secondaryCenter + normal(secondary) * (exceptional ? params["generation.stat_sd"] : params["generation.secondary_stat_sd"]), 1);
   }
+  const handSource={rngStates:{...s.rngStates,generation:hash(`${s.seed}:hands:${p.id}`)}};
+  Object.assign(p,randomPlayerHands(pos,()=>random(handSource,'generation')));
+  p.eligiblePositions=p.eligiblePositions.filter(position=>canPlayPosition(p,position));
+  applySwitchContact(p);
   p.initialStats = { ...p.stats };
   for (let w = 0; w < 40 * (grade - 1); w++) train(p, params["training.days"] * .85);
   return p;
@@ -444,14 +450,14 @@ export function ops(r: RecordLine) {
 const pitchingQ = (r: RecordLine) => r.pitching.BF ? (params["reputation.pitch_k"] * r.pitching.SO - params["reputation.pitch_bb"] * r.pitching.BB - params["reputation.pitch_hr"] * r.pitching.HR) / r.pitching.BF : 0;
 export const available = (p: Player, date: string) => p.professional?.employment!=="retired" && !p.forcedRest && p.trainingPolicy.mode !== "rest" && !(p.injury && date < p.injury.unavailableUntil);
 export const growthMultiplier = (p: Player) => p.proContract?.status === "developmental" ? .9 : 1;
-export const selectionScore = (p: Player, role = p.primaryRole) => p.careerMode === "pro" || p.professional ? proSelectionScore(p, role) : roleScore(p, role) - params["coach.fatigue_penalty"] * p.fatigue + params["coach.recent_max"] * clamp(p.recentZ, -1, 1) - (p.proContract?.status === "developmental" ? 6 : 0);
+export const selectionScore = (p: Player, role = p.primaryRole) => p.careerMode === "pro" || p.professional ? proSelectionScore(p, role) : roleScore(p, role)*leftPitcherMultiplier(p,role) - params["coach.fatigue_penalty"] * p.fatigue + params["coach.recent_max"] * clamp(p.recentZ, -1, 1) - (p.proContract?.status === "developmental" ? 6 : 0);
 const byPitchingScore = (a: Player, b: Player) => selectionScore(b, pitchingRole(b)) - selectionScore(a, pitchingRole(a)) || a.id.localeCompare(b.id);
 export function lineup(roster: Player[], date: string) {
   const professional=roster.some(p=>p.careerMode==='pro'||!!p.professional);
   const candidates = roster.filter(p => available(p, date));
   const field: Player[] = [];
   for (const pos of ["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH"] as Position[]) {
-    const eligible=candidates.filter(p=>p.twoWay?.nextAssignment!=="pitching"&&p.eligiblePositions.includes(pos)&&!field.includes(p));
+    const eligible=candidates.filter(p=>p.twoWay?.nextAssignment!=="pitching"&&p.eligiblePositions.includes(pos)&&canPlayPosition(p,pos)&&!field.includes(p));
     const natural=professional?eligible.filter(p=>currentProPosition(p,pos)):[];
     // Compete for the current job. Utility eligibility is only an emergency
     // cover when no available player currently holds that position.
@@ -599,10 +605,11 @@ export function promote(s: GameState) {
   capturePlayerEvaluations(s,"season-start");
 }
 export function assignRole(p: Player, role: Role) {
-  const pos = (["1B", "SS", "C", "SP", "RP", "CP"] as Position[]).find(position => roleFor(position) === role)!;
+  const pos = (["1B", p.throws==='L'?"CF":"SS", "C", "SP", "RP", "CP"] as Position[]).find(position => roleFor(position) === role)!;
+  assertPositionEligible(p,pos);
   p.primaryRole = role; p.preferredRole = role; p.position = pos;
   if (p.twoWay) { if (isPitcher(role)) p.twoWay.pitchingPosition = pos; else p.twoWay.battingPosition = pos; }
-  p.eligiblePositions = [...new Set([...p.eligiblePositions, ...eligible(pos)])];
+  p.eligiblePositions = [...new Set([...p.eligiblePositions, ...eligible(pos)])].filter(position=>canPlayPosition(p,position));
   p.reputation = reputationScore(p);
 }
 export function answerOffer(input: GameState, accept: boolean) {

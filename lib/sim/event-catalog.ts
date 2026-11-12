@@ -1,6 +1,6 @@
 import definitions from "./event-definitions.json";
 import type {EventRule,EventCategory} from "./event-stories";
-import type {EventFocusRule} from './event-selection';
+import {eventFieldsFor,type EventField,type EventFocusRule} from './event-selection';
 import type { CareerEvent, CareerEventBranch, EventOpportunity, EventRewardWeeks, EventScene, Player, Role, Stat } from "./types";
 
 type Definition={id:string;title:string;description:string;category?:EventCategory;focus?:EventFocusRule;kind?:CareerEvent["kind"];rule?:EventRule;choices:{id:string;label:string;outcomes:{weight:number;message:string;effect:string;fatigueRange?:{min:number;max:number};recoveryPercent?:{min:number;max:number}}[]}[]};
@@ -15,8 +15,8 @@ const statNames: Record<string, Stat> = { "컨택": "contact", "파워": "power"
 
 // The checked-in JSON preserves every choice, narrative and branch probability
 // from the design document. Resolve role-relative rewards when the event opens.
-export function decodeEffects(effect: string, player: Player, targetRole?: Role): Omit<CareerEventBranch, "weight" | "message"> {
-  const pitch = ["선발", "중간계투", "마무리"].includes(player.primaryRole);
+export function decodeEffects(effect: string, player: Player, targetRole?: Role,field?:EventField): Omit<CareerEventBranch, "weight" | "message"> {
+  const pitch = field?field==='pitching':["선발", "중간계투", "마무리"].includes(player.primaryRole);
   const core: Stat[] = pitch ? ["velocity", "control", "movement"] : ["contact", "power", "speed", "defense"];
   const weak = core.reduce((a, b) => player.stats[b] < player.stats[a] ? b : a);
   const output: Omit<CareerEventBranch, "weight" | "message"> = {};
@@ -51,11 +51,12 @@ export function decodeEffects(effect: string, player: Player, targetRole?: Role)
 export function createCareerEvent(definitionId: string, player: Player, date: string, week: number, context: Partial<EventOpportunity> & { scene?: EventScene } = {}): CareerEvent {
   const definition = schoolEventCatalog.find(event => event.id === definitionId);
   if (!definition) throw new Error("알 수 없는 이벤트입니다.");
+  const field=context.scene?(context.scene.batting?'batting':'pitching'):context.field??eventFieldsFor({...player,twoWay:undefined},definition.focus,definition.rule?.field)[0];
   return {
     id: `${player.id}:${week}:${date}:${definitionId}`, rewardVersion: 2, definitionId, kind: eventKind(definitionId), date, title: definition.title,
     description: definition.description.replace("{제안 포지션}", context.targetRole ? rolePosition[context.targetRole] : "새로운 포지션"),
     choices: definition.choices.map(choice => ({ id: choice.id, label: choice.label,
-      outcomes: choice.outcomes.map(outcome => ({ weight: outcome.weight, message: outcome.message, ...decodeEffects(outcome.effect, player, context.targetRole),...(outcome.fatigueRange?{fatigueRange:outcome.fatigueRange}:{}),...(outcome.recoveryPercent?{recoveryPercent:outcome.recoveryPercent}:{}) })) })),
+      outcomes: choice.outcomes.map(outcome => ({ weight: outcome.weight, message: outcome.message, ...decodeEffects(outcome.effect, player, context.targetRole,field),...(outcome.fatigueRange?{fatigueRange:outcome.fatigueRange}:{}),...(outcome.recoveryPercent?{recoveryPercent:outcome.recoveryPercent}:{}) })) })),
     ...(context.story ? {story:context.story} : {}),
     ...(context.competitionId ? { competitionId: context.competitionId } : {}),
     ...(context.targetRole ? { targetRole: context.targetRole } : {}), ...(context.scene ? { scene: context.scene } : {}),

@@ -36,16 +36,18 @@ export function requiredLeaderSample(player:Player,field:LeaderField,games:numbe
 export function leagueLeaders(state:GameState,competition:string,field:LeaderField){
   const pro=state.careerMode==="pro",level=competition==="pro-first"?"first":"second";
   const games=new Map(careerLeagueTable(state.calendar,competition).map(row=>[row.teamId,row.wins+row.losses+row.draws]));
+  const maxGames=Math.max(0,...games.values());
   const participants=new Set(state.calendar.competitions.find(c=>c.id===competition)?.participantTeamIds??[]);
   const candidates=state.players.filter(p=>p.professional?.employment!=="retired").map(player=>{
     const records=pro?player.seasonByLevel?.[level]:participants.has(player.teamId)?player.seasonStats:undefined;
     const teamId=pro?((player.teamId%10+10)%10)+(level==="second"?10:0):player.teamId;
-    return {player,records,games:(player.teamId>=0?games.get(teamId):undefined)??Math.max(0,...games.values())};
+    const teamGames=(player.teamId>=0?games.get(teamId):undefined)??maxGames;
+    return {player,records,requiredSample:requiredLeaderSample(player,field,teamGames,pro)};
   });
-  return leaderMetrics[field].map(metric=>({metric,rows:candidates.flatMap(({player,records,games})=>{
+  return leaderMetrics[field].map(metric=>({metric,rows:candidates.flatMap(({player,records,requiredSample})=>{
     if(!records)return [];
     const sample=field==="batting"?records.batting.PA:records.pitching.outs;
-    if(sample<=0||metric.qualified&&sample<requiredLeaderSample(player,field,games,pro))return [];
+    if(sample<=0||metric.qualified&&sample<requiredSample)return [];
     const value=metric.value(records);
     return value===null||!Number.isFinite(value)?[]:[{player,value,sample}];
   }).sort((a,b)=>(metric.ascending?a.value-b.value:b.value-a.value)||b.sample-a.sample||a.player.id.localeCompare(b.player.id)).slice(0,10)}));
