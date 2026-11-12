@@ -39,13 +39,13 @@ function Panel({ title, action, children }: { title: ReactNode; action?: ReactNo
   return <section className="panel"><div className="panel-heading"><h2>{title}</h2>{action}</div>{children}</section>;
 }
 export function DevelopmentContract({player}:{player:Player}) {
-  if (!player.proContract || player.proContract.status==="regular"&&!player.proContract.convertedDate) return null;
-  const progress=developmentProgress(player),pending=player.proContract.status==="developmental";
-  return <section className="development-contract-note" aria-label="선수 등록 상태"><div><b>{pending?"신고선수 · 성장 90%":"정식 선수 · 제한 해제"}</b>
-    <p>{pending?"출전 경쟁에서 불리하며, 정식 전환 후 1군 승격이 가능합니다.":`${player.proContract.convertedDate} 경기 성과로 정식 선수 전환 · 성장 100% · 출전 불이익 해제`}</p></div>
-    {pending&&<div className="development-contract-progress">{(player.twoWay||!["SP","RP","CP"].includes(player.position))&&<p>타자 {progress.AB}타수 · 규정 타석 {progress.PA}/80 · OPS .750 이상</p>}
+  if (player.proContract?.status!=="developmental") return null;
+  const progress=developmentProgress(player);
+  return <section className="development-contract-note" aria-label="선수 등록 상태"><div><b>신고선수 · 성장 90%</b>
+    <p>출전 경쟁에서 불리하며, 정식 전환 후 1군 승격이 가능합니다.</p></div>
+    <div className="development-contract-progress">{(player.twoWay||!["SP","RP","CP"].includes(player.position))&&<p>타자 {progress.AB}타수 · 규정 타석 {progress.PA}/80 · OPS .750 이상</p>}
       {(player.twoWay||["SP","RP","CP"].includes(player.position))&&<p>{progress.pitchingMilestone.key==='wins'?"선발":progress.pitchingMilestone.key==='saves'?"마무리":"중간계투"} {formatInnings(progress.outs)}/{progress.pitchingInningsRequired}.0이닝 · {progress.pitchingMilestoneCount}/{progress.pitchingMilestone.required}{progress.pitchingMilestone.label} · ERA 6.00 이하</p>}
-      {player.twoWay&&<p>투수·타자 중 한 조건 달성 시 전환</p>}</div>}
+      {player.twoWay&&<p>투수·타자 중 한 조건 달성 시 전환</p>}</div>
   </section>;
 }
 function Dialog({ title, children, onClose }: { title:string;children:ReactNode;onClose:()=>void }) {
