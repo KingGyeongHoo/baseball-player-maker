@@ -630,7 +630,7 @@
     {
       "key": "stance.swing",
       "label": "스윙 컨택/파워 상대 보정",
-      "value": 0.15,
+      "value": 0.05,
       "unit": "배율",
       "status": "임시 기본값",
       "note": "설계 가설; 실제 시즌 데이터 보정 전"

@@ -6,6 +6,7 @@ import { scoreText } from "../../lib/display";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { answerCareerEvent, dateLabel, getPlayer, isPitcher, validPolicy,draftRoleLabel,selectionScore } from "../../lib/sim/engine";
 import { careerLabel, developmentProgress } from "../../lib/sim/pro-career";
+import {createProWarContext} from '../../lib/sim/pro-war';
 import { AutoProgress, acceptedNationalInvitation, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } from "../../lib/auto-progress";
 import {restoreWorkerState,workerStateInput} from "../../lib/sim/worker-state";
 import ProLeague from "./pro-league";
@@ -40,14 +41,14 @@ import {needsNationalInvitationUpgrade} from '../../lib/sim/national-teams';
 function Panel({ title, action, children }: { title: ReactNode; action?: ReactNode; children: ReactNode }) {
   return <section className="panel"><div className="panel-heading"><h2>{title}</h2>{action}</div>{children}</section>;
 }
-export function DevelopmentContract({player}:{player:Player}) {
+export function DevelopmentContract({player,state}:{player:Player;state:GameState}) {
   if (player.proContract?.status!=="developmental") return null;
-  const progress=developmentProgress(player);
+  const progress=developmentProgress(player,state.calendar.seasonYear,createProWarContext(state));
   return <section className="development-contract-note" aria-label="선수 등록 상태"><div><b>신고선수 · 성장 90%</b>
     <p>출전 경쟁에서 불리하며, 정식 전환 후 1군 승격이 가능합니다.</p></div>
-    <div className="development-contract-progress">{(player.twoWay||!["SP","RP","CP"].includes(player.position))&&<p>타자 {progress.AB}타수 · 규정 타석 {progress.PA}/80 · OPS .750 이상</p>}
-      {(player.twoWay||["SP","RP","CP"].includes(player.position))&&<p>{progress.pitchingMilestone.key==='wins'?"선발":progress.pitchingMilestone.key==='saves'?"마무리":"중간계투"} {formatInnings(progress.outs)}/{progress.pitchingInningsRequired}.0이닝 · {progress.pitchingMilestoneCount}/{progress.pitchingMilestone.required}{progress.pitchingMilestone.label} · ERA 6.00 이하</p>}
-      {player.twoWay&&<p>투수·타자 중 한 조건 달성 시 전환</p>}</div>
+    <div className="development-contract-progress"><p>{progress.war?`WAR ${progress.warWins.toFixed(2)} · 시즌 종료 시 전환 대상`:"WAR 1.5 이상"}</p><p>{progress.rating?`출전평가 ${progress.selectionGrade} · 시즌 종료 시 전환 대상`:"시즌 종료 시 심사 · 출전평가 C 이상"}</p><p>{progress.allstar?"2군 올스타 · 시즌 종료 시 전환 대상":"2군 올스타 공식 선정"}</p>{!progress.allstar&&(player.twoWay||!["SP","RP","CP"].includes(player.position))&&<p>타자 {progress.PA}/80타석 또는 {progress.HR}/5홈런 또는 {progress.H}/20안타 또는 타율 {progress.average===null?"—":progress.average.toFixed(3).replace(/^0/,"")}/.250</p>}
+      {!progress.allstar&&(player.twoWay||["SP","RP","CP"].includes(player.position))&&<p>{progress.pitchingMilestone.key==='wins'?"선발":progress.pitchingMilestone.key==='saves'?"마무리":"중간계투"} {formatInnings(progress.outs)}/{progress.pitchingInningsRequired}.0이닝 · {progress.pitchingMilestoneCount}/{progress.pitchingMilestone.required}{progress.pitchingMilestone.label} · ERA 6.00 이하</p>}
+      {!progress.allstar&&player.twoWay&&<p>투수·타자 중 한 조건 달성 시 전환</p>}</div>
   </section>;
 }
 function Dialog({ title, children, onClose }: { title:string;children:ReactNode;onClose:()=>void }) {
@@ -133,7 +134,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
     </header><main className="app-main pro-main"><CareerStorage state={state} onLoad={load} disabled={busy||auto}/><div className="page-kicker"><span>{state.careerMode==="pro"?"PRO LIFE":"THE NEXT CHANCE"} · {careerLabel(p)}</span><span>{dateLabel(state.date)} · {p.teamId<0?(state.proWorld?.stage==="retired"?"은퇴":"무소속"):pro?squadLabel(p.teamId)+" 등록":"대학 육성 시즌"}</span></div>
       {error&&<div className="error-banner" role="alert">{error}<button onClick={()=>setError("")}>닫기</button></div>}
       {tab==="home"&&state.proWorld?.stage==="retired"&&<ProRetirement state={state} onRecords={()=>openRecords()} onNew={()=>setReset(true)}/>}
-      {tab==="home"&&state.proWorld?.stage!=="retired"&&<ProDashboard state={state} onTab={tab=>tab==="records"?openRecords():setTab(tab)} onTraining={openTraining} trainingDisabled={editing} records={<ProSeasonStats player={p}/>} notice={<DevelopmentContract player={p}/>}/>}
+      {tab==="home"&&state.proWorld?.stage!=="retired"&&<ProDashboard state={state} onTab={tab=>tab==="records"?openRecords():setTab(tab)} onTraining={openTraining} trainingDisabled={editing} records={<ProSeasonStats player={p}/>} notice={<DevelopmentContract player={p} state={state}/>}/>}
       {tab==="training"&&<TrainingCenter state={state} policy={policy} setPolicy={next=>{setPolicy(next);setTrainingMessage("");}} stance={stance} setStance={next=>{setStance(next);setTrainingMessage("");}} onSave={saveTraining} disabled={editing} message={trainingMessage} onChange={onChange}/>}
       {tab==="international"&&<InternationalHub state={state} onRecords={openRecords}/>}
       {tab==="roster"&&<><PlayerRoster state={state} onSelect={openRecords}/>{rivals.length>0&&<Panel title="나의 포지션 경쟁"><RosterTable state={state} players={rivals.slice(0,6)} field={isPitcher(p.primaryRole)?"pitching":"batting"} onSelect={openRecords}/><p className="draft-board-note">{proRegistrationStatus(state,p)}</p></Panel>}</>}
@@ -145,7 +146,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
         <CareerLifetimeRecords state={state}/>
         <CareerHonors state={state}/>
         {state.proWorld&&<ProContractPanel state={state} onAction={onAction} onRetire={()=>setRetireConfirm(true)} disabled={careerDisabled}/>}
-        <DevelopmentContract player={p}/>
+        <DevelopmentContract player={p} state={state}/>
         {ended&&state.careerMode==="college"&&<CareerContinuation state={state} onChange={onChange}/>}
         {!!state.postSchool?.collegeDraft?.length&&<details className="panel pro-archive"><summary>최근 대학 재도전 드래프트</summary><DraftRoundTable picks={state.postSchool.collegeDraft} playerId={p.id} year={state.careerMode==="college"?state.calendar.seasonYear:state.calendar.seasonYear-1} onSelect={setDraftPick}/></details>}
         {!!state.draft.length&&<details className="panel pro-archive"><summary>{state.postSchool?.graduationYear} 고교 드래프트 기록</summary><DraftRoundTable picks={state.draft} playerId={p.id} year={state.postSchool?.graduationYear??state.calendar.seasonYear} onSelect={setDraftPick}/></details>}

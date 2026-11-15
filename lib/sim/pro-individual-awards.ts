@@ -8,6 +8,9 @@ export function individualTitleName(row:{field?:LeaderField;metric?:string;label
   if(row.metric)return row.field?titleNames[row.field][row.metric]:titleNames.batting[row.metric]??titleNames.pitching[row.metric];
   return individualTitleFromKind(row.label??'');
 }
+export function individualAwardRows(awards:ProIndividualAward[]|undefined,level:ProLevel,field:LeaderField){
+  return awards?.filter(row=>row.level===level&&row.field===field&&individualTitleName(row)).map(row=>({...row,label:individualTitleName(row)!}))??[];
+}
 export function individualTitleFromKind(kind:string){
   for(const field of ['batting','pitching'] as const)for(const [id,name] of Object.entries(titleNames[field])){
     if(kind===name||kind===leaderMetrics[field].find(metric=>metric.id===id)?.label||id==='wins'&&kind==='다승')return name;

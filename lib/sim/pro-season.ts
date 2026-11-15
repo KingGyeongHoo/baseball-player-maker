@@ -10,7 +10,9 @@ import {syncJerseyNumbers} from "../jersey-numbers";
 import {seededPlayerName} from "./player-names";
 import {captureEvaluationChange,capturePlayerEvaluations} from "./evaluation-lifecycle";
 import {discardRetiredPlayers} from "./retired-records";
-import {addDays,available,clamp,draftClubs,draftPlayers,emptyRecord,generatedTalentCohort,getPlayer,params,previewPlayer,recovery,reputationScore,roleScore,train,updateReputation} from "./engine";
+import {addDays,available,clamp,draftClubs,draftPlayers,emptyRecord,generatedTalentCohort,getPlayer,hash,params,previewPlayer,random,recovery,reputationScore,roleScore,train,updateReputation} from "./engine";
+import {positionCohort} from './position-generation';
+import {reviewDevelopmentContract} from './pro-career';
 import {developmentCalendar,careerLeagueTable} from "./pro-calendar";
 import {applyAging} from "./pro-growth";
 import {regularAwards,contractValue} from "./pro-evaluation";
@@ -173,6 +175,7 @@ export function finishProfessionalDay(s:GameState){
 export function closeProfessionalSeason(s:GameState){
   const w=s.proWorld!;if(w.seasonClosed)return;
   w.seasonClosed=true;w.stage="summary";s.phase="ended";
+  reviewDevelopmentContract(s);
   const appearances=firstTeamAppearances(s),warContext=createProWarContext(s);
   for(const p of s.players){if(!p.professional)continue;recordSeasonAssessment(s,p,appearances,warContext);archiveProfessionalSeason(s,p);payroll(s,p);}
   applySeasonExitPolicies(s);
@@ -184,11 +187,11 @@ export function closeProfessionalSeason(s:GameState){
   proNotice(s,`season:${w.year}`,notice.title,notice.message,"seasonComplete");
   if((p.age??19)>=45||p.professional!.unattachedYears>=2)retireProfessional(s,(p.age??19)>=45?"45세 시즌을 마쳐 장기 커리어를 마무리했습니다.":"무소속으로 두 시즌을 마쳐 도전을 마무리했습니다.");
 }
-const rookieSlots:Position[]=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","SP","RP","CP"];
 export function addRookieClass(s:GameState,year:number){
   const w=s.proWorld!;if(w.draftedYears.includes(year))return;
   const candidates:Player[]=[];
-  for(let i=0;i<1000;i++){const p=previewPlayer(`${s.seed}:graduates:${year}:${i}`,"",rookieSlots[i%rookieSlots.length]);p.id=`pro-rookie-${year}-${i}`;
+  const source={rngStates:{...s.rngStates,generation:hash(`${s.seed}:graduate-positions:${year}`)}},intake=positionCohort(1000,()=>random(source,'generation'));
+  for(let i=0;i<1000;i++){const p=previewPlayer(`${s.seed}:graduates:${year}:${i}`,"",intake[i]);p.id=`pro-rookie-${year}-${i}`;
     p.name=seededPlayerName(`${s.seed}:player-name:${p.id}`);
     p.grade=3;p.teamId=i%100;candidates.push(p);
   }

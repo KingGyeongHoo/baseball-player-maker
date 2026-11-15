@@ -4,6 +4,7 @@ import {choosePlayerJersey} from "./jersey-numbers";
 import {choosePlayerHands} from "./player-handedness";
 import type { PlayerHands, Position } from "./sim/types";
 import {applySwitchContact} from './sim/handedness';
+import {positionFromRoll} from './sim/position-generation';
 
 export type PlayerKind = "batter" | "pitcher";
 export const fieldPositions: { id: Position; x: number; y: number; description: string }[] = [
@@ -22,6 +23,10 @@ export const pitchingPositions: { id: Position; image: string; pose: string; des
   { id: "CP", image: "/images/pitcher-closer-left.png", pose: "FINISHING PITCH", description: "역동적인 투구 · 마지막 아웃을 책임지는 마무리" },
 ];
 export const kindForPosition = (position: Position): PlayerKind => ["SP", "RP", "CP"].includes(position) ? "pitcher" : "batter";
+export function randomPlayerPosition(entropy:Pick<Crypto,'getRandomValues'>=globalThis.crypto):Position{
+  const value=entropy.getRandomValues(new Uint32Array(1))[0];
+  return positionFromRoll(value/2**32);
+}
 
 // The seed is internal: every start gets fresh entropy, while replayable engine
 // inputs remain available to automated tests and diagnostics.

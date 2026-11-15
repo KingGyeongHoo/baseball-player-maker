@@ -7,7 +7,7 @@ import { addDays, available, clamp, overall, draftPlayers, emptyRecord, emptySta
 import { openScheduledEvent, planEventWeek, tryNationalEvent,tryWinterTrainingCenter } from "./event-system";
 import { joinPendingTransfer, recordTwoWayWeek, tryCareerOpportunity, twoWayQualified } from "./career-opportunities";
 import { statKeys, type GameState, type Player, type Policy, type Stance } from "./types";
-import { finishDevelopmentSeason, reviewProRoster, reviewDevelopmentContract } from "./pro-career";
+import { finishDevelopmentSeason, reviewProRoster } from "./pro-career";
 import { developmentalOffer } from "./draft-outcome";
 import { tryDevelopmentEvent } from "./pro-events";
 import {ensureProWorld,prepareEvaluationOpportunities,recordProfessionalDay,reviewProMilestones} from "./pro-world";
@@ -118,7 +118,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
     if(day.phase==="beforeGames"){
       finishRoleTrial(s);preparePlayoffReplacements(s);
     }
-    if (day.phase === "beforeGames" && (reviewDevelopmentContract(s) || reviewProRoster(s))) {
+    if (day.phase === "beforeGames" && reviewProRoster(s)) {
       return pause();
     }
     if (tryNationalEvent(s)) return pause();
@@ -226,7 +226,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
     report.to = date; delete progress.day; progress.remainingDays--;
     if (s.careerMode === "pro" && s.postSchool?.pro) {
       if(player.teamId>=0&&player.teamId<10)s.postSchool.pro.firstTeamWeeks+=1/7;else if(player.teamId>=10&&player.teamId<20)s.postSchool.pro.secondTeamWeeks+=1/7;
-      recordProfessionalDay(s);recordProTwoWayDay(s);reviewDevelopmentContract(s);
+      recordProfessionalDay(s);recordProTwoWayDay(s);
     }
     recordEvaluationDay(s);capturePlayerEvaluations(s);
     finishAllstarDay(s);

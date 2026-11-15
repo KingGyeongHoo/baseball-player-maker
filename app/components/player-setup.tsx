@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import PositionPicker, { Ballpark } from "./position-picker";
-import { createRandomCareer, createRandomProCareer, kindForPosition, type PlayerKind } from "@/lib/player-creation";
+import { createRandomCareer, createRandomProCareer, kindForPosition, randomPlayerPosition, type PlayerKind } from "@/lib/player-creation";
 import {generatePlayerName} from "@/lib/sim/player-names";
 import {randomJerseyNumber} from "@/lib/jersey-numbers";
-import { positionName, positions } from "@/lib/sim/engine";
+import { positionName } from "@/lib/sim/engine";
 import type { GameState, Position } from "@/lib/sim/types";
 
 function RandomAssignmentCard({ name, position, mode, number, onReroll, disabled }: { name: string; position: Position | null; mode:"school"|"pro";number:number|null;onReroll:()=>void;disabled:boolean }) {
@@ -28,9 +28,7 @@ export default function PlayerSetup({ onStart }: { onStart: (state: GameState) =
   const position = kind ? choices[kind] : null;
   const randomizeName = () => { setName(generatePlayerName(Math.random)); setError(""); };
   const randomizePlayer = () => {
-    const rolls = globalThis.crypto.getRandomValues(new Uint32Array(1));
-    const options = Object.keys(positions) as Position[];
-    const nextPosition = options[Math.floor(rolls[0] / 2 ** 32 * options.length)];
+    const nextPosition = randomPlayerPosition();
     const nextKind = kindForPosition(nextPosition);
     const nextName = generatePlayerName(Math.random);
     setName(nextName);

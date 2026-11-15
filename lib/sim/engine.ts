@@ -4,6 +4,7 @@ import { buildCalendar } from "./calendar";
 import { seededPlayerName } from "./player-names";
 import { createSchool, recruitmentProfile, updateSchoolPrestige } from "./school-recruiting";
 import {createTalentCohort,talentFromRoll} from "./talent-generation";
+import {schoolPositionIntake} from './position-generation';
 import {talentBand,talentMultiplier} from './talent';
 import { draftPlayers as selectSchoolDraft } from "./draft";
 import { simulateGame } from "./match-engine";
@@ -318,15 +319,18 @@ function makePlayer(s: GameState, teamId: number, grade: number, index: number, 
   for (let w = 0; w < 40 * (grade - 1); w++) train(p, params["training.days"] * .85);
   return p;
 }
-const slotPositions: Position[][] = [["C", "1B", "SS", "LF", "CF", "SP", "SP", "RP", "RP", "CP"], ["C", "2B", "3B", "RF", "LF", "SP", "SP", "RP", "RP", "CP"], ["C", "1B", "2B", "SS", "CF", "RF", "SP", "SP", "RP", "CP"]];
+function schoolPositions(s:GameState,entryYear:number){
+  const source={rngStates:{...s.rngStates,generation:hash(`${s.seed}:school-positions`)}};
+  return schoolPositionIntake(s.teams.map(team=>team.id),entryYear,()=>random(source,'generation'),params['world.grade_size']);
+}
 export function generatedTalentCohort(players:Pick<Player,"id"|"primaryRole"|"teamId">[],seed:string,teams:GameState["teams"]=[]){
   const source={rngStates:{generation:hash(`${seed}:talent`),training:0,match:0,injury:0,draft:0,events:0}};
   return createTalentCohort(players.map(p=>({id:p.id,pitching:isPitcher(p.primaryRole),bias:recruitmentProfile(teams[p.teamId]).talentBias})),()=>random(source,"generation"));
 }
-function schoolTalentCohort(s:GameState,year:number,grade:number,own?:{team:number;position:Position}){
+function schoolTalentCohort(s:GameState,year:number,grade:number,intake:Map<number,Position[]>){
   const candidates=s.teams.flatMap(team=>Array.from({length:params["world.grade_size"]},(_,index)=>({
     id:`${year}-${team.id}-${grade}-${index}`,teamId:team.id,
-    primaryRole:roleFor(own&&team.id===own.team&&index===0?own.position:slotPositions[grade-1][index]),
+    primaryRole:roleFor(intake.get(team.id)![index]),
   })));
   return generatedTalentCohort(candidates,`${s.seed}:school:${year}:${grade}`,s.teams);
 }
@@ -376,9 +380,13 @@ export function createGame(seed: string, name: string, position: Position, teamI
   if (params["match.hr_max"] + params["match.double_max"] + params["match.triple_max"] > 1) throw new Error("안타 확률 설정이 올바르지 않습니다.");
   const s = skeleton(seed);
   s.teams=Array.from({length:params["world.teams"]},(_,id)=>createSchool(id));
-  const talents=[1,2,3].map(grade=>schoolTalentCohort(s,2027,grade,grade===1?{team:teamId,position}:undefined));
+  const intakes=[1,2,3].map(grade=>schoolPositions(s,2028-grade)),own=intakes[0].get(teamId)!;
+  const chosen=own.indexOf(position),replace=chosen>=0?chosen:own.indexOf('RP');
+  if(replace>=0)[own[0],own[replace]]=[own[replace],own[0]];
+  own[0]=position;
+  const talents=[1,2,3].map(grade=>schoolTalentCohort(s,2027,grade,intakes[grade-1]));
   for (let t = 0; t < params["world.teams"]; t++) {
-    for (let g = 1; g <= 3; g++) for (let i = 0; i < params["world.grade_size"]; i++) s.players.push(makePlayer(s, t, g, i, 2027, t === teamId && g === 1 && i === 0 ? position : slotPositions[g - 1][i],talents[g-1].get(`2027-${t}-${g}-${i}`)));
+    for (let g = 1; g <= 3; g++) for (let i = 0; i < params["world.grade_size"]; i++) s.players.push(makePlayer(s, t, g, i, 2027, intakes[g-1].get(t)![i],talents[g-1].get(`2027-${t}-${g}-${i}`)));
   }
   const p = s.players[teamId * params["world.grade_size"] * 3];
   p.name = name.trim();
@@ -602,10 +610,10 @@ export function promote(s: GameState) {
   }
   s.players = s.players.filter(p => p.grade <= 3);
   const year = s.calendar.seasonYear + 1;
-  const talents=schoolTalentCohort(s,year,1);
+  const intake=schoolPositions(s,year),talents=schoolTalentCohort(s,year,1,intake);
   for (const t of s.teams) {
     t.wins = t.losses = t.draws = 0;
-    for (let i = 0; i < params["world.grade_size"]; i++) s.players.push(makePlayer(s, t.id, 1, i, year, slotPositions[0][i],talents.get(`${year}-${t.id}-1-${i}`)));
+    for (let i = 0; i < params["world.grade_size"]; i++) s.players.push(makePlayer(s, t.id, 1, i, year, intake.get(t.id)![i],talents.get(`${year}-${t.id}-1-${i}`)));
   }
   s.calendar = calendar(year);
   syncJerseyNumbers(s);

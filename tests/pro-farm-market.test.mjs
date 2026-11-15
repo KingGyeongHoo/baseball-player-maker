@@ -172,15 +172,16 @@ test('a starting-role guarantee actually selects the signed current-position pla
 });
 
 test('trades preserve the incoming registration level as well as FA transfers',()=>{
- for(const level of ['first','second']){
+ for(const level of ['first','second'])for(const phase of ['regular','offseason']){
   const s=fixture(),p=e.getPlayer(s),club=p.teamId%10,team=club+(level==='first'?0:10);
   if(s.players.filter(q=>q.teamId===team).length>=(level==='first'?29:30)){
     const down=s.players.find(q=>q.id!==p.id&&q.teamId===team&&q.position===p.position);assert.ok(down);down.teamId=club+20;
   }
   p.teamId=team;p.proContract.status='regular';p.professional.contract.endYear=2030;
   p.fatigue=0;for(const k of Object.keys(p.stats))p.stats[k]=70;
-  s.proWorld.stage='regular';s.date='2028-04-01';s.careerNotice=undefined;s.noticeQueue=[];
-  assert.equal(market.tradePlayer(s,p),true);
+  s.proWorld.stage=phase;s.date=phase==='regular'?'2028-04-01':'2028-11-01';s.careerNotice=undefined;s.noticeQueue=[];
+  for(const c of s.proWorld.clubs)c.budget=1e12;for(const q of s.players)if(q.professional.contract)q.professional.contract.endYear=2030;
+  assert.equal(market.tradePlayer(s,p),true);assert.equal(p.professional.service.at(-1).from,phase==='regular'?2028:2029);
   assert.equal(Math.floor(p.teamId/10),level==='first'?0:1);
   assert.equal(s.postSchool.pro.level,level);assert.notEqual(p.teamId%10,club);
  }

@@ -386,7 +386,7 @@ export type GameState = {
   trainingFocus?: { rng: number; rolledWeek: number };
   careerMode?: CareerMode;
   draftOutcome?: { revealed: boolean; offer: DevelopmentalOffer | null };
-  careerNotice?: { id: string; date: string; kind: "entry" | "promoted" | "demoted" | "tryoutFailed" | "seasonComplete" | "registered" | "pro"; title: string; message: string; code?:string;award?:{year:number;title:string;bonus:number;before?:number;after:number;applied?:number} };
+  careerNotice?: { id: string; date: string; kind: "entry" | "promoted" | "demoted" | "tryoutFailed" | "seasonComplete" | "registered" | "pro"; title: string; message: string; code?:string;award?:{year:number;title:string;bonus:number;before?:number;after:number;applied?:number};individualTitles?:{year:number;level:ProLevel;field:"batting"|"pitching"} };
   noticeQueue?: NonNullable<GameState["careerNotice"]>[];
   proWorld?:ProWorld;
   pendingEventOutcome?:CareerEventOutcome;

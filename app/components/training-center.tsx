@@ -12,7 +12,7 @@ function Panel({title,eyebrow,children,className=""}:{title:string;eyebrow:strin
   return <section className={`panel ${className}`}><div className="panel-heading"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2></div></div>{children}</section>;
 }
 function StanceEditor({stance,setStance}:{stance:Stance;setStance:(s:Stance)=>void}){
-  return <div className="stance-editor"><div><span className="small muted">타격 성향</span><div className="segmented">{(["down","level","up"] as const).map((v,i)=><button key={v} className={stance.batting===v?"selected":""} onClick={()=>setStance({...stance,batting:v})}>{["다운스윙","레벨스윙","어퍼스윙"][i]}</button>)}</div><p className="micro muted">{stance.batting==="level"?"기본 능력을 유지하는 균형 잡힌 스윙":stance.batting==="down"?"컨택 +15% · 파워 −15% · 땅볼 성향":"파워 +15% · 컨택 −15% · 뜬공 성향"}</p></div>
+  return <div className="stance-editor"><div><span className="small muted">타격 성향</span><div className="segmented">{(["down","level","up"] as const).map((v,i)=><button key={v} className={stance.batting===v?"selected":""} onClick={()=>setStance({...stance,batting:v})}>{["다운스윙","레벨스윙","어퍼스윙"][i]}</button>)}</div><p className="micro muted">{stance.batting==="level"?"기본 능력을 유지하는 균형 잡힌 스윙":stance.batting==="down"?"컨택 +5% · 파워 −5% · 땅볼 성향":"파워 +5% · 컨택 −5% · 뜬공 성향"}</p></div>
     <div><span className="small muted">투구 성향</span><div className="segmented">{(["full","command"] as const).map((v,i)=><button key={v} className={stance.pitching===v?"selected":""} onClick={()=>setStance({...stance,pitching:v})}>{["전력투구","커맨드 투구"][i]}</button>)}</div><p className="micro muted">{stance.pitching==="full"?"구속 +12% · 제구 −8% · 피로 부담 큼":"제구 +12% · 구속 −6% · 피로 부담 적음"}</p></div></div>;
 }
 function GrowthChart({state}:{state:GameState}){

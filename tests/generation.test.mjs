@@ -5,6 +5,11 @@ const require = createRequire(import.meta.url);
 const e = require('../.test-build/lib/sim/engine.js');
 const {talentIntake,talentFromRoll}=require('../.test-build/lib/sim/talent-generation.js');
 const {createCareerNPC}=require('../.test-build/lib/sim/pro-roster.js');
+const {positionCohort,schoolPositionIntake}=require('../.test-build/lib/sim/position-generation.js');
+const positionGroup=position=>position==='SP'?'starter':['RP','CP'].includes(position)?'bullpen':position==='C'?'catcher':['1B','2B','3B','SS'].includes(position)?'infield':['LF','CF','RF'].includes(position)?'outfield':'other';
+const positionCounts=positions=>positions.reduce((counts,position)=>{counts[positionGroup(position)]++;return counts;},{starter:0,bullpen:0,catcher:0,infield:0,outfield:0,other:0});
+const positionRandom=seed=>{const source={rngStates:{generation:e.hash(seed),training:0,match:0,injury:0,draft:0,events:0}};return()=>e.random(source,'generation');};
+const expectedPositions={starter:175,bullpen:325,catcher:100,infield:200,outfield:200,other:0};
 const pitching = ['velocity', 'control', 'movement'];
 const batting = ['contact', 'power', 'speed', 'defense'];
 const mean = values => values.reduce((sum, n) => sum + n, 0) / values.length;
@@ -39,7 +44,9 @@ test('standalone and professional NPC generation use the same rare high-talent p
 test('professional annual rookies are selected from a pyramid cohort rather than 1,000 elite-school rolls',()=>{
  const pc=require('../.test-build/lib/sim/pro-career.js'),life=require('../.test-build/lib/sim/pro-season.js');
  const s=pc.createProfessionalDemo('pyramid-pro-rookies','검증','SS'),old=new Map(s.players.map(p=>[p.id,{...p.talent}]));
+ const expected=positionCohort(1000,positionRandom(`${s.seed}:graduate-positions:2029`));
  life.addRookieClass(s,2029);const rookies=s.players.filter(p=>p.id.startsWith('pro-rookie-2029-'));
+ assert.deepEqual(positionCounts(expected),expectedPositions);for(const p of rookies)assert.equal(p.position,expected[Number(p.id.split('-').at(-1))]);
  assert(rookies.length>=90&&rookies.length<=110);assert(talents(rookies).filter(n=>n===10).length<=5);assert(talents(rookies).filter(n=>n>=8).length<=45);
  for(const p of s.players.filter(p=>old.has(p.id)))assert.deepEqual(p.talent,old.get(p.id));
  const snapshot=rookies.map(p=>[p.id,p.talent,p.stats]);life.addRookieClass(s,2029);assert.deepEqual(s.players.filter(p=>p.id.startsWith('pro-rookie-2029-')).map(p=>[p.id,p.talent,p.stats]),snapshot);
@@ -137,4 +144,36 @@ test('draft OVR ranking uses primary ratings and two-way averages on the same 10
     return p;
   });
   assert.deepEqual(e.draftBoard(players).map(p => p.id), ['ranking-0', 'ranking-2', 'ranking-1']);
+});
+
+
+test('annual prospect pools use exact requested position proportions, repeat by seed and round smaller classes without dropping players',()=>{
+ for(const year of [2028,2029,2030]){
+  const positions=positionCohort(1000,positionRandom('prospects-'+year));assert.deepEqual(positionCounts(positions),expectedPositions);
+  assert.deepEqual(positions,positionCohort(1000,positionRandom('prospects-'+year)));assert.equal(positions.filter(p=>p==='CP').length,50);assert.equal(positions.filter(p=>p==='RP').length,275);
+ }
+ for(const count of [0,1,13,39,40,101]){const cohort=positionCohort(count,positionRandom('rounding'));assert.equal(cohort.length,count);assert.ok(cohort.every(p=>Object.hasOwn(e.positions,p)&&p!=='DH'));}
+});
+test('school intake meets annual ratios while three adjacent classes cover every defensive position and retain one or two closers',()=>{
+ const ids=Array.from({length:100},(_,i)=>i),intakes=[];
+ for(let year=2025;year<=2030;year++){
+  const intake=schoolPositionIntake(ids,year,positionRandom('school-position-order'));intakes.push(intake);
+  assert.deepEqual(positionCounts([...intake.values()].flat()),expectedPositions);
+  for(const row of intake.values()){assert.equal(row.length,10);assert.equal(row.filter(p=>p==='C').length,1);assert.equal(row.filter(p=>['SP','RP','CP'].includes(p)).length,5);}
+ }
+ for(let i=0;i<intakes.length-2;i++)for(const id of ids){
+  const squad=intakes.slice(i,i+3).flatMap(intake=>intake.get(id));
+  for(const pos of ['C','1B','2B','3B','SS','LF','CF','RF','SP','RP','CP'])assert.ok(squad.includes(pos),`${id}: ${pos}`);
+  assert.ok([1,2].includes(squad.filter(p=>p==='CP').length));assert.ok(squad.filter(p=>p==='SP').length>=5);
+ }
+});
+test('two actual school rollovers generate the new ratios and leave surviving positions and abilities unchanged',()=>{
+ const s=e.createGame('school-position-rollover','포지션보존','DH');
+ assert.equal(e.getPlayer(s).position,'DH');
+ for(let year=2028;year<=2029;year++){
+  const before=new Map(s.players.map(p=>[p.id,{position:p.position,stats:{...p.stats}}]));e.promote(s);
+  const incoming=s.players.filter(p=>!before.has(p.id));assert.equal(incoming.length,1000);assert.deepEqual(positionCounts(incoming.map(p=>p.position)),expectedPositions);
+  for(const p of s.players.filter(p=>before.has(p.id))){assert.equal(p.position,before.get(p.id).position);assert.deepEqual(p.stats,before.get(p.id).stats);}
+  for(const team of s.teams)assert.equal(s.players.filter(p=>p.teamId===team.id).length,30);
+ }
 });

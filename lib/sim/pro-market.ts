@@ -280,7 +280,7 @@ export function tradePlayer(s:GameState,p:Player):boolean{
     for(const move of [...pPlan.moves,...qPlan.moves])setProSquad(s,move.player,move.level);
     p.teamId=pPlan.team;q.teamId=qPlan.team;pc.club=to;qc.club=from;
     if(w.stove&&!w.stove.closed)w.stove.movedIds.push(p.id,q.id);
-    for(const [player,old,dest] of [[p,from,to],[q,to,from]] as [Player,number,number][]){const info=player.professional!;info.movements.push({date:s.date,from:old,to:dest,kind:"트레이드",reason:"구단 간 포지션 수요와 계약 조건을 반영한 1대1 교환"});const stint=info.service.at(-1);if(stint)stint.to=w.year;info.service.push({club:dest,from:w.year,to:w.year});info.lastRegistration=s.date;}
+    for(const [player,old,dest] of [[p,from,to],[q,to,from]] as [Player,number,number][]){const info=player.professional!;info.movements.push({date:s.date,from:old,to:dest,kind:"트레이드",reason:"구단 간 포지션 수요와 계약 조건을 반영한 1대1 교환"});const stint=info.service.at(-1);if(stint)stint.to=w.year;info.service.push({club:dest,from:requiredYear,to:requiredYear});info.lastRegistration=s.date;}
     if(p.id===s.playerId||q.id===s.playerId){const mine=getPlayer(s);s.postSchool!.pro!.club=mine.teamId%10;s.postSchool!.pro!.level=mine.teamId<10?"first":mine.teamId<20?"second":mine.teamId<30?"third":"developmental";proNotice(s,`trade:${s.date}:${p.id}:${q.id}`,"트레이드 통보",`${p.name} ↔ ${q.name} · 소속이 변경됐습니다. 계약·신분·같은 시즌 기록은 유지됩니다. 이 통보는 거래 결과 확인입니다.`);}
     proNews(s,`${clubName(s,from)} ↔ ${clubName(s,to)} · ${p.name} / ${q.name} 1대1 교환`);return true;
   }return false;
