@@ -16,8 +16,9 @@ function Scene({ scene }: { scene: EventScene }) {
     <span>{scene.bases.map((name, index) => `${index + 1}루 ${name ?? "없음"}`).join(" · ")}</span></section>;
 }
 function MatchChanges({ effect, batting }: { effect: MatchEffect; batting: boolean }) {
-  const names: Record<keyof MatchEffect, string> = { hit: "안타", hr: "홈런 종류 판정", bb: "볼넷", k: "삼진" };
-  return <div className="event-match-effect"><b>{batting ? "이번 타석" : "이번 상대 타자"}에 적용</b>{!Object.keys(effect).length&&<p>추가 판정 보정 없이 기존 경기 확률로 진행합니다.</p>}<div className="event-changes">{(Object.entries(effect) as [keyof MatchEffect, number][]).map(([key, amount]) => <span key={key}>{names[key]} <b>{changeText(amount * 100)}</b></span>)}</div></div>;
+  const names: Record<keyof MatchEffect, string> = { hit: "안타", hr: "홈런", bb: "볼넷", k: "삼진" };
+  if(!Object.keys(effect).length)return null;
+  return <div className="event-match-effect"><b>{batting ? "이번 타석" : "이번 상대 타자"}에 적용</b><div className="event-changes">{(Object.entries(effect) as [keyof MatchEffect, number][]).map(([key, amount]) => <span key={key}>{names[key]} <b>{changeText(amount * 100)}</b></span>)}</div></div>;
 }
 export default function CareerEventDialog({ event, outcome, disabled, onChoose, onDone, onRecover }: {
   event: CareerEvent | null; outcome: CareerEventOutcome | null; disabled: boolean;
@@ -46,7 +47,6 @@ export default function CareerEventDialog({ event, outcome, disabled, onChoose, 
         {outcome.injury && <p className="error">{outcome.injury.severity === "moderate" ? "보통" : outcome.injury.severity === "severe" ? "심각한" : "경미한"} 부상 · {dateLabel(outcome.injury.unavailableUntil)} 복귀 예정</p>}
         {outcome.positionChange && <p>포지션 변경: {positions[outcome.positionChange.from]} → {positions[outcome.positionChange.to]}</p>}
         {outcome.match && <MatchChanges effect={outcome.match} batting={outcome.scene?.batting ?? false} />}
-        <p className="micro muted">실제 변화가 반영됐습니다.</p>
         <div className="modal-actions"><button className="primary" onClick={onDone}>확인</button></div>
       </> : <><p>{event?.description}</p>{event?.transferOffers?.map(offer => <section className="event-scene" key={offer.teamId}><b>{offer.name} · {offer.kind === "strong" ? "전력 상위권 학교" : "포지션 경쟁이 적은 학교"}</b><span>현재 팀 전력 {scoreText(offer.strength)} · 다음 학년 포지션 경쟁 선수 능력 {scoreText(offer.competition)}</span>{offer.twoWay && <span>투타 겸업을 검토할 수 있는 선수로 관심을 보이고 있습니다.</span>}</section>)}<div className="career-event-choices">{event?.choices.map(choice => <button key={choice.id} disabled={disabled} onClick={() => { try { setChoiceError(""); submitChoice(choosing,disabled,()=>onChoose(choice.id)); } catch(error) { setChoiceError(error instanceof Error?error.message:"선택을 처리하지 못했습니다. 다시 선택해 주세요."); } }}><b>{choice.label}</b></button>)}</div></>}
     </div>

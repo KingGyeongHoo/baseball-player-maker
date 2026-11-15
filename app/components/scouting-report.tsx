@@ -16,7 +16,6 @@ export function ScoutingReportContent({state,pick,year}:{state:GameState;pick:Dr
     <section aria-label="지명을 뒷받침한 평가"><h3>지명을 뒷받침한 평가</h3><div className="scouting-reasons">{report.reasons.map(reason=><div key={reason.title}><h4>{reason.title}</h4><p>{text(reason.description)}</p></div>)}</div></section>
     <section className="scouting-development"><h3>입단 후 기대하는 과제</h3><p>{report.development}</p></section>
     {report.evaluation&&<details className="draft-evaluation-details"><summary>지명 당시 고교 평가 자세히</summary><PlayerEvaluationContent report={report.evaluation} parameters={report.evaluationParameters}/></details>}
-    <p className="micro muted">{report.source==="draft"?"지명 당시의 능력·기록·평가를 보관한 리포트입니다.":report.source==="archive"?"보관된 당시 능력·기록과 지명 평가로 정리한 리포트입니다.":"이전 저장에는 당시 능력 원본이 없어, 보관된 지명 평가만으로 정리했습니다."} 입단 후의 성장이나 출전 결과를 보장하지 않습니다.</p>
   </div>;
 }
 function ReportModal({state,pick,year,onClose}:{state:GameState;pick:DraftPick;year?:number;onClose:()=>void}){

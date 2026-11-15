@@ -54,7 +54,7 @@ export default function PlayerSetup({ onStart }: { onStart: (state: GameState) =
   return <>
     <div className="page-kicker"><span>YOUR CAREER STARTS HERE</span><span>2027 HIGH SCHOOL SEASON</span></div>
     <section className="setup-hero creation-hero">
-      <div className="hero-copy"><span className="outline-tag">고교 야구 인생 시뮬레이션</span><h1>이름과 포지션을 정하고,<br /><em>나만의 첫 시즌으로.</em></h1><p>학교와 능력치는 시작하는 순간 무작위로 결정됩니다.<br />어떤 출발이 기다릴지, 당신의 야구 이야기를 열어보세요.</p></div>
+      <div className="hero-copy"><span className="outline-tag">고교 야구 인생 시뮬레이션</span><h1>선수 만들기</h1><p>학교와 능력치는 무작위로 결정됩니다.</p></div>
       <div className="creation-hero-field"><Ballpark /></div><div className="hero-caption">EVERY LEGEND<br /><b>STARTS SOMEWHERE.</b></div>
     </section>
     <div className="creation-layout">

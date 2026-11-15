@@ -56,7 +56,7 @@ function CollegeContinuation({ state, onChange }: { state:GameState;onChange:(st
         <button className="primary" disabled={tried} onClick={()=>act("tryout")}>{tried?"올해 입단 테스트 참가 완료":"프로 입단 테스트 도전"}</button>
         <button className="secondary" disabled={years>=4} onClick={()=>act("college")}>{years===0?"대학 진학 후 다시 도전":"다음 대학 육성 시즌 시작"}</button>
       </>}</div>
-      {!pick&&<p className="micro muted">입단 테스트는 한 해 한 번, 대학 육성 시즌은 최대 4회입니다. 능력에 따라 합격 가능성이 달라집니다. 게임용 재도전 경로입니다.</p>}
+      {!pick&&<p className="micro muted">입단 테스트 연 1회 · 대학 육성 최대 4시즌</p>}
       {error&&<p role="alert" className="error">{error}</p>}
     </div>{state.careerNotice&&<CareerNoticeDialog state={state} onChange={onChange}/>}</section>;
 }

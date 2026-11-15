@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { leagueTable, resultsSource } from "../../lib/sim/calendar";
+import { leagueTable } from "../../lib/sim/calendar";
 import { getPlayer } from "../../lib/sim/engine";
 import {competitionRoundLabel,competitionRoundSize,schoolCompetitionStatus as status} from "../../lib/competition-progress";
 import type { GameState } from "../../lib/sim/types";
@@ -17,8 +17,8 @@ export default function CompetitionSchedule({ state }: { state: GameState }) {
     <div className="panel-heading"><div><span className="eyebrow">ROAD TO THE CHAMPIONSHIP</span><h2>시즌 대회와 출전 현황</h2></div><span className="small muted">{state.calendar.seasonYear} 시즌</span></div>
     <div className="competition-grid">{state.calendar.competitions.map(c => <button className={selected === c.id ? "selected" : ""} key={c.id} onClick={() => setSelected(c.id)}><span className="micro">{c.startDate.slice(5).replace("-", ".")} — {c.endDate.slice(5).replace("-", ".")}</span><b>{c.name}</b><span className={`competition-status ${status(state, c, p.teamId) === "우승" ? "positive" : ""}`}>{status(state, c, p.teamId)}</span></button>)}</div>
     <div className="competition-detail"><div className="competition-detail-heading"><div><span className="eyebrow">{competition.kind==='league'?'GROUP STAGE':'KNOCKOUT STAGE'}</span><h3>{competition.name}</h3></div><span className={`competition-result-badge ${result==='우승'?'champion':result.includes('탈락')?'eliminated':''}`}>{result}</span></div><p className="small muted competition-entry-rule">{competition.entryRule}</p>
-      {competition.kind === "league" ? <section className="competition-standings"><header className="competition-group-heading"><div><span>GROUP {Math.floor(p.teamId/10)+1}</span><h4>{Math.floor(p.teamId/10)+1}조 순위</h4></div><small>우리 학교가 속한 조 · {table.length}팀</small></header><div className="table-scroll"><table><caption>승률 → 승수 → 타이브레이커 순 · 무승부 제외</caption><thead><tr><th>순위</th><th>학교</th><th>경기</th><th>승</th><th>패</th><th>무</th><th>승률</th><th>게임차</th></tr></thead><tbody>{table.map(row => <tr key={row.teamId} className={row.teamId === p.teamId ? "selected-row" : ""}><td><span className={`group-rank${row.rank<=4?' group-promoted':''}`}>{row.rank}{row.tiePending?"T":""}</span></td><td>{state.teams[row.teamId].name}</td><td>{row.played}</td><td>{row.wins}</td><td>{row.losses}</td><td>{row.draws}</td><td><b>{row.wins+row.losses?row.percentage.toFixed(3):"—"}</b></td><td>{row.gamesBehind.toFixed(1)}</td></tr>)}</tbody></table></div></section> : <>
-        {!competition.initialized ? <p className="empty-note">개막일에 참가 학교와 첫 대진을 확정합니다. 이후 승리한 학교가 다음 라운드로 진출합니다.</p> : <>
+      {competition.kind === "league" ? <section className="competition-standings"><header className="competition-group-heading"><div><span>GROUP {Math.floor(p.teamId/10)+1}</span><h4>{Math.floor(p.teamId/10)+1}조 순위</h4></div><small>우리 학교가 속한 조 · {table.length}팀</small></header><div className="table-scroll"><table><thead><tr><th>순위</th><th>학교</th><th>경기</th><th>승</th><th>패</th><th>무</th><th>승률</th><th>게임차</th></tr></thead><tbody>{table.map(row => <tr key={row.teamId} className={row.teamId === p.teamId ? "selected-row" : ""}><td><span className={`group-rank${row.rank<=4?' group-promoted':''}`}>{row.rank}{row.tiePending?"T":""}</span></td><td>{state.teams[row.teamId].name}</td><td>{row.played}</td><td>{row.wins}</td><td>{row.losses}</td><td>{row.draws}</td><td><b>{row.wins+row.losses?row.percentage.toFixed(3):"—"}</b></td><td>{row.gamesBehind.toFixed(1)}</td></tr>)}</tbody></table></div></section> : <>
+        {!competition.initialized ? <p className="empty-note">개막 전 · 대진 미정</p> : <>
           <p className="small">참가 {competition.participantTeamIds.length}팀 · {competition.championTeamId === null ? `${competition.round}라운드` : `우승: ${state.teams[competition.championTeamId].name}`}</p>
           {competition.byes.includes(p.teamId) && <p className="positive small">우리 학교는 이번 라운드 부전승입니다.</p>}
           <div className="national-bracket school-bracket" aria-label={`${competition.name} 토너먼트 대진표`}>{rounds.map(round=>{
@@ -35,6 +35,5 @@ export default function CompetitionSchedule({ state }: { state: GameState }) {
         </>}
       </>}
     </div>
-    <div className="calendar-reference"><b>2026 실제 대회 일정 참고 · 게임용 편성</b><p>전국대회 개최 기간을 참고하고, 주말리그는 해당 연도의 주말에 맞춰 배치합니다. 학교·참가 기준·조 편성·세부 대진은 게임 규칙입니다. 2027년 이후 공식 확정 일정이 아닙니다. 토너먼트는 최대 12이닝 무승부 시 추첨으로 진출 팀을 정합니다. 전국체전은 이 커리어 범위에서 제외합니다.</p><a href={state.calendar.sourceUrl} target="_blank" rel="noreferrer">대한체육회 체육일정 ↗</a><a href={resultsSource} target="_blank" rel="noreferrer">KBSA 대회 운영 정보 ↗</a></div>
   </section>;
 }
