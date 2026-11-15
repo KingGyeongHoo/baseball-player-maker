@@ -112,6 +112,9 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       }
     }
     const day = progress.day;
+    // Rebuild for each day/resume: new tournament rounds and winter migrations
+    // can replace the calendar, while a paused game must retain its cursor.
+    const gamesById=new Map(s.calendar.events.map(game=>[game.id,game]));
     if(day.phase==="beforeGames"){
       finishRoleTrial(s);preparePlayoffReplacements(s);
     }
@@ -146,14 +149,18 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       day.phase = "games";
     }
     if (day.phase === "games") {
+      const appeared=new Set(day.appearances),activePlayers=new Set(day.active);
       while (day.gameIndex < day.gameIds.length) {
-        const game = s.calendar.events.find(g => g.id === day.gameIds[day.gameIndex])!;
+        const game = gamesById.get(day.gameIds[day.gameIndex])!;
         if (day.gameStartFatigue === undefined) { day.gameStartFatigue = player.fatigue; day.gameStartEventFatigue = day.fatigue.events ?? 0; }
         if (!simulateGame(s, game, [rosters[game.homeTeamId], rosters[game.awayTeamId]])) return pause();
         day.fatigue.game += player.fatigue - day.gameStartFatigue - ((day.fatigue.events ?? 0) - (day.gameStartEventFatigue ?? 0));
         delete day.gameStartFatigue; delete day.gameStartEventFatigue;
         if (game.boxScore[s.playerId]) mergeRecord(report.records, game.boxScore[s.playerId]);
-        for (const id of [...game.lineup.flat(), ...Object.keys(game.boxScore)]) { if (!day.appearances.includes(id)) day.appearances.push(id); if (!day.active.includes(id)) day.active.push(id); }
+        for (const id of [...game.lineup.flat(), ...Object.keys(game.boxScore)]) {
+          if(!appeared.has(id)){appeared.add(id);day.appearances.push(id);}
+          if(!activePlayers.has(id)){activePlayers.add(id);day.active.push(id);}
+        }
         if (s.calendar.competitions.find(c => c.id === game.competitionId)?.kind === "tournament") game.advancingTeamId = game.status === "forfeit" ? game.forfeitTeamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId
           : game.score[0] === game.score[1] ? random(s, "match") < .5 ? game.homeTeamId : game.awayTeamId : game.score[0] > game.score[1] ? game.homeTeamId : game.awayTeamId;
         const home = s.teams[game.homeTeamId], away = s.teams[game.awayTeamId];
@@ -171,9 +178,9 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       const training = s.calendar.trainingDays.includes(date);
       const cycleEnd=addDays(report.from,6),trainingCycle=s.calendar.trainingDays.some(d=>d>=report.from&&d<=cycleEnd);
       const active = new Set(day.active), appearances = new Set(day.appearances);
-      const playingTeams = new Set(day.gameIds.flatMap(id => { const g = s.calendar.events.find(game => game.id === id)!; return [g.homeTeamId, g.awayTeamId]; }));
-      const evaluationPlayers=new Set(day.gameIds.flatMap(id=>s.calendar.events.find(game=>game.id===id)?.evaluationPlayers??[]));
-      const exhibitionPlayers=new Set([...Object.entries(allstarGameOn(s)?.boxScore??{}),...day.gameIds.flatMap(id=>{const g=s.calendar.events.find(g=>g.id===id);return g?.exhibition==='spring'?Object.entries(g.boxScore):[];})].filter(([,r])=>r.batting.PA||r.pitching.BF).map(([id])=>id));
+      const playingTeams = new Set(day.gameIds.flatMap(id => { const g = gamesById.get(id)!; return [g.homeTeamId, g.awayTeamId]; }));
+      const evaluationPlayers=new Set(day.gameIds.flatMap(id=>gamesById.get(id)?.evaluationPlayers??[]));
+      const exhibitionPlayers=new Set([...Object.entries(allstarGameOn(s)?.boxScore??{}),...day.gameIds.flatMap(id=>{const g=gamesById.get(id);return g?.exhibition==='spring'?Object.entries(g.boxScore):[];})].filter(([,r])=>r.batting.PA||r.pitching.BF).map(([id])=>id));
       const allstarRest=s.careerMode==="pro"&&date>=allstarDates(s.calendar.seasonYear).restStart&&date<=allstarDates(s.calendar.seasonYear).restEnd;
       while (day.playerIndex < s.players.length) {
         const p = s.players[day.playerIndex];

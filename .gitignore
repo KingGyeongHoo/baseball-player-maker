@@ -32,6 +32,10 @@
 
 # debug
 /.tmp-*
+# Generated spreadsheet inspection dumps and previews.
+/outputs/**/*.inspect.ndjson
+/outputs/**/.*.png
+/outputs/**/.validation.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

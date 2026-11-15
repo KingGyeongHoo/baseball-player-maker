@@ -14,12 +14,20 @@ export function packRecentRecord(record: RecentRecord): number[] {
 }
 
 export function mergeRecentRecord(target: RecordLine, record: RecentRecord) {
-  let index = 0;
-  for (const key of battingKeys) target.batting[key] += Array.isArray(record) ? record[index++] : record.batting[key];
-  for (const key of pitchingKeys) target.pitching[key] += Array.isArray(record) ? record[index++] : record.pitching[key];
-  const sb=Array.isArray(record)?record[20]:record.batting.SB,cs=Array.isArray(record)?record[21]:record.batting.CS;
-  if(sb!==undefined)target.batting.SB=(target.batting.SB??0)+sb;
-  if(cs!==undefined)target.batting.CS=(target.batting.CS??0)+cs;
+  const batting=target.batting,pitching=target.pitching;
+  let sb:number|undefined,cs:number|undefined;
+  if(Array.isArray(record)){
+    batting.PA+=record[0];batting.AB+=record[1];batting.H+=record[2];batting['2B']+=record[3];batting['3B']+=record[4];batting.HR+=record[5];
+    batting.BB+=record[6];batting.SO+=record[7];batting.R+=record[8];batting.RBI+=record[9];batting.GB+=record[10];batting.FB+=record[11];
+    pitching.BF+=record[12];pitching.outs+=record[13];pitching.H+=record[14];pitching.BB+=record[15];pitching.SO+=record[16];pitching.HR+=record[17];pitching.R+=record[18];pitching.ER+=record[19];
+    sb=record[20];cs=record[21];
+  }else{
+    for(const key of battingKeys)batting[key]+=record.batting[key];
+    for(const key of pitchingKeys)pitching[key]+=record.pitching[key];
+    sb=record.batting.SB;cs=record.batting.CS;
+  }
+  if(sb!==undefined)batting.SB=(batting.SB??0)+sb;
+  if(cs!==undefined)batting.CS=(batting.CS??0)+cs;
 }
 
 export function recentSample(record: RecentRecord, pitching: boolean) {

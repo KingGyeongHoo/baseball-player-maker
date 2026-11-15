@@ -84,6 +84,13 @@ test('recent records retain every stat and read legacy, packed and mixed records
   assert.ok(JSON.stringify(packed).length<JSON.stringify(old).length/2);
 });
 
+test('packed recent records keep optional steals and caught stealing without adding absent legacy fields',()=>{
+  const record=e.emptyRecord();Object.assign(record.batting,{PA:4,AB:3,H:2,BB:1,SB:2,CS:1});Object.assign(record.pitching,{BF:8,outs:6,H:2});
+  const packed=packRecentRecord(record),before=structuredClone(packed),actual=e.emptyRecord(),expected=e.emptyRecord();
+  mergeRecentRecord(actual,packed);mergeRecentRecord(expected,record);assert.deepEqual(actual,expected);assert.deepEqual(packed,before);
+  const legacy=e.emptyRecord();mergeRecentRecord(legacy,packed.slice(0,20));assert.equal(legacy.batting.SB,undefined);assert.equal(legacy.batting.CS,undefined);
+});
+
 test('state transfer reuses only unchanged histories, retains edits, removes departed players and resets on new connections',()=>{
   const sender=new StateTransferCache(),receiver=new StateTransferCache();
   const calendar={events:[]},history=[{id:'entry',stats:{power:40}}],first={calendar,players:[{id:'a',evaluationHistory:history},{id:'b',evaluationHistory:[{id:'other'}]}]};
@@ -150,6 +157,9 @@ test('real worker continuation, UI edits and error recovery match immutable simu
   // Quiet offseason gives multiple uninterrupted weeks, with legacy records too.
   state.date='2027-01-04';
   const me=e.getPlayer(state);me.recentAppearances=[e.emptyRecord()];
+  // This test exercises uninterrupted worker transport; winter enrollment is
+  // covered separately and must already have been acknowledged here.
+  state.eventLedger??={recent:[],centerGrades:[],nationalGrades:[],competitions:[],games:[]};state.eventLedger.centerGrades.push(me.grade);
   const policy={...me.trainingPolicy,mode:'rest'};policy.tickets=Object.fromEntries(Object.keys(policy.tickets).map(key=>[key,0]));
   for(let step=0;step<3;step++){
     if(step===2)state={...state,seed:state.seed+'-edited'};

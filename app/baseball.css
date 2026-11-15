@@ -1426,48 +1426,6 @@ body:has(.week-control) .site-footer {
 .training-layout {
   align-items: start;
 }
-.training-modes {
-  display: grid;
-  grid-template-columns: repeat(3,1fr);
-  gap: 10px;
-  padding: 24px;
-}
-.training-modes>button {
-  border: 1px solid #e0e4eb;
-  border-radius: 3px;
-  padding: 14px 5px;
-  text-align: center;
-  background: #fff;
-}
-.training-modes>button span {
-  font-size: 10px;
-  color: #858d9c;
-  display: block;
-}
-.training-modes>button b {
-  display: block;
-  font: 700 23px Arial,sans-serif;
-  color: #9aa3b3;
-  margin-top: 8px;
-}
-.training-modes small {
-  font: 10px KBO,sans-serif;
-  margin-left: 3px;
-}
-.training-mode-effect {
-  display: block;
-  margin-top: 10px;
-  font-size: 10px;
-  font-style: normal;
-  line-height: 1.5;
-  color: #748198;
-}
-.training-mode-effect.light {
-  color: #36836a;
-}
-.training-mode-effect.hard {
-  color: #ad6e44;
-}
 .training-label .training-growth-hint {
   display: flex;
   flex-wrap: wrap;
@@ -1475,18 +1433,6 @@ body:has(.week-control) .site-footer {
   line-height: 1.6;
   font-size: 9px;
   color: #77869d;
-}
-.training-modes>button.selected {
-  border-color: var(--navy);
-  background: #f3f5f9;
-}
-.training-modes>button.selected span,.training-modes>button.selected b {
-  color: var(--navy);
-}
-.training-modes>button:disabled {
-  background: #f5f6f8;
-  border-style: dashed;
-  cursor: not-allowed;
 }
 .training-mode-note {
   margin: -10px 24px 20px;
@@ -1553,23 +1499,6 @@ body:has(.week-control) .site-footer {
 }
 .ticket-reset:hover:not(:disabled) {
   background: #ffffff15;
-}
-.ticket-budget-track {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 5px;
-}
-.ticket-budget-track:empty {
-  display: none;
-}
-.ticket-budget-track i {
-  flex: 1;
-  height: 6px;
-  border-radius: 1px;
-  background: #ffffff26;
-}
-.ticket-budget-track i.allocated {
-  background: #dce5f5;
 }
 .training-load-summary {gap:16px 12px;}
 .load-current {grid-column:1/-1;display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-top:3px;}
@@ -2538,22 +2467,6 @@ tbody tr:last-child td {
 .dual-ovr b {
   color: #536b8d;
 }
-.training-forecast {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 18px 25px 0;
-  padding: 13px 14px;
-  background: #f5f7fa;
-  font-size: 10px;
-  color: #8a96a8;
-  border-radius: 3px;
-}
-.training-forecast b {
-  margin-left: 6px;
-  color: #536b8d;
-  font: 700 11px Arial,sans-serif;
-}
 .stat-bar-row strong {
   width: 39px;
 }
@@ -3074,16 +2987,6 @@ tbody tr:last-child td {
   .training-layout>.panel,.training-layout>.side-column {
     width: 100%;
   }
-  .training-modes {
-    padding: 19px 17px;
-    gap: 7px;
-  }
-  .training-modes>button {
-    padding: 12px 3px;
-  }
-  .training-modes>button span {
-    font-size: 9px;
-  }
   .training-mode-note {
     margin: -6px 17px 16px;
     font-size: 10px;
@@ -3106,9 +3009,6 @@ tbody tr:last-child td {
   .ticket-reset {
     grid-row: 2;
     justify-self: start;
-  }
-  .ticket-budget-track {
-    gap: 4px;
   }
   .training-rows {
     padding: 0 20px;
@@ -4243,9 +4143,6 @@ tbody tr:last-child td {
 .fatigue-timing {
   color: #9ba3af;
   font-size: 9px;
-}
-.fatigue-forecast .training-forecast {
-  flex-wrap: wrap;
 }
 .forecast-result {
   display: flex;

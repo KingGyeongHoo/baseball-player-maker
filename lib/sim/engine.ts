@@ -556,21 +556,16 @@ export function updateReputation(s: GameState,cache?:RecentReputationCache) {
     for (const pitching of [false, true]) {
       const league = pitching ? pitchingQ(total) : ops(total) ?? 0;
       const prior = params[pitching ? "reputation.pitcher_prior" : "reputation.hitter_prior"];
-      const evaluated = s.players.map((p, i) => ({
-        p,
-        r: records[i]
-      })).filter(({
-        r
-      }) => pitching ? r.pitching.outs > 0 : r.batting.PA > 0).map(({
-        p,
-        r
-      }) => {
+      const evaluated:{p:Player;adjusted:number}[]=[];
+      for(let i=0;i<s.players.length;i++){
+        const p=s.players[i],r=records[i];
+        if(!(pitching?r.pitching.outs>0:r.batting.PA>0))continue;
         const n = pitching ? r.pitching.outs : r.batting.PA;
-        return {
+        evaluated.push({
           p,
           adjusted: (n * (pitching ? pitchingQ(r) : ops(r) ?? 0) + prior * league) / (n + prior)
-        };
-      });
+        });
+      }
       const mean = evaluated.reduce((a, b) => a + b.adjusted, 0) / (evaluated.length || 1);
       const sd = Math.sqrt(evaluated.reduce((a, b) => a + (b.adjusted - mean) ** 2, 0) / (evaluated.length || 1));
       for (const {
