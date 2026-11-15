@@ -2450,6 +2450,28 @@ tbody tr:last-child td {
   margin-top: 18px;
   font-size: 10px;
 }
+.registration-changes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.registration-column { min-width:0; border:1px solid #e3e8ef; border-radius:6px; overflow:hidden; }
+.registration-column h3 { display:flex; align-items:center; gap:8px; margin:0; padding:12px 14px; font-size:13px; color:var(--navy); border-bottom:1px solid #e3e8ef; background:#f8fafc; }
+.registration-direction { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; }
+.registration-column.promoted .registration-direction { color:#148260; background:#e4f4ed; }
+.registration-column.removed .registration-direction { color:#b95b61; background:#faeaec; }
+.registration-player-list { list-style:none; padding:6px 0; margin:0; }
+.registration-player-list>li { display:flex; align-items:baseline; flex-wrap:wrap; gap:2px 5px; margin:0; padding:10px 14px; overflow-wrap:anywhere; }
+.registration-player-list>li+li { border-top:1px solid #f0f2f6; }
+.registration-player-list>li.registration-mine { background:#f0f5ff; }
+.registration-player-name { font-size:14px; color:var(--navy); }
+.registration-player-position { font-size:11px; color:#8490a2; }
+.registration-column .registration-empty { padding:18px 14px; margin:0; text-align:center; color:#a2acba; }
+.regular-conversion { display:flex; flex-direction:column; align-items:center; gap:20px; padding:16px 0 28px; text-align:center; }
+.regular-conversion-mark { display:flex; align-items:center; justify-content:center; width:68px; height:68px; border-radius:50%; background:#e4f4ed; color:#148260; }
+.regular-conversion>p { margin:0; font-size:15px; color:var(--navy); line-height:1.9; }
+@media(max-width:480px) {
+  .registration-changes { gap:10px; }
+  .registration-column h3 { padding:10px; gap:6px; }
+  .registration-player-list>li { padding:10px; }
+  .registration-player-name { font-size:13px; }
+}
 .modal-actions {
   display: flex;
   justify-content: flex-end;

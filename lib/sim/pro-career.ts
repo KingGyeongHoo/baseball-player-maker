@@ -1,3 +1,4 @@
+import {registrationChangeMessage} from "../pro-registration-notice";
 import {currentProPosition} from "./pro-positions";
 import {firstTeamRetention} from "./pro-assessment";
 import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, pitchingRole, positions, random, recovery, reputationScore, roleScore } from "./engine";
@@ -134,13 +135,13 @@ export function reviewDevelopmentContract(s: GameState) {
     let notified=false;
     for(const q of s.players){if(q.proContract?.status!=="developmental"||q.professional?.employment!=="active"||q.teamId<0||!developmentProgress(q).qualified)continue;
       q.proContract.status="regular";q.proContract.convertedDate=s.date;if(q.teamId>=30)setProSquad(s,q,"third");if(q.id===s.playerId){if(s.postSchool?.pro)s.postSchool.pro.level=q.teamId<10?"first":q.teamId<20?"second":"third";if(s.proWorld.goal==="정식 선수 전환")s.proWorld.goal="1군 승격";}const contract=q.professional?.contract;if(contract){contract.segments.push({from:s.date,salary:BASE_SALARY});contract.salary=Math.max(contract.salary,BASE_SALARY);}
-      if(q.id===p.id){notice(s,"registered","경기력으로 따낸 정식 선수 전환","2군의 실제 경기 성과로 정식 선수가 됐습니다. 앞으로 성장 100%·출전 불이익 해제가 적용되며, 다음 엔트리 평가에서 1군에 도전합니다. 전환일부터 정식 기본 연봉을 적용합니다.");notified=true;}
+      if(q.id===p.id){notice(s,"registered","정식 선수 전환!","정식 전환 요건을 충족하여 정식 선수로 전환되었습니다.");notified=true;}
       proNews(s,`${q.name} · 2군 성과로 정식 선수 전환`,`${s.calendar.seasonYear}:registered:${q.id}`);
     }return notified;
   }
   if (s.careerMode !== "pro" || s.careerNotice || p.proContract?.status !== "developmental" || !developmentProgress(p).qualified) return false;
   p.proContract.status = "regular"; p.proContract.convertedDate = s.date;
-  notice(s,"registered","경기력으로 따낸 정식 선수 전환","2군에서 쌓은 경기 성과를 인정받아 정식 선수로 전환됐습니다. 성장 효율이 100%로 회복되고 출전 경쟁의 불이익이 해제됩니다. 이제 1군 승격에도 도전할 수 있습니다.");
+  notice(s,"registered","정식 선수 전환!","정식 전환 요건을 충족하여 정식 선수로 전환되었습니다.");
   return true;
 }
 export function reviewProRoster(s: GameState) {
@@ -170,7 +171,7 @@ export function reviewProRoster(s: GameState) {
   const from:ProLevel = p.teamId===first?"first":"second",to:ProLevel=from==="first"?"second":"first",old=p.teamId;
   p.teamId=exchange.teamId;exchange.teamId=old;info.level=to;
   info.transactions.push({date:s.date,from,to,reason,exchangedPlayerId:exchange.id});
-  notice(s,to==="first"?"promoted":"demoted",to==="first"?"1군 승격 통보":"2군 조정 통보",reason);return true;
+  notice(s,to==="first"?"promoted":"demoted",to==="first"?"1군 승격 통보":"2군 조정 통보",registrationChangeMessage([to==="first"?p.name:exchange.name],[to==="first"?exchange.name:p.name]));return true;
 }
 export function finishDevelopmentSeason(s: GameState) {
   if(s.careerMode==="pro"&&s.proWorld)return finishProfessionalDay(s);

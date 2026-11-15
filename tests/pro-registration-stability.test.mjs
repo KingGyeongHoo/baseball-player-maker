@@ -42,6 +42,11 @@ test('one review fills all earned places at a position instead of promoting only
  farm.forEach((q,i)=>{q.proContract.status='regular';q.seasonByLevel.second=e.emptyRecord();for(const key of Object.keys(q.stats))q.stats[key]=90-i;});
  w.reviewLeagueRegistrations(s);
  assert.equal(p.teamId,10);assert.equal(extra.teamId,10);assert.equal(farm[0].teamId,0);assert.equal(farm[1].teamId,0);assert.equal(s.players.filter(q=>q.teamId===0).length,29);
+ const notice=[s.careerNotice,...(s.noticeQueue??[])].find(row=>row?.code===`registration:${s.date}:${p.id}`);assert.ok(notice);
+ for(const q of [farm[0],farm[1]])assert.ok(notice.message.includes(`[콜업] ${q.name}`));
+ for(const q of [p,extra])assert.ok(notice.message.includes(`[말소] ${q.name}`));
+ assert.ok(!/출전평가|승격 \d|조정 \d|등록을 교환/.test(notice.message));
+
 });
 test('a sustained large ability gap or a long injury can still justify a real registration change',()=>{
  for(const injury of [false,true]){const s=fixture(),p=e.getPlayer(s);for(const q of s.players.filter(q=>q.teamId===10&&q.position==='SS')){for(const k of Object.keys(q.stats))q.stats[k]=injury?60:85;q.recentZ=0;q.proContract.status='regular';}
@@ -67,4 +72,27 @@ test('elite history cannot block long-injury replacement and does not make a far
  const fresh=fixture(),mine=e.getPlayer(fresh);mine.teamId=10;history(mine,90);
  const incumbent=fresh.players.find(q=>q.id!==mine.id&&q.teamId===10&&q.position==='SS');incumbent.teamId=0;for(const k of Object.keys(incumbent.stats))incumbent.stats[k]=75;
  w.reviewLeagueRegistrations(fresh);assert.equal(mine.teamId,10);
+});
+
+
+test('legacy promotion and demotion dialogs show call-up/removal names instead of the stored score explanation',()=>{
+ const {createElement}=require('react'),{renderToStaticMarkup}=require('react-dom/server');
+ const {CareerNoticeDialog}=require('../.test-build/app/components/career-continuation.js');
+ for(const promoted of [true,false]){
+  const s=fixture(),p=e.getPlayer(s);s.careerNotice={id:'legacy-registration',date:s.date,kind:promoted?'promoted':'demoted',title:promoted?'1군 승격 통보':'2군 조정 통보',message:'현재 3B 포지션의 출전평가를 비교했습니다. 승격 78.6 / 조정 77.5 · 같은 포지션에서 더 높은 출전평가를 받은 선수를 1군에 등록했습니다. · 이이수 선수와 등록을 교환했습니다.'};
+  const before=JSON.stringify(s),html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));
+  const promotedColumn=html.split('aria-label="승격 선수"')[1].split('</section>')[0],removedColumn=html.split('aria-label="말소 선수"')[1].split('</section>')[0];
+  assert.ok(promotedColumn.includes(promoted?p.name:'이이수'));assert.ok(removedColumn.includes(promoted?'이이수':p.name));assert.ok(html.includes('(유격수)'));assert.equal((html.match(/<svg /g)??[]).length,2);
+  assert.ok(!/78.6|77.5|출전평가를 비교|등록을 교환/.test(html));assert.equal(JSON.stringify(s),before);
+ }
+});
+
+
+test('single-sided changes keep both columns, while regular conversion has its own presentation',()=>{
+ const {createElement}=require('react'),{renderToStaticMarkup}=require('react-dom/server');
+ const {CareerNoticeDialog}=require('../.test-build/app/components/career-continuation.js');
+ const s=fixture(),p=e.getPlayer(s);s.careerNotice={id:'single',date:s.date,kind:'promoted',title:'1군 승격 통보',message:`[콜업] ${p.name}`};
+ let html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));assert.ok(html.includes('aria-label="승격 선수"'));assert.ok(html.includes('aria-label="말소 선수"'));assert.ok(html.includes('class="registration-empty">—'));
+ s.careerNotice={id:'conversion',date:s.date,kind:'registered',title:'이전 정식 전환 제목',message:'성장 효율 100%라는 이전 설명'};
+ html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));assert.ok(html.includes('정식 선수 전환!'));assert.ok(html.includes('정식 전환 요건을 충족하여'));assert.ok(html.includes('정식 선수로 전환되었습니다.'));assert.ok(!html.includes('registration-changes'));assert.ok(!html.includes('성장 효율'));
 });

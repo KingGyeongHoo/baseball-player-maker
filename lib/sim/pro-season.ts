@@ -178,7 +178,7 @@ export function closeProfessionalSeason(s:GameState){
   applySeasonExitPolicies(s);
   freezeProNational(s);
   for(const p of s.players){if(!p.professional)continue;p.professional.proBonus=0;if(p.professional.employment==="freeAgent")p.professional.unattachedYears++;}
-  const awards=[...regularAwards(s),...(w.postseason?.series.flatMap(series=>series.mvp?[structuredClone(series.mvp)]:[])??[])];w.seasons.push({year:w.year,endDate:s.date,standings:careerLeagueTable(s.calendar,"pro-first"),farmStandings:careerLeagueTable(s.calendar,"pro-second"),champion:w.postseason?.champion??null,farmChampion:w.farmPostseason?.champion??null,...(w.farmPostseason?{farmPostseason:structuredClone(w.farmPostseason)}:{}),awards,draft:[],...(w.allstar?{allstar:structuredClone(w.allstar)}:{})});
+  const awards=[...regularAwards(s),...[...(w.postseason?.series??[]),...(w.farmPostseason?.series??[])].flatMap(series=>series.mvp?[structuredClone(series.mvp)]:[])];w.seasons.push({year:w.year,endDate:s.date,standings:careerLeagueTable(s.calendar,"pro-first"),farmStandings:careerLeagueTable(s.calendar,"pro-second"),champion:w.postseason?.champion??null,farmChampion:w.farmPostseason?.champion??null,...(w.farmPostseason?{farmPostseason:structuredClone(w.farmPostseason)}:{}),awards,draft:[],...(w.allstar?{allstar:structuredClone(w.allstar)}:{})});
   const archived=w.seasons.at(-1)!;archived.individualAwards=individualAwards(s);archived.rookieRulesVersion=1;if(awards.some(a=>a.category))archived.awardsCeremony={version:1,scheduledAt:awardsDate(w.year)};
   const p=getPlayer(s),notice=professionalSeasonFinishNotice(s);
   proNotice(s,`season:${w.year}`,notice.title,notice.message,"seasonComplete");

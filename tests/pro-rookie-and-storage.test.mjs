@@ -108,3 +108,52 @@ test('MVP, rookie and positional gold glove celebrations follow the ceremony one
  s=pc.acknowledgeCareer(s);const {CareerNoticeDialog}=require('../.test-build/app/components/career-continuation.js'),html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));assert.ok(html.includes('2028년 <span class="award-celebration-title">MVP</span>를 획득했다!!'));assert.ok(html.includes('+3'));assert.equal(s.careerNotice.award.before,before);
  s=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;const titles=[];while(s.careerNotice?.award){titles.push(s.careerNotice.award.title);s=pc.acknowledgeCareer(s);}assert.deepEqual(titles,['MVP','신인왕','1루수 골든글러브']);assert.deepEqual(e.getPlayer(s).professional.awardBonuses,ledger);assert.equal(e.selectionScore(e.getPlayer(s)),score);assert.equal(ceremony.presentAwardsCeremony(s),false);assert.equal(s.noticeQueue.length,0);
 });
+
+
+function farmAndFirstSeries(s,{awarded=false}={}){
+ const p=e.getPlayer(s);p.teamId=10;s.proWorld.postseason={seeds:[0,1,2,3,4],series:[]};s.proWorld.farmPostseason={seeds:[10,11,12,13],series:[],champion:10};
+ const {settleSeriesMvp}=require('../.test-build/lib/sim/pro-series-awards.js');
+ for(const [level,id,stage,clubs] of [['second','semi-a','semi',[10,13]],['second','final','final',[10,11]],['first','final','final',[0,1]]]){
+  const series={id,stage,clubs,wins:[3,0],target:3,game:1,lastDate:s.date,winner:clubs[0],rosters:{[clubs[0]]:[p.id],[clubs[1]]:[]},excluded:[]};
+  s.proWorld[level==='second'?'farmPostseason':'postseason'].series.push(series);
+  const records=e.emptyRecord();Object.assign(records.batting,{PA:4,AB:4,H:level==='first'?1:3,HR:level==='first'?0:2,RBI:3});
+  s.calendar.events.push({id:`${level}-${id}`,date:s.date,competitionId:`${level==='second'?'pro-farm-playoffs':'pro-playoffs'}-${id}`,homeTeamId:clubs[0],awayTeamId:clubs[1],round:1,status:'completed',score:[7,1],boxScore:{[p.id]:records},lineup:[],innings:[[],[]]});
+  if(awarded)assert.equal(settleSeriesMvp(s,series,true,{level}),true);
+ }
+ return p;
+}
+test('farm and first-team series with identical IDs keep independent records, career honors and bonuses',()=>{
+ const s=fixture(),before=e.selectionScore(e.getPlayer(s)),stats={...e.getPlayer(s).stats},rng={...s.rngStates},p=farmAndFirstSeries(s,{awarded:true});
+ assert.equal(e.selectionScore(p),before+3);assert.equal(p.professional.awardBonuses.length,3);
+ assert.equal(s.proWorld.postseason.series[0].mvp.records.batting.H,1);assert.equal(s.proWorld.farmPostseason.series[1].mvp.records.batting.H,3);
+ const titles=careerHonors(s).individual.map(row=>row.title);for(const title of ['한국시리즈 MVP','2군 준결승 1 MVP','2군 챔피언결정전 MVP'])assert.ok(titles.includes(title));
+ const {PostseasonAwards}=require('../.test-build/app/components/pro-awards-hub.js');
+ const farmHtml=renderToStaticMarkup(createElement(PostseasonAwards,{state:s,year:2028,onRecords(){}}));
+ assert.ok(farmHtml.includes('2군 준결승 1'));assert.ok(farmHtml.includes('2군 준결승 2'));assert.ok(farmHtml.includes('2군 챔피언결정전'));assert.ok(!farmHtml.includes('<h3>한국시리즈</h3>'));assert.equal((farmHtml.match(/출전평가 \+1/g)??[]).length,2);
+ const firstHtml=renderToStaticMarkup(createElement(PostseasonAwards,{state:s,year:2028,initialLevel:'first',onRecords(){}}));assert.ok(firstHtml.includes('<h3>한국시리즈</h3>'));assert.equal((firstHtml.match(/출전평가 \+1/g)??[]).length,1);
+ const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;assert.equal(e.selectionScore(e.getPlayer(restored)),before+3);assert.deepEqual(e.getPlayer(restored).professional.awardBonuses,p.professional.awardBonuses);
+ assert.deepEqual(p.stats,stats);assert.deepEqual(s.rngStates,rng);
+});
+test('loading a completed farm postseason restores missing MVPs silently and never duplicates rewards or archived honors',()=>{
+ const s=fixture(),p=farmAndFirstSeries(s),before=e.selectionScore(p),news=structuredClone(s.proWorld.news),rng={...s.rngStates};
+ s.proWorld.seasons=[{year:2028,standings:[],farmStandings:[],champion:0,farmChampion:10,farmPostseason:structuredClone(s.proWorld.farmPostseason),awards:[],draft:[],rookieRulesVersion:1,individualAwards:[]}];
+ const original=structuredClone(s),restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+ assert.deepEqual(s,original);assert.equal(e.selectionScore(e.getPlayer(restored)),before+3);
+ assert.equal(restored.proWorld.farmPostseason.series.filter(row=>row.mvp).length,2);
+ assert.equal(restored.proWorld.seasons[0].awards.filter(row=>row.category==='seriesMvp').length,3);
+ assert.equal(restored.proWorld.seasons[0].farmPostseason.series.filter(row=>row.mvp).length,2);
+ assert.deepEqual(restored.proWorld.news,news);assert.deepEqual(restored.rngStates,rng);
+ const once=structuredClone(restored);assert.equal(historical.backfillSeasonHonors(restored).changed,false);assert.deepEqual(restored,once);
+ const twice=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(restored))).state;assert.equal(e.selectionScore(e.getPlayer(twice)),before+3);assert.equal(e.getPlayer(twice).professional.awardBonuses.length,3);
+ const bad=structuredClone(restored);e.getPlayer(bad).professional.awardBonuses.push(structuredClone(e.getPlayer(bad).professional.awardBonuses.find(row=>row.level==='second')));assert.throws(()=>save.validateCareerState(bad),/수상 출전평가/);
+ // A later campaign must not invent winners from regular-season totals or reuse another year's series games.
+ const old=fixture();farmAndFirstSeries(old);old.proWorld.seasons=[{year:2027,standings:[],farmStandings:[],champion:0,farmPostseason:structuredClone(old.proWorld.farmPostseason),awards:[],draft:[],rookieRulesVersion:1,individualAwards:[]}];
+ historical.backfillSeasonHonors(old);assert.ok(old.proWorld.seasons[0].farmPostseason.series.every(row=>!row.mvp));
+});
+test('farm series cannot award an MVP before completion or without actual eligible playing records',()=>{
+ const s=fixture(),p=farmAndFirstSeries(s),series=s.proWorld.farmPostseason.series[0],{settleSeriesMvp}=require('../.test-build/lib/sim/pro-series-awards.js');
+ delete series.winner;assert.equal(settleSeriesMvp(s,series,true,{level:'second'}),false);series.winner=10;
+ const game=s.calendar.events.find(g=>g.competitionId==='pro-farm-playoffs-semi-a');game.status='forfeit';assert.equal(settleSeriesMvp(s,series,true,{level:'second'}),false);
+ game.status='completed';series.rosters['10']=[];assert.equal(settleSeriesMvp(s,series,true,{level:'second'}),false);
+ series.rosters['10']=[p.id];game.boxScore[p.id]=e.emptyRecord();assert.equal(settleSeriesMvp(s,series,true,{level:'second'}),false);assert.equal(series.mvp,undefined);assert.equal(p.professional.awardBonuses,undefined);
+});

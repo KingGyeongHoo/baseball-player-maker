@@ -8,14 +8,19 @@ import ProAllstar from "./pro-allstar";
 import {ProAllstarHonors} from "./pro-career-panels";
 import {individualTitleName} from '../../lib/sim/pro-individual-awards';
 import {seriesMvpNames} from '../../lib/sim/pro-series-awards';
+import {farmSeriesMvpNames} from '../../lib/sim/pro-series-awards';
+import {getPlayer} from '../../lib/sim/engine';
 
-export function PostseasonAwards({state,year,onRecords}:{state:GameState;year:number;onRecords:(id:string)=>void}){
+export function PostseasonAwards({state,year,onRecords,initialLevel}:{state:GameState;year:number;onRecords:(id:string)=>void;initialLevel?:ProLevel}){
+  const [level,setLevel]=useState<ProLevel>(initialLevel??(getPlayer(state).teamId>=10?'second':'first'));
   const archived=state.proWorld?.seasons.find(row=>row.year===year)?.awards.filter(row=>row.category==='seriesMvp')??[];
-  const live=state.proWorld?.year===year?state.proWorld.postseason?.series.flatMap(series=>series.mvp?[series.mvp]:[])??[]:[];
-  const rows=[...new Map([...archived,...live].map(award=>[award.series,award])).values()];
-  return <section className="panel"><div className="panel-heading"><h2>{year} 포스트시즌 MVP</h2></div><div className="career-panel-body"><div className="series-awards-grid">{(Object.keys(seriesMvpNames) as (keyof typeof seriesMvpNames)[]).map(stage=>{
-    const award=rows.find(row=>row.series===stage);
-    return <article key={stage} className={`series-award-card${award?.playerId===state.playerId?' awards-mine':''}`}><span>SERIES MVP</span><h3>{seriesMvpNames[stage]}</h3>{award?<><b>{state.players.some(p=>p.id===award.playerId)?<button className="player-name-button" onClick={()=>onRecords(award.playerId)}>{award.playerName}</button>:award.playerName}</b><p>{state.teams[award.club]?.name.replace(/ 1군$/,'')}</p><p>{awardRecordText(award)}</p><small>출전평가 +1</small></>:<p className="muted">시리즈 종료 후 발표</p>}</article>;
+  const live=state.proWorld?.year===year?[...(state.proWorld.postseason?.series??[]),...(state.proWorld.farmPostseason?.series??[])].flatMap(series=>series.mvp?[series.mvp]:[]):[];
+  const stored=state.proWorld?.seasons.find(row=>row.year===year)?.farmPostseason?.series.flatMap(series=>series.mvp?[series.mvp]:[])??[];
+  const rows=[...new Map([...archived,...stored,...live].filter(award=>(award.level??'first')===level).map(award=>[award.seriesId??award.series,award])).values()];
+  const cards=level==='second'?Object.entries(farmSeriesMvpNames):Object.entries(seriesMvpNames);
+  return <section className="panel"><div className="panel-heading"><h2>{year} 포스트시즌 MVP</h2></div><div className="career-panel-body"><div className="segmented pro-level-filter" aria-label="포스트시즌 MVP 리그">{(['first','second'] as const).map(key=><button key={key} aria-pressed={level===key} className={level===key?'selected':''} onClick={()=>setLevel(key)}>{key==='first'?'1군':'2군'}</button>)}</div><div className="series-awards-grid">{cards.map(([id,label])=>{
+    const award=rows.find(row=>level==='second'?row.seriesId===id:row.series===id);
+    return <article key={id} className={`series-award-card${award?.playerId===state.playerId?' awards-mine':''}`}><span>SERIES MVP</span><h3>{label}</h3>{award?<><b>{state.players.some(p=>p.id===award.playerId)?<button className="player-name-button" onClick={()=>onRecords(award.playerId)}>{award.playerName}</button>:award.playerName}</b><p>{state.teams[award.club]?.name.replace(/ 1군$/,'')}</p><p>{awardRecordText(award)}</p><small>출전평가 +1</small></>:<p className="muted">시리즈 종료 후 발표</p>}</article>;
   })}</div></div></section>;
 }
 

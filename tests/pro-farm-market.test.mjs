@@ -229,3 +229,64 @@ test('relief-role guarantees change bullpen roles and priority without bypassing
  assert.equal(plan.setupId,promised.id);assert.equal(plan.closerId,closer.id);assert.deepEqual(staff,before);
  promised.lastPitched='2028-04-01';assert.equal(b.proReliefReady(promised,'2028-04-01'),false);
 });
+
+
+function releasedDepthFixture(trial=false){
+ const s=faFixture('second'),p=e.getPlayer(s),club=(p.teamId%10+1)%10;
+ market.releasePlayer(s,p,'test release',2029);s.players=[p];
+ for(const key of Object.keys(p.stats))p.stats[key]=60;
+ p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};p.seasonSpring=e.emptyRecord();
+ if(trial){
+  p.professional.nonRenewal={year:2028,kind:'reserve',reason:'test reserve refusal',club:(club+9)%10};p.age=24;
+  for(let i=0;i<1000;i++){s.seed=`released-depth-${i}`;if(e.hash(`${s.seed}:reentry:2029:${p.id}:${club}`)%100<15)break;}
+  assert.ok(e.hash(`${s.seed}:reentry:2029:${p.id}:${club}`)%100<15);
+ }
+ return {s,p,club};
+}
+function addDepthRival(s,p,club,tier,score=99,position=p.position){
+ const q=structuredClone(p);q.id=`depth-${s.players.length}`;q.name=q.id;q.position=position;q.primaryRole=e.roleFor(position);q.teamId=club+tier;
+ q.eligiblePositions=[position,'3B'];q.professional.employment='active';q.professional.contract=world.contractFor(club,2029,world.BASE_SALARY);q.proContract.status='regular';
+ for(const key of Object.keys(q.stats))q.stats[key]=score;
+ delete q.twoWay;s.players.push(q);return q;
+}
+test('released and developmental reentry offers stop at three superior first-team or five combined upper-squad position rivals',()=>{
+ for(const trial of [false,true])for(const [first,second,blocked] of [[2,0,false],[3,0,true],[0,4,false],[0,5,true],[2,2,false],[2,3,true],[1,4,true]]){
+  const {s,p,club}=releasedDepthFixture(trial);
+  for(let i=0;i<first;i++)addDepthRival(s,p,club,0);
+  for(let i=0;i<second;i++)addDepthRival(s,p,club,10);
+  const before=JSON.stringify(s),offer=market.offerFor(s,p,club,2029,'released');
+  assert.equal(offer===null,blocked,JSON.stringify({trial,first,second}));assert.equal(JSON.stringify(s),before);
+  if(offer&&trial)assert.equal(offer.registration,'developmental');
+ }
+});
+test('release depth counts strictly higher current-position players, excluding ties, other jobs, lower squads and other clubs',()=>{
+ const {s,p,club}=releasedDepthFixture();
+ for(let i=0;i<2;i++)addDepthRival(s,p,club,0);
+ for(let i=0;i<5;i++){
+  const equal=addDepthRival(s,p,club,0,60);assert.equal(e.selectionScore(equal,e.roleFor(p.position)),e.selectionScore(p,e.roleFor(p.position)));
+  addDepthRival(s,p,club,0,99,'1B');addDepthRival(s,p,club,20);addDepthRival(s,p,club,30);addDepthRival(s,p,(club+1)%10,0);
+ }
+ assert.ok(market.offerFor(s,p,club,2029,'released'));
+ const third=addDepthRival(s,p,club,10);third.professional.employment='freeAgent';assert.ok(market.offerFor(s,p,club,2029,'released'));
+ third.professional.employment='active';assert.ok(market.offerFor(s,p,club,2029,'released'));
+ addDepthRival(s,p,club,10);assert.ok(market.offerFor(s,p,club,2029,'released'));
+ addDepthRival(s,p,club,10);assert.equal(market.offerFor(s,p,club,2029,'released'),null);
+});
+test('explicit two-way jobs count in their current batting position, using that position evaluation',()=>{
+ const {s,p,club}=releasedDepthFixture();
+ for(let i=0;i<3;i++){
+  const q=addDepthRival(s,p,club,0,99,'SP');q.twoWay={pitchingPosition:'SP',battingPosition:'3B',nextAssignment:'pitching',reputationBonus:0};
+  assert.ok(positions.currentProPosition(q,p.position));
+ }
+ assert.equal(market.offerFor(s,p,club,2029,'released'),null);
+});
+test('stove refresh removes blocked release proposals and stale proposals cannot bypass a changed roster',()=>{
+ const {s,p,club}=releasedDepthFixture(),offer=market.offerFor(s,p,club,2029,'released');assert.ok(offer);
+ for(let i=0;i<3;i++)addDepthRival(s,p,club,0);
+ const before=structuredClone(s);assert.throws(()=>market.signContract(s,p,offer),/상위 출전평가/);assert.deepEqual(s,before);
+ s.proWorld.market={year:2029,kind:'released',round:1,settled:false,offers:[offer]};assert.equal(market.needsContractUpgrade(s),true);assert.equal(market.upgradeContractRules(s),true);assert.equal(market.needsContractUpgrade(s),false);
+ assert.ok(!s.proWorld.market.offers.some(row=>row.club===club));assert.ok(s.proWorld.market.offers.length<=3);
+ // The new restriction concerns release recruitment, not an existing club's renewal or FA retention.
+ p.professional.employment='active';p.professional.contract=world.contractFor(club,2028,world.BASE_SALARY);p.teamId=club+10;
+ assert.ok(market.offerFor(s,p,club,2029,'renewal'));assert.ok(market.offerFor(s,p,club,2029,'fa'));
+});

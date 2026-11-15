@@ -12,7 +12,7 @@ import {statKeys,type GameState} from "./sim/types";
 import {careerSaveId} from "./career-save-key";
 import {compactCareerState} from './career-compaction';
 import {backfillSeasonHonors} from './sim/pro-historical-awards';
-import {awardBonusPoints} from './sim/pro-award-bonuses';
+import {awardBonusKey,awardBonusPoints} from './sim/pro-award-bonuses';
 import {gzipText,gunzipBytes,saveBlobText} from './save-compression';
 import {packNpcRecordFields,unpackNpcRecordFields} from './career-record-codec';
 
@@ -32,7 +32,7 @@ export function validateCareerState(value:unknown):asserts value is GameState {
     if(p.throws!==undefined&&!["R","L"].includes(p.throws)||p.bats!==undefined&&!["R","L","B"].includes(p.bats))throw new Error("투구·타격 손 정보를 복원할 수 없습니다.");
     const assessments=p.professional?.assessments;
     const bonuses=p.professional?.awardBonuses;
-    if(bonuses!==undefined&&(!Array.isArray(bonuses)||new Set(bonuses.map(row=>`${row.year}:${row.category}`)).size!==bonuses.length||bonuses.some(row=>!Number.isInteger(row.year)||!Object.hasOwn(awardBonusPoints,row.category)||row.points!==awardBonusPoints[row.category])))throw new Error('수상 출전평가 보상 기록을 복원할 수 없습니다.');
+    if(bonuses!==undefined&&(!Array.isArray(bonuses)||new Set(bonuses.map(awardBonusKey)).size!==bonuses.length||bonuses.some(row=>!Number.isInteger(row.year)||!Object.hasOwn(awardBonusPoints,row.category)||row.points!==awardBonusPoints[row.category]||row.level!==undefined&&row.level!=='second'||row.level==='second'&&(row.category!=='semiMvp'&&row.category!=='finalMvp'||typeof row.seriesId!=='string'||!row.seriesId)||row.level===undefined&&row.seriesId!==undefined)))throw new Error('수상 출전평가 보상 기록을 복원할 수 없습니다.');
     if(assessments!==undefined&&(!Array.isArray(assessments)||new Set(assessments.map(row=>row.year)).size!==assessments.length||assessments.some(row=>!Number.isInteger(row.year)||typeof row.date!=="string"||row.score!==null&&!Number.isFinite(row.score)||row.cumulative!==null&&!Number.isFinite(row.cumulative)||!Number.isFinite(row.ability)||typeof row.reserveSeason!=="boolean"||typeof row.developmental!=="boolean"||row.firstTeam!==undefined&&typeof row.firstTeam!=="boolean"||row.secondOnly!==undefined&&typeof row.secondOnly!=="boolean"||row.firstGames!==undefined&&row.firstGames!==null&&(!Number.isInteger(row.firstGames)||row.firstGames<0)||!["season-end","reconstructed"].includes(row.source))))throw new Error("시즌 출전평가 기록을 복원할 수 없습니다.");
     const usage=p.professional?.assessmentUsage;
     if(p.professional?.lastSquad!==undefined&&!["first","second","third","developmental"].includes(p.professional.lastSquad))throw new Error("마지막 등록 군을 복원할 수 없습니다.");

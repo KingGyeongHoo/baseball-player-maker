@@ -1,5 +1,6 @@
 import {repairConversionRegistrations} from "./pro-conversion";
 import {canAssignProSquad,currentProPosition,guaranteedProStarter} from "./pro-positions";
+import {registrationChangeMessage,summarizeRegistrationNotices} from '../pro-registration-notice';
 import {ensurePlayableFarmRosters} from "./pro-farm";
 import {farmAssignmentPosition,farmGameRoster,farmSelectionTier} from "./pro-farm-roster";
 import {canPromoteToFirst} from "./pro-squads";
@@ -16,7 +17,7 @@ import {syncProClubNames} from "./club-names";
 import {proRotationStarter,proStarterReady} from './pro-balance';
 import {createCareerNPC,firstTeamRosterCapacity} from './pro-roster';
 import {trimPostseasonRostersForOpening} from './pro-postseason-roster';
-import {ensureProSquadTeams,needsProSquadUpgrade,normalizeFirstTeamRoster,proSquad,reorganizeProSquads,reservePromotionCandidates,restoreGuaranteedSquads,setProSquad,squadLabel} from "./pro-squads";
+import {ensureProSquadTeams,needsProSquadUpgrade,normalizeFirstTeamRoster,proSquad,reorganizeProSquads,reservePromotionCandidates,restoreGuaranteedSquads,setProSquad} from "./pro-squads";
 
 export const BASE_SALARY=50_000_000;
 export function contractFor(club:number,year:number,salary:number,years=1,source:SalaryContract["source"]="rookie"):SalaryContract {
@@ -98,7 +99,7 @@ export function prepareOpeningRegistrations(s:GameState){
   const changes=trimPostseasonRostersForOpening(s);
   for(const {club,players} of changes)if(players.length){
     proNews(s,`${clubName(s,club)} · 개막 엔트리 29명 조정 · ${players.map(p=>p.name).join(', ')} 2군 이동`);
-    if(players.some(p=>p.id===s.playerId))proNotice(s,`opening-roster:${s.proWorld!.year}`,"개막 엔트리 조정",`포스트시즌 확대 엔트리가 종료되었습니다. 개막 직전 출전평가 하위 ${players.length}명에 포함되어 2군에서 시즌을 시작합니다.`,"demoted");
+    if(players.some(p=>p.id===s.playerId))proNotice(s,`opening-roster:${s.proWorld!.year}`,"개막 엔트리 조정",registrationChangeMessage([],players.map(p=>p.name)),"demoted");
   }
   return changes.length>0;
 }
@@ -106,16 +107,17 @@ function exchange(s:GameState,up:Player,down:Player,reason:string) {
   if(!canAssignProSquad(down,proSquad(up.teamId)!,s.date))return;
   const club=down.teamId,old=up.teamId;up.teamId=club;down.teamId=old;
   for(const p of [up,down])if(p.professional)p.professional.lastRegistration=s.date;
-  proNews(s,`${clubName(s,club)} · ${up.name} 1군 / ${down.name} 2군 · ${reason}`,`${s.date}:registration:${up.id}:${down.id}`);
+  proNews(s,`${clubName(s,club)} · ${up.name} 1군 / ${down.name} 2군`,`${s.date}:registration:${up.id}:${down.id}`);
   if(up.id===s.playerId||down.id===s.playerId){const p=getPlayer(s),info=s.postSchool!.pro!;info.level=p.teamId<10?"first":"second";
     info.transactions.push({date:s.date,from:p.teamId<10?"second":"first",to:info.level,reason,exchangedPlayerId:p.id===up.id?down.id:up.id});
-    proNotice(s,`registration:${s.date}:${p.id}`,p.teamId<10?"1군 승격 통보":"2군 조정 통보",`${reason} · ${p.id===up.id?down.name:up.name} 선수와 등록을 교환했습니다.`,p.teamId<10?"promoted":"demoted");
+    proNotice(s,`registration:${s.date}:${p.id}`,p.teamId<10?"1군 승격 통보":"2군 조정 통보",registrationChangeMessage([up.name],[down.name]),p.teamId<10?"promoted":"demoted");
   }
 }
 export function reviewLeagueRegistrations(s:GameState) {
   const w=s.proWorld;if(!w||!["camp","regular"].includes(w.stage))return false;
+  const before=new Map(s.players.map(p=>[p.id,p.teamId])),priorNotices=new Set([s.careerNotice,...(s.noticeQueue??[])].flatMap(notice=>notice?[notice.id]:[]));
   restoreGuaranteedSquads(s);
-  if(prepareOpeningRegistrations(s))return !!s.careerNotice;
+  if(prepareOpeningRegistrations(s)){summarizeRegistrationNotices(s,before,priorNotices);return !!s.careerNotice;}
   if(w.openingRosterDate===s.date)return false;
   const previous=s.careerNotice?.id;
   const positions:Position[]=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","RP","CP"];
@@ -129,7 +131,7 @@ export function reviewLeagueRegistrations(s:GameState) {
         if(!first.length){
           const up=s.players.filter(p=>p.teamId===club.id+10&&canPromoteToFirst(s,p)&&p.position===pos&&available(p,s.date)).sort((a,b)=>selectionScore(b)-selectionScore(a)||a.id.localeCompare(b.id))[0];
           if(up){const registered=s.players.filter(p=>p.teamId===club.id);if(registered.length>=firstTeamRosterCapacity(s,club.id)){const down=registered.filter(p=>canAssignProSquad(p,"second",s.date)&&registered.filter(q=>q.position===p.position).length>1).sort((a,b)=>retentionScore(a,w.year)-retentionScore(b,w.year)||a.id.localeCompare(b.id))[0];if(down)exchange(s,up,down,"은퇴·이적 뒤 비어 있는 포지션을 보충했습니다.");}
-            else {up.teamId=club.id;up.professional!.lastRegistration=s.date;proNews(s,`${up.name} · ${clubName(s,club.id)}의 비어 있는 1군 자리를 보충했습니다.`);if(up.id===s.playerId){s.postSchool!.pro!.level="first";proNotice(s,`vacancy:${s.date}`,"1군 승격 통보","구단의 비어 있는 포지션을 보충하기 위해 등록됐습니다.","promoted");}}
+            else {up.teamId=club.id;up.professional!.lastRegistration=s.date;proNews(s,`${up.name} · ${clubName(s,club.id)}의 비어 있는 1군 자리를 보충했습니다.`);if(up.id===s.playerId){s.postSchool!.pro!.level="first";proNotice(s,`vacancy:${s.date}`,"1군 승격 통보",registrationChangeMessage([up.name],[]),"promoted");}}
           }break;
         }
         const adjustable=first.filter(p=>canAssignProSquad(p,"second",s.date));
@@ -139,7 +141,7 @@ export function reviewLeagueRegistrations(s:GameState) {
         const up=s.players.filter(p=>p.teamId===club.id+10&&currentProPosition(p,pos)&&p.proContract?.status!=="developmental"&&available(p,s.date)&&(!p.professional?.lastRegistration||s.date>=addDays(p.professional.lastRegistration,14)))
           .sort((a,b)=>selectionScore(b,roleFor(pos))-selectionScore(a,roleFor(pos))||a.id.localeCompare(b.id))[0];if(!up)break;
         if(!injured&&selectionScore(up,roleFor(pos))<=selectionScore(down,roleFor(pos)))break;
-        exchange(s,up,down,injured?"장기 부상 회복을 위한 명단 조정입니다.":`현재 ${pos} 포지션의 출전평가를 비교했습니다. 승격 ${selectionScore(up,roleFor(pos)).toFixed(1)} / 조정 ${selectionScore(down,roleFor(pos)).toFixed(1)} · 같은 포지션에서 더 높은 출전평가를 받은 선수를 1군에 등록했습니다.`);
+        exchange(s,up,down,injured?"부상으로 인한 등록 변경":"1군·2군 등록 변경");
       }
     }
   }
@@ -147,6 +149,7 @@ export function reviewLeagueRegistrations(s:GameState) {
   reviewReserveRegistrations(s);
   for(let club=0;club<10;club++)normalizeFirstTeamRoster(s,club);
   ensurePlayableFarmRosters(s);
+  summarizeRegistrationNotices(s,before,priorNotices);
   if(s.postSchool?.pro)s.postSchool.pro.nextReviewDate=w.clubs[s.postSchool.pro.club].nextReview??s.postSchool.pro.nextReviewDate;
   return !!s.careerNotice&&s.careerNotice.id!==previous;
 }
@@ -159,8 +162,8 @@ export function reviewReserveRegistrations(s:GameState){
       const second=s.players.filter(p=>p.teamId===club.id+10),same=second.filter(p=>canAssignProSquad(p,"third",s.date)&&p.position===up.position&&(!p.professional?.lastRegistration||s.date>=addDays(p.professional.lastRegistration,14))).sort((a,b)=>selectionScore(a)-selectionScore(b)||a.id.localeCompare(b.id));
       const down=same[0];if(second.length>=30&&(!down||selectionScore(up)<=selectionScore(down)+3))continue;
       const from=proSquad(up.teamId)!;setProSquad(s,up,"second");if(down&&second.length>=30)setProSquad(s,down,down.proContract?.status==="developmental"?"developmental":"third");
-      proNews(s,`${up.name} · 2군 승격 · 등록 심사점수 ${selectionScore(up).toFixed(1)}`,`${s.date}:reserve:${up.id}`);
-      if(up.id===s.playerId||down?.id===s.playerId){const mine=getPlayer(s),to=proSquad(mine.teamId)!;s.postSchool!.pro!.level=to;s.postSchool!.pro!.transactions.push({date:s.date,from:mine.id===up.id?from:"second",to,reason:"기량·컨디션과 잔류군 우선순위를 반영한 2군 등록 심사",exchangedPlayerId:mine.id===up.id?down?.id??"":up.id});proNotice(s,`reserve:${s.date}:${mine.id}`,mine.id===up.id?"2군 승격 통보":"잔류·육성군 조정",`${squadLabel(mine.teamId)}에서 다음 출전 기회를 준비합니다. 같은 평가에서는 잔류군이 육성선수보다 우선합니다.`,mine.id===up.id?"promoted":"demoted");}
+      proNews(s,`${up.name} · 2군 승격`,`${s.date}:reserve:${up.id}`);
+      if(up.id===s.playerId||down?.id===s.playerId){const mine=getPlayer(s),to=proSquad(mine.teamId)!;s.postSchool!.pro!.level=to;s.postSchool!.pro!.transactions.push({date:s.date,from:mine.id===up.id?from:"second",to,reason:"2군 등록 변경",exchangedPlayerId:mine.id===up.id?down?.id??"":up.id});proNotice(s,`reserve:${s.date}:${mine.id}`,mine.id===up.id?"2군 승격 통보":"잔류·육성군 조정",registrationChangeMessage([up.name],down&&second.length>=30?[down.name]:[]),mine.id===up.id?"promoted":"demoted");}
     }
   }
 }
@@ -181,11 +184,11 @@ export function balanceSquadDepth(s:GameState){
         else move.teamId=target;
         if(move.professional)move.professional.lastRegistration=s.date;
         proNews(s,`${move.name} · ${target<10?"1군":"2군"}의 포지션 공백과 대체 인력을 보충했습니다.`,`${s.date}:depth:${move.id}:${target}`);
-        const mine=getPlayer(s);if(mine.id===move.id){s.postSchool!.pro!.level=target<10?"first":"second";proNotice(s,`depth:${s.date}`,target<10?"1군 등록 조정":"2군 등록 조정","구단의 포지션 공백과 대체 인력을 고려한 명단 조정입니다.",target<10?"promoted":"demoted");}
+        const mine=getPlayer(s);if(mine.id===move.id){s.postSchool!.pro!.level=target<10?"first":"second";proNotice(s,`depth:${s.date}`,target<10?"1군 등록 조정":"2군 등록 조정",registrationChangeMessage(target<10?[mine.name]:[],target<10?[]:[mine.name]),target<10?"promoted":"demoted");}
       }
     }
   }
-  const mine=getPlayer(s);if(mine.teamId!==previousTeam&&s.postSchool?.pro){s.postSchool.pro.level=mine.teamId<10?"first":"second";if(!s.careerNotice)proNotice(s,`depth:${s.date}`,"등록 명단을 조정했습니다","포지션 공백과 대체 인력 확보를 위한 명단 조정입니다.",mine.teamId<10?"promoted":"demoted");}
+  const mine=getPlayer(s);if(mine.teamId!==previousTeam&&s.postSchool?.pro){s.postSchool.pro.level=mine.teamId<10?"first":"second";if(!s.careerNotice)proNotice(s,`depth:${s.date}`,"등록 명단을 조정했습니다",registrationChangeMessage(mine.teamId<10?[mine.name]:[],mine.teamId<10?[]:[mine.name]),mine.teamId<10?"promoted":"demoted");}
 }
 export function prepareEvaluationOpportunities(s:GameState,gameIds:string[]){
   if(!s.proWorld||s.proWorld.seasonClosed||!['camp','regular'].includes(s.proWorld.stage))return;

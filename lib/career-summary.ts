@@ -93,7 +93,7 @@ export function careerHonors(state:GameState):Record<CareerHonorCategory,CareerH
       else if(!isRecordOnlyAward(award.kind))add("individual",season.year,award.kind);
     }
   }
-  for(const series of state.proWorld?.postseason?.series??[])if(series.winner!==undefined&&series.mvp?.playerId===player.id)add('individual',state.proWorld!.year,series.mvp.kind);
+  for(const series of [...(state.proWorld?.postseason?.series??[]),...(state.proWorld?.farmPostseason?.series??[])])if(series.winner!==undefined&&series.mvp?.playerId===player.id)add('individual',state.proWorld!.year,series.mvp.kind);
   for(const rows of Object.values(result))rows.sort((a,b)=>b.year-a.year||a.title.localeCompare(b.title,"ko"));
   return result;
 }

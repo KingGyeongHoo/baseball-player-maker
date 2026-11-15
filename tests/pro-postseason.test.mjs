@@ -123,7 +123,7 @@ test('expanded registrations survive saving and next camp, then the current thre
  s.date=opening;const before=new Map(s.players.map(p=>[p.id,p.teamId]));world.reviewLeagueRegistrations(s);
  assert.equal(s.players.filter(p=>p.teamId===club).length,29);assert.equal(s.players.filter(p=>before.get(p.id)===club&&p.teamId===club+10).length,3);
  for(const p of lowest)assert.equal(s.players.find(q=>q.id===p.id).teamId,club+10);
- assert.equal(s.postSchool.pro.level,'second');assert.equal(s.careerNotice.kind,'demoted');assert.match(s.careerNotice.message,/출전평가 하위 3명/);
+ assert.equal(s.postSchool.pro.level,'second');assert.equal(s.careerNotice.kind,'demoted');assert.equal(s.careerNotice.message.split("\n\n").length,3);for(const p of lowest)assert.ok(s.careerNotice.message.includes(`[말소] ${p.name}`));
  assert.equal(s.proWorld.postseasonExpansion,undefined);const registrations=s.players.map(p=>p.teamId);
  assert.deepEqual(postRoster.trimPostseasonRostersForOpening(s),[]);assert.deepEqual(s.players.map(p=>p.teamId),registrations);
  world.ensureProWorld(s);world.reviewLeagueRegistrations(s);assert.deepEqual(s.players.map(p=>p.teamId),registrations,'loading or acknowledging the notice cannot undo the final opening roster');

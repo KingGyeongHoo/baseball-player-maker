@@ -8,7 +8,7 @@ export type FaTerms={plan:"starter"|"money"|"contender"|"security"|"rebuild"|"co
 export type SalaryContract = { id:string; club:number; startYear:number; endYear:number; salary:number; segments:{from:string;salary:number}[]; source:"rookie"|"renewal"|"fa"|"released";faTerms?:FaTerms };
 export type AgingProfile={version:1;physical:number;peakStart:number;declineStart:number;loss:Partial<Stats>};
 export type ProfessionalPlayer = {
-  awardBonuses?:{year:number;category:"mvp"|"goldGlove"|"rookie"|"wildcardMvp"|"semiMvp"|"playoffMvp"|"finalMvp";points:number}[];
+  awardBonuses?:{year:number;category:"mvp"|"goldGlove"|"rookie"|"wildcardMvp"|"semiMvp"|"playoffMvp"|"finalMvp";points:number;level?:"second";seriesId?:string}[];
   nationalBonus?:number;
   allstarBonus?:number;allstarHistory?:AllstarSelection[];
   assessments?:ProSeasonAssessment[];
@@ -32,7 +32,7 @@ export type ProfessionalPlayer = {
   service:{club:number;from:number;to:number}[];
 };
 export type ClubRecords = {first:RecordLine;second:RecordLine;postseason:RecordLine;farmPostseason?:RecordLine};
-export type ProAward = {year:number;kind:string;playerId:string;playerName:string;club:number;value:number;category?:"goldGlove"|"mvp"|"rookie"|"seriesMvp";series?:ProSeries['stage'];position?:Position|"P";field?:"pitching"|"batting";records?:RecordLine};
+export type ProAward = {year:number;kind:string;playerId:string;playerName:string;club:number;value:number;category?:"goldGlove"|"mvp"|"rookie"|"seriesMvp";series?:ProSeries['stage'];seriesId?:string;level?:"first"|"second";position?:Position|"P";field?:"pitching"|"batting";records?:RecordLine};
 export type Standing = LeagueStanding;
 export type ProIndividualAward={level:"first"|"second";field:"batting"|"pitching";metric:string;label:string;value:number;format?:"rate"|"decimal"|"innings"|"percent";winners:{playerId:string;playerName:string;club:number}[]};
 export type ProSeasonArchive = {year:number;endDate?:string;standings:Standing[];farmStandings:Standing[];champion:number|null;farmChampion?:number|null;farmPostseason?:{seeds:number[];series:ProSeries[];champion?:number};awards:ProAward[];draft:DraftPick[];allstar?:ProAllstarSeason;awardsCeremony?:{version:1;scheduledAt:string;presentedAt?:string;celebrationsQueued?:true};individualAwards?:ProIndividualAward[];rookieRulesVersion?:1};

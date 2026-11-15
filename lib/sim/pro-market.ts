@@ -1,7 +1,7 @@
 import {assessmentValue,hydrateAssessments,requiresDevelopmentalOffer,salaryUnits,seasonExit} from "./pro-assessment";
 import {canPlayPosition} from './position-eligibility';
 import {proContractRules as rules} from "./pro-contract-rules";
-import {addDays,assignRole,getPlayer,hash,ovr,roleScore} from "./engine";
+import {addDays,assignRole,getPlayer,hash,ovr,roleFor,roleScore,selectionScore} from "./engine";
 import {contractValue} from "./pro-evaluation";
 import {BASE_SALARY,clubName,contractFor,proNews,proNotice} from "./pro-world";
 import type {GameState,Player,Position} from "./types";
@@ -50,6 +50,16 @@ export function canAfford(s:GameState,club:number,salary:number,year:number,year
   return Array.from({length:years},(_,i)=>year+i).every(y=>clubCost(s,club,y,exclude)+salary+planningReserve(s,club,y,exclude)<=budget+1);
 }
 export function clubRoster(s:GameState,club:number){return s.players.filter(p=>p.teamId>=0&&p.teamId%10===club&&p.professional?.employment==="active");}
+function releaseRecruitmentBlocked(p:Player,club:number,members:Player[]){
+  const role=roleFor(p.position),score=selectionScore(p,role);
+  let first=0,upper=0;
+  for(const rival of members){
+    if(rival.id===p.id||rival.teamId!==club&&rival.teamId!==club+10||!currentProPosition(rival,p.position)||selectionScore(rival,role)<=score)continue;
+    upper++;if(rival.teamId===club)first++;
+    if(first>=3||upper>=5)return true;
+  }
+  return false;
+}
 // Incoming players can use a free first-team slot even when the lower squads
 // are full. Offers are read-only; recheck capacity again when signing.
 export function contractPlacement(s:GameState,p:Player,club:number,developmental=p.proContract?.status==="developmental",exclude:string[]=[],startingLevel?:ProSquad):{team:number;moves:{player:Player;level:ProSquad}[]}|null {
@@ -106,6 +116,7 @@ export function releasePlayer(s:GameState,p:Player,reason:string,year:number){
 }
 export function signContract(s:GameState,p:Player,offer:ContractOffer){
   const pro=p.professional!;
+  if(offer.kind==="released"&&releaseRecruitmentBlocked(p,offer.club,clubRoster(s,offer.club)))throw new Error("같은 포지션의 상위 출전평가 선수가 많아 구단이 영입 제안을 철회했습니다. 다음 계약 제안을 확인해 주세요.");
   if(offer.lastChance&&(offer.kind!=="fa"||offer.club!==pro.contract?.club||offer.years!==1||offer.salary!==BASE_SALARY||offer.registration))throw new Error("원소속팀의 마지막 제안은 1년 최저 연봉 계약입니다.");
   if(requiresDevelopmentalOffer(p,offer.year-1)&&(offer.registration!=="developmental"||offer.club===pro.nonRenewal?.club||offer.years!==1))throw new Error("정식 재계약 불가 판정으로 다른 구단의 1년 신고 계약만 검토할 수 있습니다.");
   if(offer.registration==="developmental"){
@@ -136,6 +147,7 @@ export function signContract(s:GameState,p:Player,offer:ContractOffer){
 }
 export function offerFor(s:GameState,p:Player,club:number,year:number,kind:ContractOffer["kind"]):ContractOffer|null{
   const pro=p.professional!,members=clubRoster(s,club).filter(q=>q.id!==p.id);
+  if(kind==="released"&&releaseRecruitmentBlocked(p,club,members))return null;
   const destination=contractDestination(s,p,club,requiresDevelopmentalOffer(p,year-1)||p.proContract?.status==="developmental");
   if(destination===null)return null;
   const assessment=assessmentValue(p,year-1),value=assessment.score,own=pro.contract?.club===club&&pro.employment==="active",trial=requiresDevelopmentalOffer(p,year-1);
@@ -311,7 +323,12 @@ export function applySeasonExitPolicies(s:GameState){
   }
 }
 
-export function needsContractUpgrade(s:GameState){return s.careerMode==="pro"&&!!s.proWorld&&(s.proWorld.contractRulesVersion!==4||s.players.some(p=>p.professional&&(p.professional.assessments===undefined||p.professional.assessments.some(row=>row.firstTeam===undefined||row.secondOnly===undefined||row.firstGames===undefined))));}
+export function needsContractUpgrade(s:GameState){
+  if(s.careerMode!=="pro"||!s.proWorld)return false;
+  const pending=s.proWorld.market;
+  return s.proWorld.contractRulesVersion!==4||s.players.some(p=>p.professional&&(p.professional.assessments===undefined||p.professional.assessments.some(row=>row.firstTeam===undefined||row.secondOnly===undefined||row.firstGames===undefined)))
+    ||!!pending&&pending.kind==="released"&&!pending.settled&&pending.offers.some(offer=>releaseRecruitmentBlocked(getPlayer(s),offer.club,clubRoster(s,offer.club)));
+}
 export function upgradeContractRules(s:GameState){
   if(!needsContractUpgrade(s))return false;
   for(const p of s.players){hydrateAssessments(s,p);if(p.professional?.nonRenewal&&["low-evaluation","second-team"].includes(p.professional.nonRenewal.kind))delete p.professional.nonRenewal;}

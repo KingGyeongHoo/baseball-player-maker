@@ -7,6 +7,7 @@ export function awardCategory(award:ProAward){
   return award.category??(award.kind==='시즌 MVP'?'mvp':award.kind.startsWith('골든글러브')?'goldGlove':award.kind==='신인왕'?'rookie':undefined);
 }
 export const awardRatingBonus=(p:Player)=>Math.min(10,(p.professional?.awardBonuses??[]).reduce((sum,row)=>sum+row.points,0));
+export const awardBonusKey=(row:NonNullable<NonNullable<Player['professional']>['awardBonuses']>[number])=>`${row.year}:${row.level??'first'}:${row.category}:${row.seriesId??''}`;
 // Reconcile from announced trophies, rather than incrementing a score on load
 // or acknowledgment. Each season/category can grant its bonus only once.
 export function syncAwardBonuses(s:GameState){
@@ -14,13 +15,15 @@ export function syncAwardBonuses(s:GameState){
   const byPlayer=new Map<string,NonNullable<NonNullable<Player['professional']>['awardBonuses']>>();
   const collect=(award:ProAward,year:number)=>{const category=awardCategory(award);if(!category)return;
     const rows=byPlayer.get(award.playerId)??[];
-    if(!rows.some(row=>row.year===year&&row.category===category))rows.push({year,category,points:awardBonusPoints[category]});
+    const bonus={year,category,points:awardBonusPoints[category],...(award.level==='second'?{level:'second' as const,seriesId:award.seriesId??award.series}:{})};
+    if(!rows.some(row=>awardBonusKey(row)===awardBonusKey(bonus)))rows.push(bonus);
     byPlayer.set(award.playerId,rows);
   };
   for(const season of s.proWorld.seasons){
     for(const award of season.awards){if(award.category!=='seriesMvp'&&season.awardsCeremony&&!season.awardsCeremony.presentedAt)continue;collect(award,season.year);}
   }
   for(const series of s.proWorld.postseason?.series??[])if(series.winner!==undefined&&series.mvp)collect(series.mvp,s.proWorld.year);
+  for(const series of s.proWorld.farmPostseason?.series??[])if(series.winner!==undefined&&series.mvp)collect(series.mvp,s.proWorld.year);
   let changed=false;
   for(const p of s.players){if(!p.professional)continue;const rows=byPlayer.get(p.id)??[];
     if(JSON.stringify(p.professional.awardBonuses??[])!==JSON.stringify(rows)){p.professional.awardBonuses=rows;changed=true;}

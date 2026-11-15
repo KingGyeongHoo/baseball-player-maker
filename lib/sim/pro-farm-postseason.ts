@@ -3,6 +3,7 @@ import {careerLeagueTable} from './pro-calendar';
 import {nextFarmDate} from './pro-farm-schedule';
 import {farmGameRoster,proGameTeam} from './pro-farm-roster';
 import {proNews,proNotice} from './pro-world';
+import {settleSeriesMvp} from './pro-series-awards';
 import type {GameState,Game} from './types';
 import type {ProSeries} from './pro-types';
 export const isFarmPostseason=(id:string)=>id.startsWith('pro-farm-playoffs-');
@@ -42,7 +43,7 @@ export function reviewFarmPostseason(s:GameState){
     const winner=g.status==='forfeit'?(g.forfeitTeamId===g.homeTeamId?g.awayTeamId:g.homeTeamId):g.score[0]===g.score[1]?undefined:g.score[0]>g.score[1]?g.homeTeamId:g.awayTeamId;
     if(winner!==undefined)row.wins[row.clubs.indexOf(winner)]++;
     if(row.wins.some(n=>n>=row.target)||row.game>=(row.stage==='final'?5:3))row.winner=row.clubs[row.wins[0]>=row.wins[1]?0:1];
-    if(row.winner!==undefined)s.calendar.competitions.find(c=>c.id===g.competitionId)!.championTeamId=row.winner;
+    if(row.winner!==undefined){s.calendar.competitions.find(c=>c.id===g.competitionId)!.championTeamId=row.winner;settleSeriesMvp(s,row,true,{level:'second'});}
     else schedule(s,row,addDays(s.date,1));
   }
   const semis=post.series.filter(r=>r.stage==='semi');
