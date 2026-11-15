@@ -69,9 +69,9 @@ export function reviewProTwoWay(s:GameState) {
     if(proEventsEnabled(s)&&!proDayFree(s))continue;
     review.nextProposalDate=addDays(s.date,91);
     s.careerEvent={id:`${p.id}:${s.date}:PRO16`,definitionId:"PRO16",kind:"special",rewardVersion:2,date:s.date,title:"감독의 프로 투타 겸업 제안",
-      description:"투구와 타격 모두에서 충분한 실력을 꾸준히 보여줬다. 감독이 투수와 야수 역할을 함께 맡아보자고 제안했다. 실제 출전은 각 분야의 경쟁과 컨디션에 따라 결정된다.",
+      description:"투구와 타격 모두에서 충분한 실력을 꾸준히 보여줬다. 감독이 같은 경기에서 투수와 타자를 함께 맡아보자고 제안했다. 등판일에는 지명타자로 타순에 들어가며 경쟁·컨디션·투수 휴식 조건을 적용한다.",
       choices:[
-        {id:"accept",label:"프로 투타 겸업에 도전한다",outcomes:[{weight:100,message:"투수와 야수의 출전 계획을 함께 세웠다. 양쪽에서 경쟁하며 출전하고, 두 분야를 모두 소화한 주에는 추가 피로가 쌓인다.",proTwoWayAction:"start"}]},
+        {id:"accept",label:"프로 투타 겸업에 도전한다",outcomes:[{weight:100,message:"등판하는 경기에도 타자로 출전한다. 투구를 마친 뒤에도 지명타자로 타순을 유지하며, 두 분야를 모두 소화한 주에는 추가 피로가 쌓인다.",proTwoWayAction:"start"}]},
         {id:"decline",label:"현재 역할에 집중한다",outcomes:[{weight:100,message:"현재 역할을 이어가기로 했다. 능력을 유지하면 충분한 시간이 지난 뒤 다시 검토받을 수 있다.",proTwoWayAction:"defer"}]}]};
     s.lastCareerEventWeek=s.week;return true;
   }return false;

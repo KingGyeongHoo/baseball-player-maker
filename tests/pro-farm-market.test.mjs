@@ -87,6 +87,59 @@ test('FA offers have real club-specific salary, role or length terms; contender 
  market.openContractMarket(s);assert.ok(s.proWorld.market.offers.length<=3);assert.equal(s.proWorld.market.offers[0].faRetention,true);
 });
 
+test('FA duration follows annual and cumulative assessment bands with distinct club offers',()=>{
+ for(const [score,min,max] of [[71,1,1],[73,1,2],[75,2,3],[77,2,4],[79,3,4]]){
+  const s=faFixture(),p=e.getPlayer(s),row=p.professional.assessments[0];
+  row.score=score;row.cumulative=score;
+  const offers=s.proWorld.clubs.flatMap(c=>market.offerFor(s,p,c.id,2029,'fa')??[]);
+  assert.equal(offers.length,10);
+  assert.ok(offers.every(o=>o.years>=min&&o.years<=max),`${score}: ${offers.map(o=>o.years)}`);
+  if(min!==max)assert.ok(new Set(offers.map(o=>o.years)).size>1,`club variation at ${score}`);
+  assert.deepEqual(offers,s.proWorld.clubs.map(c=>market.offerFor(s,p,c.id,2029,'fa')));
+ }
+ const s=faFixture(),p=e.getPlayer(s),row=p.professional.assessments[0];
+ row.score=75;row.cumulative=75;
+ const current=market.offerFor(s,p,p.teamId%10,2029,'fa');
+ p.professional.assessments.unshift({...row,year:2027,score:81,cumulative:81});
+ const established=market.offerFor(s,p,p.teamId%10,2029,'fa');
+ assert.equal(current.assessment.score,75);
+ assert.ok(Math.abs(established.assessment.score-75.9)<1e-8);
+ assert.ok(established.salary>current.salary);
+});
+
+test('FA duration applies age and future budget caps after club-specific terms',()=>{
+ for(const [age,limit] of [[35,4],[36,3],[38,2],[40,1]]){
+  const s=faFixture(),p=e.getPlayer(s);p.age=age;
+  const offers=s.proWorld.clubs.flatMap(c=>market.offerFor(s,p,c.id,2029,'fa')??[]);
+  assert.ok(offers.length>0);assert.ok(offers.every(o=>o.years<=limit));
+ }
+ const s=faFixture(),p=e.getPlayer(s),club=p.teamId%10;
+ assert.ok(market.offerFor(s,p,club,2029,'fa').years>=3);
+ s.proWorld.clubs[club].deadMoney['2030']=s.proWorld.clubs[club].budget;
+ const constrained=market.offerFor(s,p,club,2029,'fa');
+ assert.equal(constrained.years,1);
+ assert.ok(market.canAfford(s,club,constrained.salary,2029,1,[p.id]));
+ assert.equal(market.canAfford(s,club,constrained.salary,2029,2,[p.id]),false);
+});
+
+test('v4 refreshes unsigned legacy FA durations once and preserves signed contracts',()=>{
+ const s=faFixture(),p=e.getPlayer(s);
+ p.professional.assessments[0].score=75;p.professional.assessments[0].cumulative=75;
+ market.openContractMarket(s);s.proWorld.contractRulesVersion=3;
+ for(const o of s.proWorld.market.offers)o.years=1;
+ const signed=structuredClone(p.professional.contract);
+ assert.equal(market.upgradeContractRules(s),true);
+ assert.equal(s.proWorld.contractRulesVersion,4);
+ assert.ok(s.proWorld.market.offers.every(o=>o.years>=2));
+ assert.deepEqual(p.professional.contract,signed);
+ const snapshot=JSON.stringify(s);assert.equal(market.upgradeContractRules(s),false);assert.equal(JSON.stringify(s),snapshot);
+ const offer=s.proWorld.market.offers[0];market.signContract(s,p,offer);s.proWorld.market.settled=true;
+ s.proWorld.contractRulesVersion=3;
+ const accepted=structuredClone(p.professional.contract),offers=structuredClone(s.proWorld.market.offers);
+ assert.equal(market.upgradeContractRules(s),true);
+ assert.deepEqual(p.professional.contract,accepted);assert.deepEqual(s.proWorld.market.offers,offers);
+});
+
 test('signing at another club starts first-team players in the first team and second-team players in the second team',()=>{
  for(const level of ['first','second']){
   const s=faFixture(level),p=e.getPlayer(s),club=(p.teamId%10+1)%10;

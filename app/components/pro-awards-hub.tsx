@@ -3,10 +3,21 @@ import {useState} from "react";
 import {formatInnings} from "../../lib/player-records";
 import type {GameState,ProLevel} from "../../lib/sim/types";
 import type {ProIndividualAward,ProSeasonArchive} from "../../lib/sim/pro-types";
-import {SeasonAwards} from "./pro-awards";
+import {SeasonAwards,awardRecordText} from "./pro-awards";
 import ProAllstar from "./pro-allstar";
 import {ProAllstarHonors} from "./pro-career-panels";
 import {individualTitleName} from '../../lib/sim/pro-individual-awards';
+import {seriesMvpNames} from '../../lib/sim/pro-series-awards';
+
+export function PostseasonAwards({state,year,onRecords}:{state:GameState;year:number;onRecords:(id:string)=>void}){
+  const archived=state.proWorld?.seasons.find(row=>row.year===year)?.awards.filter(row=>row.category==='seriesMvp')??[];
+  const live=state.proWorld?.year===year?state.proWorld.postseason?.series.flatMap(series=>series.mvp?[series.mvp]:[])??[]:[];
+  const rows=[...new Map([...archived,...live].map(award=>[award.series,award])).values()];
+  return <section className="panel"><div className="panel-heading"><h2>{year} 포스트시즌 MVP</h2></div><div className="career-panel-body"><div className="series-awards-grid">{(Object.keys(seriesMvpNames) as (keyof typeof seriesMvpNames)[]).map(stage=>{
+    const award=rows.find(row=>row.series===stage);
+    return <article key={stage} className={`series-award-card${award?.playerId===state.playerId?' awards-mine':''}`}><span>SERIES MVP</span><h3>{seriesMvpNames[stage]}</h3>{award?<><b>{state.players.some(p=>p.id===award.playerId)?<button className="player-name-button" onClick={()=>onRecords(award.playerId)}>{award.playerName}</button>:award.playerName}</b><p>{state.teams[award.club]?.name.replace(/ 1군$/,'')}</p><p>{awardRecordText(award)}</p><small>출전평가 +1</small></>:<p className="muted">시리즈 종료 후 발표</p>}</article>;
+  })}</div><p className="micro muted">각 시리즈 승리 팀의 실제 출전 기록으로 한 명을 선정합니다. 출전 기록이 없는 기권 시리즈에는 수상자를 만들지 않습니다. 시리즈별 +1점, 전체 수상 보너스 합계 최대 +10점입니다.</p></div></section>;
+}
 
 export function awardValueText(row:ProIndividualAward){
   return row.format==="innings"?formatInnings(row.value):row.format==="percent"?`${(row.value*100).toFixed(1)}%`:row.format==="decimal"?row.value.toFixed(2):row.format==="rate"?row.value.toFixed(3).replace(/^0\./,'.'):String(row.value);
@@ -24,11 +35,12 @@ export default function ProAwardsHub({state,onRecords}:{state:GameState;onRecord
   const [category,setCategory]=useState('allstar'),[year,setYear]=useState(state.calendar.seasonYear);
   const seasons=state.proWorld?.seasons??[],years=[...new Set([state.calendar.seasonYear,...seasons.map(row=>row.year)])].sort((a,b)=>b-a),season=seasons.find(row=>row.year===year);
   const viewState=year===state.calendar.seasonYear?state:{...state,calendar:{...state.calendar,seasonYear:year},proWorld:state.proWorld?{...state.proWorld,allstar:season?.allstar}:undefined};
-  const selectCategory=(key:string)=>{setCategory(key);if(key!=='allstar'&&!season&&seasons.length)setYear(seasons.at(-1)!.year);};
+  const selectCategory=(key:string)=>{setCategory(key);if(key!=='allstar'&&key!=='postseason'&&!season&&seasons.length)setYear(seasons.at(-1)!.year);};
   return <div className="pro-awards-hub"><div className="section-intro"><div><span className="eyebrow">SEASON AWARDS</span><h1>어워드</h1><p>올스타와 한 시즌을 빛낸 선수들</p></div><label className="awards-year">시즌<select aria-label="어워드 시즌" value={year} onChange={event=>setYear(Number(event.target.value))}>{years.map(value=><option key={value} value={value}>{value}</option>)}</select></label></div>
-    <div className="segmented awards-category-tabs" aria-label="어워드 종류">{[['allstar','올스타'],['gold','골든글러브'],['individual','개인 수상']].map(([key,label])=><button key={key} className={category===key?'selected':''} aria-pressed={category===key} onClick={()=>selectCategory(key)}>{label}</button>)}</div>
+    <div className="segmented awards-category-tabs" aria-label="어워드 종류">{[['allstar','올스타'],['gold','골든글러브'],['individual','개인 수상'],['postseason','포스트시즌 MVP']].map(([key,label])=><button key={key} className={category===key?'selected':''} aria-pressed={category===key} onClick={()=>selectCategory(key)}>{label}</button>)}</div>
     {category==='allstar'&&<>{year!==state.calendar.seasonYear&&!season?.allstar?<p className="empty-note">이 시즌의 올스타 기록이 없습니다.</p>:<ProAllstar key={year} state={viewState} onRecords={onRecords}/>}<ProAllstarHonors state={state}/></>}
-    {category==='gold'&&<section className="panel"><div className="panel-heading"><h2>{year} 골든글러브</h2></div><div className="career-panel-body">{season?.awardsCeremony?.presentedAt?<SeasonAwards state={state} season={season}/>:<p className="empty-note">{season?.awardsCeremony?`${season.awardsCeremony.scheduledAt} 시상식에서 리그 MVP와 포지션별 수상자를 발표합니다.`:'시즌 종료 후 12월 시상식에서 수상자를 발표합니다.'}</p>}</div></section>}
+    {category==='gold'&&<section className="panel"><div className="panel-heading"><h2>{year} 골든글러브</h2></div><div className="career-panel-body">{season?.awardsCeremony?.presentedAt?<SeasonAwards state={state} season={season}/>:<p className="empty-note">{season?.awardsCeremony?`${season.awardsCeremony.scheduledAt} 시상식에서 리그 MVP·신인왕과 포지션별 수상자를 발표합니다.`:'시즌 종료 후 12월 시상식에서 수상자를 발표합니다.'}</p>}</div></section>}
     {category==='individual'&&<IndividualAwards key={year} state={state} season={season} onRecords={onRecords}/>}
+    {category==='postseason'&&<PostseasonAwards state={state} year={year} onRecords={onRecords}/>}
   </div>;
 }

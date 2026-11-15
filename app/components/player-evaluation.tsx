@@ -77,6 +77,6 @@ function EvaluationDialog({view,onClose}:{view:View;onClose:()=>void}){
 }
 export default function PlayerEvaluationButton({state,player=state.players.find(p=>p.id===state.playerId)!}:{state:GameState;player?:Player}){
   const [view,setView]=useState<View|null>(null),[error,setError]=useState("");
-  if(state.careerMode==="college")return null;
+  if(state.careerMode==="college"||player.id!==state.playerId)return null;
   return <><button type="button" className="text-button evaluation-open" onClick={()=>{try{setView({state,player,report:playerEvaluationFor(state,player)});setError("");}catch(e){setError(e instanceof Error?e.message:"평가를 불러오지 못했습니다.");}}}>선수 평가 ↗</button>{error&&<span role="alert">{error}</span>}{view&&<EvaluationDialog view={view} onClose={()=>setView(null)}/>}</>;
 }

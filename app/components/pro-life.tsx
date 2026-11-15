@@ -6,7 +6,7 @@ import { scoreText } from "../../lib/display";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { answerCareerEvent, dateLabel, getPlayer, isPitcher, validPolicy,draftRoleLabel,selectionScore } from "../../lib/sim/engine";
 import { careerLabel, developmentProgress } from "../../lib/sim/pro-career";
-import { AutoProgress, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } from "../../lib/auto-progress";
+import { AutoProgress, acceptedNationalInvitation, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } from "../../lib/auto-progress";
 import {restoreWorkerState,workerStateInput} from "../../lib/sim/worker-state";
 import ProLeague from "./pro-league";
 import InternationalHub from './international-hub';
@@ -29,11 +29,13 @@ import {careerSaveId} from "../../lib/career-save-key";
 import {ProGoals,ProContractPanel,ProRetirement,salaryText} from "./pro-career-panels";
 import ProAwardsHub from "./pro-awards-hub";
 import {CareerHonors,CareerLifetimeRecords} from "./pro-career-summary";
-import {actOnProCareer,canEnterNextProCamp,needsContractUpgrade,needsPostseasonUpgrade,upgradeProfessionalState,type ProAction} from "../../lib/sim/pro-season";
+import {actOnProCareer,canEnterNextProCamp,needsContractUpgrade,needsPostseasonUpgrade,resumeOffseasonProgress,upgradeProfessionalState,type ProAction} from "../../lib/sim/pro-season";
 import {needsProScheduleUpgrade} from "../../lib/sim/pro-schedule";
 import {needsAllstarScheduleUpgrade} from "../../lib/sim/pro-allstar-calendar";
 import {needsProSquadUpgrade,squadLabel} from "../../lib/sim/pro-squads";
 import { DraftRoundTable } from "./draft-board";
+import {nationalOffseasonActionLabel} from '../../lib/sim/national-tournament';
+import {needsNationalInvitationUpgrade} from '../../lib/sim/national-teams';
 
 function Panel({ title, action, children }: { title: ReactNode; action?: ReactNode; children: ReactNode }) {
   return <section className="panel"><div className="panel-heading"><h2>{title}</h2>{action}</div>{children}</section>;
@@ -64,7 +66,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const resetPending=useRef(false);
   const [autoProgress]=useState(()=>new AutoProgress());
   useEffect(()=>{
-    if(state.careerMode!=="pro"||state.proWorld&&state.proClubNamesVersion===1&&!needsPostseasonUpgrade(state)&&!needsProScheduleUpgrade(state)&&!needsProSquadUpgrade(state)&&!needsContractUpgrade(state)&&!needsAllstarScheduleUpgrade(state))return;
+    if(state.careerMode!=="pro"||state.proWorld&&state.proClubNamesVersion===1&&!needsPostseasonUpgrade(state)&&!needsProScheduleUpgrade(state)&&!needsProSquadUpgrade(state)&&!needsContractUpgrade(state)&&!needsAllstarScheduleUpgrade(state)&&!needsNationalInvitationUpgrade(state))return;
     const scheduled=setTimeout(()=>{
       autoProgress.pause();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);setAuto(false);setOutcome(null);
       const next=upgradeProfessionalState(state);onChange(next);setPolicy(structuredClone(getPlayer(next).trainingPolicy));setStance({...getPlayer(next).stance});
@@ -82,11 +84,18 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   };
   useEffect(()=>()=>{autoProgress.pause();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);setAuto(false);},[autoProgress]);
   const p=getPlayer(state),pro=state.postSchool?.pro,ended=state.phase==="ended",editing=busy||auto||!!state.weekProgress||ended;
+  const nationalAction=ended?nationalOffseasonActionLabel(state):undefined;
   const recordsPlayer=state.players.find(q=>q.id===recordId)??p;
   const [retireConfirm,setRetireConfirm]=useState(false);
   const careerDisabled=busy||auto||!!state.weekProgress||!!state.careerNotice||!!state.careerEvent||!!outcome;
   const onAction=(action:ProAction)=>{if(locked.current||careerDisabled)return;stop();try{const next=actOnProCareer(state,action);onChange(next);if(next.phase!=="ended"||next.proWorld?.stage==="retired")setTab("home");}catch(error){setError(error instanceof Error?error.message:"커리어 선택에 실패했습니다.");}};
   const load=(next:GameState)=>{if(locked.current)return;stop();worker.current?.terminate();worker.current=null;request.current++;onChange(next);setOutcome(next.pendingEventOutcome??null);setPolicy(structuredClone(getPlayer(next).trainingPolicy));setStance({...getPlayer(next).stance});setTab(next.proWorld?.stage==="retired"?"home":next.phase==="ended"?"career":"home");};
+  const finishEventOutcome=()=>{
+    setOutcome(null);
+    const next={...state};delete next.pendingEventOutcome;
+    try{onChange(resumeOffseasonProgress(next));}
+    catch(error){onChange(next);setError(error instanceof Error?error.message:'국가대표 대회 다음 일정을 진행하지 못했습니다.');}
+  };
   const advance=useCallback(()=>{
     if(locked.current||state.phase==="ended"||state.careerEvent||state.careerNotice||outcome||!validPolicy(policy))return;
     locked.current=true;setBusy(true);setError("");const id=++request.current;
@@ -142,9 +151,9 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
         {!!state.draft.length&&<details className="panel pro-archive"><summary>{state.postSchool?.graduationYear} 고교 드래프트 기록</summary><DraftRoundTable picks={state.draft} playerId={p.id} year={state.postSchool?.graduationYear??state.calendar.seasonYear} onSelect={setDraftPick}/></details>}
       </>}
     </main><footer className="site-footer"><div><span className="footer-brand">BASEBALL LIFE.</span><span>고교에서 프로까지, 나의 야구 인생</span><span>가상 구단·게임용 일정</span></div></footer>
-    {<ProgressControls state={state} policy={policy} busy={busy} auto={auto} autoStartWeek={autoStartWeek} pendingOutcome={!!outcome} onContinue={()=>setTab(state.proWorld?.stage==="retired"?"home":"career")} onNextCamp={canEnterNextProCamp(state)?()=>onAction({type:"nextSeason"}):undefined} onAdvance={advance} onToggleAuto={()=>{if(auto)stop();else{setAutoStartWeek(state.week);autoProgress.start();setAuto(true);}}}/>}
+    {<ProgressControls state={state} policy={policy} busy={busy} auto={auto} autoStartWeek={autoStartWeek} pendingOutcome={!!outcome} onContinue={()=>setTab(state.proWorld?.stage==="retired"?"home":"career")} nationalAction={nationalAction?{...nationalAction,onClick:()=>onAction({type:'national'})}:undefined} onNextCamp={canEnterNextProCamp(state)?()=>onAction({type:"nextSeason"}):undefined} onAdvance={advance} onToggleAuto={()=>{if(auto)stop();else{setAutoStartWeek(state.week);autoProgress.start();setAuto(true);}}}/>}
     {state.careerNotice&&!(tab==="career"&&state.careerMode==="college"&&ended)&&<CareerNoticeDialog state={state} onChange={onChange}/>}
-    {(state.careerEvent||outcome)&&<CareerEventDialog event={state.careerEvent??null} outcome={outcome} disabled={busy} onRecover={()=>{autoProgress.cancelScheduled();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);}} onDone={()=>{setOutcome(null);const next={...state};delete next.pendingEventOutcome;onChange(next);}} onChoose={id=>{if(locked.current||!state.careerEvent)return false;const next=answerCareerEvent(state,id);next.pendingEventOutcome=next.careerEventHistory!.at(-1)!;onChange(next);setOutcome(next.pendingEventOutcome);return true;}}/>}
+    {(state.careerEvent||outcome)&&<CareerEventDialog event={state.careerEvent??null} outcome={outcome} disabled={busy} onRecover={()=>{autoProgress.cancelScheduled();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);}} onDone={finishEventOutcome} onChoose={id=>{if(locked.current||!state.careerEvent)return false;const next=answerCareerEvent(state,id);next.pendingEventOutcome=next.careerEventHistory!.at(-1)!;if(next.phase!=='ended'&&acceptedNationalInvitation(state,next)){setAutoStartWeek(next.week);autoProgress.start();setAuto(true);}onChange(next);setOutcome(next.pendingEventOutcome);return true;}}/>}
 
     {draftPick&&<Dialog title={`${draftPick.playerName} 지명 평가`} onClose={()=>setDraftPick(null)}><p>{draftPick.club} · 전체 {draftPick.overall}순위</p><p>{draftPick.teamName} · {draftRoleLabel(draftPick.role)}</p><p>평판 {scoreText(draftPick.reputation)} · 재능 {draftPick.talent}/10 · 적합도 {scoreText(draftPick.fit)} · 평가 {scoreText(draftPick.score)}</p><ScoutingReportContent state={state} pick={draftPick}/></Dialog>}
     {reset&&<CareerRegenerationDialog busy={busy} onClose={()=>setReset(false)} onChoose={save=>void resetCurrentCareer(save)}/>}

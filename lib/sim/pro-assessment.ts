@@ -166,7 +166,7 @@ export function hydrateAssessments(s: GameState, p: Player): boolean {
       ?.filter((r) => r.season === season.year && r.reason === "season-end")
       .at(-1);
     const role = observation?.role ?? p.primaryRole,
-      ability = roleScore({ ...p, stats: season.stats }, role);
+      ability = roleScore({ ...p, stats: season.stats??observation?.stats??p.stats }, role);
     const score = observation?.comparison.legacyRegistration ?? ability;
     const level = squad(season.schoolId ?? -1),
       developmental = conversionYear(p)!==season.year&&level === "developmental";

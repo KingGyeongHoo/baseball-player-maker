@@ -20,6 +20,12 @@ export function salaryQuote(p:Player,year:number) {
   const units=salaryUnits(assessmentValue(p,year).score);
   return Math.trunc(units*BASE_SALARY/100_000)*100_000;
 }
+export function faContractYears(p:Player,score:number,year:number,club:number){
+  const band=rules.faDurationBands.find(([minimum])=>score>=minimum)??rules.faDurationBands.at(-1)!;
+  const years=score<rules.multiYearScore?1:band[1]+hash(`${year}:${p.id}:${club}`)%(band[2]-band[1]+1);
+  return Math.min(faContractYearLimit(p),years);
+}
+const faContractYearLimit=(p:Player)=>(p.age??19)>=40?1:(p.age??19)>=38?2:(p.age??19)>=36?3:4;
 export function clubInterest(s:GameState,p:Player,club:number,year:number){
   const direction=s.proWorld!.clubs[club].direction,age=p.age??19;
   return contractValue(p,year)+(direction==="rebuild"?Math.max(-8,Math.min(8,27-age)):direction==="contend"?(roleScore(p)-60)*.15-Math.max(0,age-36):0);
@@ -145,10 +151,10 @@ export function offerFor(s:GameState,p:Player,club:number,year:number,kind:Contr
     const minimumInterest=veteran?rules.veteranFaInterest+Math.min(rules.veteranFaMaxPenalty,((p.age??19)-rules.veteranAge)*rules.veteranFaAgePenalty):40;
     if(clubInterest(s,p,club,year-1)<minimumInterest)return null;
   }
-  const quote=trial?rules.developmentalRatio*BASE_SALARY:salaryQuote(p,year-1),years=trial?1:kind==="fa"?Math.min((p.age??19)>=38?2:4,value>=rules.multiYearScore?2+hash(`${year}:${p.id}:${club}`)%3:1):1;
+  const quote=trial?rules.developmentalRatio*BASE_SALARY:salaryQuote(p,year-1),years=trial?1:kind==="fa"?faContractYears(p,value,year,club):1;
   const proposal=kind==="fa"&&!trial&&p.proContract?.status!=="developmental"?faProposal(s,p,club,year,value,years):undefined;
   const salary=proposal?Math.max(BASE_SALARY,Math.min(20*BASE_SALARY,Math.trunc(quote*proposal.multiplier/100_000)*100_000)):quote;
-  let duration=proposal?.years??years;while(duration>1&&!canAfford(s,club,salary,year,duration,[p.id]))duration--;
+  let duration=Math.min(kind==='fa'?faContractYearLimit(p):1,proposal?.years??years);while(duration>1&&!canAfford(s,club,salary,year,duration,[p.id]))duration--;
   if(!canAfford(s,club,salary,year,duration,[p.id]))return null;
   if(proposal?.terms.plan==="security"){
     proposal.terms.title=duration>1?"장기 계약":"계약 안정";
@@ -305,7 +311,7 @@ export function applySeasonExitPolicies(s:GameState){
   }
 }
 
-export function needsContractUpgrade(s:GameState){return s.careerMode==="pro"&&!!s.proWorld&&(s.proWorld.contractRulesVersion!==3||s.players.some(p=>p.professional&&(p.professional.assessments===undefined||p.professional.assessments.some(row=>row.firstTeam===undefined||row.secondOnly===undefined||row.firstGames===undefined))));}
+export function needsContractUpgrade(s:GameState){return s.careerMode==="pro"&&!!s.proWorld&&(s.proWorld.contractRulesVersion!==4||s.players.some(p=>p.professional&&(p.professional.assessments===undefined||p.professional.assessments.some(row=>row.firstTeam===undefined||row.secondOnly===undefined||row.firstGames===undefined))));}
 export function upgradeContractRules(s:GameState){
   if(!needsContractUpgrade(s))return false;
   for(const p of s.players){hydrateAssessments(s,p);if(p.professional?.nonRenewal&&["low-evaluation","second-team"].includes(p.professional.nonRenewal.kind))delete p.professional.nonRenewal;}
@@ -315,5 +321,5 @@ export function upgradeContractRules(s:GameState){
     const p=getPlayer(s);if(p.professional?.employment!=="active")world.market.kind="released";
     refreshOffers(s);
   }
-  world.contractRulesVersion=3;return true;
+  world.contractRulesVersion=4;return true;
 }

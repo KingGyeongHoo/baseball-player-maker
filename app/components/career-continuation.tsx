@@ -9,15 +9,16 @@ import {regularSeasonFinishNotice,professionalSeasonFinishNotice} from "../../li
 
 export function CareerNoticeDialog({ state, onChange }: { state: GameState; onChange: (state: GameState) => void }) {
   const dialog=useRef<HTMLDialogElement>(null),title=useRef<HTMLHeadingElement>(null);
-  useEffect(()=>{const el=dialog.current;el?.showModal();title.current?.focus();return ()=>el?.close();},[]);
+  useEffect(()=>{const el=dialog.current;el?.showModal();title.current?.focus();return ()=>el?.close();},[state.careerNotice?.id]);
   const storedNotice=state.careerNotice;
   if(!storedNotice)return null;
   const seasonYear=storedNotice.kind==='seasonComplete'&&/^season:\d{4}$/.test(storedNotice.code??'')?Number(storedNotice.code!.split(':')[1]):undefined;
   const notice=storedNotice.code?.startsWith('PRO10:postseason:')?{...storedNotice,...regularSeasonFinishNotice(state)}:seasonYear!==undefined?{...storedNotice,...professionalSeasonFinishNotice(state,seasonYear)}:storedNotice;
   const awards=notice.code?.startsWith('awards:')?state.proWorld?.seasons.find(row=>row.year===Number(notice.code!.split(':')[1])):undefined;
-  return <dialog ref={dialog} className="modal career-event-modal" aria-labelledby="career-notice-title" onCancel={e=>{e.preventDefault();onChange(acknowledgeCareer(state));}}>
-    <div className="modal-header"><h2 id="career-notice-title" tabIndex={-1} ref={title}>{seasonYear!==undefined?<>{notice.title.slice(0,-3)}<span className="season-victory-text">우승!</span></>:notice.title}</h2><span className="position-tag">CAREER LIFE</span></div>
-    <div className="guide-content">{notice.message.split("\n\n").filter(Boolean).map((paragraph,index)=><p key={index}>{paragraph}</p>)}{awards&&<SeasonAwards state={state} season={awards}/>}<div className="modal-actions"><button className="primary" onClick={()=>onChange(acknowledgeCareer(state))}>{awards&&state.proWorld?.resumeCampAfterAwards?'시상식 마치고 캠프로':'확인'}</button></div></div>
+  const trophy=notice.award,pendingTrophies=state.noticeQueue?.some(row=>row.award);
+  return <dialog ref={dialog} className={`modal career-event-modal${trophy?' award-celebration-modal':''}`} aria-labelledby="career-notice-title" onCancel={e=>{e.preventDefault();onChange(acknowledgeCareer(state));}}>
+    <div className="modal-header"><h2 id="career-notice-title" tabIndex={-1} ref={title}>{trophy?<>{trophy.year}년{' '}<span className="award-celebration-title">{trophy.title}</span>{trophy.title==='신인왕'?'을':'를'} 획득했다!!</>:seasonYear!==undefined&&notice.title.endsWith('우승!')?<>{notice.title.slice(0,-3)}<span className="season-victory-text">우승!</span></>:notice.title}</h2><span className="position-tag">{trophy?'SEASON HONORS':'CAREER LIFE'}</span></div>
+    <div className="guide-content">{trophy?<div className="award-celebration-body"><span className="eyebrow">A SEASON TO REMEMBER</span><p>한 시즌의 활약이 커리어에 새겨졌습니다.</p><div className="award-rating-gain"><span>출전평가 수상 보너스</span><b>+{trophy.bonus}</b><p>{trophy.before!==undefined?`${trophy.before.toFixed(1)} → ${trophy.after.toFixed(1)}`:`현재 출전평가 ${trophy.after.toFixed(1)}`}</p></div>{trophy.applied!==undefined&&trophy.applied<trophy.bonus&&<p className="micro muted">수상 보너스 합계 +10·출전평가 100점 상한으로 실제 반영은 +{trophy.applied.toFixed(1)}점입니다.</p>}</div>:notice.message.split("\n\n").filter(Boolean).map((paragraph,index)=><p key={index}>{paragraph}</p>)}{awards&&<SeasonAwards state={state} season={awards}/>}<div className="modal-actions"><button className="primary" onClick={()=>onChange(acknowledgeCareer(state))}>{pendingTrophies?'다음 수상 확인':(awards||trophy)&&state.proWorld?.resumeCampAfterAwards?'시상식 마치고 캠프로':'확인'}</button></div></div>
   </dialog>;
 }
 export default function CareerContinuation({ state, onChange, onRetire }: { state:GameState;onChange:(state:GameState)=>void;onRetire?:()=>void }) {

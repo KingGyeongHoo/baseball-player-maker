@@ -1,4 +1,5 @@
 import {validNationalTournament} from "./sim/national-tournament";
+import {upgradeNationalInvitation} from './sim/national-teams';
 import {hydrateAssessments} from "./sim/pro-assessment";
 import {validFaTerms} from "./sim/pro-positions";
 import {validProWarAssessment} from "./sim/pro-war";
@@ -9,9 +10,17 @@ import {discardRetiredPlayers} from "./sim/retired-records";
 import {syncProClubNames} from "./sim/club-names";
 import {statKeys,type GameState} from "./sim/types";
 import {careerSaveId} from "./career-save-key";
+import {compactCareerState} from './career-compaction';
+import {backfillSeasonHonors} from './sim/pro-historical-awards';
+import {awardBonusPoints} from './sim/pro-award-bonuses';
+import {gzipText,gunzipBytes,saveBlobText} from './save-compression';
+import {packNpcRecordFields,unpackNpcRecordFields} from './career-record-codec';
 
 export type CareerSave={format:"baseball-life";version:1;id:string;name:string;date:string;year:number;savedAt:string;manual:boolean;checksum:string;state:GameState};
+type PackedCareerSave=Omit<CareerSave,'version'>&{version:2;recordEncoding:'npc-single-role-v1'};
 export type CareerSaveSummary=Pick<CareerSave,"id"|"name"|"date"|"savedAt"|"manual">&{mode:GameState["careerMode"];retired:boolean};
+type CompressedCareerSave=Omit<CareerSave,'state'>&{compression:'gzip';payload:Uint8Array;state:Pick<GameState,'seed'|'playerId'|'careerMode'>&{proWorld?:Pick<NonNullable<GameState['proWorld']>,'stage'>}};
+type StoredCareerSave=CareerSave|CompressedCareerSave;
 export function saveChecksum(text:string){let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);return (h>>>0).toString(16);}
 export function validateCareerState(value:unknown):asserts value is GameState {
   if(!value||typeof value!=="object")throw new Error("커리어 데이터가 아닙니다.");
@@ -22,6 +31,8 @@ export function validateCareerState(value:unknown):asserts value is GameState {
     if(!p||typeof p.id!=="string"||ids.has(p.id)||!Number.isInteger(p.teamId)||p.teamId>=s.teams.length||p.teamId< -1||statKeys.some(k=>!Number.isFinite(p.stats?.[k])||p.stats[k]<1||p.stats[k]>100)||!p.trainingPolicy?.tickets||!Array.isArray(p.career))throw new Error("선수·소속·능력 데이터가 손상됐습니다.");ids.add(p.id);
     if(p.throws!==undefined&&!["R","L"].includes(p.throws)||p.bats!==undefined&&!["R","L","B"].includes(p.bats))throw new Error("투구·타격 손 정보를 복원할 수 없습니다.");
     const assessments=p.professional?.assessments;
+    const bonuses=p.professional?.awardBonuses;
+    if(bonuses!==undefined&&(!Array.isArray(bonuses)||new Set(bonuses.map(row=>`${row.year}:${row.category}`)).size!==bonuses.length||bonuses.some(row=>!Number.isInteger(row.year)||!Object.hasOwn(awardBonusPoints,row.category)||row.points!==awardBonusPoints[row.category])))throw new Error('수상 출전평가 보상 기록을 복원할 수 없습니다.');
     if(assessments!==undefined&&(!Array.isArray(assessments)||new Set(assessments.map(row=>row.year)).size!==assessments.length||assessments.some(row=>!Number.isInteger(row.year)||typeof row.date!=="string"||row.score!==null&&!Number.isFinite(row.score)||row.cumulative!==null&&!Number.isFinite(row.cumulative)||!Number.isFinite(row.ability)||typeof row.reserveSeason!=="boolean"||typeof row.developmental!=="boolean"||row.firstTeam!==undefined&&typeof row.firstTeam!=="boolean"||row.secondOnly!==undefined&&typeof row.secondOnly!=="boolean"||row.firstGames!==undefined&&row.firstGames!==null&&(!Number.isInteger(row.firstGames)||row.firstGames<0)||!["season-end","reconstructed"].includes(row.source))))throw new Error("시즌 출전평가 기록을 복원할 수 없습니다.");
     const usage=p.professional?.assessmentUsage;
     if(p.professional?.lastSquad!==undefined&&!["first","second","third","developmental"].includes(p.professional.lastSquad))throw new Error("마지막 등록 군을 복원할 수 없습니다.");
@@ -45,13 +56,14 @@ export function validateCareerState(value:unknown):asserts value is GameState {
   if(s.matchProgress&&!s.calendar.events.some(g=>g.id===s.matchProgress!.gameId))throw new Error("진행 중인 경기를 찾을 수 없습니다.");
   if(s.proEvents&&(s.proEvents.version!==1||!Array.isArray(s.proEvents.history)||!Array.isArray(s.proEvents.attemptedGames)||!Array.isArray(s.proEvents.cancellations)||!s.proEvents.national||Object.values(s.proEvents.national).some(row=>!Array.isArray(row.roster)||row.roster.length>30||new Set(row.roster.map(p=>p.id)).size!==row.roster.length)))throw new Error("프로 이벤트 저장 상태가 손상됐거나 지원하지 않는 버전입니다.");
   if(s.proEvents?.wbc&&Object.entries(s.proEvents.wbc).some(([year,row])=>Number(year)<2026||(Number(year)-2026)%4!==0||row.sourceYear!==Number(year)-1||typeof row.evaluatedAt!=="string"||typeof row.offered!=="boolean"||typeof row.settled!=="boolean"||!Array.isArray(row.roster)||row.roster.length>30||row.roster.some(p=>!p||typeof p.id!=="string"||!Number.isFinite(p.selectionScore??p.reputation)||!Number.isFinite(p.roleScore))||new Set(row.roster.map(p=>p.id)).size!==row.roster.length))throw new Error("WBC 국가대표 명단을 복원할 수 없습니다.");
-  if(s.nationalTeams&&(!Array.isArray(s.nationalTeams)||new Set(s.nationalTeams.map(row=>`${row.year}:${row.kind}`)).size!==s.nationalTeams.length||s.nationalTeams.some(row=>!['wbc','premier12','apbc','olympics','youth'].includes(row.kind)||!Number.isInteger(row.year)||typeof row.start!=='string'||typeof row.end!=='string'||!Array.isArray(row.roster)||row.roster.length>30||new Set(row.roster.map(p=>p.id)).size!==row.roster.length||row.roster.some(p=>typeof p.id!=='string'||typeof p.name!=='string'||typeof p.team!=='string'||!['batting','pitching'].includes(p.field)||!Number.isFinite(p.roleScore)))))throw new Error("국가대표 선발 기록이 손상됐습니다.");
+  if(s.nationalTeams&&(!Array.isArray(s.nationalTeams)||new Set(s.nationalTeams.map(row=>`${row.year}:${row.kind}`)).size!==s.nationalTeams.length||s.nationalTeams.some(row=>!['wbc','premier12','apbc','olympics','youth'].includes(row.kind)||!Number.isInteger(row.year)||typeof row.start!=='string'||typeof row.end!=='string'||!Array.isArray(row.roster)||row.roster.length>30||row.participationField!==undefined&&!['pitching','batting'].includes(row.participationField)||new Set(row.roster.map(p=>p.id)).size!==row.roster.length||row.roster.some(p=>typeof p.id!=='string'||typeof p.name!=='string'||typeof p.team!=='string'||!['batting','pitching'].includes(p.field)||!Number.isFinite(p.roleScore)))))throw new Error("국가대표 선발 기록이 손상됐습니다.");
   if(s.nationalTeams?.some(row=>row.tournament&&!validNationalTournament(row.tournament)))throw new Error("국가대표 대회 진행 기록이 손상됐습니다.");
   if(s.careerEvent?.proEvent&&s.careerEvent.proEvent.version!==1)throw new Error("지원하지 않는 프로 이벤트 버전입니다.");
   if(s.calendar.events.some(game=>game.proPreparedLineup?.some(side=>[...side.field,...side.order,...side.pitchers,side.starter].some(id=>!ids.has(id)))))throw new Error("경기 준비 명단의 선수를 복원할 수 없습니다.");
   const allstar=s.proWorld?.allstar;
   for(const season of s.proWorld?.seasons??[]){const ceremony=season.awardsCeremony;if(ceremony&&(ceremony.version!==1||ceremony.scheduledAt!==`${season.year}-12-06`||ceremony.presentedAt!==undefined&&(typeof ceremony.presentedAt!=="string"||ceremony.presentedAt<ceremony.scheduledAt)))throw new Error("시상식 일정을 복원할 수 없습니다.");}
   if(s.proWorld?.resumeCampAfterAwards!==undefined&&(s.proWorld.resumeCampAfterAwards!==true||!s.proWorld.seasonClosed))throw new Error("시상식 후 캠프 이동 상태를 복원할 수 없습니다.");
+  if(s.proWorld?.offseasonContinuation!==undefined&&(!['national','market','wait','nextSeason'].includes(s.proWorld.offseasonContinuation)||!s.proWorld.seasonClosed))throw new Error('국가대표 대회 진행 상태를 복원할 수 없습니다.');
   if(allstar){
     if(allstar.version!==1||allstar.year!==s.calendar.seasonYear||!["first","second"].every(level=>!!allstar.levels?.[level as "first"|"second"]))throw new Error("올스타 시즌 자료를 복원할 수 없습니다.");
     const selected=new Set<string>();
@@ -59,24 +71,56 @@ export function validateCareerState(value:unknown):asserts value is GameState {
   }
 }
 export function encodeCareerSave(state:GameState,manual=false,now=new Date().toISOString()):CareerSave {
+  state=compactCareerState(state);
   validateCareerState(state);const p=state.players.find(p=>p.id===state.playerId)!;
   return {format:"baseball-life",version:1,id:careerSaveId(state),name:p.name,date:state.date,year:state.calendar.seasonYear,savedAt:now,manual,checksum:saveChecksum(JSON.stringify(state)),state};
 }
 export function decodeCareerSave(raw:string):CareerSave {
-  let file:CareerSave;try{file=JSON.parse(raw);}catch{throw new Error("JSON 저장 파일을 읽지 못했습니다. 원본 파일은 유지됩니다.");}
-  return validateCareerSave(file);
+  let file:CareerSave|PackedCareerSave;try{file=JSON.parse(raw);}catch{throw new Error("JSON 저장 파일을 읽지 못했습니다. 원본 파일은 유지됩니다.");}
+  if(file?.format==='baseball-life'&&file.version===2){
+    if(file.recordEncoding!=='npc-single-role-v1')throw new Error('지원하지 않는 기록 압축 형식입니다. 원본 파일은 유지됩니다.');
+    if(saveChecksum(JSON.stringify(file.state))!==file.checksum)throw new Error('저장 파일의 무결성 확인에 실패했습니다. 원본 파일은 유지됩니다.');
+    const state=unpackNpcRecordFields(file.state);
+    file={format:file.format,version:1,id:file.id,name:file.name,date:file.date,year:file.year,savedAt:file.savedAt,manual:file.manual,checksum:saveChecksum(JSON.stringify(state)),state};
+  }
+  return validateCareerSave(file as CareerSave);
+}
+export function serializeCareerSave(file:CareerSave){
+  const state=packNpcRecordFields(file.state);
+  const wire:PackedCareerSave={...file,version:2,recordEncoding:'npc-single-role-v1',state,checksum:saveChecksum(JSON.stringify(state))};
+  return JSON.stringify(wire);
 }
 function validateCareerSave(file:CareerSave):CareerSave {
   if(file?.format!=="baseball-life"||file.version!==1)throw new Error("지원하지 않는 저장 형식입니다. 원본 파일은 유지됩니다.");
   validateCareerState(file.state);if(saveChecksum(JSON.stringify(file.state))!==file.checksum)throw new Error("저장 파일의 무결성 확인에 실패했습니다. 원본 파일은 유지됩니다.");
-  let assessmentsChanged=false;for(const p of file.state.players){assessmentsChanged=hydrateAssessments(file.state,p)||assessmentsChanged;assessmentsChanged=initializeAgingProfile(p)||assessmentsChanged;assessmentsChanged=clearProfessionalReputation(p)||assessmentsChanged;}
-  const retiredRemoved=discardRetiredPlayers(file.state);
-  const namesChanged=syncProClubNames(file.state);
+  for(const p of file.state.players){hydrateAssessments(file.state,p);initializeAgingProfile(p);clearProfessionalReputation(p);}
+  syncProClubNames(file.state);
+  upgradeNationalInvitation(file.state);
+  backfillSeasonHonors(file.state);
+  discardRetiredPlayers(file.state);
   const needsNumbers=file.state.players.some(p=>p.jerseyNumber===undefined);
   if(needsNumbers)syncJerseyNumbers(file.state);
-  if(assessmentsChanged||retiredRemoved||needsNumbers||namesChanged)file.checksum=saveChecksum(JSON.stringify(file.state));
+  file.state=compactCareerState(file.state);
+  file.checksum=saveChecksum(JSON.stringify(file.state));
   return file;
 }
+async function packStoredSave(file:CareerSave):Promise<StoredCareerSave>{
+  if(typeof CompressionStream==='undefined')return file;
+  const payload=await gzipText(serializeCareerSave(file));
+  const {seed,playerId,careerMode,proWorld}=file.state;
+  return {...file,compression:'gzip',payload,state:{seed,playerId,careerMode,...(proWorld?{proWorld:{stage:proWorld.stage}}:{})}};
+}
+async function unpackStoredSave(file:StoredCareerSave):Promise<CareerSave>{
+  if(!('compression' in file))return validateCareerSave(file);
+  return decodeCareerSave(await gunzipBytes(file.payload));
+}
+export async function exportCareerSave(state:GameState){
+  const file=encodeCareerSave(state,true),text=serializeCareerSave(file);
+  const compressed=typeof CompressionStream!=='undefined';
+  const blob=compressed?new Blob([await gzipText(text)],{type:'application/gzip'}):new Blob([text],{type:'application/json'});
+  return {file,blob,extension:compressed?'json.gz':'json'};
+}
+export async function importCareerSave(blob:Blob){return decodeCareerSave(await saveBlobText(blob));}
 let database:Promise<IDBDatabase>|undefined;
 const storageProgress=new Set<()=>void>();
 function openDatabase(){
@@ -112,19 +156,19 @@ async function transaction<T>(mode:IDBTransactionMode,work:(store:IDBObjectStore
     request.onsuccess=()=>{result=request.result;onProgress?.();};tx.oncomplete=()=>resolve(result);tx.onerror=tx.onabort=()=>reject(new Error("저장소 작업에 실패했습니다. 기존 저장은 보존됩니다."));});
   }finally{if(onProgress)storageProgress.delete(onProgress);}
 }
-export async function putCareerSave(file:CareerSave){validateCareerState(file.state);if(file.checksum!==saveChecksum(JSON.stringify(file.state)))throw new Error("저장 무결성을 확인하지 못했습니다.");await transaction("readwrite",store=>store.put({...file,id:careerSaveId(file.state)}));}
+export async function putCareerSave(file:CareerSave){validateCareerState(file.state);if(file.checksum!==saveChecksum(JSON.stringify(file.state)))throw new Error("저장 무결성을 확인하지 못했습니다.");const stored=await packStoredSave(encodeCareerSave(file.state,file.manual,file.savedAt));await transaction("readwrite",store=>store.put({...stored,id:careerSaveId(file.state)}));}
 export async function deleteCareerSave(id:string,onProgress?:()=>void){await transaction("readwrite",store=>store.delete(id),onProgress);}
 export async function listCareerSaves():Promise<CareerSaveSummary[]>{
   const db=await openDatabase();
   return new Promise((resolve,reject)=>{
     const files:CareerSaveSummary[]=[],tx=db.transaction("careers","readonly"),request=tx.objectStore("careers").openCursor();
-    request.onsuccess=()=>{const cursor=request.result;if(!cursor)return;const file=cursor.value as CareerSave;
+    request.onsuccess=()=>{const cursor=request.result;if(!cursor)return;const file=cursor.value as StoredCareerSave;
       files.push({id:file.id,name:file.name,date:file.date,savedAt:file.savedAt,manual:file.manual,mode:file.state.careerMode,retired:file.state.proWorld?.stage==="retired"});cursor.continue();};
     tx.oncomplete=()=>resolve(files.sort((a,b)=>b.savedAt.localeCompare(a.savedAt)));
     tx.onerror=tx.onabort=()=>reject(new Error("저장 목록을 불러오지 못했습니다."));
   });
 }
-export async function getCareerSave(id:string){const file=await transaction("readonly",store=>store.get(id)) as CareerSave|undefined;if(!file)throw new Error("저장된 커리어를 찾을 수 없습니다.");return validateCareerSave(file);}
+export async function getCareerSave(id:string){const file=await transaction("readonly",store=>store.get(id)) as StoredCareerSave|undefined;if(!file)throw new Error("저장된 커리어를 찾을 수 없습니다.");return unpackStoredSave(file);}
 let autoQueue=Promise.resolve();const autoGenerations=new Map<string,number>();
 export function queueCareerAutoSave(state:GameState,manual=false,onProgress?:()=>void){
   const key=`${state.seed}:${state.playerId}`,generation=(autoGenerations.get(key)??0)+1;autoGenerations.set(key,generation);
@@ -134,7 +178,8 @@ export function queueCareerAutoSave(state:GameState,manual=false,onProgress?:()=
       // encodeCareerSave validates and checksums this private snapshot once.
       // Imported/manual files still go through putCareerSave's verification.
       const file=encodeCareerSave(state,manual);
-      await transaction("readwrite",store=>store.put(file),onProgress);
+      const stored=await packStoredSave(file);onProgress?.();
+      await transaction("readwrite",store=>store.put(stored),onProgress);
     } finally {if(autoGenerations.get(key)===generation)autoGenerations.delete(key);}
   });autoQueue=job;return job;
 }

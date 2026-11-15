@@ -98,7 +98,7 @@ test('retirement archives the actual career before displaying the result and for
 });
 test('save round trips preserve RNG, pending choices, outcomes and raw fractional skills without rerolling',()=>{
   const s=fixture(),p=e.getPlayer(s);p.stats.contact=51.99;s.pendingEventOutcome={id:'outcome',kind:'special',title:'완료',date:s.date,choice:'선택',stats:{contact:.12},reputation:0,fatigue:0,definitionId:'D01',message:'성장',awakened:[]};
-  const file=encodeCareerSave(s,false,'2026-11-05T00:00:00Z'),loaded=decodeCareerSave(JSON.stringify(file));assert.deepEqual(loaded.state,s);assert.equal(loaded.state.players.find(p=>p.id===s.playerId).stats.contact,51.99);assert.equal(encodeCareerSave(s,true).id,file.id);
+  const file=encodeCareerSave(s,false,'2026-11-05T00:00:00Z'),loaded=decodeCareerSave(JSON.stringify(file));assert.deepEqual(loaded.state,file.state);assert.deepEqual(loaded.state.rngStates,s.rngStates);assert.deepEqual(e.getPlayer(loaded.state),p);assert.deepEqual(loaded.state.pendingEventOutcome,s.pendingEventOutcome);assert.equal(loaded.state.players.find(p=>p.id===s.playerId).stats.contact,51.99);assert.equal(encodeCareerSave(s,true).id,file.id);
 });
 test('corrupt and unsupported saves are rejected while the original save is unchanged',()=>{
   const s=fixture(),file=encodeCareerSave(s),original=JSON.stringify(file),corrupt=JSON.parse(original);corrupt.state.rngStates.match++;assert.throws(()=>decodeCareerSave(JSON.stringify(corrupt)),/무결성/);corrupt.version=99;assert.throws(()=>decodeCareerSave(JSON.stringify(corrupt)),/버전|형식/);assert.equal(JSON.stringify(file),original);const invalid=structuredClone(s);invalid.players[0].stats.contact=NaN;assert.throws(()=>validateCareerState(invalid),/손상/);
@@ -111,7 +111,7 @@ test('qualification reached in the last completed farm game converts before post
   for(const q of s.players)q.professional.lastAppearance=s.date;
   const game=s.calendar.events.find(g=>g.competitionId==='pro-second'&&[g.homeTeamId,g.awayTeamId].includes(p.teamId));game.date=s.date;s.calendar.events=[game];
   Object.assign(p.seasonByLevel.second.batting,{PA:79,AB:70,H:30,BB:9,HR:3});p.seasonStats=structuredClone(p.seasonByLevel.second);
-  s=e.advanceWeek(s,p.trainingPolicy,p.stance);p=e.getPlayer(s);assert.ok(p.seasonByLevel.second.batting.PA>=80);assert.equal(p.proContract.status,'regular');assert.equal(s.careerNotice.kind,'registered');assert.equal(s.proWorld.stage,'postseason');assert.ok(s.noticeQueue.some(n=>n.code.startsWith('PRO10')));assert.equal(game.status,'scheduled','input is immutable');
+  s=e.advanceWeek(s,p.trainingPolicy,p.stance);p=e.getPlayer(s);assert.ok(p.seasonByLevel.second.batting.PA>=80);assert.equal(p.proContract.status,'regular');assert.equal(s.careerNotice.kind,'registered');assert.equal(s.proWorld.stage,'postseason');assert.ok(!(s.noticeQueue??[]).some(n=>n.code.startsWith('PRO10')),'a farm player does not receive first-team entry notices');assert.equal(game.status,'scheduled','input is immutable');
 });
 test('an offseason reserves money for minimum positions and the player renewal; every active next-year player has a valid affordable contract',()=>{
   let s=summary();s=acknowledge(life.actOnProCareer(s,{type:'market'}));const offer=s.proWorld.market.offers[0];assert.ok(offer,'original club makes a concrete renewal offer');s=acknowledge(life.actOnProCareer(s,{type:'accept',id:offer.id}));while(!s.proWorld.stove.closed)s=acknowledge(life.actOnProCareer(s,{type:'wait'}));s=life.actOnProCareer(s,{type:'nextSeason'});

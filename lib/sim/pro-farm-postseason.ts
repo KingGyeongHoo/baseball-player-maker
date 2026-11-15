@@ -6,6 +6,12 @@ import {proNews,proNotice} from './pro-world';
 import type {GameState,Game} from './types';
 import type {ProSeries} from './pro-types';
 export const isFarmPostseason=(id:string)=>id.startsWith('pro-farm-playoffs-');
+export const farmPostseasonActive=(s:GameState)=>!!s.proWorld?.farmPostseason&&s.proWorld.farmPostseason.champion===undefined;
+export function farmRegularFinishNotice(s:GameState){
+  const p=getPlayer(s),team=proGameTeam(p),rank=(s.proWorld?.farmPostseason?.seeds.indexOf(team)??-1)+1,name=s.teams[team]?.name??'소속 2군';
+  return rank?{title:`${name} 2군 포스트시즌 진출!`,message:`2군 정규시즌 ${rank}위로 준결승에 출전합니다. 준결승 3전 2선승·결승 5전 3선승이며 2군·3군·신고선수 엔트리로 진행합니다.`}:
+    {title:`${name} 2군 정규시즌 종료`,message:'2군 상위 4팀 포스트시즌 진출에 실패했습니다. 다른 구단의 남은 경기가 끝나면 시즌을 결산합니다.'};
+}
 function schedule(s:GameState,series:ProSeries,date:string){
   date=nextFarmDate(date,s.calendar.seasonYear);const number=series.game++,pattern=series.stage==='final'?[0,0,1,1,0]:[0,1,0],home=series.clubs[pattern[number]],away=series.clubs[1-series.clubs.indexOf(home)];
   const game:Game={id:`${s.calendar.seasonYear}:farm:${series.id}:${number}`,date,competitionId:`pro-farm-playoffs-${series.id}`,homeTeamId:home,awayTeamId:away,round:number+1,rulesetId:'pro-farm-postseason-v1',status:'scheduled',score:[0,0],innings:[[],[]],lineup:[],boxScore:{}};
@@ -19,7 +25,7 @@ function series(s:GameState,id:string,stage:'semi'|'final',clubs:[number,number]
   s.proWorld!.farmPostseason!.series.push(row);schedule(s,row,date);
 }
 export function reviewFarmPostseason(s:GameState){
-  const w=s.proWorld,c=s.calendar.competitions.find(c=>c.id==='pro-second');if(!w||!c||w.seasonClosed||!['camp','regular'].includes(w.stage))return;
+  const w=s.proWorld,c=s.calendar.competitions.find(c=>c.id==='pro-second');if(!w||!c||w.seasonClosed||!['camp','regular','postseason'].includes(w.stage))return;
   if(!w.farmPostseason){
     const games=s.calendar.events.filter(g=>g.competitionId==='pro-second');
     if(!games.length||s.date<c.endDate||games.some(g=>!['completed','forfeit'].includes(g.status)))return;
@@ -27,6 +33,7 @@ export function reviewFarmPostseason(s:GameState){
     c.championTeamId=seeds[0];w.farmPostseason={seeds,series:[]};
     series(s,'semi-a','semi',[seeds[0],seeds[3]],addDays(s.date,1));series(s,'semi-b','semi',[seeds[1],seeds[2]],addDays(s.date,1));
     proNews(s,'2군 정규시즌 종료 · 상위 4팀 포스트시즌 시작 · 준결승 3전 2선승 / 결승 5전 3선승');
+    if(getPlayer(s).teamId>=10){const notice=farmRegularFinishNotice(s);proNotice(s,`farm-postseason:${w.year}`,notice.title,notice.message);}
   }
   const post=w.farmPostseason;
   for(const row of post.series){
@@ -44,7 +51,7 @@ export function reviewFarmPostseason(s:GameState){
   }
   const final=post.series.find(r=>r.stage==='final');if(final?.winner!==undefined&&post.champion===undefined){
     post.champion=final.winner;proNews(s,`${s.teams[final.winner]?.name??'2군'} · 2군 포스트시즌 우승`);
-    if(post.seeds.includes(proGameTeam(getPlayer(s))))proNotice(s,`farm-finish:${w.year}`,'2군 포스트시즌 종료',`${s.teams[final.winner]?.name??'2군'}이 우승했습니다. 2군 포스트시즌 기록은 정규시즌과 별도로 보관합니다.`);
+    if(getPlayer(s).teamId>=10&&post.seeds.includes(proGameTeam(getPlayer(s))))proNotice(s,`farm-finish:${w.year}`,'2군 포스트시즌 종료',`${s.teams[final.winner]?.name??'2군'}이 우승했습니다. 2군 포스트시즌 기록은 정규시즌과 별도로 보관합니다.`);
   }
 }
 export function farmPlayoffRoster(s:GameState,game:Game){

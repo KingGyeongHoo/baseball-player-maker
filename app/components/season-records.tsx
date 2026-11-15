@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { positionLabel } from "../../lib/sim/engine";
+import { isPitcher,positionLabel } from "../../lib/sim/engine";
 import {handednessLabel} from "../../lib/player-handedness";
 import PlayerTalents from './player-talents';
 import { formatInnings, playerSeasons, recordRates, totalRecords, type PlayerSeason } from "../../lib/player-records";
@@ -50,9 +50,10 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
   const visible = level==="all"?scoped:level==="highSchool"?scoped.filter(s=>!s.careerMode):scoped.filter(s=>s.byLevel).map(s=>({...s,records:level==="spring"?s.spring??emptyRecord():level==="farmPostseason"?s.farmPostseason??emptyRecord():level==="postseason"?s.postseason??emptyRecord():s.byLevel![level as "first"|"second"]}));
   const total = totalRecords(visible);
   const rates = recordRates(total);
+  const showBatting=mine||!!player.twoWay||!isPitcher(player.primaryRole),showPitching=mine||!!player.twoWay||isPitcher(player.primaryRole);
   const summary = [
-    ["타율", rate(rates.average)], ["안타", total.batting.H], ["홈런", total.batting.HR],
-    ["투구 이닝", formatInnings(total.pitching.outs)], ["ERA", rate(rates.era, 2)], ["탈삼진", total.pitching.SO],
+    ...(showBatting?[["타율", rate(rates.average)], ["안타", total.batting.H], ["홈런", total.batting.HR]]:[]),
+    ...(showPitching?[["투구 이닝", formatInnings(total.pitching.outs)], ["ERA", rate(rates.era, 2)], ["탈삼진", total.pitching.SO]]:[]),
   ];
   return <div className="season-records">
     <div className="section-intro">
@@ -68,7 +69,7 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
       </select></label>
     </div>
     {player.careerMode === "pro" && <div className="segmented pro-level-filter">{[["first","프로 1군"],["second","프로 2군"],["spring","시범경기"],["postseason","1군 포스트시즌"],["farmPostseason","2군 포스트시즌"],["highSchool","고교"],["all","전체 정규 기록"]].map(([id,label])=><button className={level===id?"selected":""} key={id} onClick={()=>setLevel(id)}>{label}</button>)}</div>}{player.careerMode==="pro"&&<label className="records-club-filter">구단별 기록 <select value={club} onChange={e=>setClub(e.target.value)}><option value="all">시즌 합계 · 모든 구단</option>{[...new Set(seasons.flatMap(s=>Object.keys(s.byClub??{})))].map(id=><option key={id} value={id}>{draftClubs[Number(id)]}</option>)}</select><span className="micro muted">선택한 리그의 원시 기록으로 비율을 다시 계산합니다.</span></label>}<div className="career-record-summary">{summary.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
-    <section className="panel">
+    {showPitching&&<section className="panel">
       <div className="panel-heading"><div><span className="eyebrow">PITCHING RECORDS</span><h2>연도별 투수 기록</h2></div><span className="small muted">{total.pitching.BF} 상대 타자</span></div>
       <div className="table-scroll season-table" tabIndex={0} role="region" aria-label="연도별 투수 기록, 가로로 스크롤 가능">
         <table className="pitching-seasons"><thead><tr>{["시즌", "단계", "BF", "IP", "ERA", "H", "HR", "BB", "SO", "R", "ER", "WHIP"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
@@ -78,8 +79,8 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
       </div>
       {!total.pitching.outs && <p className="empty-note">선택한 시즌에 투구 아웃 기록이 없습니다. ERA·WHIP는 미평가로 표시됩니다.</p>}
       <p className="records-caption">BF 상대 타자 · IP 이닝 · ERA 평균자책점 · H 피안타 · HR 피홈런 · BB 볼넷 · SO 탈삼진 · R 실점 · ER 자책점. 5.2이닝은 5이닝 2아웃입니다.</p>
-    </section>
-    <section className="panel">
+    </section>}
+    {showBatting&&<section className="panel">
       <div className="panel-heading"><div><span className="eyebrow">BATTING RECORDS</span><h2>연도별 타자 기록</h2></div><span className="small muted">{total.batting.AB} 타수</span></div>
       <div className="table-scroll season-table" tabIndex={0} role="region" aria-label="연도별 타자 기록, 가로로 스크롤 가능">
         <table className="batting-seasons"><thead><tr>{["시즌", "단계", "AB", "AVG", "H", "2B", "3B", "HR", "RBI", "SB", "R", "BB", "SO", "OBP", "SLG", "OPS", "GB", "FB"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
@@ -89,7 +90,7 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
       </div>
       {!total.batting.PA && <p className="empty-note">선택한 시즌에 타격 출전 기록이 없습니다. 타율·출루율·장타율·OPS는 미평가로 표시됩니다.</p>}
       <p className="records-caption">AB 타수 · AVG 타율 · H 안타 · RBI 타점 · SB 도루 · R 득점 · BB 볼넷 · SO 삼진 · OBP 출루율 · SLG 장타율 · GB 땅볼 · FB 뜬공</p>
-    </section>
+    </section>}
     <div className="info-box">통산 비율 기록은 모든 시즌의 실제 타수·출루 기록·투구 아웃을 합산해 계산합니다. 플레이 이전의 시즌 기록은 제공하지 않습니다.</div>
   </div>;
 }

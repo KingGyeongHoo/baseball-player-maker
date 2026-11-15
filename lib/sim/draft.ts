@@ -100,8 +100,10 @@ function selectDraft(s: GameState, limit = Infinity,clubContext?:DraftClubContex
       fit: best.fit,
       components: best.components,
     };
-    pick.scoutingReport=createScoutingReport(pick,s.calendar.seasonYear,{stats:best.p.stats,records:best.p.seasonStats},candidates,clubNeed);
-    if(!best.p.careerMode){pick.scoutingReport.evaluation=createPlayerEvaluation(evaluationState,best.p,evaluationContext,"draft");pick.scoutingReport.evaluationParameters=Object.fromEntries(Object.entries(evaluationContext.reference.parameters).filter(([key])=>/^(training\.|talent\.|growth\.|fatigue\.plan_neutral_)/.test(key)));}
+    if(best.p.id===s.playerId){
+      pick.scoutingReport=createScoutingReport(pick,s.calendar.seasonYear,{stats:best.p.stats,records:best.p.seasonStats},candidates,clubNeed);
+      if(!best.p.careerMode){pick.scoutingReport.evaluation=createPlayerEvaluation(evaluationState,best.p,evaluationContext,"draft");pick.scoutingReport.evaluationParameters=Object.fromEntries(Object.entries(evaluationContext.reference.parameters).filter(([key])=>/^(training\.|talent\.|growth\.|fatigue\.plan_neutral_)/.test(key)));}
+    }
     picks.push(pick);
   }
   return picks;

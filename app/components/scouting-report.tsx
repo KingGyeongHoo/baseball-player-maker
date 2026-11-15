@@ -6,6 +6,7 @@ import type {DraftPick,GameState} from "../../lib/sim/types";
 import {PlayerEvaluationContent} from "./player-evaluation";
 
 export function ScoutingReportContent({state,pick,year}:{state:GameState;pick:DraftPick;year?:number}){
+  if(pick.playerId!==state.playerId)return null;
   const report=scoutingReportFor(state,pick,year);
   const text=(value:string)=>pick.role==="중간계투"||pick.role==="마무리"?value.replaceAll("중간계투","불펜").replaceAll("마무리 자원","불펜 자원").replaceAll("마무리 역할","불펜 역할"):value;
   return <div className="scouting-report-content">
@@ -25,5 +26,6 @@ function ReportModal({state,pick,year,onClose}:{state:GameState;pick:DraftPick;y
 }
 export default function ScoutingReportButton({state,pick,year}:{state:GameState;pick:DraftPick;year?:number}){
   const [open,setOpen]=useState(false);
+  if(pick.playerId!==state.playerId)return null;
   return <><button className="secondary scouting-report-button" type="button" onClick={()=>setOpen(true)}>스카우팅 리포트</button>{open&&<ReportModal state={state} pick={pick} year={year} onClose={()=>setOpen(false)}/>}</>;
 }

@@ -91,13 +91,36 @@
 .career-dashboard .panel-heading { padding: 14px 20px 12px; }
 .career-dashboard .panel-heading h2 { font-size: 15px; }
 .schedule-month-label { display: inline-block; margin-left: 7px; font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
-.modal.training-settings-modal { width: min(740px,calc(100vw - 28px)); }
+.modal.training-settings-modal { width: min(740px,calc(100vw - 28px)); max-width: calc(100vw - 28px); max-height: calc(100vh - 32px); max-height: min(880px,calc(100dvh - 32px)); overflow: hidden; }
 .training-settings-modal[open] { display: flex; flex-direction: column; }
-.training-settings-modal > .modal-header { flex-shrink: 0; }
-.training-settings-body { overflow-y: auto; min-height: 0; }
-.training-settings-intro { padding: 16px 24px 0; font-size: 11px; color: var(--muted); }
-.training-settings-actions { flex-shrink: 0; display: flex; justify-content: flex-end; gap: 10px; padding: 14px 22px; border-top: 1px solid var(--line); background: white; }
-.training-settings-actions button { font-size: 12px; padding: 10px 16px; }
+.training-settings-modal > .modal-header { flex-shrink: 0; padding: 18px 24px; }
+.training-settings-body { display: flex; flex-direction: column; gap: 18px; min-width: 0; min-height: 0; padding: 20px 24px 24px; overflow-y: auto; overscroll-behavior: contain; }
+.training-settings-body > * { flex-shrink: 0; min-width: 0; }
+.training-settings-intro { margin: 0; padding: 0; font-size: 11px; line-height: 1.8; color: var(--muted); }
+.training-settings-body > .ticket-summary,
+.training-settings-body > .training-mode-note,
+.training-settings-body > .training-match-note,
+.training-settings-body > .training-actual-fatigue { margin: 0; }
+.training-settings-body > .training-rows { padding: 0; }
+.training-settings-body .stepper { width: 112px; }
+.training-settings-body .stepper button { width: 36px; height: 36px; }
+.training-settings-body .fatigue-forecast { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+.training-settings-body .forecast-result { padding: 0; flex-wrap: wrap; }
+.training-settings-body .training-note { margin: 0; padding: 0; line-height: 1.8; }
+.training-settings-actions { flex-shrink: 0; display: flex; justify-content: flex-end; gap: 10px; padding: 14px 24px; border-top: 1px solid var(--line); background: white; }
+.training-settings-actions button { min-height: 44px; font-size: 12px; padding: 10px 16px; }
+@media (max-width: 600px) {
+  .training-settings-modal > .modal-header { padding: 12px 16px; }
+  .training-settings-body { padding: 16px; gap: 16px; }
+  .training-settings-body .ticket-summary { padding: 16px; }
+  .training-settings-body .training-row { display: grid; grid-template-columns: 29px minmax(0,1fr) 112px; gap: 10px; padding: 14px 0; }
+  .training-settings-body .training-label { width: auto; min-width: 0; }
+  .training-settings-body .training-growth-hint > span { display: block; margin: 3px 0 0; }
+  .training-settings-body .ticket-dots { grid-column: 2 / -1; grid-row: 2; padding: 0; }
+  .training-settings-body .stepper { grid-column: 3; grid-row: 1; }
+  .training-settings-body .forecast-result > span { flex-basis: 100%; margin-left: 0; }
+  .training-settings-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); padding: 12px 16px; }
+}
 .career-dashboard .panel-heading .eyebrow { font-size: 8px; }
 .career-dashboard .text-button, .career-dashboard .panel-heading .small { font-size: 10px; }
 .career-dashboard .record-group h3 { font-size: 10px; padding: 10px 20px 0; }
@@ -904,9 +927,9 @@ h3 {
 .talent-high { color: #bb5515; background: #ffead6; }
 .talent-genius { color: #c52f34; background: #ffe6e8; }
 .talent-note { margin: 10px 0 0; color: #798391; font-size: 10px; line-height: 1.7; }
-.training-settings-body>.player-talents,.season-records>.player-talents { margin-bottom: 20px; }
+.season-records>.player-talents { margin-bottom: 20px; }
 .season-records>.player-talents { max-width: 440px; }
-.training-settings-body .player-talents { margin-top: 0; padding-top: 0; border-top: 0; margin-bottom: 20px; }
+.training-settings-body .player-talents { margin: 0; padding: 0; border: 0; }
 .player-card>.micro {
   margin-top: 10px;
   font-size: 9px;
@@ -4066,12 +4089,15 @@ tbody tr:last-child td {
   justify-content: space-between;
   align-items: center;
   gap: 15px;
+  flex-wrap: wrap;
   margin-bottom: 18px;
 }
 .records-toolbar>div {
   display: flex;
   align-items: baseline;
   gap: 13px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 .records-toolbar b {
   color: #4f6380;
@@ -4088,7 +4114,7 @@ tbody tr:last-child td {
 }
 .career-record-summary {
   display: grid;
-  grid-template-columns: repeat(6,minmax(0,1fr));
+  grid-template-columns: repeat(auto-fit,minmax(min(120px,100%),1fr));
   margin-bottom: 23px;
   padding: 23px 0;
   background: white;
@@ -4100,6 +4126,8 @@ tbody tr:last-child td {
   align-items: center;
   flex-direction: column;
   gap: 9px;
+  min-width: 0;
+  padding: 0 8px;
   border-right: 1px solid #edf0f5;
 }
 .career-record-summary>div:last-child {
@@ -4112,6 +4140,8 @@ tbody tr:last-child td {
 .career-record-summary b {
   color: var(--navy);
   font: 700 25px Arial,sans-serif;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .season-table:focus-visible {
   outline: 2px solid #718cb6;
@@ -4364,4 +4394,39 @@ tbody tr:last-child td {
 .national-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.national-tabs button{padding:7px 10px;border:1px solid var(--line,#d6dce3);border-radius:8px;background:transparent;color:inherit;font-size:12px}.national-tabs button.selected{background:#152b4b;color:#fff}.national-rounds{display:flex;gap:18px;overflow:auto;padding:12px 0;align-items:stretch;max-width:100%}.national-round{min-width:235px;display:flex;flex-direction:column;justify-content:space-around;gap:12px}.national-round h3{font-size:14px}.national-knockout{display:flex;flex:1;flex-direction:column;justify-content:space-around;gap:14px}.national-knockout .bracket-game{margin:auto 0;min-width:230px}.national-awards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:12px 0}.national-awards article{display:flex;flex-direction:column;gap:7px;padding:12px;background:var(--soft,#edf2f7);border-radius:8px}.national-awards small{font-size:11px}.national-tournament{min-width:0}.national-tournament details{margin:8px 0}.national-tournament td details{max-width:280px;font-size:12px}
 
 .international-upcoming{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;padding:16px}.international-upcoming article{display:flex;flex-direction:column;gap:7px;padding:14px;border:1px solid var(--line,#d6dce3);border-radius:10px}.international-upcoming small,.international-upcoming span{font-size:12px;color:var(--muted,#6b7280)}.international-hub{display:grid;gap:18px;min-width:0}
-.national-tournament{margin:0 16px 16px}.national-rounds{max-height:610px}.national-round{height:560px;flex-shrink:0}.national-round:has(table){overflow-y:auto;justify-content:flex-start;padding-right:6px}.national-round h3{flex-shrink:0;position:sticky;top:0;z-index:1;background:var(--panel,#fff);padding:6px 0;margin:0}.national-knockout{min-height:0}.national-round .table-scroll{flex-shrink:0}
+.national-rosters{min-width:0}
+.national-rosters>.panel-heading{flex-wrap:wrap;gap:12px}
+.national-event-select,.national-round-selectors label{display:flex;align-items:center;gap:10px;min-width:0;color:var(--muted);font-size:12px}
+.national-round-selectors{display:flex;flex-wrap:wrap;gap:12px 20px;margin:16px 0}
+.national-event-select select,.national-round-selectors select{min-width:120px;max-width:100%;border:1px solid var(--line);border-radius:4px;padding:10px 32px 10px 12px;background-color:#fff;color:var(--navy);font-size:12px;line-height:1.5;field-sizing:content}
+.national-stage-heading{margin:22px 0 12px;color:var(--navy);font-size:14px}
+.national-league-games{display:flex;flex-direction:column;gap:20px}
+.national-match-day{min-width:0}.national-match-day h4{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;padding:0 2px;color:var(--navy);font-size:12px}.national-match-day h4 span{color:var(--muted);font-size:11px;font-weight:400}.national-match-day>div{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.national-league-game{display:flex;align-items:center;gap:16px;min-width:0;border-bottom:1px solid var(--line);padding:14px;background:#fff}.national-league-game:last-child{border-bottom:0}
+.national-league-game.my-game{border-color:#a5b8d2;background:#f4f7fc}
+.national-league-game small{flex:0 0 108px;color:var(--muted);font-size:10px;line-height:1.5}
+.national-league-game>div{display:grid;flex:1;min-width:0;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;font-size:12px}
+.national-league-game>div>span:last-child{text-align:right}
+.national-league-game span{overflow-wrap:anywhere}
+.national-league-game b{color:var(--navy);white-space:nowrap}
+@media(max-width:600px){.national-event-select{width:100%}.national-event-select select{flex:1;min-width:0;width:0}.national-round-selectors{display:grid;grid-template-columns:1fr;gap:12px}.national-round-selectors label{display:grid;grid-template-columns:54px minmax(0,1fr)}.national-round-selectors select{width:100%;min-width:0}.records-toolbar>div{align-items:flex-start;gap:7px;flex-direction:column}.records-toolbar label{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}.records-toolbar select{min-width:0;max-width:70%;margin-left:0}.career-record-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 0}.career-record-summary>div:nth-child(n){border-right:1px solid #edf0f5}.career-record-summary>div:nth-child(2n){border-right:0}.career-record-summary b{font-size:22px}}
+.national-tournament{margin:0 16px 16px}
+.national-bracket{display:flex;gap:20px;max-width:100%;overflow-x:auto;padding:12px 0 18px;align-items:stretch}
+.national-bracket-round{flex:1;min-width:245px;border:1px solid #dce3ee;border-radius:7px;background:#f2f5fa;padding:14px;display:flex;flex-direction:column}
+.national-bracket-round-heading{padding:0 0 14px;margin-bottom:16px;border-bottom:2px solid #ccd6e5}.national-bracket-round-heading>span{display:block;color:#72829a;font-size:9px;letter-spacing:1.5px;font-weight:700}.national-bracket-round-heading h3{color:var(--navy);font-size:20px;margin:6px 0}.national-bracket-round-heading>small{color:var(--muted);font-size:10px}
+.national-bracket-matches{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:18px}
+.national-match-card{min-width:0;overflow:hidden;background:white;border:1px solid #d7e0ec;border-radius:5px;box-shadow:0 2px 5px #10214706}.national-match-card.my-game{border-color:#7e9abb}.national-match-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:13px;border-bottom:1px solid #e6ebf2;background:#fafbfd}.national-match-card>header span{display:block;font-size:8px;font-weight:700;letter-spacing:1px;color:#74869f}.national-match-card h4{margin:6px 0 0;font-size:13px;color:var(--navy);line-height:1.5}.national-match-card>header>small{color:#8995a7;font-size:9px;white-space:nowrap;padding-top:2px}
+.national-match-teams>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;color:#5b6c84;font-size:12px}.national-match-teams>div+div{border-top:1px solid #edf0f5}.national-match-teams>div>span{min-width:0;overflow-wrap:anywhere}.national-match-teams b{font:bold 21px Arial,sans-serif;flex-shrink:0;color:#425674}.national-match-teams small{display:inline-block;margin-left:7px;font-size:9px;color:#557d60}.national-match-teams .national-winner{background:#edf5f0;color:#28563b;font-weight:700}.national-match-teams .national-winner b{color:#28563b}.national-match-teams .national-korea>span:before{content:'KOR';display:inline-block;margin-right:6px;font:700 8px Arial,sans-serif;color:#49739d}.national-match-card>footer{border-top:1px solid #e6ebf2;padding:9px 13px;color:#8a96a8;font-size:9px}
+.national-match-card.medal-gold{border:2px solid #c3a15b}.national-match-card.medal-gold>header{background:#102147;border-bottom-color:#102147}.national-match-card.medal-gold h4{color:#fff;font-size:18px}.national-match-card.medal-gold>header span{color:#e4c886}.national-match-card.medal-gold>header>small{color:#c7d3e5}.national-match-card.medal-bronze{border-color:#cbb5a1}.national-match-card.medal-bronze>header{background:#f6eee7}.national-match-card.medal-bronze h4{color:#795a41;font-size:18px}.national-match-card.medal-bronze>header span{color:#a07c5c}
+.national-placement-bracket{display:block;overflow:visible}.national-placement-games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:22px}
+@media(max-width:600px){.national-bracket{gap:14px}.national-bracket-round{min-width:235px;padding:12px}.national-placement-games{gap:10px}.national-placement-games .national-match-card>header{display:block;padding:11px 9px}.national-placement-games .national-match-card>header>small{display:block;margin-top:7px}.national-placement-games .national-match-card h4{font-size:14px}.national-placement-games .national-match-card>header span{font-size:7px;letter-spacing:.5px}.national-placement-games .national-match-teams>div{padding:12px 9px;gap:5px;font-size:11px}.national-placement-games .national-match-teams small{display:block;margin:4px 0 0}.national-placement-games .national-match-teams b{font-size:18px}.national-placement-games .national-match-teams .national-korea>span:before{display:block;margin:0 0 4px}}
+@media(max-width:600px){.national-league-game{align-items:stretch;flex-direction:column;gap:8px;padding:12px}.national-league-game small{flex-basis:auto}}
+.competition-detail-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}.competition-detail-heading h3{margin:6px 0 0;color:var(--navy);font-size:20px}.competition-entry-rule{margin:14px 0 20px;line-height:1.8}.competition-result-badge{padding:9px 13px;border:1px solid #cbd8e9;border-radius:4px;background:#edf3fc;color:#395c87;font-size:12px;font-weight:700}.competition-result-badge.eliminated{background:#f6f0ed;border-color:#e1d0c7;color:#92664f}.competition-result-badge.champion{background:#102147;color:#eed397;border-color:#c3a15b}
+.competition-standings{min-width:0;border:1px solid #d9e2ee;border-radius:6px;overflow:hidden;background:#fff;margin:18px 0 22px}.competition-group-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 20px;background:#f0f4fa;border-bottom:1px solid #d9e2ee}.competition-group-heading>div>span{font-size:9px;font-weight:700;letter-spacing:1.5px;color:#70829b}.competition-group-heading h3,.competition-group-heading h4{margin:7px 0 0;color:var(--navy);font-size:17px}.competition-group-heading>small{font-size:10px;color:#7a8da8}.competition-standings .table-scroll{margin:0}.competition-standings table{margin:0}.competition-standings th{background:#fafbfd}.group-rank{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:25px;padding:0 4px;font-size:11px;font-weight:700;color:#73849b;background:#f0f3f7;border-radius:4px}.group-rank.group-promoted{color:#fff;background:#25466f}.group-progress{font-size:10px;color:#96a2b2}.group-progress.qualifying{color:#315e91;font-weight:700}
+.school-bracket{margin-top:20px;max-height:820px;align-items:stretch}.school-bracket .national-bracket-round{flex:0 0 255px}.school-bracket .national-bracket-matches{overflow-y:auto;max-height:620px;justify-content:flex-start;padding-right:3px}.school-bracket .national-match-card{flex-shrink:0}.school-bracket .national-bracket-round:last-child .national-bracket-matches{justify-content:center}.school-bracket .national-match-teams b{font-size:18px}
+@media(max-width:600px){.competition-group-heading{padding:15px 13px;align-items:flex-start;flex-direction:column;gap:9px}.competition-group-heading h3,.competition-group-heading h4{font-size:15px}.competition-detail-heading h3{font-size:18px}.competition-result-badge{padding:7px 10px;font-size:11px}.school-bracket .national-bracket-round{flex-basis:235px}.school-bracket .national-bracket-matches{max-height:500px}}
+.postseason-format>b{color:#3c6b50;margin-left:4px}
+.series-awards-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.series-award-card{padding:20px;border:1px solid #dce4ef;border-radius:5px;background:#fafbfd}.series-award-card>span{color:#8091a9;font-size:9px;font-weight:700;letter-spacing:1px}.series-award-card>h3{margin:8px 0 18px}.series-award-card>b{font-size:20px;color:var(--navy)}.series-award-card>p{color:#7d8ca3;font-size:11px;line-height:1.8}.series-award-card>small{color:#426c50;font-size:11px}.series-award-card.awards-mine{border-color:#b3985f;background:#fcfaf4}
+@media(max-width:600px){.series-awards-grid{grid-template-columns:1fr}.awards-category-tabs{flex-wrap:wrap}}
+.award-celebration-modal .modal-header{background:#102147;align-items:flex-start}.award-celebration-modal .modal-header h2{color:#fff;line-height:1.7}.award-celebration-title{color:#f5d65c}.award-celebration-modal .position-tag{color:#dccb93;border-color:#6a5f3e;flex-shrink:0}.award-celebration-body{text-align:center;padding:24px 0 12px}.award-celebration-body>p{color:#8090a8;font-size:13px}.award-rating-gain{margin:26px auto 14px;padding:23px;max-width:300px;background:#faf7ee;border:1px solid #e8d9b4;border-radius:6px}.award-rating-gain>span{font-size:12px;color:#8b7b54}.award-rating-gain>b{display:block;margin:13px 0;font:bold 44px Arial,sans-serif;color:#a27e20}.award-rating-gain>p{margin:0;font-size:13px;color:#857656}
+@media(max-width:600px){.award-celebration-modal .modal-header{flex-direction:column;gap:12px}.award-celebration-modal .modal-header h2{font-size:18px}}

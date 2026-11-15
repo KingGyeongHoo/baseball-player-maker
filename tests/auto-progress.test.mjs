@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { AutoProgress, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } = require('../.test-build/lib/auto-progress.js');
+const { AutoProgress, acceptedNationalInvitation, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } = require('../.test-build/lib/auto-progress.js');
 const e = require('../.test-build/lib/sim/engine.js');
 // Keep scheduler integration independent of the separately tested focus event.
 e.params['events.focus_chance']=0;
@@ -23,6 +23,22 @@ function clock() {
 }
 
 const snapshot = () => ({ phase: 'weekStart', playerId: 'me', players: [{ id: 'me', roleOffer: null, injury: null, forcedRest: false }] });
+
+test('accepting WBC or Olympic participation starts auto once and ordinary choices cannot override a manual pause',()=>{
+ for(const kind of ['wbc','olympics']){
+  const previous={...snapshot(),careerEvent:{proEvent:{nationalKind:kind,year:2030}},nationalTeams:[{kind,year:2030}]};
+  const accepted=structuredClone(previous);accepted.nationalTeams[0].participated=true;accepted.careerEvent=null;
+  assert.equal(acceptedNationalInvitation(previous,accepted),true);
+  const declined=structuredClone(accepted);declined.nationalTeams[0].participated=false;assert.equal(acceptedNationalInvitation(previous,declined),false);
+  const {controller,pending,tick}=clock();let advances=0;
+  if(acceptedNationalInvitation(previous,accepted))controller.start();
+  accepted.pendingEventOutcome={};assert.equal(autoWaitingForDecision(accepted),true);assert.equal(controller.active,true);assert.equal(pending.size,0);
+  delete accepted.pendingEventOutcome;controller.schedule(()=>advances++);tick();assert.equal(advances,1);
+  const scene={...accepted,careerEvent:{nationalContext:{kind,phase:'match'}}};
+  assert.equal(acceptedNationalInvitation(scene,accepted),false);
+  controller.pause();assert.equal(acceptedNationalInvitation(scene,accepted),false);controller.schedule(()=>advances++);tick();assert.equal(advances,1);
+ }
+});
 
 test('automatic weeks stay sequential: one scheduled tick and no self-repeat while a week is running', () => {
   const { controller, pending, tick } = clock();

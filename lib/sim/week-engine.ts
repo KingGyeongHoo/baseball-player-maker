@@ -4,7 +4,7 @@ import {proGameTeam} from "./pro-farm-roster";
 import { tryTrainingFocus } from "./training-focus";
 import { finishCompetitionDay, prepareCompetitions } from "./calendar";
 import { addDays, available, clamp, overall, draftPlayers, emptyRecord, emptyStats, getPlayer, injuryRisk, mergeRecord, npcPolicy, params, promote, random, reputationScore, simulateGame, ticketsUsed, train, trainingFatigueDay, updateReputation, validPolicy } from "./engine";
-import { openScheduledEvent, planEventWeek, tryNationalEvent } from "./event-system";
+import { openScheduledEvent, planEventWeek, tryNationalEvent,tryWinterTrainingCenter } from "./event-system";
 import { joinPendingTransfer, recordTwoWayWeek, tryCareerOpportunity, twoWayQualified } from "./career-opportunities";
 import { statKeys, type GameState, type Player, type Policy, type Stance } from "./types";
 import { finishDevelopmentSeason, reviewProRoster, reviewDevelopmentContract } from "./pro-career";
@@ -119,6 +119,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       return pause();
     }
     if (tryNationalEvent(s)) return pause();
+    if(day.phase==='beforeGames'&&tryWinterTrainingCenter(s))return pause();
     if (day.phase === "beforeGames") {
       // Registration reviews can move NPCs without opening a user notice.
       rosters=s.teams.map(()=>[]);for(const p of s.players)if(p.teamId>=0)rosters[p.teamId].push(p);

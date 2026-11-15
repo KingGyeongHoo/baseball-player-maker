@@ -1,5 +1,6 @@
 import {clamp,isPitcher,ops,params,roleScore} from "./engine";
 import {leftPitcherMultiplier} from './handedness';
+import {awardRatingBonus} from './pro-award-bonuses';
 import type {Player,RecordLine,Role} from "./types";
 
 export const proSelectionRules={seasonWeight:.85,recentWeight:.15,farmWeight:.65,battingPrior:100,pitchingPrior:120,recentDeadband:1} as const;
@@ -43,5 +44,5 @@ export function proSelectionScore(p:Player,role:Role=p.primaryRole,records:Recor
   const recent=includeRecent?Math.sign(p.recentZ)*clamp(Math.abs(p.recentZ)-proSelectionRules.recentDeadband,0,1)
     *Math.min(1,season.sample/(pitching?proSelectionRules.pitchingPrior:params["coach.recent_pa"])):0;
   return clamp(roleScore(p,role)*leftPitcherMultiplier(p,role)+params["coach.pro_recent_max"]*(proSelectionRules.seasonWeight*season.value+proSelectionRules.recentWeight*recent)
-    +(p.professional?.nationalBonus??0)-(p.proContract?.status==="developmental"?6:0)-(p.professional?.managedUntil?12:0),0,100);
+    +(p.professional?.nationalBonus??0)+awardRatingBonus(p)-(p.proContract?.status==="developmental"?6:0)-(p.professional?.managedUntil?12:0),0,100);
 }

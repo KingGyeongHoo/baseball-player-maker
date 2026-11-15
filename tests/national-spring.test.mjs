@@ -19,7 +19,7 @@ function fixture(year=2030){
   }return s;
 }
 test('national calendars follow the requested four-year anchors and September youth team is annual',()=>{
-  for(const [kind,first,month] of [['premier12',2027,'11'],['apbc',2029,'11'],['olympics',2028,'07'],['wbc',2030,'03']]){
+  for(const [kind,first,month] of [['premier12',2027,'11'],['apbc',2029,'11'],['olympics',2028,'08'],['wbc',2030,'03']]){
     for(let year=2026;year<=2042;year++)assert.equal(n.nationalInYear(kind,year),year>=first&&(year-first)%4===0,`${kind} ${year}`);
     assert.equal(n.nationalWindow(kind,first).start,`${first}-${month}-01`);
   }for(let year=2027;year<2035;year++){assert.ok(n.nationalInYear('youth',year));assert.equal(n.nationalWindow('youth',year).start,`${year}-09-01`);}
@@ -52,8 +52,10 @@ test('selection bonuses respect prestige, never stack on repeat, and do not alte
     const html=renderToStaticMarkup(createElement(NationalRosters,{state:s,onRecords(){}}));assert.ok(html.includes(n.nationalRules[kind].name));assert.ok(html.includes('대한민국 대표팀'));
   }
 });
-test('Olympic invitation opens during July, can be declined, and uses the selected field and named options',()=>{
+test('Olympic invitation opens in August after the July all-star games, can be declined, and uses named options',()=>{
   const s=fixture(2028);s.date='2028-07-01';s.proWorld.stage='regular';const p=e.getPlayer(s);for(const key of Object.keys(p.stats))p.stats[key]=95;
+  assert.equal(n.tryScheduledNational(s),false,'Olympics must not overlap the July all-star season');
+  assert.equal(s.nationalTeams,undefined);s.date='2028-08-01';
   assert.equal(n.tryScheduledNational(s),true);assert.match(s.careerEvent.title,/올림픽 대표/);assert.match(s.careerEvent.choices[1].label,/차출을 거부/);assert.ok(s.nationalTeams[0].roster.some(row=>row.id===p.id));
   const next=e.answerCareerEvent(s,'choice-2');assert.equal(next.nationalTeams[0].participated,false);assert.equal(n.tryScheduledNational(next),false);
   const a=fixture(2029);a.date='2029-07-01';assert.equal(n.tryScheduledNational(a),false);a.date='2029-11-01';a.proWorld.stage='summary';a.proWorld.seasonClosed=true;a.phase='ended';for(const key of Object.keys(e.getPlayer(a).stats))e.getPlayer(a).stats[key]=95;

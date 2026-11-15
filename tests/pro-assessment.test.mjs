@@ -377,7 +377,7 @@ test("legacy saves reconstruct completed seasons only, prefer captured year-end 
   assert.equal(q.professional.assessments[0].source, "reconstructed");
   const frozen = structuredClone(q.professional.assessments);
   const upgraded = life.upgradeProfessionalState(decoded);
-  assert.equal(upgraded.proWorld.contractRulesVersion, 3);
+  assert.equal(upgraded.proWorld.contractRulesVersion, 4);
   assert.deepEqual(e.getPlayer(upgraded).professional.contract, signed);
   assert.deepEqual(e.getPlayer(upgraded).professional.assessments, frozen);
   assert.ok(upgraded.proWorld.market.offers.every((o) => o.salary < 1.1e9));
@@ -406,7 +406,7 @@ test("older cumulative-E refusal flags are removed and no longer require develop
   assert.equal(a.requiresDevelopmentalOffer(p, 2028), false);
   const upgraded = life.upgradeProfessionalState(s);
   assert.equal(e.getPlayer(upgraded).professional.nonRenewal, undefined);
-  assert.equal(upgraded.proWorld.contractRulesVersion, 3);
+  assert.equal(upgraded.proWorld.contractRulesVersion, 4);
 });
 test("first-team games count actual completed appearances, count two-way play once, and exclude postseason, farm, forfeits and registration", () => {
   const s = fixture(),

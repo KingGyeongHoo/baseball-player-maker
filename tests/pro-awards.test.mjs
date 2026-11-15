@@ -38,13 +38,13 @@ test('December awards preserve frozen winners and records through contracts, res
  let s=closed();const season=s.proWorld.seasons[0],awards=structuredClone(season.awards),skills=s.players.map(p=>({...p.stats}));assert.equal(season.awardsCeremony.scheduledAt,'2028-12-06');assert.equal(ceremonies.presentAwardsCeremony(s),false);
  s.date='2028-12-06';assert.equal(ceremonies.presentAwardsCeremony(s),true);assert.equal(s.careerNotice.code,'awards:2028');assert.deepEqual(season.awards,awards);assert.deepEqual(s.players.map(p=>p.stats),skills);assert.equal(ceremonies.presentAwardsCeremony(s),false);
  const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;assert.deepEqual(restored.proWorld.seasons[0].awards,awards);assert.equal(restored.careerNotice.code,'awards:2028');
- s=pc.acknowledgeCareer(restored);s=life.actOnProCareer(s,{type:'nextSeason'});assert.equal(s.proWorld.stage,'camp');assert.equal(e.getPlayer(s).seasonByLevel.first.batting.PA,0);assert.deepEqual(s.proWorld.seasons[0].awards,awards);
+ s=pc.acknowledgeCareer(restored);while(s.careerNotice?.award)s=pc.acknowledgeCareer(s);s=life.actOnProCareer(s,{type:'nextSeason'});assert.equal(s.proWorld.stage,'camp');assert.equal(e.getPlayer(s).seasonByLevel.first.batting.PA,0);assert.deepEqual(s.proWorld.seasons[0].awards,awards);
 });
 
 test('camp shortcut pauses for the December ceremony and confirming resumes directly to camp once',()=>{
  const source=closed(),before=JSON.stringify(source);let s=life.actOnProCareer(source,{type:'nextSeason'});assert.equal(JSON.stringify(source),before);assert.equal(s.date,'2028-12-06');assert.equal(s.careerNotice.code,'awards:2028');assert.equal(s.proWorld.resumeCampAfterAwards,true);const awards=structuredClone(s.proWorld.seasons[0].awards);
- const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));assert.ok(html.includes('시상식 마치고 캠프로'));assert.ok(html.includes('수상SS'));assert.ok(html.includes('시즌 기록'));
- s=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;s=pc.acknowledgeCareer(s);assert.equal(s.date,'2029-02-01');assert.equal(s.proWorld.stage,'camp');assert.equal(s.proWorld.resumeCampAfterAwards,undefined);assert.equal(s.careerNotice.title,'2029 캠프 시작');assert.deepEqual(s.proWorld.seasons[0].awards,awards);assert.equal(s.proWorld.news.filter(row=>row.id==='2028:awards:2028').length,1);
+ const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));assert.ok(html.includes('다음 수상 확인'));assert.ok(html.includes('수상SS'));assert.ok(html.includes('시즌 기록'));
+ s=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;s=pc.acknowledgeCareer(s);assert.equal(s.date,'2028-12-06');assert.ok(s.careerNotice.award);const celebrated=[];while(s.careerNotice?.award){celebrated.push(s.careerNotice.award.title);s=pc.acknowledgeCareer(s);}assert.ok(celebrated.includes('유격수 골든글러브'));assert.equal(s.date,'2029-02-01');assert.equal(s.proWorld.stage,'camp');assert.equal(s.proWorld.resumeCampAfterAwards,undefined);assert.equal(s.careerNotice.title,'2029 캠프 시작');assert.deepEqual(s.proWorld.seasons[0].awards,awards);assert.equal(s.proWorld.news.filter(row=>row.id==='2028:awards:2028').length,1);
 });
 
 test('winner presentation uses snapshotted season records even after an offseason position or club change',()=>{
@@ -80,19 +80,19 @@ test('individual pitching titles share starter and relief qualification and requ
  }
 });
 
-test('only the eight requested records award titles in either league while other metrics remain viewable',()=>{
+test('five batting and four pitching titles are awarded in both leagues, including home runs',()=>{
  const s=fixture();
  for(const p of s.players){p.seasonByLevel.first.batting.SB=20;p.seasonByLevel.first.games={wins:20,holds:10,saves:15};p.seasonByLevel.second=structuredClone(p.seasonByLevel.first);}
  const awards=individualAwards(s);
  for(const level of ['first','second']){
-  assert.deepEqual(awards.filter(row=>row.level===level&&row.field==='batting').map(row=>row.metric),['avg','H','SB','RBI']);
+  assert.deepEqual(awards.filter(row=>row.level===level&&row.field==='batting').map(row=>row.metric),['avg','H','HR','RBI','SB']);
   assert.deepEqual(awards.filter(row=>row.level===level&&row.field==='pitching').map(row=>row.metric),['wins','holds','saves','era']);
  }
  const {leaderMetrics}=require('../.test-build/lib/league-leaders.js');
  for(const id of ['HR','2B','3B','ops'])assert.ok(leaderMetrics.batting.some(row=>row.id===id));
  for(const id of ['whip','kRate','SO','outs'])assert.ok(leaderMetrics.pitching.some(row=>row.id===id));
- const regular=evaluation.regularAwards(s);assert.ok(regular.some(row=>row.kind==='도루왕'));
+ const regular=evaluation.regularAwards(s);assert.ok(regular.some(row=>row.kind==='도루왕'));assert.ok(regular.some(row=>row.kind==='홈런왕'));
  assert.ok(!regular.some(row=>['홈런','탈삼진','WHIP','OPS'].includes(row.kind)));
  const season={individualAwards:[...awards,{level:'first',field:'batting',metric:'HR',label:'홈런',value:99,winners:[{playerId:'hidden',playerName:'기록전용선수',club:0}]}]};
- const html=renderToStaticMarkup(createElement(IndividualAwards,{state:s,season,onRecords(){}}));assert.ok(html.includes('도루왕'));assert.ok(!html.includes('기록전용선수'));
+ const html=renderToStaticMarkup(createElement(IndividualAwards,{state:s,season,onRecords(){}}));assert.ok(html.includes('도루왕'));assert.ok(html.includes('홈런왕'));assert.ok(html.includes('기록전용선수'));
 });

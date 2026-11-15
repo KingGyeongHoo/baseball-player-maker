@@ -44,6 +44,6 @@ export function scoutingReportFor(state:GameState,pick:DraftPick,year?:number):S
   const draftYear=year??inferredYear??state.calendar.seasonYear;
   const archive=player?.career.find(row=>row.year===draftYear&&row.careerMode!=="pro");
   const atDraft=state.phase==="ended"&&state.careerMode!=="pro"&&state.calendar.seasonYear===draftYear;
-  const snapshot=archive?{stats:archive.stats,records:archive.records}:atDraft&&player?{stats:player.stats,records:player.seasonStats}:undefined;
+  const snapshot=archive?.stats?{stats:archive.stats,records:archive.records}:atDraft&&player?{stats:player.stats,records:player.seasonStats}:undefined;
   return createScoutingReport(pick,draftYear,snapshot,[],undefined,snapshot?"archive":"evaluation");
 }

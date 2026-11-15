@@ -72,10 +72,11 @@ export function assertGame(game, players) {
     assert.equal(b.AB, b.H + b.SO + b.GB + b.FB, id);
     assert.ok(b.H >= b["2B"] + b["3B"] + b.HR, id);
     assert.equal(p.R, p.ER, id);
-    assert.ok(!(b.PA && p.BF), `same-game two-way ${id}`);
+    if(b.PA&&p.BF)assert.ok(game.lineup.some(side=>side.slice(0,9).includes(id)||side.slice(10).includes(id)),`two-way batter missing from lineup ${id}`);
     for (const n of [...Object.values(b), ...Object.values(p)]) assert.ok(Number.isInteger(n) && n >= 0);
   }
   for (const side of [0, 1]) {
+    assert.equal(new Set(game.lineup[side].slice(0,9)).size,9,'two-way pitchers occupy one batting-order slot');
     assert.equal(totals[side].batting.R, game.score[side]);
     assert.equal(totals[side].batting.RBI, game.score[side]);
     assert.equal(totals[side].batting.PA, totals[1 - side].pitching.BF);

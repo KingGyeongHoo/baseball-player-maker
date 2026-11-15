@@ -2,8 +2,10 @@ import {addDays,available,hash,params,pitchingRole,roleScore,selectionScore} fro
 import type {Game,GameState,Player} from './types';
 import {guaranteedProStarter} from './pro-positions';
 import {farmSelectionTier,proGameTeam} from './pro-farm-roster';
-export const PRO_BALANCE_VERSION=3;
+export const PRO_BALANCE_VERSION=4;
 export const proPitchingWorkloadTargets={SP:{games:26.8,innings:146.4,perGame:5.46},RP:{games:56,innings:53.3,perGame:.95},CP:{games:59.5,innings:61.1,perGame:1.03}} as const;
+export const proPowerHomeRunTargets={plateAppearances:600,contact:77,bq:75,pitching:70,defense:70,arm:70,
+  levels:[{power:80,homeRuns:[30,35]},{power:90,homeRuns:[40,45]}]} as const;
 
 // Calibration targets are diagnostics, never caps on a player's records.
 export const proSeasonTargets={
@@ -14,6 +16,7 @@ export const proSeasonTargets={
 export function proMatchParameters(base:Record<string,number>):Record<string,number>{
   return {...base,'pro.balance.version':PRO_BALANCE_VERSION,'match.hit_base':.260,'match.hit_slope':.004,'match.defense_center':65,
     'match.hr_base':.089,'match.hr_slope':.006,'match.hr_min':.015,'match.hr_max':.36,
+    'match.hr_power_bonus_start':70,'match.hr_power_bonus_full':80,'match.hr_power_bonus':.064,'match.hr_elite_slope':.00055,
     'match.double_base':.175,'match.k_base':.29,'match.k_slope':.003,'match.k_max':.48};
 }
 

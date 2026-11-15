@@ -120,7 +120,7 @@ test('actual farm playoff records stay separate and survive saves, worker transf
   s.careerNotice=null;s.noticeQueue=[];const mine=e.getPlayer(s);mine.professional.employment='active';mine.professional.contract={...mine.professional.contract,club:mine.teamId%10,startYear:s.calendar.seasonYear,endYear:s.calendar.seasonYear+2};life.startNextProSeason(s);assert.equal(s.proWorld.farmPostseason,undefined);assert.ok(s.players.every(p=>!p.seasonFarmPostseason?.batting.PA&&!p.seasonFarmPostseason?.pitching.BF));verify(s.calendar);
 });
 
-test('first-team playoffs wait until a late legacy farm postseason has actually finished',()=>{
-  const s=fixture();endRegular(s);s.date=s.proWorld.regularEnd;life.finishProfessionalDay(s);assert.equal(s.proWorld.stage,'regular');assert.equal(s.proWorld.postseason,undefined);
-  completePlayoffs(s);s.date=s.proWorld.regularEnd;life.finishProfessionalDay(s);assert.equal(s.proWorld.stage,'postseason');
+test('first-team and late farm playoffs run independently without freezing either competition',()=>{
+  const s=fixture();endRegular(s);s.date=s.proWorld.regularEnd;life.finishProfessionalDay(s);assert.equal(s.proWorld.stage,'postseason');assert.ok(s.proWorld.postseason);
+  completePlayoffs(s);assert.notEqual(s.proWorld.farmPostseason.champion,undefined);assert.equal(s.proWorld.stage,'postseason');
 });

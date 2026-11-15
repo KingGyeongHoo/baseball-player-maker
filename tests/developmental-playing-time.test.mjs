@@ -57,12 +57,13 @@ test('unplayed evaluations do not consume cooldowns or requests and are not rese
   const first=game(s,'first'),second=game(s,'second');s.calendar.events=[first,second];world.prepareEvaluationOpportunities(s,[first.id,second.id]);
   assert.ok(first.evaluationPlayers.includes(dev.id));assert.ok(!second.evaluationPlayers.includes(dev.id));assert.equal(dev.professional.lastEvaluation,undefined);assert.ok(dev.professional.requestedEvaluationUntil);assert.equal(dev.seasonByLevel.second.pitching.BF,0);
 });
-test('developmental two-way evaluations follow the current assignment without simultaneous pitching and batting',()=>{
+test('developmental two-way evaluations pitch and bat in the same game regardless of the legacy assignment',()=>{
   for(const [origin,assignment] of [['SS','pitching'],['SP','batting']]){
     const {s,dev}=fixture(origin);dev.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:assignment,reputationBonus:0};dev.eligiblePositions=['SS','SP','RP','CP'];delete dev.professional.lastAppearance;
     const g=game(s);s.calendar.events=[g];world.prepareEvaluationOpportunities(s,[g.id]);assert.ok(g.evaluationPlayers.includes(dev.id));e.simulateGame(s,g,[]);
     const r=dev.seasonByLevel.second;
-    if(assignment==='pitching'){assert.ok(r.pitching.BF>0);assert.equal(r.batting.PA,0);}else{assert.ok(r.batting.PA>0);assert.equal(r.pitching.BF,0);}
+    assert.ok(r.pitching.BF>0);assert.ok(r.batting.PA>0);assert.equal(g.lineup[0][9],dev.id);assert.ok(g.lineup[0].slice(0,9).includes(dev.id));
+    assert.equal(dev.twoWay.nextAssignment,assignment);
   }
 });
 test('a developmental closer gets an evaluated closing role, with cooldown only after a real appearance',()=>{

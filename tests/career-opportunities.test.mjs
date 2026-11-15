@@ -97,16 +97,17 @@ test('two-way reputation is earned by actual participation on both sides and ret
   const q=e.getPlayer(s),without=structuredClone(q);without.twoWay.reputationBonus=0;without.seasonStats=e.emptyRecord();close(e.reputationScore(q)-e.reputationScore(without),3);
 });
 
-test('two-way lineup alternates sides across completed games and adds workload only after both kinds of appearance',()=>{
+test('two-way players pitch and bat in the same game and add workload only after both kinds of appearance',()=>{
   let s=acceptTwoWay(fixture()),p=e.getPlayer(s);
   for(const key of Object.keys(p.stats))p.stats[key]=80;
   p.twoWay.pitchingPosition='SP';p.twoWay.nextAssignment='pitching';
   const template=base.calendar.events[0];
   s.calendar.events=[0,1].map(i=>({...structuredClone(template),id:`two-way-${i}`,date:e.addDays(s.date,i),homeTeamId:0,awayTeamId:1,status:'scheduled',score:[0,0],innings:[[],[]],lineup:[],boxScore:{}}));
   s.calendar.trainingDays=[];
-  const roster=s.players.filter(q=>q.teamId===0),pitching=e.lineup(roster,s.date);assert.ok(!pitching.field.includes(p));assert.ok(pitching.pitchers.includes(p));
+  const roster=s.players.filter(q=>q.teamId===0),pitching=e.lineup(roster,s.date);assert.equal(pitching.starter,p);assert.equal(pitching.field[8],p);assert.ok(pitching.order.includes(p));assert.ok(pitching.pitchers.includes(p));
   const n=step(s),q=e.getPlayer(n);assert.ok(!n.careerEvent);assert.equal(n.calendar.events[0].status,'completed');assert.equal(n.calendar.events[1].status,'completed');
   assert.ok(n.report.records.pitching.BF>0);assert.ok(n.report.records.batting.PA>0);assert.equal(q.twoWay.nextAssignment,'pitching');
+  assert.ok(n.calendar.events[0].boxScore[p.id].pitching.BF>0);assert.ok(n.calendar.events[0].boxScore[p.id].batting.PA>0);
   assert.ok(n.report.messages.some(text=>text.includes('추가 피로')));
   const f=n.report.fatigue;close(n.report.fatigueBefore+f.training+f.game-f.recovered+(f.events??0),n.report.fatigueAfter);
   close(f.game,f.days.reduce((sum,day)=>sum+day.game,0));

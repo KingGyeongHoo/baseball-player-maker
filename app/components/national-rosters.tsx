@@ -15,7 +15,7 @@ export default function NationalRosters({state,onRecords,initialField='pitching'
   const visible=members.filter(p=>(['SP','RP','CP'].includes(p.position)?'pitching':'batting')===field).sort((a,b)=>order.indexOf(a.position)-order.indexOf(b.position)||a.name.localeCompare(b.name,'ko'));
   const headers=field==='pitching'?['이름','포지션','소속팀','출전경기','이닝','승','패','홀드','세이브','ERA']:['이름','포지션','소속팀','출전경기','타수','안타','홈런','타점','타율','OPS'];
   return <section className="panel national-rosters" aria-label="국제대회 순위와 대한민국 대표팀">
-    <div className="panel-heading"><h2>순위·대진표</h2>{rows.length>0&&<label>대회 <select value={entry?entry.year+'-'+entry.kind:''} onChange={event=>setSelected(event.target.value)}>{rows.map(row=><option key={row.year+'-'+row.kind} value={row.year+'-'+row.kind}>{row.year} {nationalRules[row.kind].name}</option>)}</select></label>}</div>
+    <div className="panel-heading"><h2>순위·대진표</h2>{rows.length>0&&<label className="national-event-select">대회 <select aria-label="국제대회 선택" value={entry?entry.year+'-'+entry.kind:''} onChange={event=>setSelected(event.target.value)}>{rows.map(row=><option key={row.year+'-'+row.kind} value={row.year+'-'+row.kind}>{row.year} {nationalRules[row.kind].name}</option>)}</select></label>}</div>
     {!entry?<p className="empty-note">아직 발표된 국가대표 명단이 없습니다. 대회 선발 시 이곳에 기록됩니다.</p>:<>
       <p className="draft-board-note">{entry.year} {nationalRules[entry.kind].name} · {entry.start}~{entry.end}</p>
       <NationalTournamentView key={entry.year+'-'+entry.kind} entry={entry}/>

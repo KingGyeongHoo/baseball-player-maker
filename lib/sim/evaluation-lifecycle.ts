@@ -5,6 +5,8 @@ import type {Game,GameState,Player} from "./types";
 
 export function capturePlayerEvaluations(s:GameState,reason?:EvaluationReason,ids?:string[]) {
   if(s.careerMode==="college")return s;
+  if(ids&&!ids.includes(s.playerId))return s;
+  for(const p of s.players)if(p.id!==s.playerId)delete p.evaluationHistory;
   const introduced=!s.evaluationSystem,month=s.date.slice(0,7);
   const actualReason=reason??(introduced?"introduced":"monthly");
   if(!reason&&!introduced&&s.evaluationSystem?.lastMonthly===month)return s;
@@ -16,7 +18,7 @@ export function capturePlayerEvaluations(s:GameState,reason?:EvaluationReason,id
   archive.id+=`:${hash(JSON.stringify(archive.league))}`;
   if(!system.contexts.some(c=>c.id===archive.id))system.contexts.push(archive);
   const protectedReasons=new Set<EvaluationReason>(["entry","season-end","draft","contract","role-change","team-change"]);
-  for(const p of s.players){if(selected&&!selected.has(p.id))continue;
+  for(const p of s.players){if(p.id!==s.playerId||selected&&!selected.has(p.id))continue;
     const report=createPlayerObservation(s,p,context,actualReason,archive.id);
     const history=p.evaluationHistory??=[];
     if(history.some(row=>row.id===report.id))continue;
@@ -39,7 +41,7 @@ export function captureEvaluationChange(s:GameState,before:Player) {
 }
 export function capturePendingEvaluationChanges(s:GameState) {
   const teams:string[]=[],roles:string[]=[];
-  for(const p of s.players){const previous=p.evaluationHistory?.at(-1);if(!previous)continue;if(previous.teamId!==p.teamId)teams.push(p.id);else if(previous.role!==p.primaryRole||previous.position!==p.position||previous.twoWay!==!!p.twoWay)roles.push(p.id);}
+  for(const p of s.players){if(p.id!==s.playerId)continue;const previous=p.evaluationHistory?.at(-1);if(!previous)continue;if(previous.teamId!==p.teamId)teams.push(p.id);else if(previous.role!==p.primaryRole||previous.position!==p.position||previous.twoWay!==!!p.twoWay)roles.push(p.id);}
   if(teams.length)capturePlayerEvaluations(s,"team-change",teams);if(roles.length)capturePlayerEvaluations(s,"role-change",roles);return s;
 }
 export function recordEvaluationDay(s:GameState) {

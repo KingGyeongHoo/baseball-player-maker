@@ -12,13 +12,15 @@ import {tryProNationalInvitation} from "./pro-national-events";
 import {syncProClubNames,proTeamName} from "./club-names";
 import {createCareerNPC,proRosterPositions} from './pro-roster';
 import {rookieDevelopmentalIds,setProSquad} from "./pro-squads";
+import {queuePersonalAwardNotices} from './pro-awards-ceremony';
+import {pendingNationalOffseason} from './national-tournament';
 
 export type CareerChoice = "join" | "tryout" | "college" | "developmental" | "direct";
 const slots: Position[] = ["C","C","C","1B","1B","2B","2B","3B","3B","SS","SS","LF","LF","CF","CF","RF","RF","DH","SP","SP","SP","SP","SP","SP","RP","RP","RP","RP","CP","CP"];
 const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind"], title: string, message: string) => {
   s.careerNotice = { id: `${s.date}:${s.week}:${kind}`, date: s.date, kind, title, message };
 };
-export const acknowledgeCareer = (input: GameState): GameState => { const s = structuredClone(input); delete s.careerNotice;const next=s.noticeQueue?.shift();if(next)s.careerNotice=next;else if(s.proWorld?.resumeCampAfterAwards&&!s.careerEvent)continueToNextProCamp(s);else tryProNationalInvitation(s); return s; };
+export const acknowledgeCareer = (input: GameState): GameState => { const s = structuredClone(input);if(s.careerNotice?.code?.startsWith('awards:'))queuePersonalAwardNotices(s,Number(s.careerNotice.code.split(':')[1]));delete s.careerNotice;const next=s.noticeQueue?.shift();if(next)s.careerNotice=next;else if(s.proWorld?.resumeCampAfterAwards&&!s.careerEvent&&!pendingNationalOffseason(s))continueToNextProCamp(s);else tryProNationalInvitation(s); return s; };
 function path(s: GameState) {
   const p = getPlayer(s);
   return s.postSchool ??= { graduationYear: s.calendar.seasonYear, graduationSchool: s.teams[p.teamId].name, collegeYears: 0, tryouts: [] };
