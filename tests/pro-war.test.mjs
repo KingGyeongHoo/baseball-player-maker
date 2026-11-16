@@ -131,7 +131,7 @@ test("farm contribution is separate, discounted and capped; a full first-team se
   p.seasonByLevel.second = batting("good"); q.seasonByLevel.first = batting("good");
   const low = a.currentSeasonAssessment(farm, p), high = a.currentSeasonAssessment(major, q);
   assert.equal(low.war.first.batting, 0);
-  assert.ok(low.score > 71 && low.score <= 75);
+  assert.ok(low.score > 71 && low.score <= 77);
   assert.ok(high.score > low.score);
   p.seasonByLevel.first = batting("average");
   const context = war.createProWarContext(farm), before = war.proWarAssessment(p, context);
@@ -229,7 +229,7 @@ test("new WAR snapshots survive save/load, reject corrupt conversions and leave 
   assert.throws(() => save.validateCareerState(corrupt), /WAR/);
   e.getPlayer(corrupt).professional.assessments[0].war = null;
   assert.throws(() => save.validateCareerState(corrupt), /WAR/);
-  delete row.war;
+  delete row.war; delete row.seasonEvaluation;
   const old = structuredClone(row), salary = p.professional.contract.salary;
   a.hydrateAssessments(s, p);
   assert.deepEqual(a.recordSeasonAssessment(s, p), old);
@@ -237,11 +237,11 @@ test("new WAR snapshots survive save/load, reject corrupt conversions and leave 
   assert.deepEqual(e.getPlayer(save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state).professional.assessments[0], old);
 });
 
-test("the UI retains appearance grades and explains WAR conversion, defense and unavailable old records", () => {
+test("the UI shows annual and cumulative grades without removed formula guidance", () => {
   const s = fixture(), p = e.getPlayer(s);
   p.seasonByLevel.first = batting("good"); a.recordSeasonAssessment(s, p);
   const html = renderToStaticMarkup(createElement(Assessments, { state: s }));
-  for (const label of ["출전평가", "시즌 평가", "WAR 환산", "타격·투구·수비·포지션", "수비는 기록이 생긴 경기부터", "2군 수준"]) assert.ok(html.includes(label));
+  for (const label of ["시즌 평가", "누적 평가", "시즌별 평가"]) assert.ok(html.includes(label));
   assert.match(html, /<th>시즌<\/th><th>시즌평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);
   assert.doesNotMatch(html,/→ 출전평가|올해 시즌 출전평가/);
 });

@@ -68,7 +68,9 @@ export type ProWorld = {
 
 export type ProWarLine={batting:number;pitching:number;fielding:number;positional:number;pa:number;outs:number;bf:number;fieldingChances:number;fieldingOuts:number};
 export type ProWarAssessment={version:1;score:number;equivalentWins:number;first:ProWarLine;second:ProWarLine};
+export type ProSeasonEvaluation={version:1;regular:number;postseason:number;national:number;honors:number;score:number};
 export type ProSeasonAssessment={
+  seasonEvaluation?:ProSeasonEvaluation;
   honorRegistration?:{seasonDays:number;firstDaysByClub:Record<string,number>;injuryDaysByClub?:Record<string,number>};
   clubGamesShortage?:boolean;
   war?:ProWarAssessment;

@@ -14,6 +14,7 @@ import {currentProPosition,guaranteedProSquad,guaranteedProStarter} from "./pro-
 import {organizationMinimum,firstTeamRosterCapacity} from "./pro-roster";
 import {proSquad,setProSquad} from "./pro-squads";
 import type {ProSquad} from "./types";
+import {refreshSeasonEvaluations} from './pro-season-evaluation';
 
 export function salaryQuote(p:Player,year:number) {
   if(p.proContract?.status==="developmental")return .6*BASE_SALARY;
@@ -327,12 +328,14 @@ export function needsContractUpgrade(s:GameState){
   if(s.careerMode!=="pro"||!s.proWorld)return false;
   const pending=s.proWorld.market;
   return s.proWorld.contractRulesVersion!==5||s.players.some(p=>p.professional&&(p.professional.assessments===undefined||p.professional.assessments.some(row=>row.firstTeam===undefined||row.secondOnly===undefined||row.firstGames===undefined)))
+    ||s.players.some(p=>p.professional?.assessments?.some(row=>row.year===s.calendar.seasonYear&&row.war&&!row.seasonEvaluation))
     ||!!pending&&pending.kind==="released"&&!pending.settled&&pending.offers.some(offer=>releaseRecruitmentBlocked(getPlayer(s),offer.club,clubRoster(s,offer.club)));
 }
 export function upgradeContractRules(s:GameState){
   if(!needsContractUpgrade(s))return false;
   for(const p of s.players){hydrateAssessments(s,p);if(p.professional?.nonRenewal&&!requiresDevelopmentalOffer(p,p.professional.nonRenewal.year))delete p.professional.nonRenewal;}
   const world=s.proWorld!;
+  refreshSeasonEvaluations(s);
   if(world.seasonClosed&&!world.market?.settled)applySeasonExitPolicies(s);
   if(world.market&&!world.market.settled){
     const p=getPlayer(s);if(p.professional?.employment!=="active")world.market.kind="released";

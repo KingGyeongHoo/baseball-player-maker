@@ -62,7 +62,7 @@ function season(
   // Contract/exit policy fixtures retain historical point ratings. New WAR
   // calculation and cumulative integration are exercised in pro-war.test.mjs.
   const row = a.recordSeasonAssessment(s, p);
-  delete row.war;
+  delete row.war; delete row.seasonEvaluation;
   row.score = injured ? null : score;
   row.grade = require("../.test-build/lib/roster-grades.js").rosterGrade(row.score, true);
   const values = p.professional.assessments.flatMap(r => r.score === null ? [] : [r.score]);

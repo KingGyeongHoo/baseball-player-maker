@@ -5,6 +5,7 @@ import {syncAwardBonuses,awardBonusPoints} from './pro-award-bonuses';
 import {getPlayer,isPitcher,selectionScore,positions} from './engine';
 import {backfillSeasonHonors} from './pro-historical-awards';
 import type {GameState} from "./types";
+import {refreshSeasonEvaluations} from './pro-season-evaluation';
 
 export const awardsDate=(year:number)=>`${year}-12-06`;
 export function queuePersonalAwardNotices(s:GameState,year:number,beforeScore?:number){
@@ -55,6 +56,7 @@ export function presentAwardsCeremony(s:GameState){
   if(!season||!ceremony||ceremony.presentedAt||s.date<ceremony.scheduledAt)return false;
   const beforeScore=selectionScore(getPlayer(s));ceremony.presentedAt=s.date;
   syncAwardBonuses(s);
+  refreshSeasonEvaluations(s,season.year);
   proNotice(s,`awards:${season.year}`,`${season.year} 골든글러브 시상식`,"한 시즌을 빛낸 포지션별 최고의 선수와 시즌 MVP·신인왕을 발표합니다.");
   queuePersonalAwardNotices(s,season.year,beforeScore);
   return true;

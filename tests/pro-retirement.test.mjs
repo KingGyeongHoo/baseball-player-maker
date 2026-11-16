@@ -20,7 +20,7 @@ function fixture(ability=50){
  for(const c of s.proWorld.clubs)c.budget=1e12;
  return s;
 }
-function scores(p,values){const row=p.professional.assessments.at(-1),expanded=values.flatMap(value=>Array(21).fill(value)),club=p.professional.contract?.club??p.professional.firstClub;p.professional.rookieYear=row.year-expanded.length+1;p.professional.service=[{club,from:p.professional.rookieYear,to:row.year}];p.professional.assessments=expanded.map((score,i)=>{const copy={...row,year:p.professional.rookieYear+i,score,cumulative:score,grade:'S',cumulativeGrade:'S',honorRegistration:{seasonDays:100,firstDaysByClub:{[club]:90}}};delete copy.war;return copy;});}
+function scores(p,values){const row=p.professional.assessments.at(-1),expanded=values.flatMap(value=>Array(21).fill(value)),club=p.professional.contract?.club??p.professional.firstClub;p.professional.rookieYear=row.year-expanded.length+1;p.professional.service=[{club,from:p.professional.rookieYear,to:row.year}];p.professional.assessments=expanded.map((score,i)=>{const copy={...row,year:p.professional.rookieYear+i,score,cumulative:score,grade:'S',cumulativeGrade:'S',honorRegistration:{seasonDays:100,firstDaysByClub:{[club]:90}}};delete copy.war;delete copy.seasonEvaluation;return copy;});}
 
 test('declining veteran without outside FA demand gets only a final one-year minimum-salary home offer',()=>{
  const s=fixture(),p=e.getPlayer(s),before=structuredClone(p.professional.contract),service=structuredClone(p.professional.service);

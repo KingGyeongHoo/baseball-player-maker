@@ -5,6 +5,7 @@ import {statKeys} from './types';
 import {eventTrainingReward} from './event-system';
 import {nationalRules,type NationalSelection} from './national-teams';
 import {compactNationalTournament} from './national-storage';
+import {refreshSeasonEvaluations} from './pro-season-evaluation';
 import type {Game,GameState,Player,Position,RecordLine,Stats} from './types';
 
 export type NationalAthlete={id:string;name:string;position:Position;stats:Stats;age:number;sourceId?:string;fatigue:number;lastPitched:string|null;records:RecordLine;injury?:Player['injury']};
@@ -135,6 +136,7 @@ function finishNational(s:GameState,entry:NationalSelection){
   entry.result=`${t.countries[t.champion!]?.name??'미정'} 우승 · MVP ${awards[0]?.name??'없음'}`;
   if(entry.participated&&entry.roster.some(p=>p.id===s.playerId))s.careerEvent={id:`nt-result:${entry.year}:${entry.kind}`,definitionId:'NT-RESULT',rewardVersion:3,kind:'special',date:s.date,nationalContext:{kind:entry.kind,year:entry.year,phase:'result'},title:`${nationalRules[entry.kind].name} 대회 결산`,description:entry.result,choices:[{id:'remember',label:'대회 기록과 수상을 확인하고 복귀한다',outcomes:[{weight:100,message:'실제 경기 성적에 따른 경험과 수상이 커리어에 기록됐다.'}]}]};
   Object.assign(t,compactNationalTournament(t));
+  refreshSeasonEvaluations(s,entry.year);
 }
 export function playNationalDay(s:GameState){
   if(s.careerEvent||s.careerNotice)return false;

@@ -3,6 +3,7 @@ import {upgradeNationalInvitation} from './sim/national-teams';
 import {hydrateAssessments} from "./sim/pro-assessment";
 import {validFaTerms} from "./sim/pro-positions";
 import {validProWarAssessment} from "./sim/pro-war";
+import {validSeasonEvaluation} from './sim/pro-season-evaluation';
 import {clearProfessionalReputation} from "./sim/pro-selection";
 import {initializeAgingProfile,isPhysicalStat} from "./sim/pro-growth";
 import {syncJerseyNumbers} from "./jersey-numbers";
@@ -45,7 +46,13 @@ export function validateCareerState(value:unknown):asserts value is GameState {
     if(p.professional?.lastSquad!==undefined&&!["first","second","third","developmental"].includes(p.professional.lastSquad))throw new Error("마지막 등록 군을 복원할 수 없습니다.");
     if(p.professional?.contract?.faTerms!==undefined&&!validFaTerms(p.professional.contract.faTerms))throw new Error("FA 계약 조건을 복원할 수 없습니다.");
     if(assessments?.some(row=>row.clubGamesShortage!==undefined&&typeof row.clubGamesShortage!=="boolean"))throw new Error("구단 경기 부족 평가 기록을 복원할 수 없습니다.");
-    if(assessments?.some(row=>row.war!==undefined&&(!validProWarAssessment(row.war)||row.score===null||Math.abs(row.score-row.war.score)>1e-7)))throw new Error("시즌 출전평가의 WAR 환산 기록을 복원할 수 없습니다.");
+    if(assessments?.some(row=>{
+      if(row.war===undefined)return row.seasonEvaluation!==undefined;
+      if(!validProWarAssessment(row.war))return true;
+      return row.seasonEvaluation!==undefined
+        ?!validSeasonEvaluation(row.seasonEvaluation,row.war,row.score)
+        :row.score===null||Math.abs(row.score-row.war.score)>1e-7;
+    }))throw new Error("시즌 출전평가의 WAR 환산 기록을 복원할 수 없습니다.");
     if(usage&&(!Number.isInteger(usage.year)||[usage.activeDays,usage.lowerDays,usage.upperDays].some(n=>!Number.isInteger(n)||n<0)||usage.lowerDays+usage.upperDays!==usage.activeDays||usage.firstDays!==undefined&&(!Number.isInteger(usage.firstDays)||usage.firstDays<0||usage.firstDays>usage.upperDays)))throw new Error("소속 군의 활동 일수를 복원할 수 없습니다.");
     const refusal=p.professional?.nonRenewal;
     if(refusal&&(!Number.isInteger(refusal.year)||!["reserve","limited-appearances","post-rookie-evaluation","second-team","low-evaluation"].includes(refusal.kind)||!Number.isInteger(refusal.club)||refusal.club<0||refusal.club>=10||typeof refusal.reason!=="string"))throw new Error("재계약 판정 기록이 손상됐습니다.");

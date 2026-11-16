@@ -8,6 +8,7 @@ import { createProWarContext, proWarAssessment, type ProWarContext } from "./pro
 import {proSeasonForm} from "./pro-selection";
 import {farmSeasonGames} from './pro-farm-schedule';
 import {recordHonorRegistration,regularSeasonDays} from './retirement-honors';
+import {seasonEvaluation} from './pro-season-evaluation';
 const squad = (id: number): ProSquad | null =>
   id < 0
     ? null
@@ -306,6 +307,7 @@ export function recordSeasonAssessment(
       salary:pro.contract&&pro.contract.startYear<=s.calendar.seasonYear&&pro.contract.endYear>=s.calendar.seasonYear?pro.contract.salary:null,
       score,
       ...(evaluation.war ? { war: evaluation.war } : {}),
+      ...(evaluation.seasonEvaluation ? { seasonEvaluation: evaluation.seasonEvaluation } : {}),
       grade: rosterGrade(score, true),
       ability: roleScore(p),
       role: p.primaryRole,
@@ -334,8 +336,9 @@ export function currentSeasonAssessment(s: GameState, p: Player, warContext?: Pr
   const injuredAllYear = available?.year === s.calendar.seasonYear && available.days > 0
     && available.availableDays === 0 && available.injuredDays === available.days && !appeared;
   if (p.professional?.employment !== "active" || injuredAllYear) return { score: null };
-  const war = proWarAssessment(p, warContext??createProWarContext(s));
-  return { score: war.score, war };
+  const context=warContext??createProWarContext(s),war = proWarAssessment(p, context);
+  const evaluation=seasonEvaluation(s,p,war,context);
+  return { score: evaluation.score, war, seasonEvaluation:evaluation };
 }
 // Do not make roster/schedule failures look like a player's refusal to play.
 // Only concluded games count, and the exception needs a substantial schedule

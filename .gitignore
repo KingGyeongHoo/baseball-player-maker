@@ -28,6 +28,7 @@
 # Local exported careers used for diagnostics are not application source.
 /baseball-*.json
 /baseball-*.json.gz
+/output/song-jion/
 *.pem
 
 # debug
