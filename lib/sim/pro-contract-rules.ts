@@ -2,7 +2,6 @@
 export const proContractRules = {
   currentWeight: 0.7,
   cumulativeWeight: 0.3,
-  reserveSeasons: 3,
   upperDays: 28,
   upperPA: 20,
   upperOuts: 9,

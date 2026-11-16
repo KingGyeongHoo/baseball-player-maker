@@ -22,6 +22,9 @@ export function retirementSummary(state:GameState){
     if(date<=retiredDate)milestones.push({id,date,dateLabel,title,detail,kind});
   };
   const school=player.career.filter(row=>!row.careerMode).sort((a,b)=>a.year-b.year)[0];
+  const honor=world.retirementHonors?.find(row=>row.playerId===player.id);
+  if(honor?.ceremony)add('retirement-ceremony',honor.date,'은퇴식',`${clubName(state,honor.club)} · 구단 공헌 ${honor.seasons}시즌`,'retirement');
+  if(honor?.tour)add('retirement-tour',honor.date,'은퇴 투어',`${clubName(state,honor.club)}에서 은퇴 투어 예우를 확정했습니다.`,'retirement');
   if(pro.entry!=="direct"){
     const entered=school?school.year-school.grade+1:state.postSchool?state.postSchool.graduationYear-2:undefined;
     if(entered!==undefined)add("school",`${entered}-03-01`,"고교 입학",school?.schoolName??state.postSchool?.graduationSchool??"고교 야구부","school",`${entered}년`);

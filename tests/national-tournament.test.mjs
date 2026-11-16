@@ -16,6 +16,13 @@ for(const [kind,year,count,stages] of [['wbc',2030,20,4],['premier12',2027,12,3]
   for(const c of t.countries)for(const p of c.players){const total=e.emptyRecord();for(const g of t.games)if(g.boxScore[p.id])e.mergeRecord(total,g.boxScore[p.id]);assert.deepEqual(p.records,total,'carried games must not duplicate appearances');}
   const snapshot=structuredClone(t);nt.playNationalDay(s);assert.deepEqual(t,snapshot);
 });
+test('foreign national teams can field legal lineups when the user throws left-handed',()=>{
+ const {s,entry}=fixture('wbc',2030);delete entry.result;e.getPlayer(s).throws='L';
+ const t=nt.ensureNationalTournament(s,entry);s.date=t.games[0].date;nt.playNationalDay(s);
+ const foreign=t.games.filter(game=>game.status==='completed'&&game.homeTeamId!==0&&game.awayTeamId!==0);
+ assert.ok(foreign.length>0);assert.ok(foreign.every(game=>game.forfeitTeamId===undefined),'foreign fielders must not inherit the user’s left-handed throwing restriction');
+});
+
 test('actual national match choices pause and survive serialization without replay',()=>{
   let {s,entry}=fixture('wbc',2030);delete entry.result;entry.participated=true;const p=e.getPlayer(s);
   if(!entry.roster.some(r=>r.id===p.id))entry.roster[entry.roster.findIndex(r=>r.position===p.position)]={id:p.id,name:p.name,position:p.position,field:'batting',team:'한국',roleScore:70};

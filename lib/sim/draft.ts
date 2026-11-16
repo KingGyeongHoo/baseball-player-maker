@@ -92,6 +92,7 @@ function selectDraft(s: GameState, limit = Infinity,clubContext?:DraftClubContex
       round,
       slot,
       role: best.role,
+      position:best.p.position,
       score: best.score,
       ability: best.ability,
       abilityRank: ranks.get(best.p.id)!,

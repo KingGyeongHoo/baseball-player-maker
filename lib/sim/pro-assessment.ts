@@ -7,6 +7,7 @@ import type { ProSeasonAssessment } from "./pro-types";
 import { createProWarContext, proWarAssessment, type ProWarContext } from "./pro-war";
 import {proSeasonForm} from "./pro-selection";
 import {farmSeasonGames} from './pro-farm-schedule';
+import {recordHonorRegistration,regularSeasonDays} from './retirement-honors';
 const squad = (id: number): ProSquad | null =>
   id < 0
     ? null
@@ -214,6 +215,7 @@ export function hydrateAssessments(s: GameState, p: Player): boolean {
   return true;
 }
 export function recordAssessmentDay(s: GameState, p: Player) {
+  recordHonorRegistration(s,p);
   const pro = p.professional;
   if (!pro || pro.employment !== "active" || p.teamId < 0) return;
   const usage = (pro.assessmentUsage ??= {
@@ -313,6 +315,7 @@ export function recordSeasonAssessment(
       firstTeam,
       secondOnly,
       firstGames: firstGameCount(first, appearances.get(p.id)),
+      honorRegistration:{seasonDays:regularSeasonDays(s),firstDaysByClub:pro.honorUsage?.year===s.calendar.seasonYear?{...pro.honorUsage.firstDaysByClub}:{},...(pro.honorUsage?.year===s.calendar.seasonYear&&pro.honorUsage.injuryDaysByClub?{injuryDaysByClub:{...pro.honorUsage.injuryDaysByClub}}:{})},
       ...(clubGamesShortage(s,p)?{clubGamesShortage:true}:{}),
       source: "season-end",
     },
@@ -387,7 +390,7 @@ export function seasonExit(
   p: Player,
   year: number,
 ): {
-  kind: "reserve" | "limited-appearances" | "post-rookie-evaluation";
+  kind: "post-rookie-evaluation";
   reason: string;
 } | null {
   const pro = p.professional,clubStart=clubReviewStart(p),
@@ -397,28 +400,6 @@ export function seasonExit(
     latest = rows[0];
   if (!pro || pro.employment !== "active" || latest?.year !== year) return null;
   if(latest.clubGamesShortage)return null;
-  if (
-    pro.developmentalRetry &&
-    year >= pro.developmentalRetry.deadlineYear &&
-    p.proContract?.status === "developmental"
-  )
-    return {
-      kind: "reserve",
-      reason: "타 구단 신고 재영입 1시즌 동안 정식 전환에 실패했습니다.",
-    };
-  let reserve = 0,
-    expected = year;
-  for (const row of rows) {
-    if (row.year !== expected--) break;
-    if(row.clubGamesShortage)continue;
-    if(conversionYear(p)===row.year||!row.reserveSeason)break;
-    reserve++;
-  }
-  if (reserve >= rules.reserveSeasons)
-    return {
-      kind: "reserve",
-      reason: `잔류군·신고선수 상태가 ${reserve}시즌 연속 이어졌습니다.`,
-    };
   const previous = rows.find((r) => r.year < year && r.score !== null);
   const growing =
     !!previous && latest.ability - previous.ability >= rules.growthGrace;
@@ -450,23 +431,15 @@ export function seasonExit(
     }
     return count;
   }
-  const limited = streak(
-    (row) => row.firstGames != null && row.firstGames <= rules.firstGamesLimit,
-  );
-  if (limited >= duration)
-    return {
-      kind: "limited-appearances",
-      reason: `1군 연간 ${rules.firstGamesLimit}경기 이하 출전이 ${limited}개 활동 시즌 이어졌습니다. (${duration}년 기준)`,
-    };
   const low = streak(
     (row) =>
       row.year >= pro.rookieYear + rules.rookieGraceSeasons &&
-      renewalAssessment(p, row.year).grade === "F",
+      rosterGrade(row.score,true) === "F",
   );
   return low >= duration
     ? {
         kind: "post-rookie-evaluation",
-        reason: `최초 프로 ${rules.rookieGraceSeasons}시즌을 제외한 누적 시즌평가 F가 ${low}개 평가 시즌 이어졌습니다. (${duration}년 기준)`,
+        reason: `시즌 평가 F가 ${low}개 평가 시즌 연속 이어졌습니다. (${duration}년 기준)`,
       }
     : null;
 }
@@ -477,7 +450,8 @@ export function requiresDevelopmentalOffer(p: Player, year: number) {
   if (
     !denied ||
     denied.year > year ||
-    ["low-evaluation", "second-team"].includes(denied.kind)
+    ["low-evaluation", "second-team", "reserve", "limited-appearances"].includes(denied.kind) ||
+    rosterGrade((pro?.assessments??[]).find(row=>row.year===denied.year)?.score,true)!=="F"
   )
     return false;
   const rows = (pro.assessments ?? []).filter((r) => r.year <= year),

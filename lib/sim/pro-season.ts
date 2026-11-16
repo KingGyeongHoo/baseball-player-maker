@@ -33,7 +33,7 @@ import {awardsDate,ensureAwardsCeremony,presentAwardsCeremony} from "./pro-award
 import {individualAwards} from "./pro-individual-awards";
 import {farmPostseasonActive,reviewFarmPostseason} from './pro-farm-postseason';
 import {settleSeriesMvp} from './pro-series-awards';
-import {archiveProfessionalSeason,registerRetiredNumber,retireProfessional} from "./pro-retirement";
+import {archiveProfessionalSeason,registerRetiredNumber,registerRetirementFarewell,retireProfessional} from "./pro-retirement";
 export {archiveProfessionalSeason,retireProfessional} from "./pro-retirement";
 
 function payroll(s:GameState,p:Player){
@@ -213,6 +213,7 @@ export function addRookieClass(s:GameState,year:number){
   proNews(s,`${year} 신인 ${picks.length}명 · 잔류군 ${picks.length-developmentalIds.size}명 / 육성선수 ${developmentalIds.size}명 · 직전 정규 시즌 하위 구단 우선`,`${year}:rookie-class`);
 }
 function retireNPC(s:GameState,p:Player,reason:string){
+  registerRetirementFarewell(s,p);
   registerRetiredNumber(s,p);
   p.professional!.employment="retired";p.professional!.contract=null;p.teamId=-1;
   proNews(s,`${p.name} 은퇴 · ${reason}`,`retirement:${p.id}`);

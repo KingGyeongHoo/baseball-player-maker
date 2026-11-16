@@ -64,7 +64,7 @@ test('a forfeited farm season defers developmental rejection and cumulative refu
  assert.equal(row.cumulative,null);assert.equal(assess.seasonExit(p,2028),null);assert.equal(assess.renewalAssessment(p,2028).seasons,0);
  p.professional.assessments=[];p.professional.developmentalRetry.deadlineYear=2028;games.forEach(g=>g.status='completed');
  const normal=assess.recordSeasonAssessment(s,p);assert.equal(normal.clubGamesShortage,undefined);
- assert.equal(assess.seasonExit(p,2028).kind,'reserve');
+ assert.equal(assess.seasonExit(p,2028),null);
 });
 
 test('current third basemen compete with third basemen even when stronger first/second basemen can play third',()=>{
@@ -129,7 +129,7 @@ test('v4 refreshes unsigned legacy FA durations once and preserves signed contra
  for(const o of s.proWorld.market.offers)o.years=1;
  const signed=structuredClone(p.professional.contract);
  assert.equal(market.upgradeContractRules(s),true);
- assert.equal(s.proWorld.contractRulesVersion,4);
+ assert.equal(s.proWorld.contractRulesVersion,5);
  assert.ok(s.proWorld.market.offers.every(o=>o.years>=2));
  assert.deepEqual(p.professional.contract,signed);
  const snapshot=JSON.stringify(s);assert.equal(market.upgradeContractRules(s),false);assert.equal(JSON.stringify(s),snapshot);
@@ -238,7 +238,7 @@ function releasedDepthFixture(trial=false){
  for(const key of Object.keys(p.stats))p.stats[key]=60;
  p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};p.seasonSpring=e.emptyRecord();
  if(trial){
-  p.professional.nonRenewal={year:2028,kind:'reserve',reason:'test reserve refusal',club:(club+9)%10};p.age=24;
+  p.professional.nonRenewal={year:2028,kind:'post-rookie-evaluation',reason:'test season-grade refusal',club:(club+9)%10};p.age=24;p.professional.assessments=[{year:2028,score:65}];
   for(let i=0;i<1000;i++){s.seed=`released-depth-${i}`;if(e.hash(`${s.seed}:reentry:2029:${p.id}:${club}`)%100<15)break;}
   assert.ok(e.hash(`${s.seed}:reentry:2029:${p.id}:${club}`)%100<15);
  }

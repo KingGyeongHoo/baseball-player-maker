@@ -10,7 +10,7 @@ export const isFarmPostseason=(id:string)=>id.startsWith('pro-farm-playoffs-');
 export const farmPostseasonActive=(s:GameState)=>!!s.proWorld?.farmPostseason&&s.proWorld.farmPostseason.champion===undefined;
 export function farmRegularFinishNotice(s:GameState){
   const p=getPlayer(s),team=proGameTeam(p),rank=(s.proWorld?.farmPostseason?.seeds.indexOf(team)??-1)+1,name=s.teams[team]?.name??'소속 2군';
-  return rank?{title:`${name} 2군 포스트시즌 진출!`,message:`2군 정규시즌 ${rank}위로 준결승에 출전합니다. 준결승 3전 2선승·결승 5전 3선승이며 2군·3군·신고선수 엔트리로 진행합니다.`}:
+  return rank?{title:`${name} 2군 포스트시즌 진출!`,message:`2군 정규시즌 ${rank}위로 준결승에 출전합니다. 준결승 3전 2선승·결승 5전 3선승입니다. 포스트시즌 진행중에도 엔트리 변경이 있을 수 있습니다.`}:
     {title:`${name} 2군 정규시즌 종료`,message:'2군 상위 4팀 포스트시즌 진출에 실패했습니다. 다른 구단의 남은 경기가 끝나면 시즌을 결산합니다.'};
 }
 function schedule(s:GameState,series:ProSeries,date:string){

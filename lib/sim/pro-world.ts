@@ -13,6 +13,7 @@ import {initializeAgingProfile} from "./pro-growth";
 import type {GameState,Player,Position} from "./types";
 import type {SalaryContract} from "./pro-types";
 import {discardRetiredPlayers} from "./retired-records";
+import {markHonorInjuryLeave} from './retirement-honors';
 import {syncProClubNames} from "./club-names";
 import {proRotationStarter,proStarterReady} from './pro-balance';
 import {createCareerNPC,firstTeamRosterCapacity} from './pro-roster';
@@ -53,7 +54,7 @@ export function ensureProWorld(s:GameState) {
   if(s.careerMode!=="pro")return;
   discardRetiredPlayers(s);
   const year=s.calendar.seasonYear,p=getPlayer(s),info=s.postSchool?.pro;
-  s.proWorld??={version:1,contractRulesVersion:4,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
+  s.proWorld??={version:1,contractRulesVersion:5,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
     clubs:Array.from({length:10},(_,id)=>({id,direction:"balanced",budget:(220+hash(`${s.seed}:club-budget:${id}`)%81)*BASE_SALARY,deadMoney:{},nextReview:`${year}-03-15`})),
     seasons:[],archive:[],news:[],squadsVersion:s.teams.length>=40?2:undefined,goal:p.proContract?.status==="developmental"?"정식 선수 전환":"1군 정착",longGoal:"1군 데뷔와 꾸준한 출전",draftedYears:[year]};
   repairConversionRegistrations(s);
@@ -105,7 +106,7 @@ export function prepareOpeningRegistrations(s:GameState){
 }
 function exchange(s:GameState,up:Player,down:Player,reason:string) {
   if(!canAssignProSquad(down,proSquad(up.teamId)!,s.date))return;
-  const club=down.teamId,old=up.teamId;up.teamId=club;down.teamId=old;
+  const club=down.teamId,old=up.teamId;markHonorInjuryLeave(s,down,old);up.teamId=club;down.teamId=old;
   for(const p of [up,down])if(p.professional)p.professional.lastRegistration=s.date;
   proNews(s,`${clubName(s,club)} · ${up.name} 1군 / ${down.name} 2군`,`${s.date}:registration:${up.id}:${down.id}`);
   if(up.id===s.playerId||down.id===s.playerId){const p=getPlayer(s),info=s.postSchool!.pro!;info.level=p.teamId<10?"first":"second";

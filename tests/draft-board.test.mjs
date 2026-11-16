@@ -9,10 +9,12 @@ const {DraftForecast,DraftRoundTable}=require('../.test-build/app/components/dra
 const state=e.createGame('draft-ui','표검증','SS');
 const render=props=>renderToStaticMarkup(createElement(DraftRoundTable,{year:2029,onSelect(){},playerId:'mine',...props}));
 
-test('school draft results display old middle-relief and closer picks as bullpen without rewriting saved roles',()=>{
+test('draft results group actual positions as infield, outfield, catcher and pitcher',()=>{
  const sample=e.draftForecast(state)[0];
- for(const role of ['중간계투','마무리']){const pick={...sample,role},before=structuredClone(pick),html=render({picks:[pick]});assert.match(html,/<em>불펜<\/em>/);assert.ok(!html.includes(`<em>${role}</em>`));assert.deepEqual(pick,before);}
- assert.match(render({picks:[{...sample,role:'선발'}]}),/<em>선발<\/em>/);
+ for(const [position,label]of [['1B','내야수'],['2B','내야수'],['3B','내야수'],['SS','내야수'],['C','포수'],['SP','투수'],['RP','투수'],['CP','투수'],['LF','외야수'],['CF','외야수'],['RF','외야수']]){
+  const pick={...sample,position,role:e.roleFor(position)},before=structuredClone(pick),html=render({picks:[pick]});assert.ok(html.includes('<em>'+label+'</em>'));assert.deepEqual(pick,before);
+ }
+ const old={...sample,role:'센터라인'};delete old.position;assert.match(render({picks:[old],players:[{id:old.playerId,position:'CF'}]}),/<em>외야수<\/em>/);
 });
 
 test('forecast displays this season senior top ten instead of the OVR top ten',()=>{

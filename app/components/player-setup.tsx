@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import PositionPicker, { Ballpark } from "./position-picker";
 import { createRandomCareer, createRandomProCareer, kindForPosition, randomPlayerPosition, type PlayerKind } from "@/lib/player-creation";
 import {generatePlayerName} from "@/lib/sim/player-names";
+import {refreshSavedRetiredNumbers} from "../../lib/career-save";
 import {randomJerseyNumber} from "@/lib/jersey-numbers";
 import { positionName } from "@/lib/sim/engine";
 import type { GameState, Position } from "@/lib/sim/types";
@@ -43,8 +44,8 @@ export default function PlayerSetup({ onStart }: { onStart: (state: GameState) =
     creating.current = true;
     setBusy(true);
     setError("");
-    setTimeout(() => {
-      try { onStart(mode==="school"?createRandomCareer(playerName, playerPosition,globalThis.crypto,jerseyNumber??undefined):createRandomProCareer(playerName,playerPosition,jerseyNumber??undefined,globalThis.crypto)); }
+    setTimeout(async () => {
+      try { const created=mode==="school"?createRandomCareer(playerName,playerPosition,globalThis.crypto,jerseyNumber??undefined):createRandomProCareer(playerName,playerPosition,jerseyNumber??undefined,globalThis.crypto);onStart(await refreshSavedRetiredNumbers(created)); }
       catch (error) { setError(error instanceof Error ? error.message : "선수 생성에 실패했습니다. 다시 시도해 주세요."); creating.current = false; setBusy(false); }
     }, 30);
   };

@@ -204,6 +204,7 @@ export type Calendar = {
   seasonEnd: string;
 };
 export type DraftPick = {
+  position?:Position;
   playerId: string;
   playerName: string;
   teamName: string;
@@ -345,6 +346,7 @@ export type MatchProgress = {
   bases: ({ playerId: string; pitcherId: string } | null)[]; ready: boolean; eventFatigue: number;
 };
 export type GameState = {
+  savedRetiredNumbers?:{saveId:string;club:number;number:number;playerId:string;playerName:string}[];
   proClubNamesVersion?:1;
   proEvents?:ProEventState;
   evaluationSystem?:EvaluationSystem;

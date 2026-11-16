@@ -228,7 +228,7 @@ function DraftView({ state, onRecords, onChange, onRetire }: { state: GameState;
   const boardPanel = <Panel title={ended ? "드래프트 결과" : `${state.calendar.seasonYear} 예상 드래프트 TOP10`} eyebrow="DRAFT BOARD" action={ended && <button className="text-button" onClick={() => setShowOvr(true)}>OVR TOP10</button>}>
     {ended ? <>
       <CareerContinuation state={state} onChange={onChange} onRetire={onRetire}/>
-      <DraftRoundTable picks={state.draft} playerId={p.id} year={state.calendar.seasonYear} onSelect={setSelectedPick} />
+      <DraftRoundTable players={state.players} picks={state.draft} playerId={p.id} year={state.calendar.seasonYear} onSelect={setSelectedPick} />
     </> : <DraftForecast state={state} />}
   </Panel>;
   return <>

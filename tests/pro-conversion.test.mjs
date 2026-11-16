@@ -13,12 +13,27 @@ test('loading a converted player left in the developmental squad repairs only it
 test('a provably false same-year reserve release is restored as regular without guaranteeing next-year pay',()=>{const s=fixture(),p=e.getPlayer(s),year=s.calendar.seasonYear,club=p.teamId%10;p.proContract.status='regular';p.proContract.convertedDate=s.date;history(s);const reason='잔류군·신고선수 상태가 3시즌 연속 이어졌습니다.';p.professional.nonRenewal={year,club,kind:'reserve',reason};p.professional.movements.push({date:year+'-10-31',from:club,to:null,kind:'방출',reason});p.professional.contract=null;p.professional.employment='freeAgent';p.teamId=-1;s.proWorld.seasonClosed=true;s.proWorld.stage='summary';s.phase='ended';s.date=year+'-10-31';const next=life.upgradeProfessionalState(s),q=e.getPlayer(next);assert.equal(q.professional.employment,'active');assert.equal(q.proContract.status,'regular');assert.equal(q.teamId,club+20);assert.equal(q.professional.contract.endYear,year);assert.equal(q.professional.nonRenewal,undefined);assert.equal(q.professional.movements.at(-1).kind,'복구');assert.equal(next.proWorld.market.kind,'renewal');});
 test('conversion repair never restores an unrelated release or converts unsigned players',()=>{const s=fixture(),p=e.getPlayer(s);p.professional.contract=null;p.professional.employment='freeAgent';p.teamId=-1;pc.reviewDevelopmentContract(s);assert.equal(p.proContract.status,'developmental');p.proContract.status='regular';p.proContract.convertedDate=s.date;assert.equal(squads.needsProSquadUpgrade(s),false);assert.equal(life.upgradeProfessionalState(s),s);});
 test('regular contracts cannot re-register into a stale developmental slot on renewal',()=>{const s=fixture(),p=e.getPlayer(s),club=p.teamId%10;p.proContract.status='regular';p.teamId=club+20;assert.equal(squads.setProSquad(s,p,'developmental'),false);assert.equal(p.teamId,club+20);p.teamId=-1;p.professional.lastSquad='developmental';const placement=market.contractPlacement(s,p,club,false,[],'developmental');assert.ok(placement);assert.equal(placement.team,club+20);});
-for(const [position,key,required,outs,er] of [['SP','wins',2,63,14],['RP','holds',5,27,6],['CP','saves',3,27,6]])test(position+' conversion requires its role milestone and ERA <= 6 but no strikeout ratio',()=>{
+for(const [position,key,required,outs,er] of [['SP','wins',3,63,9],['RP','holds',5,27,4],['CP','saves',4,27,4]])test(position+' conversion requires its role milestone and ERA <= 4 but no strikeout ratio',()=>{
   const s=fixture(),p=e.getPlayer(s);e.assignRole(p,e.roleFor(position));p.seasonByLevel.second=e.emptyRecord();const r=p.seasonByLevel.second;Object.assign(r.pitching,{outs,BF:100,ER:er,SO:0});r.games={[key]:required};
   assert.equal(pc.developmentProgress(p).pitching,true);r.games[key]--;assert.equal(pc.developmentProgress(p).pitching,false);r.games[key]++;r.pitching.ER++;assert.equal(pc.developmentProgress(p).pitching,false);r.pitching.ER=0;r.pitching.outs=position==='SP'?59:23;assert.equal(pc.developmentProgress(p).pitching,false);
   r.pitching.outs=outs;delete r.games;assert.equal(pc.developmentProgress(p).pitching,false,'missing legacy counters do not manufacture a win, hold or save');
 });
 
+
+for(const [position,key,innings,required,maxEra] of [
+ ['SP','wins',20,3,4],['SP','wins',30,3,5],['SP','wins',40,3,6],
+ ['RP','holds',8,5,4],['RP','holds',12,4,5],['RP','holds',16,4,6],
+ ['CP','saves',8,4,4],['CP','saves',12,3,5],['CP','saves',16,2,6],
+])test(`${position} tier ${innings} innings requires ${required} decisions and ERA at most ${maxEra}`,()=>{
+ const s=fixture(),p=e.getPlayer(s);e.assignRole(p,e.roleFor(position));p.seasonByLevel.second=e.emptyRecord();
+ const r=p.seasonByLevel.second,outs=innings*3,er=Math.floor(maxEra*outs/27);
+ Object.assign(r.pitching,{outs,BF:outs*2,ER:er});r.games={[key]:required};
+ assert.equal(pc.developmentProgress(p).pitching,true);
+ r.pitching.outs--;assert.equal(pc.developmentProgress(p).pitching,false,'a fractional inning below the workload is insufficient');r.pitching.outs=outs;
+ r.games[key]--;assert.equal(pc.developmentProgress(p).pitching,false,'workload and ERA cannot replace the role milestone');r.games[key]++;
+ r.pitching.ER++;assert.equal(pc.developmentProgress(p).pitching,false,'use raw ERA without rounding down');r.pitching.ER=er;
+ r.pitching.BF=0;assert.equal(pc.developmentProgress(p).pitching,false);
+});
 
 test('current official farm All-Star selections qualify after the hitter minimum without another performance milestone',()=>{
  for(const method of ['vote','manager','replacement'])for(const position of ['SS','SP','RP','CP']){
@@ -49,13 +64,29 @@ test('an existing saved farm All-Star converts at season-end review and retains 
 });
 
 
-test('batting conversion requires forty at-bats before any performance threshold',()=>{
+test('batting conversion uses three opportunity and performance tiers',()=>{
  const s=fixture(),p=e.getPlayer(s);for(const key of Object.keys(p.stats))p.stats[key]=50;
  const cases=[
-  [{PA:79,AB:79,H:19,HR:4},false],
+  [{PA:79,AB:79,H:19,HR:4},true],
   [{PA:80,AB:80,H:0,HR:0},false],
   [{PA:30,AB:30,H:5,HR:5},false],
-  [{PA:39,AB:39,H:20,HR:5},false],
+  [{PA:29,AB:29,H:29,HR:7},false],
+  [{PA:30,AB:30,H:6,HR:6},false],
+  [{PA:30,AB:30,H:7,HR:7},true],
+  [{PA:30,AB:30,H:8,HR:0},false],
+  [{PA:30,AB:30,H:9,HR:0},true],
+  [{PA:37,AB:37,H:10,HR:0},true],
+  [{PA:39,AB:39,H:5,HR:5},false],
+  [{PA:40,AB:40,H:4,HR:4},false],
+  [{PA:49,AB:49,H:3,HR:3},false],
+  [{PA:50,AB:50,H:3,HR:3},true],
+  [{PA:50,AB:50,H:11,HR:0},false],
+  [{PA:50,AB:50,H:12,HR:0},true],
+  [{PA:80,AB:80,H:18,HR:0},true],
+  [{PA:80,AB:80,H:17,HR:0},true],
+  [{PA:100,AB:100,H:15,HR:0},true],
+  [{PA:100,AB:100,H:14,HR:0},false],
+  [{PA:39,AB:39,H:20,HR:5},true],
   [{PA:40,AB:40,H:5,HR:5},true],
   [{PA:81,AB:81,H:20,HR:0},true],
   [{PA:80,AB:39,H:0,HR:0},false],
@@ -76,13 +107,13 @@ test('batting conversion requires forty at-bats before any performance threshold
 });
 test('hitter minimum cannot be bypassed by All-Star selection, rating or WAR',()=>{
  for(const route of ['allstar','rating','war']){
-  const s=fixture(),p=e.getPlayer(s);p.seasonByLevel.second=e.emptyRecord();Object.assign(p.seasonByLevel.second.batting,{PA:39,AB:39});
+  const s=fixture(),p=e.getPlayer(s);p.seasonByLevel.second=e.emptyRecord();Object.assign(p.seasonByLevel.second.batting,{PA:29,AB:29});
   if(route==='allstar')p.professional.allstarHistory=[{year:s.calendar.seasonYear,level:'second',side:'blue',slot:'SS',method:'vote'}];
   if(route==='rating')for(const key of Object.keys(p.stats))p.stats[key]=99;
   if(route==='war')Object.assign(p.seasonByLevel.first.batting,{PA:600,AB:600,H:300,HR:100});
   let progress=pc.developmentProgress(p,s.calendar.seasonYear);assert.equal(progress[route],true,route);assert.equal(progress.minimumSample,false);assert.equal(progress.qualified,false);
   assert.equal(pc.reviewDevelopmentContract(s),false);assert.equal(p.proContract.status,'developmental');
-  p.seasonByLevel.second.batting.PA=p.seasonByLevel.second.batting.AB=40;
+  p.seasonByLevel.second.batting.PA=p.seasonByLevel.second.batting.AB=30;
   progress=pc.developmentProgress(p,s.calendar.seasonYear);assert.equal(progress.minimumSample,true);assert.equal(progress.qualified,true,route);
  }
 });

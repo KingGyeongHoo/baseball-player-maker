@@ -20,7 +20,7 @@ function fixture(ability=50){
  for(const c of s.proWorld.clubs)c.budget=1e12;
  return s;
 }
-function scores(p,values){const row=p.professional.assessments.at(-1);p.professional.assessments=values.map((score,i)=>{const copy={...row,year:row.year-values.length+1+i,score,cumulative:score,grade:'S',cumulativeGrade:'S'};delete copy.war;return copy;});}
+function scores(p,values){const row=p.professional.assessments.at(-1),expanded=values.flatMap(value=>Array(21).fill(value)),club=p.professional.contract?.club??p.professional.firstClub;p.professional.rookieYear=row.year-expanded.length+1;p.professional.service=[{club,from:p.professional.rookieYear,to:row.year}];p.professional.assessments=expanded.map((score,i)=>{const copy={...row,year:p.professional.rookieYear+i,score,cumulative:score,grade:'S',cumulativeGrade:'S',honorRegistration:{seasonDays:100,firstDaysByClub:{[club]:90}}};delete copy.war;return copy;});}
 
 test('declining veteran without outside FA demand gets only a final one-year minimum-salary home offer',()=>{
  const s=fixture(),p=e.getPlayer(s),before=structuredClone(p.professional.contract),service=structuredClone(p.professional.service);
@@ -75,10 +75,10 @@ test('one-club cumulative S retirement registers the last jersey, persists it an
 });
 
 test('retired number eligibility uses the cumulative grade boundary and rejects any previous club',()=>{
- for(const [value,qualifies]of [[81,false],[81.04,false],[81.06,true],[100,true]]){
+ for(const [value,qualifies]of [[78.94,false],[79,true],[81.04,true],[81.06,true],[100,true]]){
   const s=fixture(),p=e.getPlayer(s);scores(p,[value]);life.retireProfessional(s);assert.equal(!!s.proWorld.retiredNumbers?.length,qualifies,String(value));
  }
- const s=fixture(),p=e.getPlayer(s);scores(p,[100,62]);life.retireProfessional(s);assert.equal(s.proWorld.retiredNumbers,undefined);
+ const s=fixture(),p=e.getPlayer(s);scores(p,[90,60]);life.retireProfessional(s);assert.equal(s.proWorld.retiredNumbers,undefined);
  for(const source of ['service','movements']){
   const t=fixture(),q=e.getPlayer(t),other=(q.professional.firstClub+1)%10;scores(q,[90]);
   if(source==='service')q.professional.service.push({club:other,from:t.proWorld.year-1,to:t.proWorld.year-1});else q.professional.movements.push({date:t.date,from:other,to:q.professional.firstClub,kind:'트레이드',reason:'이전 소속'});

@@ -4,6 +4,7 @@ import {proTeamName} from "./club-names";
 import type {GameState,Player,Position,ProSquad} from "./types";
 import {firstTeamCapacity,firstTeamRosterCapacity,firstTeamSlots,proRosterPositions} from './pro-roster';
 import {canAssignProSquad,guaranteedProSquad,guaranteedProStarter} from './pro-positions';
+import {markHonorInjuryLeave} from './retirement-honors';
 
 export const squadLevels:ProSquad[]=["first","second","third","developmental"];
 export const squadLabels:Record<ProSquad,string>={first:"1군",second:"2군",third:"잔류군(3군)",developmental:"육성선수"};
@@ -22,7 +23,7 @@ export function setProSquad(s:GameState,p:Player,level:ProSquad){
   if(!canAssignProSquad(p,level,s.date))return false;
   if(level==="first"&&p.teamId>=10&&!canPromoteToFirst(s,p))return false;
   const club=p.teamId>=0?p.teamId%10:p.professional?.contract?.club;if(club===undefined)return false;
-  const team=squadTeam(club,level),changed=p.teamId!==team;p.teamId=team;
+  const team=squadTeam(club,level),changed=p.teamId!==team;markHonorInjuryLeave(s,p,team);p.teamId=team;
   if(changed&&p.professional)p.professional.lastRegistration=s.date;
   if(p.id===s.playerId&&s.postSchool?.pro)s.postSchool.pro.level=level;
   return changed;

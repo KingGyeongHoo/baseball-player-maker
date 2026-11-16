@@ -174,7 +174,7 @@ export function offerFor(s:GameState,p:Player,club:number,year:number,kind:Contr
   }
   const competitors=members.filter(q=>currentProPosition(q,p.position)).sort((a,b)=>roleScore(b)-roleScore(a));
   const role=roleScore(p)>Math.max(0,...competitors.map(q=>roleScore(q)))?"주전 경쟁 우선 검토":roleScore(p)>55?"1·2군 등록 경쟁":"2군 육성·평가 출전";
-  return {id:`${year}:offer:${p.id}:${club}`,club,year,years:duration,salary,role:trial?"신고선수 1년 재도전 · 정식 전환 실패 시 방출":proposal?.terms.title??role,kind,...(kind==="fa"?{faRetention:own}:{}),...(proposal?{faTerms:proposal.terms}:{}),startingLevel:proSquad(destination)!,negotiated:false,final:false,competition:competitors.slice(0,3).map(q=>q.name),assessment,...(trial?{registration:"developmental" as const}:{})};
+  return {id:`${year}:offer:${p.id}:${club}`,club,year,years:duration,salary,role:trial?"신고선수 1년 재도전":proposal?.terms.title??role,kind,...(kind==="fa"?{faRetention:own}:{}),...(proposal?{faTerms:proposal.terms}:{}),startingLevel:proSquad(destination)!,negotiated:false,final:false,competition:competitors.slice(0,3).map(q=>q.name),assessment,...(trial?{registration:"developmental" as const}:{})};
 }
 export function openContractMarket(s:GameState){
   const w=s.proWorld!,p=getPlayer(s),pro=p.professional!,year=w.year+1;
@@ -326,17 +326,17 @@ export function applySeasonExitPolicies(s:GameState){
 export function needsContractUpgrade(s:GameState){
   if(s.careerMode!=="pro"||!s.proWorld)return false;
   const pending=s.proWorld.market;
-  return s.proWorld.contractRulesVersion!==4||s.players.some(p=>p.professional&&(p.professional.assessments===undefined||p.professional.assessments.some(row=>row.firstTeam===undefined||row.secondOnly===undefined||row.firstGames===undefined)))
+  return s.proWorld.contractRulesVersion!==5||s.players.some(p=>p.professional&&(p.professional.assessments===undefined||p.professional.assessments.some(row=>row.firstTeam===undefined||row.secondOnly===undefined||row.firstGames===undefined)))
     ||!!pending&&pending.kind==="released"&&!pending.settled&&pending.offers.some(offer=>releaseRecruitmentBlocked(getPlayer(s),offer.club,clubRoster(s,offer.club)));
 }
 export function upgradeContractRules(s:GameState){
   if(!needsContractUpgrade(s))return false;
-  for(const p of s.players){hydrateAssessments(s,p);if(p.professional?.nonRenewal&&["low-evaluation","second-team"].includes(p.professional.nonRenewal.kind))delete p.professional.nonRenewal;}
+  for(const p of s.players){hydrateAssessments(s,p);if(p.professional?.nonRenewal&&!requiresDevelopmentalOffer(p,p.professional.nonRenewal.year))delete p.professional.nonRenewal;}
   const world=s.proWorld!;
   if(world.seasonClosed&&!world.market?.settled)applySeasonExitPolicies(s);
   if(world.market&&!world.market.settled){
     const p=getPlayer(s);if(p.professional?.employment!=="active")world.market.kind="released";
     refreshOffers(s);
   }
-  world.contractRulesVersion=4;return true;
+  world.contractRulesVersion=5;return true;
 }

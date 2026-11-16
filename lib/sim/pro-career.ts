@@ -121,22 +121,34 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   if(p.professional?.twoWayHistory?.some(row=>row.action==="단일 역할 입단"))s.careerNotice!.message+=` 프로 겸업은 낮은 OVR이 높은 OVR의 75% 이상이어야 하므로 ${positions[p.position]}에 집중합니다. 양쪽 능력을 키워 겸업에 다시 도전할 수 있습니다.`;
   return s;
 }
-export const developmentalBattingAtBatsRequired = 40;
+export const developmentalBattingThresholds = [
+  {atBats:30,homeRuns:7,hits:20,average:.270},
+  {atBats:40,homeRuns:5,hits:17,average:.250},
+  {atBats:50,homeRuns:3,hits:15,average:.225},
+] as const;
+export const developmentalBattingAtBatsRequired = developmentalBattingThresholds[0].atBats;
+export const developmentalPitchingThresholds = {
+  starter:[{innings:20,required:3,era:4},{innings:30,required:3,era:5},{innings:40,required:3,era:6}],
+  relief:[{innings:8,required:5,era:4},{innings:12,required:4,era:5},{innings:16,required:4,era:6}],
+  closer:[{innings:8,required:4,era:4},{innings:12,required:3,era:5},{innings:16,required:2,era:6}],
+} as const;
 export function developmentProgress(p: Player, year?:number,warContext?:ProWarContext) {
   const records = p.seasonByLevel?.second ?? emptyRecord(), b = records.batting, pitch = records.pitching;
-  const pitchingInningsRequired = pitchingRole(p) === "선발" ? 20 : 8;
-  const pitchingMilestone=pitchingRole(p)==='선발'?{key:'wins' as const,required:2,label:'승'}:pitchingRole(p)==='마무리'?{key:'saves' as const,required:3,label:'세이브'}:{key:'holds' as const,required:5,label:'홀드'};
+  const pitchingThresholds=developmentalPitchingThresholds[pitchingRole(p)==='선발'?'starter':pitchingRole(p)==='마무리'?'closer':'relief'];
+  const pitchingInningsRequired = pitchingThresholds[0].innings;
+  const pitchingMilestone=pitchingRole(p)==='선발'?{key:'wins' as const,required:pitchingThresholds[0].required,label:'승'}:pitchingRole(p)==='마무리'?{key:'saves' as const,required:pitchingThresholds[0].required,label:'세이브'}:{key:'holds' as const,required:pitchingThresholds[0].required,label:'홀드'};
   const pitchingMilestoneCount=records.games?.[pitchingMilestone.key]??0;
   const average=b.AB>0?b.H/b.AB:null;
   const battingMinimumMet = b.AB >= developmentalBattingAtBatsRequired;
-  const batting = battingMinimumMet && (b.HR >= 5 || b.H >= 20 || average!==null&&average>=.25);
-  const pitching = pitch.outs >= pitchingInningsRequired * 3 && pitch.BF > 0 && pitch.ER * 27 / pitch.outs <= 6 && pitchingMilestoneCount>=pitchingMilestone.required;
+  const batting = developmentalBattingThresholds.some(rule=>b.AB>=rule.atBats&&(b.HR>=rule.homeRuns||b.H>=rule.hits||average!==null&&average>=rule.average));
+  const pitchingERA = pitch.outs>0?pitch.ER*27/pitch.outs:null;
+  const pitching = pitch.BF>0&&pitchingThresholds.some(rule=>pitch.outs>=rule.innings*3&&pitchingERA!==null&&pitchingERA<=rule.era&&pitchingMilestoneCount>=rule.required);
   const allstar=year!==undefined&&!!p.professional?.allstarHistory?.some(row=>row.year===year&&row.level==='second');
   const selectionGrade=rosterGrade(selectionScore(p),true),rating=['S','A','B','C'].includes(selectionGrade);
   const warWins=proWarAssessment(p,warContext).equivalentWins,war=warWins>=1.5;
   const minimumSample = isPitcher(p.primaryRole) || battingMinimumMet || !!p.twoWay && pitching;
   const qualified = minimumSample && (allstar || rating || war || (p.twoWay ? batting || pitching : isPitcher(p.primaryRole) ? pitching : batting));
-  return {qualified,minimumSample,battingAtBatsRequired:developmentalBattingAtBatsRequired,allstar,rating,selectionGrade,war,warWins,batting,pitching,PA:b.PA,AB:b.AB,H:b.H,HR:b.HR,average,outs:pitch.outs,pitchingInningsRequired,pitchingMilestone,pitchingMilestoneCount};
+  return {qualified,minimumSample,battingAtBatsRequired:developmentalBattingAtBatsRequired,battingThresholds:developmentalBattingThresholds,allstar,rating,selectionGrade,war,warWins,batting,pitching,PA:b.PA,AB:b.AB,H:b.H,HR:b.HR,average,outs:pitch.outs,pitchingERA,pitchingThresholds,pitchingInningsRequired,pitchingMilestone,pitchingMilestoneCount};
 }
 export function reviewDevelopmentContract(s: GameState) {
   if(s.careerMode!=='pro'||(s.proWorld?!s.proWorld.seasonClosed:s.phase!=='ended'))return false;
