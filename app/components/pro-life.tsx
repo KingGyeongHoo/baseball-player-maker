@@ -44,9 +44,10 @@ function Panel({ title, action, children }: { title: ReactNode; action?: ReactNo
 export function DevelopmentContract({player,state}:{player:Player;state:GameState}) {
   if (player.proContract?.status!=="developmental") return null;
   const progress=developmentProgress(player,state.calendar.seasonYear,createProWarContext(state));
+  const conversionStatus=progress.minimumSample?" · 시즌 종료 시 전환 대상":" · 최소 출전 미달";
   return <section className="development-contract-note" aria-label="선수 등록 상태"><div><b>신고선수 · 성장 90%</b>
     <p>출전 경쟁에서 불리하며, 정식 전환 후 1군 승격이 가능합니다.</p></div>
-    <div className="development-contract-progress"><p>{progress.war?`WAR ${progress.warWins.toFixed(2)} · 시즌 종료 시 전환 대상`:"WAR 1.5 이상"}</p><p>{progress.rating?`출전평가 ${progress.selectionGrade} · 시즌 종료 시 전환 대상`:"시즌 종료 시 심사 · 출전평가 C 이상"}</p><p>{progress.allstar?"2군 올스타 · 시즌 종료 시 전환 대상":"2군 올스타 공식 선정"}</p>{!progress.allstar&&(player.twoWay||!["SP","RP","CP"].includes(player.position))&&<p>타자 {progress.PA}/80타석 또는 {progress.HR}/5홈런 또는 {progress.H}/20안타 또는 타율 {progress.average===null?"—":progress.average.toFixed(3).replace(/^0/,"")}/.250</p>}
+    <div className="development-contract-progress"><p>{progress.war?`WAR ${progress.warWins.toFixed(2)}${conversionStatus}`:"WAR 1.5 이상"}</p><p>{progress.rating?`출전평가 ${progress.selectionGrade}${conversionStatus}`:"시즌 종료 시 심사 · 출전평가 C 이상"}</p><p>{progress.allstar?`2군 올스타${conversionStatus}`:"2군 올스타 공식 선정"}</p>{(player.twoWay||!["SP","RP","CP"].includes(player.position))&&<p>타자 최소 {progress.AB}/{progress.battingAtBatsRequired}타수 이상 · {progress.HR}/5홈런 또는 {progress.H}/20안타 또는 타율 {progress.average===null?"—":progress.average.toFixed(3).replace(/^0/,"")}/.250</p>}
       {!progress.allstar&&(player.twoWay||["SP","RP","CP"].includes(player.position))&&<p>{progress.pitchingMilestone.key==='wins'?"선발":progress.pitchingMilestone.key==='saves'?"마무리":"중간계투"} {formatInnings(progress.outs)}/{progress.pitchingInningsRequired}.0이닝 · {progress.pitchingMilestoneCount}/{progress.pitchingMilestone.required}{progress.pitchingMilestone.label} · 평균자책점 6.00 이하</p>}
       {!progress.allstar&&player.twoWay&&<p>투수·타자 중 한 조건 달성 시 전환</p>}</div>
   </section>;

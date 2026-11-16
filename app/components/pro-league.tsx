@@ -4,8 +4,7 @@ import {careerLeagueTable} from "../../lib/sim/pro-calendar";
 import {formatInnings} from "../../lib/player-records";
 import {leagueLeaders,type LeaderField,type LeaderMetric} from "../../lib/league-leaders";
 import type {GameState} from "../../lib/sim/types";
-import FarmPostseasonBracket from './farm-postseason-bracket';
-import PostseasonBracket from "./postseason-bracket";
+import PostseasonView from "./postseason-view";
 
 function metricText(value:number,metric:LeaderMetric){
   if(metric.format==="innings")return formatInnings(value);
@@ -24,7 +23,7 @@ export default function ProLeague({state,onRecords}:{state:GameState;onRecords:(
   const boards=useMemo(()=>leagueLeaders(state,id,field),[state,id,field]);
   return <div className="pro-league">
     <div className="section-intro"><div><span className="eyebrow">LEAGUE LEADERS</span><h1>{state.calendar.seasonYear} 리그</h1><p>팀 순위와 개인 기록 TOP 10</p></div></div>
-    {id==="pro-second"?<FarmPostseasonBracket state={state}/>:<PostseasonBracket state={state}/>}
+    <PostseasonView state={state} initialLevel={id==="pro-second"?"second":"first"}/>
     <div className="segmented pro-level-filter" aria-label="리그 선택">{(pro?[["pro-first","1군"],["pro-second","2군"]]:[["college","대학"]]).map(([key,label])=><button key={key} className={id===key?"selected":""} aria-pressed={id===key} onClick={()=>setLevel(key)}>{label}</button>)}</div>
     <section className="panel"><div className="panel-heading"><h2>{pro?id==="pro-first"?"1군 팀 순위":"2군 팀 순위":"팀 순위"}</h2></div>
       <div className="table-scroll"><table><thead><tr>{["순위","팀","경기","승","패","무","승률","게임차"].map(t=><th key={t}>{t}</th>)}</tr></thead><tbody>{table.map(row=><tr key={row.teamId} className={row.teamId===mine.teamId?"my-player-row":""}><td>{row.rank}{row.tiePending?"T":""}</td><td>{state.teams[row.teamId]?.name}</td><td>{row.played}</td><td>{row.wins}</td><td>{row.losses}</td><td>{row.draws}</td><td>{row.wins+row.losses?row.percentage.toFixed(3):"—"}</td><td>{row.gamesBehind.toFixed(1)}</td></tr>)}</tbody></table></div>

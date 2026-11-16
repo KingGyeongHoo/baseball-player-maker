@@ -253,12 +253,12 @@ test("the first three pro seasons never enter the renewal average; poor cumulati
       assert.equal(a.seasonExit(p, 2028 + i), null);
     }
     for (let i = 0; i < count; i++) {
-      season(s, 2031 + i, 71, { ability: 71 + growth * i, firstGames: 21 });
-      assert.equal(a.renewalAssessment(p, 2031 + i).grade, "E");
+      season(s, 2031 + i, 65, { ability: 65 + growth * i, firstGames: 21 });
+      assert.equal(a.renewalAssessment(p, 2031 + i).grade, "F");
       assert.equal(!!a.seasonExit(p, 2031 + i), i === count - 1);
     }
     assert.equal(a.seasonExit(p, 2030 + count).kind, "post-rookie-evaluation");
-    assert.ok(a.assessmentValue(p, 2030 + count).cumulative > 71);
+    assert.ok(a.assessmentValue(p, 2030 + count).cumulative > 65);
   }
 });
 test("low early ratings do not poison the post-rookie average, and cumulative recovery breaks the low-rating spell", () => {
@@ -276,6 +276,18 @@ test("low early ratings do not poison the post-rookie average, and cumulative re
   season(s, 2034, 100, { firstGames: 21 });
   assert.equal(a.renewalAssessment(p, 2034).grade, "C");
   assert.equal(a.seasonExit(p, 2034), null);
+});
+
+test("E ratings do not cause low-evaluation release and recovery to E resets an F streak",()=>{
+ const s=fixture(),p=e.getPlayer(s);p.age=35;p.professional.rookieYear=2020;
+ for(let year=2028;year<=2033;year++){
+  season(s,year,71,{firstGames:21});assert.equal(a.renewalAssessment(p,year).grade,'E');assert.equal(a.seasonExit(p,year),null);
+ }
+ const recovered=fixture(),q=e.getPlayer(recovered);q.age=35;q.professional.rookieYear=2020;
+ for(const year of [2028,2029]){season(recovered,year,60,{firstGames:21});assert.equal(a.seasonExit(q,year),null);}
+ season(recovered,2030,93,{firstGames:21});assert.equal(a.renewalAssessment(q,2030).grade,'E');assert.equal(a.seasonExit(q,2030),null);
+ for(const year of [2031,2032]){season(recovered,year,60,{firstGames:21});assert.equal(a.renewalAssessment(q,year).grade,'F');assert.equal(a.seasonExit(q,year),null);}
+ season(recovered,2033,60,{firstGames:21});assert.equal(a.seasonExit(q,2033).kind,'post-rookie-evaluation');assert.match(a.seasonExit(q,2033).reason,/F가/);
 });
 test("missing, unknown and fully injured seasons cannot fabricate a release spell", () => {
   const s = fixture(),
@@ -564,8 +576,8 @@ test('renewal refusal uses only the new club cumulative evaluation while salary 
 });
 test('low evaluation years accumulate afresh after a transfer and eventually trigger a new refusal',()=>{
  const s=fixture(),p=e.getPlayer(s);p.age=34;p.professional.rookieYear=2020;
- for(const year of [2028,2029])season(s,year,71,{firstGames:40});joinFreshClub(s);
- for(const year of [2030,2031,2032]){season(s,year,71,{firstGames:40});p.teamId=11;assert.equal(a.seasonExit(p,year)?.kind??null,year===2032?'post-rookie-evaluation':null);}
+ for(const year of [2028,2029])season(s,year,65,{firstGames:40});joinFreshClub(s);
+ for(const year of [2030,2031,2032]){season(s,year,65,{firstGames:40});p.teamId=11;assert.equal(a.seasonExit(p,year)?.kind??null,year===2032?'post-rookie-evaluation':null);}
 });
 test('same-club renewals and FA retention cannot reset refusal streaks; returning after another club starts a new stint',()=>{
  for(const kind of ['renewal','fa']){

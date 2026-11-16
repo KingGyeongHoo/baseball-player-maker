@@ -461,12 +461,12 @@ export function seasonExit(
   const low = streak(
     (row) =>
       row.year >= pro.rookieYear + rules.rookieGraceSeasons &&
-      ["E", "F"].includes(renewalAssessment(p, row.year).grade),
+      renewalAssessment(p, row.year).grade === "F",
   );
   return low >= duration
     ? {
         kind: "post-rookie-evaluation",
-        reason: `최초 프로 ${rules.rookieGraceSeasons}시즌을 제외한 누적 시즌평가 E 이하가 ${low}개 평가 시즌 이어졌습니다. (${duration}년 기준)`,
+        reason: `최초 프로 ${rules.rookieGraceSeasons}시즌을 제외한 누적 시즌평가 F가 ${low}개 평가 시즌 이어졌습니다. (${duration}년 기준)`,
       }
     : null;
 }

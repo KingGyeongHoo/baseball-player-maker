@@ -20,9 +20,9 @@ for(const [position,key,required,outs,er] of [['SP','wins',2,63,14],['RP','holds
 });
 
 
-test('current official farm All-Star selections qualify every role without requiring another performance milestone',()=>{
+test('current official farm All-Star selections qualify after the hitter minimum without another performance milestone',()=>{
  for(const method of ['vote','manager','replacement'])for(const position of ['SS','SP','RP','CP']){
-  const s=fixture(),p=e.getPlayer(s);e.assignRole(p,e.roleFor(position));p.position=position;p.teamId=p.teamId%10+10;p.seasonByLevel.second=e.emptyRecord();
+  const s=fixture(),p=e.getPlayer(s);e.assignRole(p,e.roleFor(position));p.position=position;p.teamId=p.teamId%10+10;p.seasonByLevel.second=e.emptyRecord();if(position==='SS')Object.assign(p.seasonByLevel.second.batting,{PA:40,AB:40});
   p.professional.allstarHistory=[{year:s.calendar.seasonYear,level:'second',side:'blue',slot:position,method}];
   assert.equal(pc.developmentProgress(p,s.calendar.seasonYear).allstar,true);assert.equal(pc.developmentProgress(p).qualified,false);
   const before=structuredClone(p.seasonByLevel),segments=p.professional.contract.segments.length;
@@ -32,6 +32,7 @@ test('current official farm All-Star selections qualify every role without requi
 });
 test('old selections and nominations cannot convert this year, while withdrawing after official selection does not revoke qualification',()=>{
  const s=fixture(),p=e.getPlayer(s);p.seasonByLevel.second=e.emptyRecord();
+ Object.assign(p.seasonByLevel.second.batting,{PA:40,AB:40});
  p.professional.allstarHistory=[{year:s.calendar.seasonYear-1,level:'second',side:'blue',slot:'SS',method:'vote'}];
  assert.equal(pc.reviewDevelopmentContract(s),false);
  p.professional.allstarHistory=[];assert.equal(pc.reviewDevelopmentContract(s),false);
@@ -39,7 +40,7 @@ test('old selections and nominations cannot convert this year, while withdrawing
  assert.equal(pc.reviewDevelopmentContract(s),true);assert.equal(p.proContract.status,'regular');
 });
 test('an existing saved farm All-Star converts at season-end review and retains its conversion after saving again',()=>{
- const save=require('../.test-build/lib/career-save.js'),s=fixture(),p=e.getPlayer(s);p.seasonByLevel.second=e.emptyRecord();p.teamId=p.teamId%10+10;
+ const save=require('../.test-build/lib/career-save.js'),s=fixture(),p=e.getPlayer(s);p.seasonByLevel.second=e.emptyRecord();Object.assign(p.seasonByLevel.second.batting,{PA:40,AB:40});p.teamId=p.teamId%10+10;
  p.professional.allstarHistory=[{year:s.calendar.seasonYear,level:'second',side:'blue',slot:'SS',method:'vote'}];
  const original=structuredClone(s),restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
  assert.deepEqual(s,original);assert.equal(pc.reviewDevelopmentContract(restored),true);
@@ -48,16 +49,22 @@ test('an existing saved farm All-Star converts at season-end review and retains 
 });
 
 
-test('batting conversion accepts each requested threshold without an OPS or shared plate-appearance gate',()=>{
+test('batting conversion requires forty at-bats before any performance threshold',()=>{
  const s=fixture(),p=e.getPlayer(s);for(const key of Object.keys(p.stats))p.stats[key]=50;
  const cases=[
   [{PA:79,AB:79,H:19,HR:4},false],
-  [{PA:80,AB:80,H:0,HR:0},true],
-  [{PA:30,AB:30,H:5,HR:5},true],
+  [{PA:80,AB:80,H:0,HR:0},false],
+  [{PA:30,AB:30,H:5,HR:5},false],
+  [{PA:39,AB:39,H:20,HR:5},false],
+  [{PA:40,AB:40,H:5,HR:5},true],
+  [{PA:81,AB:81,H:20,HR:0},true],
+  [{PA:80,AB:39,H:0,HR:0},false],
+  [{PA:41,AB:41,H:15,HR:2},true],
+  [{PA:10,AB:10,H:100,HR:100},false],
   [{PA:79,AB:79,H:20,HR:0},true],
   [{PA:40,AB:40,H:10,HR:0},true],
   [{PA:40,AB:40,H:9,HR:0},false],
-  [{PA:1,AB:1,H:1,HR:0},true],
+  [{PA:1,AB:1,H:1,HR:0},false],
   [{PA:0,AB:0,H:0,HR:0},false],
  ];
  for(const [batting,expected] of cases){
@@ -67,14 +74,32 @@ test('batting conversion accepts each requested threshold without an OPS or shar
  p.seasonByLevel.second=e.emptyRecord();p.seasonByLevel.first.batting.PA=100;p.seasonStats.batting.PA=100;
  assert.equal(pc.developmentProgress(p).qualified,false,'first-team and school totals cannot satisfy farm-record thresholds');
 });
-test('the displayed C grade independently qualifies hitters and pitchers, including the rounding boundary and developmental deduction',()=>{
+test('hitter minimum cannot be bypassed by All-Star selection, rating or WAR',()=>{
+ for(const route of ['allstar','rating','war']){
+  const s=fixture(),p=e.getPlayer(s);p.seasonByLevel.second=e.emptyRecord();Object.assign(p.seasonByLevel.second.batting,{PA:39,AB:39});
+  if(route==='allstar')p.professional.allstarHistory=[{year:s.calendar.seasonYear,level:'second',side:'blue',slot:'SS',method:'vote'}];
+  if(route==='rating')for(const key of Object.keys(p.stats))p.stats[key]=99;
+  if(route==='war')Object.assign(p.seasonByLevel.first.batting,{PA:600,AB:600,H:300,HR:100});
+  let progress=pc.developmentProgress(p,s.calendar.seasonYear);assert.equal(progress[route],true,route);assert.equal(progress.minimumSample,false);assert.equal(progress.qualified,false);
+  assert.equal(pc.reviewDevelopmentContract(s),false);assert.equal(p.proContract.status,'developmental');
+  p.seasonByLevel.second.batting.PA=p.seasonByLevel.second.batting.AB=40;
+  progress=pc.developmentProgress(p,s.calendar.seasonYear);assert.equal(progress.minimumSample,true);assert.equal(progress.qualified,true,route);
+ }
+});
+
+test('the displayed C grade qualifies after the hitter minimum, including the rounding boundary and developmental deduction',()=>{
  for(const position of ['SS','SP','RP','CP']){
   const s=fixture(),p=e.getPlayer(s);e.assignRole(p,e.roleFor(position));p.position=position;p.throws='R';p.recentZ=0;p.fatigue=0;
   p.professional.awardBonuses=[];p.professional.nationalBonus=0;delete p.professional.managedUntil;p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};p.seasonSpring=e.emptyRecord();
   for(const key of Object.keys(p.stats))p.stats[key]=80.94;
   let progress=pc.developmentProgress(p,s.calendar.seasonYear);assert.equal(progress.selectionGrade,'D');assert.equal(progress.rating,false);assert.equal(progress.qualified,false);
   for(const key of Object.keys(p.stats))p.stats[key]=80.96;
-  progress=pc.developmentProgress(p,s.calendar.seasonYear);assert.equal(progress.selectionGrade,'C');assert.equal(progress.rating,true);assert.equal(progress.qualified,true);assert.equal(progress.batting,false);assert.equal(progress.pitching,false);
+  progress=pc.developmentProgress(p,s.calendar.seasonYear);assert.equal(progress.selectionGrade,'C');assert.equal(progress.rating,true);assert.equal(progress.qualified,position!=='SS');assert.equal(progress.batting,false);assert.equal(progress.pitching,false);
+  if(position==='SS'){
+   for(const key of Object.keys(p.stats))p.stats[key]=99;
+   Object.assign(p.seasonByLevel.second.batting,{PA:40,AB:40});
+   assert.equal(pc.developmentProgress(p,s.calendar.seasonYear).qualified,true);
+  }
   const before=structuredClone(p.stats),team=p.teamId;assert.equal(pc.reviewDevelopmentContract(s),true);assert.equal(p.proContract.status,'regular');assert.ok(p.teamId>=10);assert.equal(p.teamId%10,team%10);assert.deepEqual(p.stats,before);
  }
 });
@@ -91,8 +116,9 @@ test('WAR independently qualifies at 1.5 wins using the same farm and relief adj
 test('every qualification route waits for season-end review',()=>{
  for(const route of ['batting','rating','allstar']){
   const s=fixture(),p=e.getPlayer(s);s.proWorld.seasonClosed=false;s.proWorld.stage='regular';p.seasonByLevel.second=e.emptyRecord();
+  Object.assign(p.seasonByLevel.second.batting,{PA:40,AB:40});
   if(route==='batting')Object.assign(p.seasonByLevel.second.batting,{PA:40,AB:40,H:10});
-  if(route==='rating')for(const key of Object.keys(p.stats))p.stats[key]=85;
+  if(route==='rating')for(const key of Object.keys(p.stats))p.stats[key]=99;
   if(route==='allstar')p.professional.allstarHistory=[{year:s.calendar.seasonYear,level:'second',side:'blue',slot:'SS',method:'vote'}];
   assert.equal(pc.developmentProgress(p,s.calendar.seasonYear)[route],true);
   const before=structuredClone(p);assert.equal(pc.reviewDevelopmentContract(s),false);assert.deepEqual(p,before);

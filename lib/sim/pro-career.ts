@@ -121,19 +121,22 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   if(p.professional?.twoWayHistory?.some(row=>row.action==="단일 역할 입단"))s.careerNotice!.message+=` 프로 겸업은 낮은 OVR이 높은 OVR의 75% 이상이어야 하므로 ${positions[p.position]}에 집중합니다. 양쪽 능력을 키워 겸업에 다시 도전할 수 있습니다.`;
   return s;
 }
+export const developmentalBattingAtBatsRequired = 40;
 export function developmentProgress(p: Player, year?:number,warContext?:ProWarContext) {
   const records = p.seasonByLevel?.second ?? emptyRecord(), b = records.batting, pitch = records.pitching;
   const pitchingInningsRequired = pitchingRole(p) === "선발" ? 20 : 8;
   const pitchingMilestone=pitchingRole(p)==='선발'?{key:'wins' as const,required:2,label:'승'}:pitchingRole(p)==='마무리'?{key:'saves' as const,required:3,label:'세이브'}:{key:'holds' as const,required:5,label:'홀드'};
   const pitchingMilestoneCount=records.games?.[pitchingMilestone.key]??0;
   const average=b.AB>0?b.H/b.AB:null;
-  const batting = b.PA >= 80 || b.HR >= 5 || b.H >= 20 || average!==null&&average>=.25;
+  const battingMinimumMet = b.AB >= developmentalBattingAtBatsRequired;
+  const batting = battingMinimumMet && (b.HR >= 5 || b.H >= 20 || average!==null&&average>=.25);
   const pitching = pitch.outs >= pitchingInningsRequired * 3 && pitch.BF > 0 && pitch.ER * 27 / pitch.outs <= 6 && pitchingMilestoneCount>=pitchingMilestone.required;
   const allstar=year!==undefined&&!!p.professional?.allstarHistory?.some(row=>row.year===year&&row.level==='second');
   const selectionGrade=rosterGrade(selectionScore(p),true),rating=['S','A','B','C'].includes(selectionGrade);
   const warWins=proWarAssessment(p,warContext).equivalentWins,war=warWins>=1.5;
-  const qualified = allstar || rating || war || (p.twoWay ? batting || pitching : isPitcher(p.primaryRole) ? pitching : batting);
-  return {qualified,allstar,rating,selectionGrade,war,warWins,batting,pitching,PA:b.PA,AB:b.AB,H:b.H,HR:b.HR,average,outs:pitch.outs,pitchingInningsRequired,pitchingMilestone,pitchingMilestoneCount};
+  const minimumSample = isPitcher(p.primaryRole) || battingMinimumMet || !!p.twoWay && pitching;
+  const qualified = minimumSample && (allstar || rating || war || (p.twoWay ? batting || pitching : isPitcher(p.primaryRole) ? pitching : batting));
+  return {qualified,minimumSample,battingAtBatsRequired:developmentalBattingAtBatsRequired,allstar,rating,selectionGrade,war,warWins,batting,pitching,PA:b.PA,AB:b.AB,H:b.H,HR:b.HR,average,outs:pitch.outs,pitchingInningsRequired,pitchingMilestone,pitchingMilestoneCount};
 }
 export function reviewDevelopmentContract(s: GameState) {
   if(s.careerMode!=='pro'||(s.proWorld?!s.proWorld.seasonClosed:s.phase!=='ended'))return false;

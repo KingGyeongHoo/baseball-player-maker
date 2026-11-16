@@ -236,11 +236,10 @@ export function prepareOffseason(s:GameState){
   for(const club of w.clubs){const rank=w.seasons.at(-1)?.standings.findIndex(r=>r.teamId===club.id)??5;club.direction=rank<3?"contend":rank>6?"rebuild":"balanced";}
   for(const p of [...s.players])if(p.id!==s.playerId&&p.professional&&canRemove(s,p)&&((p.age??19)>=42||(p.age??19)>=37&&contractValue(p,w.year)<44||p.professional.unattachedYears>=2))retireNPC(s,p,"나이·최근 실적과 다음 계약을 고려했습니다.");
   discardRetiredPlayers(s);addRookieClass(s,year);applySeasonExitPolicies(s);openContractMarket(s);if(w.retired)return;processStoveRound(s);if(w.retired)return;w.stage="offseason";
-  proNews(s,"스토브리그 개장 · 11~12월 매주 FA 제안·방출·트레이드를 검토합니다.",`${year}:stove-open`);
   presentAwardsCeremony(s);
 }
 function processStoveRound(s:GameState){
-  const w=s.proWorld!,stove=w.stove!,before=new Set(w.news.map(row=>row.id));
+  const w=s.proWorld!,stove=w.stove!;
   reviewStoveReleases(s,stove.year);renewNPCs(s,stove.year,stove.closed?9:stove.round);
   // The player's offers get priority over NPC free-agent signings in this
   // round. An offer is revalidated on acceptance against actual capacity.
@@ -250,7 +249,6 @@ function processStoveRound(s:GameState){
   reviewNPCTrades(s,stove.round);
   if(w.market&&!w.market.settled)refreshOffers(s);
   if(w.retired)return;
-  proNews(s,`스토브리그 ${stove.round+1}차 · 구단 소식 ${w.news.filter(row=>!before.has(row.id)).length}건 · ${stove.closed?"시장 마감, 1월 계약 마무리":"다음 주 제안과 전력 재편을 기다립니다."}`,`${stove.year}:stove:${stove.round}`);
 }
 export function advanceStoveLeague(s:GameState){
   prepareOffseason(s);const w=s.proWorld!,stove=w.stove!;

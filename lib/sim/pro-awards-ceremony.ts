@@ -55,7 +55,7 @@ export function presentAwardsCeremony(s:GameState){
   if(!season||!ceremony||ceremony.presentedAt||s.date<ceremony.scheduledAt)return false;
   const beforeScore=selectionScore(getPlayer(s));ceremony.presentedAt=s.date;
   syncAwardBonuses(s);
-  proNotice(s,`awards:${season.year}`,`${season.year} 골든글러브 시상식`,"한 시즌을 빛낸 포지션별 최고의 선수와 시즌 MVP·신인왕을 발표합니다. 1군 정규시즌 기록만으로 선정했습니다. 출전평가 보상: MVP +3 · 골든글러브 +2 · 신인왕 +2 (수상 보상 합계 최대 +10).");
+  proNotice(s,`awards:${season.year}`,`${season.year} 골든글러브 시상식`,"한 시즌을 빛낸 포지션별 최고의 선수와 시즌 MVP·신인왕을 발표합니다.");
   queuePersonalAwardNotices(s,season.year,beforeScore);
   return true;
 }

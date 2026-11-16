@@ -131,7 +131,7 @@ test('immediate camp entry processes exactly the same remaining stove transactio
 
 test('ongoing multi-year contracts can enter camp directly before opening the market and after restoring a partial winter',()=>{
  const s=fixture(),p=e.getPlayer(s),year=s.proWorld.year+1;p.professional.contract.endYear=year+1;const contract=structuredClone(p.professional.contract);
- const next=life.actOnProCareer(s,{type:'nextSeason'});assert.equal(next.date,`${year}-02-01`);assert.deepEqual(e.getPlayer(next).professional.contract,contract);assert.ok(next.proWorld.news.some(row=>row.id===`${year}:stove:9`));assert.equal(next.proWorld.draftedYears.filter(y=>y===year).length,1);
+ const next=life.actOnProCareer(s,{type:'nextSeason'});assert.equal(next.date,`${year}-02-01`);assert.deepEqual(e.getPlayer(next).professional.contract,contract);assert.ok(!next.proWorld.news.some(row=>/^\d+:stove(?::\d+|-open)$/.test(row.id)));assert.equal(next.proWorld.draftedYears.filter(y=>y===year).length,1);
  let partial=clear(life.actOnProCareer(s,{type:'market'}));partial=clear(life.actOnProCareer(partial,{type:'wait'}));partial=clear(life.actOnProCareer(partial,{type:'wait'}));
  const restored=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(partial))).state;
  const resumed=life.actOnProCareer(restored,{type:'nextSeason'});assert.equal(resumed.date,next.date);assert.deepEqual(resumed.proWorld.news,next.proWorld.news);assert.deepEqual(e.getPlayer(resumed).professional.contract,contract);assert.equal(new Set(resumed.players.map(p=>p.id)).size,resumed.players.length);

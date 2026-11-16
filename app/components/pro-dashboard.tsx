@@ -6,8 +6,7 @@ import type {GameState} from "../../lib/sim/types";
 import CareerDashboard from "./career-dashboard";
 import PlayerAbilities from "./player-abilities";
 import {salaryText} from "./pro-career-panels";
-import PostseasonBracket from "./postseason-bracket";
-import FarmPostseasonBracket from './farm-postseason-bracket';
+import PostseasonView from "./postseason-view";
 import {farmPostseasonActive} from '../../lib/sim/pro-farm-postseason';
 import {squadLabel} from "../../lib/sim/pro-squads";
 import {allstarDates} from "../../lib/sim/pro-allstar-calendar";
@@ -43,7 +42,7 @@ export default function ProDashboard({state,onTab,onTraining,trainingDisabled,re
     profileMeta={<>{state.teams[p.teamId]?.name??"무소속"} · {p.age??19}세{year?` · 프로 ${year}년차`:""}</>}
     profileBadge={<span className={`pro-registration-badge ${registration==="1군"?"first":""}`}>{registration}{p.proContract?.status==="developmental"?" · 신고":""}</span>}
     teamActionLabel="선수·로스터 ↗" scheduleActionLabel="리그 순위 ↗" records={records} schedule={<ProWeekSchedule state={state}/>} abilities={<PlayerAbilities player={p} detailsOnly/>}
-    summary={<>{p.teamId>=10?<FarmPostseasonBracket state={state}/>:<PostseasonBracket state={state}/>} {world&&<div className="pro-dashboard-summary" aria-label="프로 목표와 계약 요약">
+    summary={<><PostseasonView state={state} initialLevel={p.teamId>=10?"second":"first"}/> {world&&<div className="pro-dashboard-summary" aria-label="프로 목표와 계약 요약">
       <button type="button" onClick={()=>onTab("career")}><span>현재 목표 <small>목표 설정 ↗</small></span><b>{world.customGoal??world.goal}</b><em>{p.teamId>=10&&farmPostseasonActive(state)?'2군 포스트시즌':stages[world.stage]}</em></button>
       <button type="button" onClick={()=>onTab("career")}><span>계약 <small>계약 보기 ↗</small></span><b>{contract?salaryText(contract.salary):"무소속 · 새 기회 준비"}</b><em>{contract?`${contract.endYear}년까지 · 연봉`:"입단 제안 확인"}</em></button>
     </div>}{notice}</>}/></div>;
