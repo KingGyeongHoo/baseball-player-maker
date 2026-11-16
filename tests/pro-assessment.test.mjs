@@ -377,7 +377,7 @@ test("legacy saves reconstruct completed seasons only, prefer captured year-end 
   assert.equal(q.professional.assessments[0].source, "reconstructed");
   const frozen = structuredClone(q.professional.assessments);
   const upgraded = life.upgradeProfessionalState(decoded);
-  assert.equal(upgraded.proWorld.contractRulesVersion, 3);
+  assert.equal(upgraded.proWorld.contractRulesVersion, 4);
   assert.deepEqual(e.getPlayer(upgraded).professional.contract, signed);
   assert.deepEqual(e.getPlayer(upgraded).professional.assessments, frozen);
   assert.ok(upgraded.proWorld.market.offers.every((o) => o.salary < 1.1e9));
@@ -406,7 +406,7 @@ test("older cumulative-E refusal flags are removed and no longer require develop
   assert.equal(a.requiresDevelopmentalOffer(p, 2028), false);
   const upgraded = life.upgradeProfessionalState(s);
   assert.equal(e.getPlayer(upgraded).professional.nonRenewal, undefined);
-  assert.equal(upgraded.proWorld.contractRulesVersion, 3);
+  assert.equal(upgraded.proWorld.contractRulesVersion, 4);
 });
 test("first-team games count actual completed appearances, count two-way play once, and exclude postseason, farm, forfeits and registration", () => {
   const s = fixture(),
@@ -534,4 +534,46 @@ test("compact contract history keeps five requested columns without mutating rat
   assert.match(html, /85\.5<\/b><span class="player-grade grade-s" aria-label="누적 평가 등급 S">S<\/span>/);
   assert.match(html, /<td>71\.0<\/td>/);
   assert.deepEqual(p.professional.assessments, before);
+});
+
+
+function joinFreshClub(s,club=1,year=2030,kind='fa'){
+ const p=e.getPlayer(s);s.players=[p];for(const c of s.proWorld.clubs)c.budget=1e12;
+ m.signContract(s,p,{id:`fresh:${club}:${year}`,club,year,years:1,salary:50_000_000,role:'경쟁',kind,negotiated:false,final:true,competition:[]});
+ return p;
+}
+test('a new club restarts both reserve and first-team appearance streaks without deleting previous season evaluations',()=>{
+ for(const lower of [false,true]){
+  const s=fixture(),p=e.getPlayer(s);p.age=34;p.professional.rookieYear=2020;
+  for(const year of [2028,2029])season(s,year,80,{lower,firstGames:20});
+  const history=structuredClone(p.professional.assessments);joinFreshClub(s);
+  for(const year of [2030,2031]){season(s,year,80,{lower,firstGames:20});p.teamId=lower?21:11;assert.equal(a.seasonExit(p,year),null);}
+  assert.deepEqual(p.professional.assessments.slice(0,2),history);
+  const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state,q=e.getPlayer(restored);
+  assert.equal(a.seasonExit(q,2031),null);assert.equal(a.renewalAssessment(q,2031).seasons,2);
+  season(s,2032,80,{lower,firstGames:20});p.teamId=lower?21:11;
+  assert.equal(a.seasonExit(p,2032).kind,lower?'reserve':'limited-appearances');assert.equal(p.professional.assessments.length,5);
+ }
+});
+test('renewal refusal uses only the new club cumulative evaluation while salary and career averages retain all seasons',()=>{
+ const s=fixture(),p=e.getPlayer(s);p.age=34;p.professional.rookieYear=2020;
+ for(const year of [2028,2029])season(s,year,65,{firstGames:40});
+ const past=structuredClone(p.professional.assessments);joinFreshClub(s);season(s,2030,80,{firstGames:40});p.teamId=11;
+ assert.equal(a.renewalAssessment(p,2030).score,80);assert.equal(a.renewalAssessment(p,2030).seasons,1);assert.equal(a.seasonExit(p,2030),null);
+ close(a.assessmentValue(p,2030).cumulative,70);close(p.professional.assessments.at(-1).cumulative,70);assert.deepEqual(p.professional.assessments.slice(0,2),past);
+});
+test('low evaluation years accumulate afresh after a transfer and eventually trigger a new refusal',()=>{
+ const s=fixture(),p=e.getPlayer(s);p.age=34;p.professional.rookieYear=2020;
+ for(const year of [2028,2029])season(s,year,71,{firstGames:40});joinFreshClub(s);
+ for(const year of [2030,2031,2032]){season(s,year,71,{firstGames:40});p.teamId=11;assert.equal(a.seasonExit(p,year)?.kind??null,year===2032?'post-rookie-evaluation':null);}
+});
+test('same-club renewals and FA retention cannot reset refusal streaks; returning after another club starts a new stint',()=>{
+ for(const kind of ['renewal','fa']){
+  const s=fixture(),p=e.getPlayer(s);p.age=34;for(const year of [2028,2029])season(s,year,80,{firstGames:20});
+  joinFreshClub(s,p.professional.contract.club,2030,kind);season(s,2030,80,{firstGames:20});assert.equal(a.seasonExit(p,2030).kind,'limited-appearances');assert.equal(p.professional.service.length,1);
+ }
+ const s=fixture(),p=e.getPlayer(s),originalClub=p.professional.contract.club;p.professional.rookieYear=2020;
+ for(const year of [2028,2029])season(s,year,65,{firstGames:40});joinFreshClub(s,1,2030);
+ for(const year of [2030,2031]){season(s,year,71,{firstGames:40});p.teamId=11;}
+ joinFreshClub(s,originalClub,2032);season(s,2032,80,{firstGames:40});assert.equal(a.renewalAssessment(p,2032).score,80);assert.equal(a.renewalAssessment(p,2032).seasons,1);assert.equal(p.professional.assessments.length,5);
 });

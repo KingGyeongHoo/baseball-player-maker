@@ -4,7 +4,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js'),life=require('../.test-build/lib/sim/pro-season.js'),assessment=require('../.test-build/lib/sim/pro-assessment.js'),squads=require('../.test-build/lib/sim/pro-squads.js');
 const market=require('../.test-build/lib/sim/pro-market.js');
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('conversion-regression','정식전환','SS'));
-function fixture(){const s=structuredClone(template),p=e.getPlayer(s),year=s.calendar.seasonYear;s.date=year+'-07-01';s.careerNotice=null;s.noticeQueue=[];s.proWorld.stage='regular';p.teamId=p.professional.contract.club+30;p.proContract={status:'developmental',joinedDate:year+'-02-01'};s.postSchool.pro.level='developmental';s.proWorld.goal='정식 선수 전환';p.professional.employment='active';p.professional.contract.salary=30_000_000;p.professional.assessments=[];p.professional.assessmentUsage={year,activeDays:80,lowerDays:80,upperDays:0};p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};Object.assign(p.seasonByLevel.second.batting,{PA:80,AB:70,H:30,BB:10});return s;}
+function fixture(){const s=structuredClone(template),p=e.getPlayer(s),year=s.calendar.seasonYear;s.date=year+'-07-01';s.careerNotice=null;s.noticeQueue=[];s.proWorld.stage='summary';s.proWorld.seasonClosed=true;p.teamId=p.professional.contract.club+30;p.proContract={status:'developmental',joinedDate:year+'-02-01'};s.postSchool.pro.level='developmental';s.proWorld.goal='정식 선수 전환';p.professional.employment='active';p.professional.contract.salary=30_000_000;p.professional.contract.segments=[{from:year+'-02-01',salary:30_000_000}];for(const key of Object.keys(p.stats))p.stats[key]=50;p.professional.assessments=[];p.professional.assessmentUsage={year,activeDays:80,lowerDays:80,upperDays:0};p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};Object.assign(p.seasonByLevel.second.batting,{PA:80,AB:70,H:30,BB:10});return s;}
 function history(s){const p=e.getPlayer(s),year=s.calendar.seasonYear;for(let y=year-2;y<=year;y++)p.professional.assessments.push({year:y,date:y+'-10-31',salary:50_000_000,score:70,grade:'C',ability:70,role:p.primaryRole,squad:'developmental',developmental:y!==year,reserveSeason:true,firstTeam:false,secondOnly:false,firstGames:0,cumulative:70,cumulativeGrade:'C',source:'season-end'});}
 test('conversion synchronizes registration, salary, goal and assessment without granting a first-team place',()=>{const s=fixture(),p=e.getPlayer(s),club=p.teamId%10,before=structuredClone(p.seasonByLevel),salary=p.professional.contract.segments.length;assert.equal(pc.reviewDevelopmentContract(s),true);assert.equal(p.proContract.status,'regular');assert.equal(p.proContract.convertedDate,s.date);assert.equal(p.teamId,club+20);assert.equal(s.postSchool.pro.level,'third');assert.equal(s.proWorld.goal,'1군 승격');assert.equal(p.professional.contract.salary,50_000_000);assert.equal(p.professional.contract.segments.length,salary+1);assert.deepEqual(p.seasonByLevel,before);assert.equal(assessment.recordSeasonAssessment(s,p).reserveSeason,false);assert.equal(pc.reviewDevelopmentContract(s),false);assert.equal(p.professional.contract.segments.length,salary+1);});
 test('a second-team conversion keeps its second-team registration and includes NPC conversions',()=>{const s=fixture(),p=e.getPlayer(s);p.teamId=p.teamId%10+10;const npc=structuredClone(p);npc.id='conversion-npc';npc.teamId=npc.teamId%10+30;s.players.push(npc);pc.reviewDevelopmentContract(s);assert.equal(s.postSchool.pro.level,'second');assert.equal(p.teamId<20,true);assert.equal(npc.proContract.status,'regular');assert.equal(npc.teamId>=20&&npc.teamId<30,true);});
@@ -17,4 +17,111 @@ for(const [position,key,required,outs,er] of [['SP','wins',2,63,14],['RP','holds
   const s=fixture(),p=e.getPlayer(s);e.assignRole(p,e.roleFor(position));p.seasonByLevel.second=e.emptyRecord();const r=p.seasonByLevel.second;Object.assign(r.pitching,{outs,BF:100,ER:er,SO:0});r.games={[key]:required};
   assert.equal(pc.developmentProgress(p).pitching,true);r.games[key]--;assert.equal(pc.developmentProgress(p).pitching,false);r.games[key]++;r.pitching.ER++;assert.equal(pc.developmentProgress(p).pitching,false);r.pitching.ER=0;r.pitching.outs=position==='SP'?59:23;assert.equal(pc.developmentProgress(p).pitching,false);
   r.pitching.outs=outs;delete r.games;assert.equal(pc.developmentProgress(p).pitching,false,'missing legacy counters do not manufacture a win, hold or save');
+});
+
+
+test('current official farm All-Star selections qualify every role without requiring another performance milestone',()=>{
+ for(const method of ['vote','manager','replacement'])for(const position of ['SS','SP','RP','CP']){
+  const s=fixture(),p=e.getPlayer(s);e.assignRole(p,e.roleFor(position));p.position=position;p.teamId=p.teamId%10+10;p.seasonByLevel.second=e.emptyRecord();
+  p.professional.allstarHistory=[{year:s.calendar.seasonYear,level:'second',side:'blue',slot:position,method}];
+  assert.equal(pc.developmentProgress(p,s.calendar.seasonYear).allstar,true);assert.equal(pc.developmentProgress(p).qualified,false);
+  const before=structuredClone(p.seasonByLevel),segments=p.professional.contract.segments.length;
+  assert.equal(pc.reviewDevelopmentContract(s),true);assert.equal(p.proContract.status,'regular');assert.equal(p.teamId%10+10,p.teamId);assert.equal(s.careerNotice.kind,'registered');assert.equal(p.professional.contract.salary,50_000_000);assert.deepEqual(p.seasonByLevel,before);
+  assert.equal(pc.reviewDevelopmentContract(s),false);assert.equal(p.professional.contract.segments.length,segments+1);
+ }
+});
+test('old selections and nominations cannot convert this year, while withdrawing after official selection does not revoke qualification',()=>{
+ const s=fixture(),p=e.getPlayer(s);p.seasonByLevel.second=e.emptyRecord();
+ p.professional.allstarHistory=[{year:s.calendar.seasonYear-1,level:'second',side:'blue',slot:'SS',method:'vote'}];
+ assert.equal(pc.reviewDevelopmentContract(s),false);
+ p.professional.allstarHistory=[];assert.equal(pc.reviewDevelopmentContract(s),false);
+ p.professional.allstarHistory.push({year:s.calendar.seasonYear,level:'second',side:'blue',slot:'SS',method:'manager',withdrawn:true});
+ assert.equal(pc.reviewDevelopmentContract(s),true);assert.equal(p.proContract.status,'regular');
+});
+test('an existing saved farm All-Star converts at season-end review and retains its conversion after saving again',()=>{
+ const save=require('../.test-build/lib/career-save.js'),s=fixture(),p=e.getPlayer(s);p.seasonByLevel.second=e.emptyRecord();p.teamId=p.teamId%10+10;
+ p.professional.allstarHistory=[{year:s.calendar.seasonYear,level:'second',side:'blue',slot:'SS',method:'vote'}];
+ const original=structuredClone(s),restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+ assert.deepEqual(s,original);assert.equal(pc.reviewDevelopmentContract(restored),true);
+ const twice=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(restored))).state;
+ assert.equal(e.getPlayer(twice).proContract.status,'regular');assert.equal(pc.reviewDevelopmentContract(twice),false);
+});
+
+
+test('batting conversion accepts each requested threshold without an OPS or shared plate-appearance gate',()=>{
+ const s=fixture(),p=e.getPlayer(s);for(const key of Object.keys(p.stats))p.stats[key]=50;
+ const cases=[
+  [{PA:79,AB:79,H:19,HR:4},false],
+  [{PA:80,AB:80,H:0,HR:0},true],
+  [{PA:30,AB:30,H:5,HR:5},true],
+  [{PA:79,AB:79,H:20,HR:0},true],
+  [{PA:40,AB:40,H:10,HR:0},true],
+  [{PA:40,AB:40,H:9,HR:0},false],
+  [{PA:1,AB:1,H:1,HR:0},true],
+  [{PA:0,AB:0,H:0,HR:0},false],
+ ];
+ for(const [batting,expected] of cases){
+  p.seasonByLevel.second=e.emptyRecord();Object.assign(p.seasonByLevel.second.batting,batting);
+  assert.equal(pc.developmentProgress(p).batting,expected,JSON.stringify(batting));assert.equal(pc.developmentProgress(p).qualified,expected);
+ }
+ p.seasonByLevel.second=e.emptyRecord();p.seasonByLevel.first.batting.PA=100;p.seasonStats.batting.PA=100;
+ assert.equal(pc.developmentProgress(p).qualified,false,'first-team and school totals cannot satisfy farm-record thresholds');
+});
+test('the displayed C grade independently qualifies hitters and pitchers, including the rounding boundary and developmental deduction',()=>{
+ for(const position of ['SS','SP','RP','CP']){
+  const s=fixture(),p=e.getPlayer(s);e.assignRole(p,e.roleFor(position));p.position=position;p.throws='R';p.recentZ=0;p.fatigue=0;
+  p.professional.awardBonuses=[];p.professional.nationalBonus=0;delete p.professional.managedUntil;p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};p.seasonSpring=e.emptyRecord();
+  for(const key of Object.keys(p.stats))p.stats[key]=80.94;
+  let progress=pc.developmentProgress(p,s.calendar.seasonYear);assert.equal(progress.selectionGrade,'D');assert.equal(progress.rating,false);assert.equal(progress.qualified,false);
+  for(const key of Object.keys(p.stats))p.stats[key]=80.96;
+  progress=pc.developmentProgress(p,s.calendar.seasonYear);assert.equal(progress.selectionGrade,'C');assert.equal(progress.rating,true);assert.equal(progress.qualified,true);assert.equal(progress.batting,false);assert.equal(progress.pitching,false);
+  const before=structuredClone(p.stats),team=p.teamId;assert.equal(pc.reviewDevelopmentContract(s),true);assert.equal(p.proContract.status,'regular');assert.ok(p.teamId>=10);assert.equal(p.teamId%10,team%10);assert.deepEqual(p.stats,before);
+ }
+});
+
+test('WAR independently qualifies at 1.5 wins using the same farm and relief adjustments',()=>{
+ const war=require('../.test-build/lib/sim/pro-war.js'),s=fixture(),p=e.getPlayer(s);e.assignRole(p,'중간계투');p.position='RP';p.seasonByLevel.second=e.emptyRecord();
+ const baseline=war.createProWarContext({...s,players:[]}),r=p.seasonByLevel.second.pitching;
+ Object.assign(r,{outs:54,BF:90,SO:54});let progress=pc.developmentProgress(p,s.calendar.seasonYear,baseline);assert.ok(progress.warWins<1.5);assert.equal(progress.qualified,false);
+ r.outs=r.SO=55;progress=pc.developmentProgress(p,s.calendar.seasonYear,baseline);assert.ok(progress.warWins>=1.5);assert.equal(progress.war,true);assert.equal(progress.batting,false);assert.equal(progress.pitching,false);assert.equal(progress.rating,false);
+ Object.assign(r,{outs:100,BF:140,SO:100});assert.ok(pc.developmentProgress(p,s.calendar.seasonYear,war.createProWarContext(s)).war);
+ s.proWorld.seasonClosed=false;const before=structuredClone(p.seasonByLevel);assert.equal(pc.reviewDevelopmentContract(s),false);s.proWorld.seasonClosed=true;assert.equal(pc.reviewDevelopmentContract(s),true);assert.deepEqual(p.seasonByLevel,before);
+});
+
+test('every qualification route waits for season-end review',()=>{
+ for(const route of ['batting','rating','allstar']){
+  const s=fixture(),p=e.getPlayer(s);s.proWorld.seasonClosed=false;s.proWorld.stage='regular';p.seasonByLevel.second=e.emptyRecord();
+  if(route==='batting')Object.assign(p.seasonByLevel.second.batting,{PA:40,AB:40,H:10});
+  if(route==='rating')for(const key of Object.keys(p.stats))p.stats[key]=85;
+  if(route==='allstar')p.professional.allstarHistory=[{year:s.calendar.seasonYear,level:'second',side:'blue',slot:'SS',method:'vote'}];
+  assert.equal(pc.developmentProgress(p,s.calendar.seasonYear)[route],true);
+  const before=structuredClone(p);assert.equal(pc.reviewDevelopmentContract(s),false);assert.deepEqual(p,before);
+  s.proWorld.seasonClosed=true;assert.equal(pc.reviewDevelopmentContract(s),true);
+ }
+});
+
+function premature(){
+ const s=fixture(),p=e.getPlayer(s);p.name='남중근';p.position='C';p.primaryRole='포수';p.teamId=p.teamId%10+10;s.postSchool.pro.level='second';s.proWorld.seasonClosed=false;s.proWorld.stage='regular';s.proWorld.goal='1군 승격';
+ p.proContract.status='regular';p.proContract.convertedDate=s.date;p.professional.contract.salary=50_000_000;p.professional.contract.segments.push({from:s.date,salary:50_000_000});
+ s.careerNotice={id:'premature-conversion',date:s.date,kind:'registered',title:'정식 선수 전환!',message:'전환'};
+ return s;
+}
+test('loading a provably premature Nam conversion restores developmental status and salary while preserving catcher farm records',()=>{
+ const s=premature(),original=structuredClone(s),p=e.getPlayer(s);const next=life.upgradeProfessionalState(s),q=e.getPlayer(next);
+ assert.deepEqual(s,original);assert.equal(q.proContract.status,'developmental');assert.equal(q.proContract.convertedDate,undefined);assert.equal(q.professional.contract.salary,30_000_000);assert.equal(q.professional.contract.segments.length,1);
+ assert.equal(q.teamId,p.teamId);assert.equal(next.postSchool.pro.level,'second');assert.equal(next.proWorld.goal,'정식 선수 전환');assert.equal(next.careerNotice,undefined);
+ assert.deepEqual(q.stats,p.stats);assert.deepEqual(q.seasonByLevel,p.seasonByLevel);assert.deepEqual(q.career,p.career);assert.deepEqual(next.rngStates,s.rngStates);
+ assert.equal(squads.needsProSquadUpgrade(next),false);assert.equal(life.upgradeProfessionalState(next),next);
+ life.closeProfessionalSeason(next);assert.equal(q.proContract.status,'regular');assert.equal(next.careerNotice.kind,'registered');assert.ok(next.noticeQueue.some(n=>n.kind==='seasonComplete'));
+});
+test('premature repair leaves completed conversions, previous years, new contracts and active simulation intact',()=>{
+ const repair=require('../.test-build/lib/sim/pro-conversion.js');
+ for(const guard of ['closed','previousYear','newContract','week','match','event']){
+  const s=premature(),p=e.getPlayer(s);
+  if(guard==='closed')s.proWorld.seasonClosed=true;
+  if(guard==='previousYear')p.proContract.convertedDate=(s.calendar.seasonYear-1)+'-07-01';
+  if(guard==='newContract')p.professional.contract.segments=[p.professional.contract.segments.at(-1)];
+  if(guard==='week')s.weekProgress={};if(guard==='match')s.matchProgress={};if(guard==='event')s.careerEvent={id:'pending'};
+  const before=structuredClone(s);assert.equal(repair.repairConversionRegistrations(s),false,guard);assert.deepEqual(s,before,guard);
+ }
 });

@@ -113,7 +113,7 @@ export type Player = {
     year: number;
     grade: number;
     records: RecordLine;
-    stats: Stats;
+    stats?: Stats;
     schoolId?: number;
     schoolName?: string;
     careerMode?: CareerMode;
@@ -146,6 +146,8 @@ export type Team = {
   draws: number;
 };
 export type Game = {
+  finalEventOpened?:boolean;
+  finalFocus?:{playerId:string;field:'pitching'|'batting';effect:MatchEffect};
   national?:{stage:string;group:number;knockout:boolean;youth:boolean;carried?:boolean;eventOpened?:boolean};
   proAppearances?:Record<string,ProAppearance>;
   proAppearanceComplete?:boolean;
@@ -274,6 +276,7 @@ export type CareerEventBranch = {
   proTrialDecision?:"accept"|"keep";
   proResultId?:string;
   proTwoWayAction?:"start"|"defer"|"pitching"|"batting";
+  nationalField?:'pitching'|'batting';
   opportunity?: { action: "twoWay" | "transfer"; teamId?: number };
 };
 export type TransferOffer = { teamId: number; name: string; strength: number; competition: number; kind: "strong" | "playingTime"; twoWay: boolean };
@@ -289,6 +292,8 @@ export type EventScene = {
   batterId?:string;pitcherId?:string;
 };
 export type CareerEvent = {
+  finalGameId?:string;
+  finalField?:'pitching'|'batting';
   nationalContext?:{kind:import("./national-teams").NationalKind;year:number;phase:"preparation"|"match"|"result";gameId?:string};
   story?:import("./event-stories").EventStory;
   proEvent?:ProEventContext;
@@ -381,7 +386,7 @@ export type GameState = {
   trainingFocus?: { rng: number; rolledWeek: number };
   careerMode?: CareerMode;
   draftOutcome?: { revealed: boolean; offer: DevelopmentalOffer | null };
-  careerNotice?: { id: string; date: string; kind: "entry" | "promoted" | "demoted" | "tryoutFailed" | "seasonComplete" | "registered" | "pro"; title: string; message: string; code?:string };
+  careerNotice?: { id: string; date: string; kind: "entry" | "promoted" | "demoted" | "tryoutFailed" | "seasonComplete" | "registered" | "pro"; title: string; message: string; code?:string;award?:{year:number;title:string;bonus:number;before?:number;after:number;applied?:number};individualTitles?:{year:number;level:ProLevel;field:"batting"|"pitching"} };
   noticeQueue?: NonNullable<GameState["careerNotice"]>[];
   proWorld?:ProWorld;
   pendingEventOutcome?:CareerEventOutcome;

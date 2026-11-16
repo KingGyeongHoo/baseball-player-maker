@@ -54,6 +54,13 @@ export class AutoProgress {
 export function autoWaitingForDecision(state: GameState, pendingOutcome = false): boolean {
   return !!(state.careerEvent || state.careerNotice || pendingOutcome || state.pendingEventOutcome || state.players.find(p => p.id === state.playerId)?.roleOffer);
 }
+export function acceptedNationalInvitation(previous:GameState,next:GameState):boolean {
+  const event=previous.careerEvent,kind=event?.proEvent?.nationalKind;
+  if(!kind)return false;
+  const year=event.proEvent!.year;
+  return !!next.nationalTeams?.some(entry=>entry.kind===kind&&entry.year===year&&entry.participated===true&&
+    previous.nationalTeams?.find(row=>row.kind===kind&&row.year===year)?.participated!==true);
+}
 export function autoPauseReason(previous: GameState, next: GameState): string | null {
   if (next.careerMode && next.phase === "ended") return "시즌을 마쳐 자동 진행을 종료했습니다.";
   if (next.phase === "ended") return "드래프트가 완료되어 자동 진행을 종료했습니다.";

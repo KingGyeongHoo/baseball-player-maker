@@ -1,0 +1,25 @@
+import {readFileSync,writeFileSync,existsSync} from 'node:fs';
+import {resolve,dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {createRequire} from 'node:module';
+import {createHash} from 'node:crypto';
+import {gzipSync} from 'node:zlib';
+import assert from 'node:assert/strict';
+const require=createRequire(import.meta.url),root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const save=require(resolve(root,'.test-build/lib/career-save.js'));
+const {backfillSeasonHonors}=require(resolve(root,'.test-build/lib/sim/pro-historical-awards.js'));
+const {careerHonors}=require(resolve(root,'.test-build/lib/career-summary.js'));
+const [input,output]=process.argv.slice(2).map(p=>resolve(p));
+if(!input||!output||input===output||!output.endsWith('.json')||existsSync(output)||existsSync(output+'.gz'))throw Error('새 출력 .json 경로를 지정하세요. 원본·기존 출력은 덮어쓰지 않습니다.');
+const bytes=readFileSync(input),hash=createHash('sha256').update(bytes).digest('hex'),raw=JSON.parse(bytes.toString('utf8'));
+save.validateCareerState(raw.state);assert.equal(save.saveChecksum(JSON.stringify(raw.state)),raw.checksum);
+const mine=raw.state.players.find(p=>p.id===raw.state.playerId),before=structuredClone(mine),rng={...raw.state.rngStates};
+const report=backfillSeasonHonors(raw.state),file=save.encodeCareerSave(raw.state,true),text=save.serializeCareerSave(file),gzip=gzipSync(text);
+const restored=save.decodeCareerSave(text),after=restored.state.players.find(p=>p.id===restored.state.playerId);
+for(const key of ['stats','initialStats','seasonStats','seasonByLevel','seasonByClub','seasonPostseason','seasonFarmPostseason','seasonSpring','career','evaluationHistory'])assert.deepEqual(after[key],before[key],key);
+for(const key of ['salaries','earnings','contract','service','movements','faDays'])assert.deepEqual(after.professional[key],before.professional[key],key);
+assert.deepEqual(restored.state.rngStates,rng);
+for(const entry of raw.state.nationalTeams??[]){const kept=restored.state.nationalTeams.find(row=>row.kind===entry.kind&&row.year===entry.year);assert.deepEqual(kept?.tournament?.countries[0],entry.tournament?.countries[0],'Korean national records');assert.deepEqual(kept?.tournament?.awards,entry.tournament?.awards,'international honors');assert.deepEqual(kept?.tournament?.games.map(game=>[game.id,game.score]),entry.tournament?.games.map(game=>[game.id,game.score]),'international scores');}
+assert.equal(createHash('sha256').update(readFileSync(input)).digest('hex'),hash);
+writeFileSync(output,text,{flag:'wx'});writeFileSync(output+'.gz',gzip,{flag:'wx'});
+console.log(JSON.stringify({input,output,compressedOutput:output+'.gz',originalBytes:bytes.length,jsonBytes:Buffer.byteLength(text),gzipBytes:gzip.length,reductionPercent:100*(1-gzip.length/bytes.length),report,honors:careerHonors(restored.state).individual,originalSHA256:hash},null,2));

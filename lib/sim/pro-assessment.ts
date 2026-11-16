@@ -91,8 +91,17 @@ function firstGameCount(
   if ((batting ?? 0) > 0 && (pitching ?? 0) > 0) return null;
   return (batting ?? 0) + (pitching ?? 0);
 }
+// Consecutive same-club renewals retain one review period. Only an actual club
+// change starts a new one, including returning after a stint at another club.
+function clubReviewStart(p:Player){
+  const pro=p.professional,stints=pro?.service??[];
+  let index=stints.length-1;
+  while(index>0&&stints[index-1].club===stints[index].club)index--;
+  const current=stints[index],club=pro?.contract?.club??(p.teamId>=0?p.teamId%10:undefined);
+  return index>0&&current?.club===club?current.from:-Infinity;
+}
 export function renewalAssessment(p: Player, year: number) {
-  const start = (p.professional?.rookieYear ?? year) + rules.rookieGraceSeasons;
+  const start = Math.max((p.professional?.rookieYear ?? year) + rules.rookieGraceSeasons,clubReviewStart(p));
   const rows = (p.professional?.assessments ?? []).filter(
     (r) => r.year >= start && r.year <= year && !r.clubGamesShortage,
   );
@@ -166,7 +175,7 @@ export function hydrateAssessments(s: GameState, p: Player): boolean {
       ?.filter((r) => r.season === season.year && r.reason === "season-end")
       .at(-1);
     const role = observation?.role ?? p.primaryRole,
-      ability = roleScore({ ...p, stats: season.stats }, role);
+      ability = roleScore({ ...p, stats: season.stats??observation?.stats??p.stats }, role);
     const score = observation?.comparison.legacyRegistration ?? ability;
     const level = squad(season.schoolId ?? -1),
       developmental = conversionYear(p)!==season.year&&level === "developmental";
@@ -381,9 +390,9 @@ export function seasonExit(
   kind: "reserve" | "limited-appearances" | "post-rookie-evaluation";
   reason: string;
 } | null {
-  const pro = p.professional,
+  const pro = p.professional,clubStart=clubReviewStart(p),
     rows = (pro?.assessments ?? [])
-      .filter((r) => r.year <= year)
+      .filter((r) => r.year >= clubStart && r.year <= year)
       .sort((a, b) => b.year - a.year),
     latest = rows[0];
   if (!pro || pro.employment !== "active" || latest?.year !== year) return null;
@@ -422,6 +431,7 @@ export function seasonExit(
         : rules.reviewYears;
   // A successful reentry gets a fresh review period, while lifetime salary history is retained.
   const reviewStart = Math.max(
+    clubStart,
     conversionYear(p)!==undefined?conversionYear(p)!+1:-Infinity,
     (pro.nonRenewal?.year ?? -Infinity) + 1,
     pro.developmentalRetry && p.proContract?.status === "regular"

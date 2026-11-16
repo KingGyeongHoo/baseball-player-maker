@@ -8,7 +8,8 @@ export default function FarmPostseasonBracket({state}:{state:GameState}){
     <div className="postseason-rounds legacy-bracket">{['semi-a','semi-b','final'].map((id,index)=>{
       const series=post.series.find(row=>row.id===id),next=series&&series.winner===undefined?state.calendar.events.find(g=>g.id===`${state.calendar.seasonYear}:farm:${id}:${series.game-1}`):undefined;
       return <article key={id} className={`postseason-round ${series?.winner!==undefined?'decided':series?'playing':'waiting'}`}>
-        <div className="postseason-round-heading"><h3>{id==='final'?'결승':`준결승 ${index+1}`}</h3><span>{id==='final'?'5전 3선승':'3전 2선승'}</span></div>
+        <div className="postseason-round-heading"><h3>{id==='final'?'결승':`준결승 ${index+1}`}</h3><span>{series?.winner!==undefined?'종료':series?'진행 중':'대기'}</span></div>
+        <p className="postseason-format">{series?.mvp?<>시리즈 MVP <b>{series.mvp.playerName}</b></>:id==='final'?'5전 3선승':'3전 2선승'}</p>
         <div className="postseason-teams">{series?series.clubs.map((club,i)=><div key={club} className={`postseason-team ${series.winner===club?'winner':''}`}><span><small>{post.seeds.indexOf(club)+1}위</small><b>{team(club)}</b></span><strong>{series.wins[i]}</strong></div>):<p>준결승 종료 후 대진 확정</p>}</div>
         <p className="postseason-round-status">{series?.winner!==undefined?`${team(series.winner)} ${id==='final'?'우승':'진출'}`:next?`${next.date} · ${next.round}차전`:'대기'}</p>
       </article>;

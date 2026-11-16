@@ -98,8 +98,8 @@ test('pro scouting and roster share live selection while old experimental compar
   assert.match(html,/평가 당시 출전평가 76/);assert.doesNotMatch(html,/현행 계약 평가|1군 표본 분리 비교값|평판 평가|보직 적합도|1군 툴|20~80/);
   assert.equal(tired.reputation,undefined);assert.equal(tired.comparison.legacyContract,null);assert.equal(tired.comparison.candidateRegistration,null);
 });
-test('monthly capture covers NPCs equally, is idempotent and keeps dated growth without using training exposure as scouting visits',()=>{
-  const s=fixture(),p=e.getPlayer(s),rng={...s.rngStates};s.date='2027-04-01';l.capturePlayerEvaluations(s);assert.ok(s.players.every(p=>p.evaluationHistory.some(r=>r.date===s.date)));
+test('monthly capture keeps only my reports, is idempotent and preserves dated growth without scouting NPCs',()=>{
+  const s=fixture(),p=e.getPlayer(s),rng={...s.rngStates};s.date='2027-04-01';l.capturePlayerEvaluations(s);assert.ok(p.evaluationHistory.some(r=>r.date===s.date));assert.ok(s.players.filter(q=>q.id!==s.playerId).every(q=>!q.evaluationHistory));
   const n=p.evaluationHistory.length;l.capturePlayerEvaluations(s);assert.equal(p.evaluationHistory.length,n);s.date='2027-05-01';p.stats.contact++;l.capturePlayerEvaluations(s);const q=a.playerEvaluationFor(s,p);assert.ok(q.growth.changes.contact>0);assert.deepEqual(s.rngStates,rng);
   p.teamId=1;l.capturePendingEvaluationChanges(s);assert.equal(p.evaluationHistory.at(-1).reason,'team-change');assert.equal(a.playerEvaluationFor(s,p).teamId,1);
   p.position='CF';l.capturePendingEvaluationChanges(s);assert.equal(p.evaluationHistory.at(-1).reason,'role-change');

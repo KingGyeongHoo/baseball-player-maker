@@ -49,7 +49,7 @@
 .pro-stance-settings .segmented+.segmented { margin-top:14px; }
 .pro-league-tabs { margin:20px; }
 .pro-game-list { max-height:540px; }
-.pro-level-filter { margin-bottom:22px; max-width:440px; }
+.pro-level-filter { margin-bottom:22px; max-width:100%; width:fit-content; flex-wrap:wrap; }
 .pro-transactions { padding:0 24px; color:#7c8aa0; font-size:12px; }
 .pro-transactions>div { padding:20px 0; border-bottom:1px solid var(--line); }
 .pro-transactions time { margin-right:18px; font-size:11px; color:#a1adbd; }
@@ -185,6 +185,9 @@
 }
 .career-pay-history { margin-top:20px; }
 .career-lifetime,.career-honors { margin-bottom:22px; }
+.national-career { min-width:0; margin-bottom:22px; }
+.national-career .career-panel-body { min-width:0; }
+.national-career .table-scroll { margin:0; }
 .career-lifetime table { min-width:620px; }
 .career-lifetime table.both-fields { min-width:1000px; }
 .career-lifetime th,.career-lifetime td { padding:13px 12px; text-align:center; font-size:12px; }

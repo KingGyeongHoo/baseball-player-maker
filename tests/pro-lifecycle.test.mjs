@@ -31,7 +31,7 @@ test('season transition preserves IDs, skill fractions, contracts, pending long 
 });
 test('salary conversion is effective from the conversion date; prior developmental wages are not rewritten',()=>{
   const s=fixture(),p=e.getPlayer(s);p.proContract.status='developmental';p.professional.contract.salary=.6*world.BASE_SALARY;p.professional.contract.segments=[{from:'2028-01-01',salary:.6*world.BASE_SALARY}];s.date='2028-07-01';Object.assign(p.seasonByLevel.second.batting,{PA:80,AB:72,H:25,BB:8,HR:2});
-  assert.equal(pc.reviewDevelopmentContract(s),true);assert.equal(p.professional.contract.segments.length,2);assert.equal(p.professional.contract.segments[0].salary,.6*world.BASE_SALARY);assert.equal(p.professional.contract.salary,world.BASE_SALARY);assert.equal(p.proContract.convertedDate,s.date);
+  assert.equal(pc.reviewDevelopmentContract(s),false);life.closeProfessionalSeason(s);assert.equal(p.proContract.status,'regular');assert.equal(p.professional.contract.segments.length,2);assert.equal(p.professional.contract.segments[0].salary,.6*world.BASE_SALARY);assert.equal(p.professional.contract.salary,world.BASE_SALARY);assert.equal(p.proContract.convertedDate,s.date);
   life.closeProfessionalSeason(s);assert.ok(p.professional.earnings>.6*world.BASE_SALARY&&p.professional.earnings<world.BASE_SALARY);const amount=p.professional.earnings;life.closeProfessionalSeason(s);assert.equal(p.professional.earnings,amount);
 });
 test('FA service recognizes 899/900, counts a date once, caps at 150 and excludes camp, farm, developmental and postseason days',()=>{
@@ -98,7 +98,7 @@ test('retirement archives the actual career before displaying the result and for
 });
 test('save round trips preserve RNG, pending choices, outcomes and raw fractional skills without rerolling',()=>{
   const s=fixture(),p=e.getPlayer(s);p.stats.contact=51.99;s.pendingEventOutcome={id:'outcome',kind:'special',title:'완료',date:s.date,choice:'선택',stats:{contact:.12},reputation:0,fatigue:0,definitionId:'D01',message:'성장',awakened:[]};
-  const file=encodeCareerSave(s,false,'2026-11-05T00:00:00Z'),loaded=decodeCareerSave(JSON.stringify(file));assert.deepEqual(loaded.state,s);assert.equal(loaded.state.players.find(p=>p.id===s.playerId).stats.contact,51.99);assert.equal(encodeCareerSave(s,true).id,file.id);
+  const file=encodeCareerSave(s,false,'2026-11-05T00:00:00Z'),loaded=decodeCareerSave(JSON.stringify(file));assert.deepEqual(loaded.state,file.state);assert.deepEqual(loaded.state.rngStates,s.rngStates);assert.deepEqual(e.getPlayer(loaded.state),p);assert.deepEqual(loaded.state.pendingEventOutcome,s.pendingEventOutcome);assert.equal(loaded.state.players.find(p=>p.id===s.playerId).stats.contact,51.99);assert.equal(encodeCareerSave(s,true).id,file.id);
 });
 test('corrupt and unsupported saves are rejected while the original save is unchanged',()=>{
   const s=fixture(),file=encodeCareerSave(s),original=JSON.stringify(file),corrupt=JSON.parse(original);corrupt.state.rngStates.match++;assert.throws(()=>decodeCareerSave(JSON.stringify(corrupt)),/무결성/);corrupt.version=99;assert.throws(()=>decodeCareerSave(JSON.stringify(corrupt)),/버전|형식/);assert.equal(JSON.stringify(file),original);const invalid=structuredClone(s);invalid.players[0].stats.contact=NaN;assert.throws(()=>validateCareerState(invalid),/손상/);
@@ -106,12 +106,12 @@ test('corrupt and unsupported saves are rejected while the original save is unch
 test('new rookie classes use stable IDs, 90-110 picks, 9-13 per club and never regenerate the same year',()=>{
   const s=summary();life.addRookieClass(s,2029);const picks=s.proWorld.seasons.at(-1).draft,ids=s.players.map(p=>p.id),rng={...s.rngStates};assert.ok(picks.length>=90&&picks.length<=110);for(const club of e.draftClubs){const n=picks.filter(p=>p.club===club).length;assert.ok(n>=9&&n<=13);}life.addRookieClass(s,2029);assert.deepEqual(s.players.filter(p=>ids.includes(p.id)).map(p=>p.id),ids);assert.ok(s.players.filter(p=>!ids.includes(p.id)).every(p=>p.id.startsWith("farm-depth:")&&p.professional?.employment==="active"&&!(p.throws==="L"&&["C","2B","3B","SS"].includes(p.position))));assert.deepEqual(s.rngStates,rng);
 });
-test('qualification reached in the last completed farm game converts before postseason and settlement',()=>{
-  let s=fixture(),p=e.getPlayer(s);p.proContract.status='developmental';for(const key of Object.keys(p.stats))p.stats[key]=99;s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';
+test('qualification reached in the last farm game waits through postseason until season settlement',()=>{
+  let s=fixture(),p=e.getPlayer(s);p.proContract.status='developmental';for(const key of Object.keys(p.stats))p.stats[key]=80;s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';
   for(const q of s.players)q.professional.lastAppearance=s.date;
   const game=s.calendar.events.find(g=>g.competitionId==='pro-second'&&[g.homeTeamId,g.awayTeamId].includes(p.teamId));game.date=s.date;s.calendar.events=[game];
-  Object.assign(p.seasonByLevel.second.batting,{PA:79,AB:70,H:30,BB:9,HR:3});p.seasonStats=structuredClone(p.seasonByLevel.second);
-  s=e.advanceWeek(s,p.trainingPolicy,p.stance);p=e.getPlayer(s);assert.ok(p.seasonByLevel.second.batting.PA>=80);assert.equal(p.proContract.status,'regular');assert.equal(s.careerNotice.kind,'registered');assert.equal(s.proWorld.stage,'postseason');assert.ok(s.noticeQueue.some(n=>n.code.startsWith('PRO10')));assert.equal(game.status,'scheduled','input is immutable');
+  Object.assign(p.seasonByLevel.second.batting,{PA:79,AB:79,H:19,BB:0,HR:4});assert.equal(pc.developmentProgress(p,s.calendar.seasonYear).qualified,false);p.seasonStats=structuredClone(p.seasonByLevel.second);
+  s=e.advanceWeek(s,p.trainingPolicy,p.stance);p=e.getPlayer(s);assert.ok(p.seasonByLevel.second.batting.PA>=80);assert.equal(p.proContract.status,'developmental');assert.notEqual(s.careerNotice?.kind,'registered');assert.equal(s.proWorld.stage,'postseason');assert.ok(!(s.noticeQueue??[]).some(n=>n.code.startsWith('PRO10')),'a farm player does not receive first-team entry notices');assert.equal(game.status,'scheduled','input is immutable');s.careerNotice=undefined;s.noticeQueue=[];life.closeProfessionalSeason(s);assert.equal(p.proContract.status,'regular');assert.equal(s.careerNotice.kind,'registered');assert.ok(s.noticeQueue.some(n=>n.kind==='seasonComplete'));
 });
 test('an offseason reserves money for minimum positions and the player renewal; every active next-year player has a valid affordable contract',()=>{
   let s=summary();s=acknowledge(life.actOnProCareer(s,{type:'market'}));const offer=s.proWorld.market.offers[0];assert.ok(offer,'original club makes a concrete renewal offer');s=acknowledge(life.actOnProCareer(s,{type:'accept',id:offer.id}));while(!s.proWorld.stove.closed)s=acknowledge(life.actOnProCareer(s,{type:'wait'}));s=life.actOnProCareer(s,{type:'nextSeason'});

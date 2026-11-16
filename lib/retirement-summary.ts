@@ -1,4 +1,4 @@
-import {careerHonors,lifetimeRecords,type CareerHonor} from "./career-summary";
+import {careerHonors,lifetimeRecords,isNationalSelection,nationalHonorTitles,type CareerHonor} from "./career-summary";
 import {getPlayer} from "./sim/engine";
 import {clubName} from "./sim/pro-world";
 import {allstarDates} from "./sim/pro-allstar-calendar";
@@ -6,7 +6,6 @@ import type {GameState} from "./sim/types";
 
 export type CareerMilestone={id:string;date:string;dateLabel:string;title:string;detail:string;kind:"school"|"entry"|"record"|"allstar"|"award"|"national"|"transfer"|"retirement"};
 const first=(rows:CareerHonor[])=>[...rows].sort((a,b)=>a.year-b.year||a.title.localeCompare(b.title,"ko"))[0];
-const nationalSelection=(row:CareerHonor)=>["청소년 국가대표","WBC 국가대표","성인 대표팀 합동훈련"].includes(row.title);
 
 export function retirementSummary(state:GameState){
   const player=getPlayer(state),pro=player.professional!,world=state.proWorld!,retired=world.retired;
@@ -14,10 +13,10 @@ export function retirementSummary(state:GameState){
   const visible=(rows:CareerHonor[])=>rows.filter(row=>row.year<=year);
   const allstars=visible(honors.allstar).filter(row=>row.title.endsWith(" 올스타")&&!row.title.includes("미스터"));
   const youthNationals=visible(honors.national).filter(row=>row.title==="청소년 국가대표");
-  const nationals=visible(honors.national).filter(row=>nationalSelection(row)&&row.title!=="청소년 국가대표");
+  const nationals=visible(honors.national).filter(row=>isNationalSelection(row)&&row.title!=="청소년 국가대표");
   const mvps=visible(honors.individual).filter(row=>row.title==="시즌 MVP");
   const awards=[...visible(honors.gold),...visible(honors.individual).filter(row=>!["시즌 MVP","영구결번"].includes(row.title)),
-    ...visible(honors.allstar).filter(row=>row.title.endsWith("미스터 올스타")),...visible(honors.national).filter(row=>row.title.endsWith("MVP"))];
+    ...visible(honors.allstar).filter(row=>row.title.endsWith("미스터 올스타"))];
   const milestones:CareerMilestone[]=[];
   const add=(id:string,date:string,title:string,detail:string,kind:CareerMilestone["kind"],dateLabel=date.replaceAll("-","."))=>{
     if(date<=retiredDate)milestones.push({id,date,dateLabel,title,detail,kind});
@@ -52,9 +51,10 @@ export function retirementSummary(state:GameState){
   const award=[...awards,...mvps].sort((a,b)=>(awardTime(a)??`${a.year}-09-01`).localeCompare(awardTime(b)??`${b.year}-09-01`)||a.title.localeCompare(b.title,"ko"))[0];
   if(award){const date=awardTime(award);add("first-award",date??`${award.year}-09-01`,"첫 수상",`${honors.gold.includes(award)?"골든글러브 · ":""}${award.title}`,"award",date?date.replaceAll("-","."):`${award.year}년`);}
   const addNational=(national:CareerHonor|undefined,milestoneId:string,title:string)=>{if(national){
+    const selection=state.nationalTeams?.find(entry=>entry.year===national.year&&nationalHonorTitles[entry.kind]===national.title&&entry.roster.some(row=>row.id===player.id));
     const id=national.title==="청소년 국가대표"?"P08":national.title==="WBC 국가대표"?"WBC01":"PE27";
     const event=state.careerEventHistory?.find(row=>row.definitionId===id&&Number(row.date.slice(0,4))===national.year);
-    const date=event?.date??(id==="WBC01"?state.proEvents?.wbc?.[national.year]?.evaluatedAt:state.proEvents?.national[national.year]?.invitationDate)??`${national.year}-09-01`;
+    const date=selection?.date??event?.date??(id==="WBC01"?state.proEvents?.wbc?.[national.year]?.evaluatedAt:state.proEvents?.national[national.year]?.invitationDate)??`${national.year}-09-01`;
     add(milestoneId,date,title,national.title,"national",event?date.replaceAll("-","."):`${national.year}년`);
   }};
   addNational(first(youthNationals),"first-youth-national","첫 청소년대표 발탁");

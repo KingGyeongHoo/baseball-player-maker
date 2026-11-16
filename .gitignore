@@ -27,10 +27,15 @@
 .DS_Store
 # Local exported careers used for diagnostics are not application source.
 /baseball-*.json
+/baseball-*.json.gz
 *.pem
 
 # debug
 /.tmp-*
+# Generated spreadsheet inspection dumps and previews.
+/outputs/**/*.inspect.ndjson
+/outputs/**/.*.png
+/outputs/**/.validation.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

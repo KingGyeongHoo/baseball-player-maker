@@ -4,6 +4,7 @@ import { buildCalendar } from "./calendar";
 import { seededPlayerName } from "./player-names";
 import { createSchool, recruitmentProfile, updateSchoolPrestige } from "./school-recruiting";
 import {createTalentCohort,talentFromRoll} from "./talent-generation";
+import {schoolPositionIntake} from './position-generation';
 import {talentBand,talentMultiplier} from './talent';
 import { draftPlayers as selectSchoolDraft } from "./draft";
 import { simulateGame } from "./match-engine";
@@ -318,15 +319,18 @@ function makePlayer(s: GameState, teamId: number, grade: number, index: number, 
   for (let w = 0; w < 40 * (grade - 1); w++) train(p, params["training.days"] * .85);
   return p;
 }
-const slotPositions: Position[][] = [["C", "1B", "SS", "LF", "CF", "SP", "SP", "RP", "RP", "CP"], ["C", "2B", "3B", "RF", "LF", "SP", "SP", "RP", "RP", "CP"], ["C", "1B", "2B", "SS", "CF", "RF", "SP", "SP", "RP", "CP"]];
+function schoolPositions(s:GameState,entryYear:number){
+  const source={rngStates:{...s.rngStates,generation:hash(`${s.seed}:school-positions`)}};
+  return schoolPositionIntake(s.teams.map(team=>team.id),entryYear,()=>random(source,'generation'),params['world.grade_size']);
+}
 export function generatedTalentCohort(players:Pick<Player,"id"|"primaryRole"|"teamId">[],seed:string,teams:GameState["teams"]=[]){
   const source={rngStates:{generation:hash(`${seed}:talent`),training:0,match:0,injury:0,draft:0,events:0}};
   return createTalentCohort(players.map(p=>({id:p.id,pitching:isPitcher(p.primaryRole),bias:recruitmentProfile(teams[p.teamId]).talentBias})),()=>random(source,"generation"));
 }
-function schoolTalentCohort(s:GameState,year:number,grade:number,own?:{team:number;position:Position}){
+function schoolTalentCohort(s:GameState,year:number,grade:number,intake:Map<number,Position[]>){
   const candidates=s.teams.flatMap(team=>Array.from({length:params["world.grade_size"]},(_,index)=>({
     id:`${year}-${team.id}-${grade}-${index}`,teamId:team.id,
-    primaryRole:roleFor(own&&team.id===own.team&&index===0?own.position:slotPositions[grade-1][index]),
+    primaryRole:roleFor(intake.get(team.id)![index]),
   })));
   return generatedTalentCohort(candidates,`${s.seed}:school:${year}:${grade}`,s.teams);
 }
@@ -376,9 +380,13 @@ export function createGame(seed: string, name: string, position: Position, teamI
   if (params["match.hr_max"] + params["match.double_max"] + params["match.triple_max"] > 1) throw new Error("안타 확률 설정이 올바르지 않습니다.");
   const s = skeleton(seed);
   s.teams=Array.from({length:params["world.teams"]},(_,id)=>createSchool(id));
-  const talents=[1,2,3].map(grade=>schoolTalentCohort(s,2027,grade,grade===1?{team:teamId,position}:undefined));
+  const intakes=[1,2,3].map(grade=>schoolPositions(s,2028-grade)),own=intakes[0].get(teamId)!;
+  const chosen=own.indexOf(position),replace=chosen>=0?chosen:own.indexOf('RP');
+  if(replace>=0)[own[0],own[replace]]=[own[replace],own[0]];
+  own[0]=position;
+  const talents=[1,2,3].map(grade=>schoolTalentCohort(s,2027,grade,intakes[grade-1]));
   for (let t = 0; t < params["world.teams"]; t++) {
-    for (let g = 1; g <= 3; g++) for (let i = 0; i < params["world.grade_size"]; i++) s.players.push(makePlayer(s, t, g, i, 2027, t === teamId && g === 1 && i === 0 ? position : slotPositions[g - 1][i],talents[g-1].get(`2027-${t}-${g}-${i}`)));
+    for (let g = 1; g <= 3; g++) for (let i = 0; i < params["world.grade_size"]; i++) s.players.push(makePlayer(s, t, g, i, 2027, intakes[g-1].get(t)![i],talents[g-1].get(`2027-${t}-${g}-${i}`)));
   }
   const p = s.players[teamId * params["world.grade_size"] * 3];
   p.name = name.trim();
@@ -419,10 +427,16 @@ export function probabilities(b: Stats, p: Stats, defense: number, arm: number, 
   const bounded = (prefix: string, diff: number) => clamp(params[`match.${prefix}_base`] + params[`match.${prefix}_slope`] * diff, params[`match.${prefix}_min`], params[`match.${prefix}_max`]);
   const attack = params["match.attack_contact"] * b.contact + params["match.attack_bq"] * b.bq;
   const pitch = params["match.pitch_velocity"] * p.velocity + params["match.pitch_control"] * p.control + params["match.pitch_movement"] * p.movement + params["match.pitch_bq"] * p.bq;
+  // Professional high-power hitters turn more of their hits into home runs.
+  // Keeping this inside the conditional hit branch preserves contact's impact
+  // and never grants a season total or changes school batting parameters.
+  const powerStart=params['match.hr_power_bonus_start']??70,powerFull=params['match.hr_power_bonus_full']??80;
+  const powerBonus=(params['match.hr_power_bonus']??0)*clamp((b.power-powerStart)/Math.max(1,powerFull-powerStart),0,1)
+    +(params['match.hr_elite_slope']??0)*Math.max(0,b.power-powerFull);
   return {
     bb: bounded("bb", b.bq - p.control),
     hit: clamp(params["match.hit_base"] + params["match.hit_slope"] * (attack - pitch) - params["match.defense_slope"] * (defense - params["match.defense_center"]), params["match.hit_min"], params["match.hit_max"]),
-    hr: bounded("hr", b.power - p.movement),
+    hr: clamp(params['match.hr_base']+params['match.hr_slope']*(b.power-p.movement)+powerBonus,params['match.hr_min'],params['match.hr_max']),
     double: bounded("double", b.power - p.control),
     triple: bounded("triple", b.speed - arm),
     k: bounded("k", p.velocity - b.contact)
@@ -453,21 +467,26 @@ export const available = (p: Player, date: string) => p.professional?.employment
 export const growthMultiplier = (p: Player) => p.proContract?.status === "developmental" ? .9 : 1;
 export const selectionScore = (p: Player, role = p.primaryRole) => p.careerMode === "pro" || p.professional ? proSelectionScore(p, role) : roleScore(p, role)*leftPitcherMultiplier(p,role) - params["coach.fatigue_penalty"] * p.fatigue + params["coach.recent_max"] * clamp(p.recentZ, -1, 1) - (p.proContract?.status === "developmental" ? 6 : 0);
 const byPitchingScore = (a: Player, b: Player) => selectionScore(b, pitchingRole(b)) - selectionScore(a, pitchingRole(a)) || a.id.localeCompare(b.id);
-export function lineup(roster: Player[], date: string) {
+export function lineup(roster: Player[], date: string,selectedStarter?:Player) {
   const professional=roster.some(p=>p.careerMode==='pro'||!!p.professional);
   const candidates = roster.filter(p => available(p, date));
+  const pitchingPool=candidates.filter(p=>p.eligiblePositions.includes('SP')&&p.fatigue<params['coach.replace_fatigue']&&(!professional||isPitcher(pitchingRole(p))));
+  const chooseStarter=(pool:Player[])=>pool.filter(p=>pitchingRole(p)==='선발'&&p.fatigue<params['coach.starter_fatigue']&&(!p.lastPitched||date>=addDays(p.lastPitched,params['coach.starter_rest']+1))).sort(byPitchingScore)[0]??(professional?undefined:[...pool].sort((a,b)=>a.fatigue-b.fatigue||byPitchingScore(a,b))[0]);
+  const plannedStarter=selectedStarter??chooseStarter(pitchingPool);
   const field: Player[] = [];
   for (const pos of ["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH"] as Position[]) {
-    const eligible=candidates.filter(p=>p.twoWay?.nextAssignment!=="pitching"&&p.eligiblePositions.includes(pos)&&canPlayPosition(p,pos)&&!field.includes(p));
-    const natural=professional?eligible.filter(p=>currentProPosition(p,pos)):[];
+    // Pitching two-way players bat at DH, so they never occupy a defensive
+    // position and the mound simultaneously. Resting starters can still field.
+    const eligible=candidates.filter(p=>(p.eligiblePositions.includes(pos)||pos==='DH'&&!!p.twoWay)&&canPlayPosition(p,pos)&&!field.includes(p)&&
+      (!p.twoWay||pos==='DH'||p!==plannedStarter&&pitchingRole(p)==='선발'));
+    const natural=professional?eligible.filter(p=>currentProPosition(p,pos)||pos==='DH'&&!!p.twoWay):[];
     // Compete for the current job. Utility eligibility is only an emergency
     // cover when no available player currently holds that position.
-    const p = (natural.length?natural:eligible).sort((a, b) => (professional?farmSelectionTier(a)-farmSelectionTier(b):0)||Number(professional&&guaranteedProStarter(b,pos,date))-Number(professional&&guaranteedProStarter(a,pos,date)) || selectionScore(b, roleFor(pos)) - selectionScore(a, roleFor(pos)) || a.id.localeCompare(b.id))[0];
+    const p = pos==='DH'&&plannedStarter?.twoWay?plannedStarter:(natural.length?natural:eligible).sort((a, b) => (professional?farmSelectionTier(a)-farmSelectionTier(b):0)||Number(professional&&guaranteedProStarter(b,pos,date))-Number(professional&&guaranteedProStarter(a,pos,date)) || selectionScore(b, roleFor(pos)) - selectionScore(a, roleFor(pos)) || a.id.localeCompare(b.id))[0];
     if (p) field.push(p);
   }
-  const pitchers = candidates.filter(p => p.twoWay?.nextAssignment !== "batting" && p.eligiblePositions.includes("SP") && !field.includes(p) && p.fatigue < params["coach.replace_fatigue"]&&(!professional||isPitcher(pitchingRole(p))));
-  const starters = pitchers.filter(p => pitchingRole(p) === "선발" && p.fatigue < params["coach.starter_fatigue"] && (!p.lastPitched || date >= addDays(p.lastPitched, params["coach.starter_rest"] + 1))).sort(byPitchingScore);
-  const starter = starters[0] ?? (professional?undefined:[...pitchers].sort((a, b) => a.fatigue - b.fatigue || byPitchingScore(a, b))[0]);
+  const pitchers = pitchingPool.filter(p=>!field.includes(p)||!!p.twoWay);
+  const starter = selectedStarter??chooseStarter(pitchers);
   const top = [...field].sort((a, b) => b.stats.contact + b.stats.speed - a.stats.contact - a.stats.speed || a.id.localeCompare(b.id)).slice(0, 2);
   const middle = field.filter(p => !top.includes(p)).sort((a, b) => b.stats.power - a.stats.power || a.id.localeCompare(b.id)).slice(0, 3);
   const order = [...top, ...middle, ...field.filter(p => !top.includes(p) && !middle.includes(p)).sort((a, b) => b.stats.contact - a.stats.contact || a.id.localeCompare(b.id))];
@@ -545,21 +564,16 @@ export function updateReputation(s: GameState,cache?:RecentReputationCache) {
     for (const pitching of [false, true]) {
       const league = pitching ? pitchingQ(total) : ops(total) ?? 0;
       const prior = params[pitching ? "reputation.pitcher_prior" : "reputation.hitter_prior"];
-      const evaluated = s.players.map((p, i) => ({
-        p,
-        r: records[i]
-      })).filter(({
-        r
-      }) => pitching ? r.pitching.outs > 0 : r.batting.PA > 0).map(({
-        p,
-        r
-      }) => {
+      const evaluated:{p:Player;adjusted:number}[]=[];
+      for(let i=0;i<s.players.length;i++){
+        const p=s.players[i],r=records[i];
+        if(!(pitching?r.pitching.outs>0:r.batting.PA>0))continue;
         const n = pitching ? r.pitching.outs : r.batting.PA;
-        return {
+        evaluated.push({
           p,
           adjusted: (n * (pitching ? pitchingQ(r) : ops(r) ?? 0) + prior * league) / (n + prior)
-        };
-      });
+        });
+      }
       const mean = evaluated.reduce((a, b) => a + b.adjusted, 0) / (evaluated.length || 1);
       const sd = Math.sqrt(evaluated.reduce((a, b) => a + (b.adjusted - mean) ** 2, 0) / (evaluated.length || 1));
       for (const {
@@ -596,10 +610,10 @@ export function promote(s: GameState) {
   }
   s.players = s.players.filter(p => p.grade <= 3);
   const year = s.calendar.seasonYear + 1;
-  const talents=schoolTalentCohort(s,year,1);
+  const intake=schoolPositions(s,year),talents=schoolTalentCohort(s,year,1,intake);
   for (const t of s.teams) {
     t.wins = t.losses = t.draws = 0;
-    for (let i = 0; i < params["world.grade_size"]; i++) s.players.push(makePlayer(s, t.id, 1, i, year, slotPositions[0][i],talents.get(`${year}-${t.id}-1-${i}`)));
+    for (let i = 0; i < params["world.grade_size"]; i++) s.players.push(makePlayer(s, t.id, 1, i, year, intake.get(t.id)![i],talents.get(`${year}-${t.id}-1-${i}`)));
   }
   s.calendar = calendar(year);
   syncJerseyNumbers(s);

@@ -3,10 +3,13 @@ import type {GameState,ProLevel} from "./types";
 import type {ProIndividualAward} from "./pro-types";
 import {farmSeasonGames} from './pro-farm-schedule';
 
-const titleNames:Record<LeaderField,Record<string,string>>={batting:{avg:'타격왕',H:'안타왕',SB:'도루왕',RBI:'타점왕'},pitching:{wins:'다승왕',holds:'홀드왕',saves:'세이브왕',era:'평균자책점왕'}};
+const titleNames:Record<LeaderField,Record<string,string>>={batting:{avg:'타격왕',H:'안타왕',HR:'홈런왕',RBI:'타점왕',SB:'도루왕'},pitching:{wins:'다승왕',holds:'홀드왕',saves:'세이브왕',era:'평균자책점왕'}};
 export function individualTitleName(row:{field?:LeaderField;metric?:string;label?:string}){
   if(row.metric)return row.field?titleNames[row.field][row.metric]:titleNames.batting[row.metric]??titleNames.pitching[row.metric];
   return individualTitleFromKind(row.label??'');
+}
+export function individualAwardRows(awards:ProIndividualAward[]|undefined,level:ProLevel,field:LeaderField){
+  return awards?.filter(row=>row.level===level&&row.field===field&&individualTitleName(row)).map(row=>({...row,label:individualTitleName(row)!}))??[];
 }
 export function individualTitleFromKind(kind:string){
   for(const field of ['batting','pitching'] as const)for(const [id,name] of Object.entries(titleNames[field])){

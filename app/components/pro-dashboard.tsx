@@ -7,6 +7,8 @@ import CareerDashboard from "./career-dashboard";
 import PlayerAbilities from "./player-abilities";
 import {salaryText} from "./pro-career-panels";
 import PostseasonBracket from "./postseason-bracket";
+import FarmPostseasonBracket from './farm-postseason-bracket';
+import {farmPostseasonActive} from '../../lib/sim/pro-farm-postseason';
 import {squadLabel} from "../../lib/sim/pro-squads";
 import {allstarDates} from "../../lib/sim/pro-allstar-calendar";
 
@@ -22,7 +24,7 @@ function ProWeekSchedule({state}:{state:GameState}) {
     const national=state.nationalTeams?.find(row=>nationalAway(state,player,date)&&date>=row.start&&date<=row.end&&row.roster.some(p=>p.id===player.id));
     const international=national?.tournament?.games.find(g=>g.date===date&&[g.homeTeamId,g.awayTeamId].includes(0));
     const nationalLabel=national?nationalRules[national.kind].name+(international?' · '+national.tournament!.countries[international.homeTeamId===0?international.awayTeamId:international.homeTeamId].name:' · 훈련·휴식'):'';
-    const label=national?nationalLabel:stove?(stove.closed?"계약 마무리·휴식":date===stove.nextUpdate?"시장 갱신":"스토브리그"):allstarLabel??(game?`${game.exhibition==='spring'?'시범 · ':''}${game.homeTeamId===(game.exhibition==='spring'?player.teamId%10:proGameTeam(player))?"홈":"원정"} · ${opponent?.shortName??opponent?.name??"대진 미정"}`:state.calendar.trainingDays.includes(date)?"훈련":"휴식");
+    const label=national?nationalLabel:stove?(stove.closed?"계약 마무리·휴식":date===stove.nextUpdate?"시장 갱신":"스토브리그"):allstarLabel??(game?`${game.competitionId.startsWith('pro-farm-playoffs-')?'2군 PS · ':game.competitionId.startsWith('pro-playoffs-')?'1군 PS · ':game.exhibition==='spring'?'시범 · ':''}${game.homeTeamId===(game.exhibition==='spring'?player.teamId%10:proGameTeam(player))?"홈":"원정"} · ${opponent?.shortName??opponent?.name??"대진 미정"}`:state.calendar.trainingDays.includes(date)?"훈련":"휴식");
     const dow=new Date(date+"T00:00:00Z").getUTCDay();
     return <div key={date} className={`schedule-day ${i===0?"today":""} ${game?"game-day":""}`} title={`${date} · ${label}`}><span>{["SUN","MON","TUE","WED","THU","FRI","SAT"][dow]}</span><b>{Number(date.slice(-2))}</b><small>{label}</small><i/></div>;
   })}</div>;
@@ -41,8 +43,8 @@ export default function ProDashboard({state,onTab,onTraining,trainingDisabled,re
     profileMeta={<>{state.teams[p.teamId]?.name??"무소속"} · {p.age??19}세{year?` · 프로 ${year}년차`:""}</>}
     profileBadge={<span className={`pro-registration-badge ${registration==="1군"?"first":""}`}>{registration}{p.proContract?.status==="developmental"?" · 신고":""}</span>}
     teamActionLabel="선수·로스터 ↗" scheduleActionLabel="리그 순위 ↗" records={records} schedule={<ProWeekSchedule state={state}/>} abilities={<PlayerAbilities player={p} detailsOnly/>}
-    summary={<><PostseasonBracket state={state}/>{world&&<div className="pro-dashboard-summary" aria-label="프로 목표와 계약 요약">
-      <button type="button" onClick={()=>onTab("career")}><span>현재 목표 <small>목표 설정 ↗</small></span><b>{world.customGoal??world.goal}</b><em>{stages[world.stage]}</em></button>
+    summary={<>{p.teamId>=10?<FarmPostseasonBracket state={state}/>:<PostseasonBracket state={state}/>} {world&&<div className="pro-dashboard-summary" aria-label="프로 목표와 계약 요약">
+      <button type="button" onClick={()=>onTab("career")}><span>현재 목표 <small>목표 설정 ↗</small></span><b>{world.customGoal??world.goal}</b><em>{p.teamId>=10&&farmPostseasonActive(state)?'2군 포스트시즌':stages[world.stage]}</em></button>
       <button type="button" onClick={()=>onTab("career")}><span>계약 <small>계약 보기 ↗</small></span><b>{contract?salaryText(contract.salary):"무소속 · 새 기회 준비"}</b><em>{contract?`${contract.endYear}년까지 · 연봉`:"입단 제안 확인"}</em></button>
     </div>}{notice}</>}/></div>;
 }

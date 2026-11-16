@@ -36,6 +36,34 @@ test('WBC freezes 30 players by selection and role using the previous first-team
  const old=fixture();for(const p of old.players)p.career[0].year=2028;assert.equal(wbc.freezeWbcRoster(old).roster.length,0);
 });
 
+test('two-way WBC entrants choose pitching or batting for this tournament while retaining their club roles',()=>{
+ const nt=require('../.test-build/lib/sim/national-tournament.js');
+ for(const field of ['pitching','batting']){
+  let s=fixture();const p=e.getPlayer(s);p.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'batting',reputationBonus:0};p.eligiblePositions=['SP','RP','CP','SS','DH'];
+  for(const key of Object.keys(p.stats))p.stats[key]=95;
+  const clubRole=structuredClone(p.twoWay),position=p.position;
+  assert.equal(wbc.tryWbcInvitation(s),true);assert.equal(s.careerEvent.choices.length,3);
+  assert.deepEqual(s.careerEvent.choices.slice(0,2).map(choice=>choice.label),['투수로 참가한다','타자로 참가한다']);
+  s=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;s=e.answerCareerEvent(s,`participate-${field}`);
+  const entry=s.nationalTeams.find(row=>row.kind==='wbc');assert.equal(entry.participated,true);assert.equal(entry.participationField,field);assert.equal(s.proEvents.wbc[2030].participated,true);
+  assert.equal(entry.roster.find(row=>row.id===p.id).position,field==='pitching'?'SP':'SS');assert.equal(s.proEvents.wbc[2030].roster.find(row=>row.id===p.id).position,field==='pitching'?'SP':'SS');
+  assert.deepEqual(e.getPlayer(s).twoWay,clubRole);assert.equal(e.getPlayer(s).position,position);
+  const t=nt.ensureNationalTournament(s,entry),game=t.games.find(game=>[game.homeTeamId,game.awayTeamId].includes(0));s.date=game.date;
+  for(let guard=0;nt.playNationalDay(s);guard++){assert.ok(guard<5);s=e.answerCareerEvent(s,s.careerEvent.choices[0].id);}
+  const record=s.nationalTeams.find(row=>row.kind==='wbc').tournament.games.find(row=>row.id===game.id).boxScore[p.id];assert.ok(record);
+  if(field==='pitching'){assert.ok(record.pitching.BF>0);assert.equal(record.batting.PA,0);}else{assert.ok(record.batting.PA>0);assert.equal(record.pitching.BF,0);}
+  const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;assert.equal(restored.nationalTeams.find(row=>row.kind==='wbc').participationField,field);assert.deepEqual(e.getPlayer(restored).twoWay,clubRole);
+ }
+});
+
+test('an undecided legacy two-way invitation gains role choices once on load without changing historical records',()=>{
+ const n=require('../.test-build/lib/sim/national-teams.js'),s=fixture(),p=e.getPlayer(s);assert.equal(wbc.tryWbcInvitation(s),true);
+ p.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'pitching',reputationBonus:0};const before=structuredClone(p.career),rng={...s.rngStates};
+ const loaded=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;assert.equal(loaded.careerEvent.choices.length,3);assert.equal(n.needsNationalInvitationUpgrade(loaded),false);assert.equal(n.upgradeNationalInvitation(loaded),false);
+ assert.deepEqual(e.getPlayer(loaded).career,before);assert.deepEqual(loaded.rngStates,rng);
+ const result=e.answerCareerEvent(loaded,loaded.careerEvent.choices[2].id);assert.equal(result.nationalTeams[0].participated,false);assert.equal(result.proEvents.wbc[2030].participated,false);assert.deepEqual(e.getPlayer(result).twoWay,p.twoWay);
+});
+
 test('WBC excludes developmental, unsigned, injured and exhausted players without replacing their eligibility with OVR',()=>{
  const s=fixture();s.players.forEach((p,i)=>{if(i%4===0)p.proContract.status='developmental';if(i%4===1)p.professional.employment='freeAgent';if(i%4===2)p.injury={unavailableUntil:'2030-03-15'};if(i%4===3)p.fatigue=80;});assert.equal(wbc.freezeWbcRoster(s).roster.length,0);
  const missing=fixture();e.getPlayer(missing).career=[];assert.equal(wbc.tryWbcInvitation(missing),false);assert.equal(missing.proEvents.wbc[2030].settled,true);

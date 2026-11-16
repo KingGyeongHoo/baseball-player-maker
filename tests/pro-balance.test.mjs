@@ -164,7 +164,9 @@ test('multi-seed regular seasons keep accounting identities and remove extreme p
   assert(s.workload.SP.games>=24&&s.workload.SP.games<=30);assert(s.workload.SP.perGame>5&&s.workload.SP.perGame<6);
   // Current-score registration no longer rotates a better first-team reliever
   // down solely for workload. The fixed closer is reserved for closing work.
-  assert(s.workload.RP.games>=45&&s.workload.RP.games<=72);assert(s.workload.RP.perGame>.8&&s.workload.RP.perGame<1.15);
+  // Power v4 produces more long balls and slightly more relief entries:
+  // seed 0 moves from 70.92 to 72.28 outings; keep a one-outing tolerance.
+  assert(s.workload.RP.games>=45&&s.workload.RP.games<=73);assert(s.workload.RP.perGame>.8&&s.workload.RP.perGame<1.15);
   assert(s.workload.CP.games>=30&&s.workload.CP.games<=72);assert(s.workload.CP.perGame>.85&&s.workload.CP.perGame<1.25);
   assert(s.roles.CP.SV.mean>s.roles.RP.SV.mean);assert(s.roles.RP.HLD.mean>s.roles.CP.HLD.mean);
  }

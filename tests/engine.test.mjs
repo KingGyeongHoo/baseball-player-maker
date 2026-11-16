@@ -72,10 +72,11 @@ export function assertGame(game, players) {
     assert.equal(b.AB, b.H + b.SO + b.GB + b.FB, id);
     assert.ok(b.H >= b["2B"] + b["3B"] + b.HR, id);
     assert.equal(p.R, p.ER, id);
-    assert.ok(!(b.PA && p.BF), `same-game two-way ${id}`);
+    if(b.PA&&p.BF)assert.ok(game.lineup.some(side=>side.slice(0,9).includes(id)||side.slice(10).includes(id)),`two-way batter missing from lineup ${id}`);
     for (const n of [...Object.values(b), ...Object.values(p)]) assert.ok(Number.isInteger(n) && n >= 0);
   }
   for (const side of [0, 1]) {
+    assert.equal(new Set(game.lineup[side].slice(0,9)).size,9,'two-way pitchers occupy one batting-order slot');
     assert.equal(totals[side].batting.R, game.score[side]);
     assert.equal(totals[side].batting.RBI, game.score[side]);
     assert.equal(totals[side].batting.PA, totals[1 - side].pitching.BF);
@@ -173,6 +174,14 @@ test('physical interpolation and fatigue/injury thresholds', () => {
   const b = e.effective(p);
   close(b.contact / a.contact, .85);
   close(a.stamina, b.stamina);
+});
+test('swing styles trade a 5 percent strength bonus for a 5 percent opposite-field penalty',()=>{
+  const p=e.previewPlayer('swing-balance','스윙','DH');uniform(p,40);p.fatigue=0;p.injury=null;
+  p.stance.batting='level';const level=e.effective(p),raw={...p.stats};
+  p.stance.batting='down';const down=e.effective(p);close(down.contact/level.contact,1.05);close(down.power/level.power,.95);
+  p.stance.batting='up';const up=e.effective(p);close(up.power/level.power,1.05);close(up.contact/level.contact,.95);
+  for(const key of statKeys.filter(k=>!['contact','power'].includes(k))){close(down[key],level[key]);close(up[key],level[key]);}
+  assert.deepEqual(p.stats,raw);p.stance.batting='level';assert.deepEqual(e.effective(p),level);
 });
 test('conditional probabilities match documented equal-40 example', () => {
   const p = e.getPlayer(newGame());

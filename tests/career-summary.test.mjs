@@ -31,7 +31,7 @@ test('honors group only this player, deduplicate legacy and new titles, distingu
  const award=(kind,category,playerId=id)=>({year:2030,kind,category,playerId,playerName:p.name,club:0,value:1});
  const team=()=>({roster:[],withdrawn:[],ballots:{}}),allstar={version:1,year:2030,levels:{first:{blue:team(),white:team()},second:{blue:team(),white:team()}}};allstar.levels.first.blue.roster.push({playerId:id});allstar.levels.first.mvp={playerId:id};
  s.proWorld.seasons=[{year:2030,allstar,awardsCeremony:{version:1,scheduledAt:'2030-12-06',presentedAt:'2030-12-06'},awards:[award('골든글러브 · 유격수','goldGlove'),award('시즌 MVP','mvp'),award('안타'),award('홈런'),award('탈삼진'),award('타율',undefined,'other')],individualAwards:[{level:'first',field:'batting',label:'안타',metric:'H',value:170,winners:[{playerId:id},{playerId:'tied'}]},{level:'first',field:'batting',label:'홈런',metric:'HR',value:40,winners:[{playerId:id}]}]},{year:2031,awardsCeremony:{version:1,scheduledAt:'2031-12-06'},awards:[award('골든글러브 · 유격수','goldGlove'),award('시즌 MVP','mvp')]}];
- const before=structuredClone(s),honors=careerHonors(s);assert.equal(honors.national.filter(row=>row.year===2030).length,2);assert.equal(honors.national.find(row=>row.year===2034).detail,'선발 · 불참');assert.ok(honors.national.some(row=>row.title==='청소년 대표 MVP'));assert.equal(honors.allstar.length,2);assert.equal(honors.gold.length,1);assert.equal(honors.individual.filter(row=>row.title==='1군 안타왕').length,1);assert.equal(honors.individual.find(row=>row.title==='1군 안타왕').detail,'공동 1위');assert.ok(!honors.individual.some(row=>/타격왕|홈런|탈삼진/.test(row.title)));assert.deepEqual(s,before);
+ const before=structuredClone(s),honors=careerHonors(s);assert.equal(honors.national.filter(row=>row.year===2030).length,1);assert.equal(honors.national.find(row=>row.year===2034).detail,'선발 · 불참');assert.ok(honors.individual.some(row=>row.title==='청소년 대표 MVP'));assert.ok(!honors.national.some(row=>row.title.endsWith('MVP')));assert.equal(honors.allstar.length,2);assert.equal(honors.gold.length,1);assert.equal(honors.individual.filter(row=>row.title==='1군 안타왕').length,1);assert.equal(honors.individual.find(row=>row.title==='1군 안타왕').detail,'공동 1위');assert.ok(honors.individual.some(row=>row.title==='1군 홈런왕'));assert.ok(!honors.individual.some(row=>/타격왕|탈삼진/.test(row.title)));assert.deepEqual(s,before);
  const html=renderToStaticMarkup(createElement(CareerHonors,{state:s}));for(const title of ['국가대표','골든글러브','올스타','개인 수상'])assert.ok(html.includes(title));
 });
 
@@ -41,6 +41,26 @@ test('compact contract estimates include the current season once, ignore unrated
  p.professional.assessments.push({...row(2031,82,'second'),salary:100_000_000});s.proWorld.seasonClosed=true;const frozen=careerContractSummary(s);assert.equal(frozen.cumulative,(70+80+82)/3);assert.equal(frozen.projected,frozen.cumulative);assert.equal(frozen.seasons,2);
  const html=renderToStaticMarkup(createElement(Assessments,{state:s}));assert.equal((html.match(/<thead><tr>/g)||[]).length,1);assert.match(html,/<th>시즌<\/th><th>시즌평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);assert.ok(html.includes('2군'));assert.ok(!html.includes('1군 출전경기'));assert.ok(!html.includes('기준 연봉'));
  p.professional.employment='freeAgent';assert.equal(careerContractSummary(s).seasons,0);assert.equal(careerContractSummary(s).salary,null);
+});
+
+test('youth national MVP is one individual award, separate from selection and season MVP even in duplicate legacy history',()=>{
+ const s=fixture(),p=e.getPlayer(s);s.date='2031-11-01';s.calendar.seasonYear=2031;
+ s.careerEventHistory=[{definitionId:'P08',date:'2027-09-01',choiceId:'choice-1',choice:'소집에 응한다',message:'청소년 국가대표 MVP'}];
+ s.nationalTeams=[{kind:'youth',year:2027,date:'2027-09-01',roster:[{id:p.id}],participated:true,tournament:{countries:[{players:[]}],awards:[{id:p.id,title:'MVP'}]}}];
+ const honors=careerHonors(s),summary=retirementSummary(s);
+ assert.equal(honors.individual.filter(row=>row.title==='청소년 대표 MVP').length,1);
+ assert.deepEqual(honors.national.map(row=>row.title),['청소년 국가대표']);
+ assert.equal(summary.counts.individual,1);assert.equal(summary.counts.mvp,0);assert.equal(summary.counts.national,0);
+ const html=renderToStaticMarkup(createElement(CareerHonors,{state:s}));
+ assert.ok(html.slice(html.indexOf('<h3>개인 수상')).includes('청소년 대표 MVP'));
+ assert.ok(!html.slice(html.indexOf('<h3>국가대표'),html.indexOf('<h3>골든글러브')).includes('청소년 대표 MVP'));
+});
+test('actual Olympic and APBC selections replace the generic training label and count once per tournament',()=>{
+ const s=retiredFixture(),p=e.getPlayer(s);s.careerEventHistory=[{definitionId:'PE27',date:'2032-07-01',choiceId:'choice-1',title:'올림픽 대표 발탁'},{definitionId:'PE27',date:'2033-11-01',choiceId:'choice-2'}];delete s.proEvents;s.proWorld.seasons=[];p.professional.allstarHistory=[];
+ s.nationalTeams=[{kind:'olympics',year:2032,date:'2032-07-01',roster:[{id:p.id}],participated:true,tournament:{countries:[{players:[{id:p.id,records:record(10,4)}]}]}},{kind:'apbc',year:2033,date:'2033-11-01',roster:[{id:p.id}],participated:false}];
+ const rows=careerHonors(s).national;assert.equal(rows.length,2);assert.deepEqual(rows.find(row=>row.year===2032),{year:2032,title:'올림픽 국가대표',detail:'출전'});assert.deepEqual(rows.find(row=>row.year===2033),{year:2033,title:'APBC 국가대표',detail:'선발 · 불참'});assert.ok(!JSON.stringify(rows).includes('합동훈련'));
+ const summary=retirementSummary(s);assert.equal(summary.counts.national,2);assert.equal(summary.milestones.find(row=>row.id==='first-national').date,'2032-07-01');assert.equal(summary.milestones.find(row=>row.id==='first-national').detail,'올림픽 국가대표');
+ delete s.nationalTeams;assert.equal(careerHonors(s).national.find(row=>row.year===2032).title,'올림픽 국가대표','old event titles identify the tournament when the selection table is unavailable');
 });
 
 test('new season assessments freeze the annual salary and final registration while old rows can use their saved payroll',()=>{

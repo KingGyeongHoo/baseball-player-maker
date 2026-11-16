@@ -1,4 +1,4 @@
-import {nationalRole,rememberNational} from "./national-teams";
+import {nationalRole,nationalParticipationChoices,rememberNational} from "./national-teams";
 import {available,getPlayer} from "./engine";
 import {ensureProEvents,proDayFree,proEventsEnabled,recordProChoice} from "./pro-event-ledger";
 import {selectProNationalRoster} from "./pro-national-events";
@@ -31,7 +31,7 @@ function invitation(s:GameState):CareerEvent {
       {weight:50,message:"WBC 참가를 사양하고 몸을 정비했다. 충분히 쉬며 시즌을 기다렸다.",fatigue:-12,proResultId:"WBC01:rest"}
     ]}]};
   event.choices[0].outcomes=[{weight:100,message:"WBC 대표팀에 합류한다. 실제 경기 성적에 따라 경험과 수상이 결정된다."}];
-  return event;
+  return nationalParticipationChoices(s,event);
 }
 
 export function tryWbcInvitation(s:GameState){

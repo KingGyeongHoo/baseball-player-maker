@@ -9,6 +9,20 @@ export const postseasonRounds=[
 ] as const;
 export const postseasonRound=(stage:ProSeries["stage"])=>postseasonRounds.find(round=>round.stage===stage)!;
 
+export function postseasonSeriesResult(state:GameState,series:ProSeries){
+  if(series.stage!=='wildcard')return {wins:series.wins,draws:0,drawAdvance:false};
+  const year=state.proWorld?.year??state.calendar.seasonYear;
+  const games=state.calendar.events.filter(game=>game.competitionId===`pro-playoffs-${series.id}`&&['completed','forfeit'].includes(game.status));
+  const processed=series.processedGame??(series.winner!==undefined?series.game-1:-1);
+  const complete=processed>=0&&Array.from({length:processed+1},(_,i)=>`${year}:${series.id}:${i}`).every(id=>games.some(game=>game.id===id));
+  const wins:[number,number]=complete?[1,0]:[...series.wins],draws=games.filter(game=>game.status==='completed'&&game.score[0]===game.score[1]).length;
+  if(complete)for(const game of games){
+    const winner=game.status==='forfeit'?(game.forfeitTeamId===game.homeTeamId?game.awayTeamId:game.homeTeamId):game.score[0]===game.score[1]?undefined:game.score[0]>game.score[1]?game.homeTeamId:game.awayTeamId;
+    if(winner!==undefined)wins[series.clubs.indexOf(winner)]++;
+  }
+  return {wins,draws,drawAdvance:series.winner===series.clubs[0]&&draws>0&&wins[0]<series.target};
+}
+
 export function regularSeasonFinishText(team:string,rank:number,firstTeam:boolean){
   const qualified=rank>=1&&rank<=5;
   const last=team.charCodeAt(team.length-1),subject=last>=0xac00&&last<=0xd7a3&&(last-0xac00)%28!==0?"은":"는";
@@ -30,6 +44,12 @@ export function regularSeasonFinishNotice(state:GameState){
 
 export function professionalSeasonFinishNotice(state:GameState,year=state.proWorld?.year??state.calendar.seasonYear){
   const world=state.proWorld,archived=world?.seasons.find(season=>season.year===year);
+  const player=state.players.find(p=>p.id===state.playerId);
+  if(player&&player.teamId>=10){
+    const winner=archived?.farmChampion??(world?.year===year?world.farmPostseason?.champion:undefined);
+    const team=winner==null?'미정':state.teams[winner]?.name??'미정';
+    return {title:winner==null?`${year} 2군 시즌 결산`:`${team} 2군 챔피언결정전 우승!`,message:`${year} 시즌이 종료되었습니다. 2군 포스트시즌 성적은 정규시즌 기록과 별도로 보관합니다. 이제 다음 시즌을 준비할 시간입니다.`};
+  }
   const champion=archived?archived.champion:world?.year===year?world.postseason?.champion:undefined;
   const team=champion==null?"미정":state.teams[champion]?.name.replace(/ [12]군$/,"")??"미정";
   return {title:`${team} 한국시리즈 우승!`,message:`${year} 시즌이 종료되었습니다. 이제 다음 시즌을 준비할 시간입니다.`};

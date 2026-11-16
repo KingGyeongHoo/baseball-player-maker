@@ -17,6 +17,7 @@ import {finishGameRecords,pitcherEntered,recordLeadChange} from "./game-records"
 import {proBullpenPlan,proMatchParameters,proPitcherOutLimit,proRecentTeamGames,proReliefPriority,proReliefReady} from './pro-balance';
 import {farmPlayoffRoster,isFarmPostseason} from './pro-farm-postseason';
 import {stolenBaseAttempt} from './base-stealing';
+import {openFinalGameEvent} from './final-game-event';
 
 // Every cursor and runner is serializable: returning at a choice never replays
 // an inning, consumes a match draw early, or commits a partial game twice.
@@ -40,6 +41,9 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       game.forfeitTeamId = sides[0].field.length < 9 || !sides[0].starter ? game.homeTeamId : game.awayTeamId;
       return true;
     }
+    if(openFinalGameEvent(s,game,rosters)){
+      game.proPreparedLineup=sides.map(side=>({field:side.field.map(p=>p.id),order:side.order.map(p=>p.id),starter:side.starter!.id,pitchers:side.pitchers.map(p=>p.id)}));return false;
+    }
     if(s.careerMode==="pro"&&!game.proPreparationChecked){game.proPreparationChecked=true;
       if(openProPreparation(s,game,sides.map(side=>({field:side.field.map(p=>p.id),starter:side.starter!.id})))){game.proPreparedLineup=sides.map(side=>({field:side.field.map(p=>p.id),order:side.order.map(p=>p.id),starter:side.starter!.id,pitchers:side.pitchers.map(p=>p.id)}));return false;}
     }
@@ -60,7 +64,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     if(s.careerMode==="pro"){
       const starts:Record<string,ProAppearance>={},positions:Position[]=["C","SS","CF","2B","1B","3B","LF","RF","DH"];
       sides.forEach((side,index)=>{const teamId=index===0?game.homeTeamId:game.awayTeamId,level=game.competitionId.startsWith("pro-playoffs-")?"postseason":game.competitionId==="pro-first"?"first":"second";
-        side.field.forEach((p,i)=>starts[p.id]={teamId,level,position:positions[i],startedField:true,startedPitching:false});const p=side.starter!;starts[p.id]={teamId,level,position:p.position,startedField:false,startedPitching:true};});
+        side.field.forEach((p,i)=>starts[p.id]={teamId,level,position:positions[i],startedField:true,startedPitching:false});const p=side.starter!;starts[p.id]={teamId,level,position:p.twoWay?.pitchingPosition??p.position,startedField:!!starts[p.id]?.startedField,startedPitching:true};});
       s.matchProgress.proStarts=starts;
     }
   }
@@ -113,7 +117,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       }
       const saveEntry=!game.exhibition&&!starter&&!!closerId&&current.id!==closerId&&(m.inning>=9||pro&&earlyCloser&&m.inning===8)&&m.pa===1&&m.outs===0&&game.score[pitchingSide]>game.score[side]&&game.score[pitchingSide]-game.score[side]<=3&&proReliefReady(player(closerId),game.date,undefined,recentTeamGames[pitchingSide]);
       if (saveEntry || m.pitchOuts[pitchingSide] >= limit || current.fatigue >= params["coach.replace_fatigue"] || !available(current, game.date)) {
-        const unused=m.sides[pitchingSide].pitchers.map(player).filter(p=>!m.usedPitchers[pitchingSide].includes(p.id)&&!m.sides[pitchingSide].field.includes(p.id)&&available(p,game.date)&&p.fatigue<params['coach.replace_fatigue']&&(!pro||['중간계투','마무리'].includes(pitchingRole(p)))&&(game.exhibition||p.id!==mainCloserId||closerId===mainCloserId));
+        const unused=m.sides[pitchingSide].pitchers.map(player).filter(p=>!m.usedPitchers[pitchingSide].includes(p.id)&&(!m.sides[pitchingSide].field.includes(p.id)||!!p.twoWay&&m.sides[pitchingSide].field[8]===p.id)&&available(p,game.date)&&p.fatigue<params['coach.replace_fatigue']&&(!pro||['중간계투','마무리'].includes(pitchingRole(p)))&&(game.exhibition||p.id!==mainCloserId||closerId===mainCloserId));
         // Keep the designated closer out of middle innings even when he is
         // the only rested option. Other relievers cover first; an exhausted
         // bullpen can still use him in a genuine emergency.
@@ -163,7 +167,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     if (!available(batter, game.date)) {
       const fieldIndex = m.sides[side].field.indexOf(batter.id);
       const position = (["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH"] as Position[])[fieldIndex];
-      const substitute = rosters[side].filter(p => available(p, game.date) && p.twoWay?.nextAssignment !== "pitching" && !m.sides[side].field.includes(p.id) && !m.usedPitchers[side].includes(p.id) && p.eligiblePositions.includes(position))
+      const substitute = rosters[side].filter(p => available(p, game.date) && !m.sides[side].field.includes(p.id) && (!m.usedPitchers[side].includes(p.id)||!!p.twoWay&&position==='DH') && (p.eligiblePositions.includes(position)||!!p.twoWay&&position==='DH'))
         .sort((a, b) => (pro?tier(a)-tier(b):0)||Number(pro&&currentProPosition(b,position))-Number(pro&&currentProPosition(a,position))||selectionScore(b, roleFor(position)) - selectionScore(a, roleFor(position)) || a.id.localeCompare(b.id))[0];
       if (!substitute) return forfeit(side);
       m.sides[side].field[fieldIndex] = substitute.id; m.sides[side].order[orderIndex] = substitute.id; game.lineup[side].push(substitute.id); batter = substitute;
@@ -178,8 +182,11 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     const bat = line(batter).batting, pit = line(pitcher).pitching, b = effective(batter), p = effective(pitcher);
     const effect = s.matchEffect?.gameId === game.id && s.matchEffect.batterId === batter.id && s.matchEffect.pitcherId === pitcher.id ? s.matchEffect : undefined;
     const fielder=m.fieldingVersion===1?player(m.sides[pitchingSide].field[fieldingIndex(hash(`${s.seed}:${game.id}:${m.inning}:${side}:${m.battingIndex[side]}:field`))]):undefined;
-    const probs = applyMatchEffect(probabilities(b, p, fielder?effective(fielder).defense:m.defense[pitchingSide], m.arm[pitchingSide],configuration), effect);
-    const reference=fielder?applyMatchEffect(probabilities(b,p,configuration["match.defense_center"],m.arm[pitchingSide],configuration),effect):undefined;
+    const focus=game.finalFocus,finalEffect=focus&&(focus.field==='batting'?focus.playerId===batter.id:focus.playerId===pitcher.id)?focus.effect:undefined;
+    const base=probabilities(b,p,fielder?effective(fielder).defense:m.defense[pitchingSide],m.arm[pitchingSide],configuration);
+    const probs = applyMatchEffect(finalEffect?applyMatchEffect(base,finalEffect):base,effect);
+    const referenceBase=fielder?probabilities(b,p,configuration['match.defense_center'],m.arm[pitchingSide],configuration):undefined;
+    const reference=referenceBase?applyMatchEffect(finalEffect?applyMatchEffect(referenceBase,finalEffect):referenceBase,effect):undefined;
     const expectedOut=reference?(1-reference.hit)*(1-reference.k)/((1-reference.hit)*(1-reference.k)+reference.hit*(1-reference.hr)):0;
     if (s.matchEffect?.gameId === game.id) delete s.matchEffect;
     const batBefore = { ...bat }, pitBefore = { ...pit };
@@ -254,7 +261,6 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   for (const event of m.recentEvents) { const p = player(event.playerId); p.recentAppearances.push(event.record); if (p.recentAppearances.length > 350) p.recentAppearances.shift(); }
   for (const original of m.original) {
     const p = player(original.id);
-    if (p.twoWay) p.twoWay.nextAssignment = p.twoWay.nextAssignment === "pitching" ? "batting" : "pitching";
     let batting = 0, outs = 0, keepFrom = p.recentAppearances.length;
     for (let i = p.recentAppearances.length - 1; i >= 0; i--) {
       batting += recentSample(p.recentAppearances[i], false); outs += recentSample(p.recentAppearances[i], true); keepFrom = i;

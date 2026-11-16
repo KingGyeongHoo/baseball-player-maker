@@ -18,6 +18,50 @@ test('representative OVR uses the active primary discipline or the mean for two-
   const before={...p.stats};p.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'pitching',reputationBonus:0};assert.equal(e.overall(p),70);assert.deepEqual(p.stats,before);assert.equal(e.combinedOvr(p),140);
   skills(p,100,100);assert.equal(e.overall(p),100);
 });
+
+function matchFixture(pitchingPosition='SP',assignment='pitching'){
+ const s=pc.acknowledgeCareer(pc.continueCareer(graduate(95,95),'join')),p=e.getPlayer(s);
+ s.proWorld.stage='regular';s.date='2028-04-01';s.careerNotice=null;s.noticeQueue=[];
+ p.teamId=0;p.twoWay.pitchingPosition=pitchingPosition;p.twoWay.nextAssignment=assignment;p.throws='R';p.fatigue=0;p.lastPitched=null;p.injury=null;p.forcedRest=false;
+ p.trainingPolicy.mode='normal';p.eligiblePositions=['SP','RP','CP','SS','DH'];
+ for(const key of Object.keys(p.stats))p.stats[key]=95;
+ return {s,p,rosters:[0,1].map(team=>s.players.filter(q=>q.teamId===team))};
+}
+function matchGame(id,date){return {id,date,homeTeamId:0,awayTeamId:1,competitionId:'pro-first',rulesetId:'pro-v1',status:'scheduled',score:[0,0],innings:[[],[]],lineup:[],boxScore:{}};}
+
+test('both legacy assignments select the same pitcher/DH and one actual game records both disciplines',()=>{
+ for(const assignment of ['pitching','batting']){
+  const {s,p,rosters}=matchFixture('SP',assignment),selected=world.professionalLineup(s,rosters[0],s.date);
+  assert.equal(selected.starter,p);assert.equal(selected.field[8],p);assert.ok(selected.order.includes(p));assert.equal(new Set(selected.field).size,9);assert.ok(!selected.field.slice(0,8).includes(p));
+  const game=matchGame(`same-game-${assignment}`,s.date);assert.equal(e.simulateGame(s,game,rosters),true);assert.equal(game.status,'completed');
+  const record=game.boxScore[p.id];assert.ok(record.batting.PA>0);assert.ok(record.pitching.BF>0);assert.equal(record.games.batting,1);assert.equal(record.games.pitching,1);
+  assert.equal(game.lineup[0].slice(0,9).filter(id=>id===p.id).length,1);assert.equal(game.lineup[0][9],p.id);
+  assert.equal(game.proAppearances[p.id].startedField,true);assert.equal(game.proAppearances[p.id].startedPitching,true);
+  assert.ok((record.fielding?.outs.DH??0)>record.pitching.outs,'DH remains in the lineup after pitching relief enters');
+  assert.equal(p.twoWay.nextAssignment,assignment);
+  const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;assert.deepEqual(e.getPlayer(restored).seasonStats,p.seasonStats);
+  p.fatigue=0;const tomorrow=e.addDays(s.date,1),next=world.professionalLineup(s,rosters[0],tomorrow);
+  assert.notEqual(next.starter?.id,p.id,'pitching rest still applies');assert.ok(next.order.includes(p),'pitching rest does not prohibit batting');
+ }
+});
+
+test('a two-way DH can enter relief without leaving the batting order',()=>{
+ let appeared=0;
+ for(let i=0;i<12;i++){
+  const {s,p,rosters}=matchFixture('RP',i%2?'pitching':'batting');s.seed=`two-way-relief-${i}`;
+  const selected=world.professionalLineup(s,rosters[0],s.date);assert.equal(selected.field[8],p);assert.ok(selected.pitchers.includes(p));
+  const game=matchGame(`two-way-relief-${i}`,s.date);assert.equal(e.simulateGame(s,game,rosters),true);assert.equal(game.status,'completed');
+  const record=game.boxScore[p.id];assert.ok(record.batting.PA>0);
+  if(record.pitching.BF>0){appeared++;assert.equal(record.games.batting,1);assert.equal(record.games.pitching,1);assert.equal(game.lineup[0].slice(0,9).filter(id=>id===p.id).length,1);}
+ }
+ assert.ok(appeared>0,'relief eligibility must not exclude a pitcher already batting at DH');
+});
+
+test('spring lineups support a starter batting at DH in the same exhibition game',()=>{
+ const {springLineup}=require('../.test-build/lib/sim/pro-spring.js'),{s,p,rosters}=matchFixture();
+ p.teamId=10; // Spring prioritizes second-team opportunities over first-team stars.
+ const selected=springLineup(s,rosters[0],s.date);assert.equal(selected.starter,p);assert.equal(selected.field[8],p);assert.ok(selected.pitchers.includes(p));
+});
 test('pro entry uses the symmetric 75% ratio and preserves stats and identity',()=>{
   for(const [pitch,bat,kept] of [[75,75,true],[80,60,true],[60,80,true],[80,59.999,false],[59.999,80,false],[20,20,true]]){const old=graduate(pitch,bat),p=e.getPlayer(old),n=pc.continueCareer(old,'join'),q=e.getPlayer(n);assert.equal(!!q.twoWay,kept);assert.deepEqual(q.stats,p.stats);assert.deepEqual(q.talent,p.talent);assert.equal(q.id,p.id);assert.equal(q.career[0].year,2027);if(kept){assert.deepEqual(q.twoWay,{...p.twoWay,reputationBonus:0});assert.equal(e.overall(q),(pitch+bat)/2);}else assert.equal(e.overall(q),Math.max(pitch,bat));}
 });

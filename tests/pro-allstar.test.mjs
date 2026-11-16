@@ -116,3 +116,15 @@ test('optional allstar technical exchanges and review can grow role skills witho
  const before=structuredClone(p.seasonStats),done=e.answerCareerEvent(s,'learn');assert.ok(Object.values(done.careerEventHistory.at(-1).stats).some(n=>n>0));assert.deepEqual(e.getPlayer(done).seasonStats,before);
  done.date=c.allstarDates(2028).first;a.playAllstarDay(done);const review=done.careerEvent.choices.find(c=>c.id==='review');assert.equal(review.outcomes[0].weeks.contact,1);assert.equal(review.outcomes[0].weight,30);
 });
+
+
+test('official farm All-Star finalization enables developmental conversion even with no required pitching wins',()=>{
+ const s=fixture(),p=e.getPlayer(s);e.assignRole(p,'선발');p.position='SP';p.eligiblePositions=['SP'];p.teamId=p.professional.contract.club+10;p.proContract.status='developmental';
+ p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};Object.assign(p.seasonByLevel.second.pitching,{BF:100,outs:60,H:8,BB:0,SO:50,ER:0});p.seasonByLevel.second.games={wins:0};
+ for(const key of Object.keys(p.stats))p.stats[key]=60;for(const q of s.players.filter(q=>q.id!==p.id&&q.teamId>=10&&q.teamId<20&&q.position==='SP'))for(const key of Object.keys(q.stats))q.stats[key]=30;
+ assert.equal(pc.developmentProgress(p,s.calendar.seasonYear).qualified,false);
+ for(const date of a.allstarVotingDates(s.calendar.seasonYear)){s.date=date;a.updateAllstarVotes(s,true);}
+ assert.equal(pc.reviewDevelopmentContract(s),false,'ballot votes alone are not an official selection');
+ assert.equal(a.finalizeAllstars(s),true);assert.ok(p.professional.allstarHistory.some(row=>row.year===s.calendar.seasonYear&&row.level==='second'));
+ s.careerNotice=null;s.noticeQueue=[];assert.equal(pc.reviewDevelopmentContract(s),false,'official selection waits for season settlement');s.proWorld.seasonClosed=true;assert.equal(pc.reviewDevelopmentContract(s),true);assert.equal(p.proContract.status,'regular');assert.equal(p.seasonByLevel.second.games.wins,0);
+});

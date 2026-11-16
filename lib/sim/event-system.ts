@@ -1,5 +1,6 @@
 import {resolveNationalContext} from "./national-tournament";
-import {nationalRoster,rememberNational,nationalRole} from "./national-teams";
+import {resolveFinalGameChoice} from './final-game-event';
+import {chooseNationalField,nationalParticipationChoices,nationalRoster,rememberNational,nationalRole} from "./national-teams";
 import { addDays, assignRole, available, clamp, overall, focusGrowth, getPlayer, growthMultiplier, isPitcher, lineup, params, random, refreshWeekReport, reputationScore, roleScore, roles, slowdown } from "./engine";
 import {applyProTwoWayChoice} from "./pro-two-way";
 import {clearProfessionalReputation} from "./pro-selection";
@@ -115,6 +116,13 @@ function open(s: GameState, opportunity: EventOpportunity, scene?: EventScene) {
   if (scene) ledger.games.push(scene.gameId);
   return true;
 }
+export function tryWinterTrainingCenter(s:GameState){
+  const p=getPlayer(s),month=Number(s.date.slice(5,7));
+  if(s.careerMode||s.phase==='ended'||p.grade<1||p.grade>3||![1,2].includes(month)||s.careerEvent||s.careerNotice||s.pendingEventOutcome||s.matchProgress||p.roleOffer||eventLedger(s).centerGrades.includes(p.grade))return false;
+  // Enrollment is a winter offer, including rest days. It does not depend on
+  // the March–December school training calendar or the random event cooldown.
+  return open(s,{definitionId:'T10',date:s.date,field:isPitcher(p.primaryRole)?'pitching':'batting'});
+}
 export function tryNationalEvent(s: GameState) {
   if(s.careerMode||s.date.slice(5,7)!=='09')return false;
   const p=getPlayer(s);if(s.phase==='ended'||s.careerEvent||p.roleOffer)return false;
@@ -123,7 +131,7 @@ export function tryNationalEvent(s: GameState) {
   if(entry.offered||entry.settled)return false;
   if(!entry.roster.some(row=>row.id===p.id)){entry.settled=true;return false;}
   const opened=open(s,{definitionId:'P08',date:s.date,field:nationalRole(p).pitching?'pitching':'batting'});
-  if(opened){entry.offered=true;s.careerEvent!.choices[0].outcomes=[{weight:100,message:"청소년대표팀에 합류한다. 국제대회 경기 성적에 따라 경험과 수상이 결정된다."}];}return opened;
+  if(opened){entry.offered=true;s.careerEvent!.choices[0].outcomes=[{weight:100,message:"청소년대표팀에 합류한다. 국제대회 경기 성적에 따라 경험과 수상이 결정된다."}];nationalParticipationChoices(s,s.careerEvent!);}return opened;
 }
 export function openScheduledEvent(s: GameState, phase: "beforeGames" | "training" | "game", scene?: EventScene) {
   const planned = s.weekProgress?.opportunity;
@@ -227,14 +235,15 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   recordProChoice(s,event,Object.values(changes).some(n=>(n??0)>0));
   s.careerEventHistory.push({ id: event.id, definitionId: event.definitionId, kind: event.kind, title: event.title, date: event.date,
     choice: selected.label, choiceId:selected.id, ...(event.story?{story:{...event.story}}:{}), message: outcome.message, awakened:awakened.filter(key=>(changes[key]??0)>0), stats: changes, reputation: (p.reputation??0) - oldReputation, fatigue,
-    ...(event.proEvent?{proEvent:{version:1 as const,catalogId:event.proEvent.catalogId,channel:event.proEvent.channel,year:event.proEvent.year,branchId:outcome.proResultId??selected.id,chainId:event.proEvent.chainId,...(proAction?{action:proAction}:{})}}:{}),
+    ...(event.proEvent?{proEvent:{version:1 as const,catalogId:event.proEvent.catalogId,channel:event.proEvent.channel,year:event.proEvent.year,branchId:outcome.proResultId??selected.id,...(event.proEvent.chainId!==undefined?{chainId:event.proEvent.chainId}:{}),...(event.proEvent.nationalKind?{nationalKind:event.proEvent.nationalKind}:{}),...(proAction?{action:proAction}:{})}}:{}),
     ...(outcome.injury ? { injury: structuredClone(p.injury!) } : {}), ...(p.position !== oldPosition ? { positionChange: { from: oldPosition, to: p.position } } : {}),
     ...(outcome.match ? { match: { ...outcome.match } } : {}), ...(event.scene ? { scene: event.scene } : {}) });
   Object.assign(s.careerEventHistory.at(-1)!, opportunityChanges);
-  const nationalKind=event.proEvent?.nationalKind??(event.definitionId==="P08"?"youth":undefined);if(nationalKind){const row=s.nationalTeams?.find(row=>row.kind===nationalKind&&row.year===Number(event.date.slice(0,4)));if(row){row.simulationVersion=1;row.settled=true;row.participated=selected.id===event.choices[0].id;row.result=outcome.proResultId??selected.id;}}
+  const nationalKind=event.proEvent?.nationalKind??(event.definitionId==="P08"?"youth":undefined);if(nationalKind){const row=s.nationalTeams?.find(row=>row.kind===nationalKind&&row.year===Number(event.date.slice(0,4)));if(row){row.simulationVersion=1;row.settled=true;row.participated=!!outcome.nationalField||selected.id===event.choices[0].id;row.result=outcome.proResultId??selected.id;if(outcome.nationalField)chooseNationalField(s,row,outcome.nationalField);}}
   if(event.proEvent?.catalogId==="PE27"){const invitation=s.proEvents?.national[String(event.proEvent.year)];if(invitation)invitation.settled=true;}
-  if(event.proEvent?.wbcYear){const entry=s.proEvents?.wbc?.[event.proEvent.wbcYear];if(entry){entry.settled=true;entry.participated=selected.id==="participate";entry.result=outcome.proResultId;}}
+  if(event.proEvent?.wbcYear){const entry=s.proEvents?.wbc?.[event.proEvent.wbcYear];if(entry){entry.settled=true;entry.participated=!!outcome.nationalField||selected.id==="participate";entry.result=outcome.proResultId;}}
   resolveNationalContext(s,event,outcome,selected.id);
+  resolveFinalGameChoice(s,event,outcome);
   observeTwoWayQualification(s);
   s.careerEvent = null;
   if (s.weekProgress) {

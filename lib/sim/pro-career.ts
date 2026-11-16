@@ -1,9 +1,12 @@
+import {registrationChangeMessage} from "../pro-registration-notice";
 import {currentProPosition} from "./pro-positions";
+import {rosterGrade} from '../roster-grades';
+import {createProWarContext,proWarAssessment,type ProWarContext} from './pro-war';
 import {firstTeamRetention} from "./pro-assessment";
-import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, pitchingRole, positions, random, recovery, reputationScore, roleScore } from "./engine";
+import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, pitchingRole, positions, random, recovery, reputationScore, roleScore, selectionScore } from "./engine";
 import { careerLeagueTable, developmentCalendar } from "./pro-calendar";
 import { developmentalOffer, revealDraftResult } from "./draft-outcome";
-import { ensureProWorld,proNews,reviewLeagueRegistrations,BASE_SALARY } from "./pro-world";
+import { ensureProWorld,proNews,proNotice,reviewLeagueRegistrations,BASE_SALARY } from "./pro-world";
 import { continueToNextProCamp,finishProfessionalDay } from "./pro-season";
 import type { GameState, Player, Position, ProLevel, Team } from "./types";
 import {syncJerseyNumbers} from "../jersey-numbers";
@@ -12,13 +15,15 @@ import {tryProNationalInvitation} from "./pro-national-events";
 import {syncProClubNames,proTeamName} from "./club-names";
 import {createCareerNPC,proRosterPositions} from './pro-roster';
 import {rookieDevelopmentalIds,setProSquad} from "./pro-squads";
+import {queuePersonalAwardNotices} from './pro-awards-ceremony';
+import {pendingNationalOffseason} from './national-tournament';
 
 export type CareerChoice = "join" | "tryout" | "college" | "developmental" | "direct";
 const slots: Position[] = ["C","C","C","1B","1B","2B","2B","3B","3B","SS","SS","LF","LF","CF","CF","RF","RF","DH","SP","SP","SP","SP","SP","SP","RP","RP","RP","RP","CP","CP"];
 const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind"], title: string, message: string) => {
   s.careerNotice = { id: `${s.date}:${s.week}:${kind}`, date: s.date, kind, title, message };
 };
-export const acknowledgeCareer = (input: GameState): GameState => { const s = structuredClone(input); delete s.careerNotice;const next=s.noticeQueue?.shift();if(next)s.careerNotice=next;else if(s.proWorld?.resumeCampAfterAwards&&!s.careerEvent)continueToNextProCamp(s);else tryProNationalInvitation(s); return s; };
+export const acknowledgeCareer = (input: GameState): GameState => { const s = structuredClone(input);const awardYear=s.careerNotice?.code?.startsWith('awards:')?Number(s.careerNotice.code.split(':')[1]):s.careerNotice?.award?.year;if(awardYear!==undefined)queuePersonalAwardNotices(s,awardYear);delete s.careerNotice;const next=s.noticeQueue?.shift();if(next)s.careerNotice=next;else if(s.proWorld?.resumeCampAfterAwards&&!s.careerEvent&&!pendingNationalOffseason(s))continueToNextProCamp(s);else tryProNationalInvitation(s); return s; };
 function path(s: GameState) {
   const p = getPlayer(s);
   return s.postSchool ??= { graduationYear: s.calendar.seasonYear, graduationSchool: s.teams[p.teamId].name, collegeYears: 0, tryouts: [] };
@@ -116,29 +121,37 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   if(p.professional?.twoWayHistory?.some(row=>row.action==="단일 역할 입단"))s.careerNotice!.message+=` 프로 겸업은 낮은 OVR이 높은 OVR의 75% 이상이어야 하므로 ${positions[p.position]}에 집중합니다. 양쪽 능력을 키워 겸업에 다시 도전할 수 있습니다.`;
   return s;
 }
-export function developmentProgress(p: Player) {
+export function developmentProgress(p: Player, year?:number,warContext?:ProWarContext) {
   const records = p.seasonByLevel?.second ?? emptyRecord(), b = records.batting, pitch = records.pitching;
   const pitchingInningsRequired = pitchingRole(p) === "선발" ? 20 : 8;
   const pitchingMilestone=pitchingRole(p)==='선발'?{key:'wins' as const,required:2,label:'승'}:pitchingRole(p)==='마무리'?{key:'saves' as const,required:3,label:'세이브'}:{key:'holds' as const,required:5,label:'홀드'};
   const pitchingMilestoneCount=records.games?.[pitchingMilestone.key]??0;
-  const batting = b.PA >= 80 && b.AB > 0 && (b.H + b.BB) / b.PA + (b.H + b["2B"] + 2*b["3B"] + 3*b.HR) / b.AB >= .75;
+  const average=b.AB>0?b.H/b.AB:null;
+  const batting = b.PA >= 80 || b.HR >= 5 || b.H >= 20 || average!==null&&average>=.25;
   const pitching = pitch.outs >= pitchingInningsRequired * 3 && pitch.BF > 0 && pitch.ER * 27 / pitch.outs <= 6 && pitchingMilestoneCount>=pitchingMilestone.required;
-  const qualified = p.twoWay ? batting || pitching : isPitcher(p.primaryRole) ? pitching : batting;
-  return {qualified,batting,pitching,PA:b.PA,AB:b.AB,outs:pitch.outs,pitchingInningsRequired,pitchingMilestone,pitchingMilestoneCount};
+  const allstar=year!==undefined&&!!p.professional?.allstarHistory?.some(row=>row.year===year&&row.level==='second');
+  const selectionGrade=rosterGrade(selectionScore(p),true),rating=['S','A','B','C'].includes(selectionGrade);
+  const warWins=proWarAssessment(p,warContext).equivalentWins,war=warWins>=1.5;
+  const qualified = allstar || rating || war || (p.twoWay ? batting || pitching : isPitcher(p.primaryRole) ? pitching : batting);
+  return {qualified,allstar,rating,selectionGrade,war,warWins,batting,pitching,PA:b.PA,AB:b.AB,H:b.H,HR:b.HR,average,outs:pitch.outs,pitchingInningsRequired,pitchingMilestone,pitchingMilestoneCount};
 }
 export function reviewDevelopmentContract(s: GameState) {
+  if(s.careerMode!=='pro'||(s.proWorld?!s.proWorld.seasonClosed:s.phase!=='ended'))return false;
   const p = getPlayer(s);
   if(s.proWorld){
+    const candidates=s.players.filter(q=>q.proContract?.status==='developmental'&&q.professional?.employment==='active'&&q.teamId>=0);
+    if(!candidates.length)return false;
+    const warContext=createProWarContext(s);
     let notified=false;
-    for(const q of s.players){if(q.proContract?.status!=="developmental"||q.professional?.employment!=="active"||q.teamId<0||!developmentProgress(q).qualified)continue;
+    for(const q of candidates){if(!q.proContract||!developmentProgress(q,s.calendar.seasonYear,warContext).qualified)continue;
       q.proContract.status="regular";q.proContract.convertedDate=s.date;if(q.teamId>=30)setProSquad(s,q,"third");if(q.id===s.playerId){if(s.postSchool?.pro)s.postSchool.pro.level=q.teamId<10?"first":q.teamId<20?"second":"third";if(s.proWorld.goal==="정식 선수 전환")s.proWorld.goal="1군 승격";}const contract=q.professional?.contract;if(contract){contract.segments.push({from:s.date,salary:BASE_SALARY});contract.salary=Math.max(contract.salary,BASE_SALARY);}
-      if(q.id===p.id){notice(s,"registered","경기력으로 따낸 정식 선수 전환","2군의 실제 경기 성과로 정식 선수가 됐습니다. 앞으로 성장 100%·출전 불이익 해제가 적용되며, 다음 엔트리 평가에서 1군에 도전합니다. 전환일부터 정식 기본 연봉을 적용합니다.");notified=true;}
+      if(q.id===p.id){proNotice(s,`registered:${s.calendar.seasonYear}:${q.id}`,"정식 선수 전환!","정식 전환 요건을 충족하여 정식 선수로 전환되었습니다.","registered");notified=true;}
       proNews(s,`${q.name} · 2군 성과로 정식 선수 전환`,`${s.calendar.seasonYear}:registered:${q.id}`);
     }return notified;
   }
-  if (s.careerMode !== "pro" || s.careerNotice || p.proContract?.status !== "developmental" || !developmentProgress(p).qualified) return false;
+  if (s.careerMode !== "pro" || s.careerNotice || p.proContract?.status !== "developmental" || !developmentProgress(p,s.calendar.seasonYear).qualified) return false;
   p.proContract.status = "regular"; p.proContract.convertedDate = s.date;
-  notice(s,"registered","경기력으로 따낸 정식 선수 전환","2군에서 쌓은 경기 성과를 인정받아 정식 선수로 전환됐습니다. 성장 효율이 100%로 회복되고 출전 경쟁의 불이익이 해제됩니다. 이제 1군 승격에도 도전할 수 있습니다.");
+  notice(s,"registered","정식 선수 전환!","정식 전환 요건을 충족하여 정식 선수로 전환되었습니다.");
   return true;
 }
 export function reviewProRoster(s: GameState) {
@@ -168,7 +181,7 @@ export function reviewProRoster(s: GameState) {
   const from:ProLevel = p.teamId===first?"first":"second",to:ProLevel=from==="first"?"second":"first",old=p.teamId;
   p.teamId=exchange.teamId;exchange.teamId=old;info.level=to;
   info.transactions.push({date:s.date,from,to,reason,exchangedPlayerId:exchange.id});
-  notice(s,to==="first"?"promoted":"demoted",to==="first"?"1군 승격 통보":"2군 조정 통보",reason);return true;
+  notice(s,to==="first"?"promoted":"demoted",to==="first"?"1군 승격 통보":"2군 조정 통보",registrationChangeMessage([to==="first"?p.name:exchange.name],[to==="first"?exchange.name:p.name]));return true;
 }
 export function finishDevelopmentSeason(s: GameState) {
   if(s.careerMode==="pro"&&s.proWorld)return finishProfessionalDay(s);
@@ -180,7 +193,10 @@ export function finishDevelopmentSeason(s: GameState) {
     path(s).collegeDraft=draftPlayers(draftState);
     const chosen=path(s).collegeDraft!.find(p=>p.playerId===s.playerId);
     notice(s,"seasonComplete","대학 육성 시즌 종료",chosen?`${chosen.club}의 선택을 받았습니다. 입단을 결정하면 다음 해 프로 신인 시즌으로 이어집니다.`:"재도전 드래프트에서 지명받지 못했습니다. 입단 테스트나 다음 대학 육성 시즌을 선택할 수 있습니다.");
-  } else notice(s,"seasonComplete","프로 신인 시즌을 마쳤습니다","1군·2군 출전 기록과 최종 순위를 확인하세요. 고교부터 이어온 연도별 기록은 개인 기록에 보관됩니다.");
+  } else {
+    reviewDevelopmentContract(s);
+    proNotice(s,`season:${s.calendar.seasonYear}`,"프로 신인 시즌을 마쳤습니다","1군·2군 출전 기록과 최종 순위를 확인하세요. 고교부터 이어온 연도별 기록은 개인 기록에 보관됩니다.","seasonComplete");
+  }
   return true;
 }
 export const careerLabel = (p: Player) => p.careerMode==="pro" ? `${p.age ?? 19}세 · 프로` : p.careerMode==="college" ? `${p.age ?? 19}세 · 대학` : `고교 ${p.grade}학년`;

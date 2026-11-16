@@ -10,7 +10,7 @@ registerHooks({ resolve(specifier, context, next) {
   return next(specifier, context);
 } });
 const e = require('../.test-build/lib/sim/engine.js');
-const { createRandomCareer, fieldPositions, pitchingPositions, kindForPosition } = require('../.test-build/lib/player-creation.js');
+const { createRandomCareer, fieldPositions, pitchingPositions, kindForPosition, randomPlayerPosition } = require('../.test-build/lib/player-creation.js');
 const Picker = require('../.test-build/app/components/position-picker.js').default;
 const Setup = require('../.test-build/app/components/player-setup.js').default;
 const sharp = require('sharp');
@@ -101,4 +101,15 @@ test('random hands persist into pro careers and saves, with switch hitting suppo
   for(const position of ['C','2B','3B','SS'])assert.throws(()=>createRandomCareer('제한',position,entropy(2,'invalid-left'),undefined,{throws:'L',bats:'R'}),/좌투/);
   const html=renderToStaticMarkup(createElement(Setup,{onStart(){}}));assert.ok(html.includes('투타 손은 시작 시 무작위'));assert.ok(!html.includes('투구 손'));
   const invalid=structuredClone(baseline);e.getPlayer(invalid).throws='both';assert.throws(()=>storage.encodeCareerSave(invalid),/투구·타격/);
+});
+
+
+test('random player starts use the same five position shares, while bullpen jobs remain distinct',()=>{
+ const counts={starter:0,bullpen:0,catcher:0,infield:0,outfield:0},bullpen={RP:0,CP:0};
+ for(let i=0;i<40000;i++){
+  const position=randomPlayerPosition({getRandomValues(array){array[0]=Math.floor((i+.5)/40000*2**32);return array;}});
+  const group=position==='SP'?'starter':['RP','CP'].includes(position)?'bullpen':position==='C'?'catcher':['1B','2B','3B','SS'].includes(position)?'infield':'outfield';counts[group]++;
+  if(position==='RP'||position==='CP')bullpen[position]++;assert.notEqual(position,'DH');
+ }
+ assert.deepEqual(counts,{starter:7000,bullpen:13000,catcher:4000,infield:8000,outfield:8000});assert.deepEqual(bullpen,{RP:11000,CP:2000});
 });

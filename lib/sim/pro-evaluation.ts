@@ -2,6 +2,7 @@ import {clamp,emptyRecord,isPitcher,mergeRecord,ops,ovr,positions,roleScore,proS
 import type {GameState,Player,Position,RecordLine} from "./types";
 import type {ProAward} from "./pro-types";
 import {individualAwards} from './pro-individual-awards';
+import {requiredLeaderSample} from '../league-leaders';
 
 export function performanceValue(p:Player,records:RecordLine,farm=false) {
   const r=records,pit=r.pitching,b=r.batting;
@@ -25,6 +26,27 @@ function recordAwardMerit(r:RecordLine,league:RecordLine,pitching:boolean) {
   return {raw,n,pitching};
 }
 export function awardMerit(p:Player,r:RecordLine,league:RecordLine) {return recordAwardMerit(r,league,isPitcher(p.primaryRole));}
+export function rookieEligibility(p:Player,year:number,field:'batting'|'pitching'){
+  const entry=p.professional?.rookieYear,prior=emptyRecord();
+  for(const row of p.career)if(row.careerMode==='pro'&&row.year<year&&row.byLevel)mergeRecord(prior,row.byLevel.first);
+  const season=entry===undefined?0:year-entry+1;
+  return season>=1&&season<=5&&(field==='batting'?prior.batting.PA<=60:prior.pitching.outs<=90);
+}
+export function rookieOfYearAward(s:GameState):ProAward|undefined{
+  const year=s.calendar.seasonYear,players=s.players.filter(p=>p.professional&&p.seasonByLevel),league=emptyRecord();
+  for(const p of players)mergeRecord(league,p.seasonByLevel!.first);
+  const merits=players.flatMap(p=>(['batting','pitching'] as const).flatMap(field=>{
+    const records=p.seasonByLevel!.first,sample=field==='batting'?records.batting.PA:records.pitching.outs;
+    return sample>=requiredLeaderSample(p,field,144)?[{p,field,...recordAwardMerit(records,league,field==='pitching')}]:[];
+  }));
+  const ranked=merits.filter(row=>rookieEligibility(row.p,year,row.field)).map(row=>{
+    const group=merits.filter(other=>other.field===row.field),mean=group.reduce((sum,m)=>sum+m.raw,0)/group.length;
+    const sd=Math.sqrt(group.reduce((sum,m)=>sum+(m.raw-mean)**2,0)/group.length);
+    return {...row,score:(sd?(row.raw-mean)/sd:0)*10+Math.log1p(row.n)*3};
+  }).sort((a,b)=>b.score-a.score||b.n-a.n||a.p.id.localeCompare(b.p.id));
+  const best=ranked[0];
+  return best?{year,kind:'신인왕',category:'rookie',playerId:best.p.id,playerName:best.p.name,club:awardClub(best.p),value:best.score,field:best.field,records:structuredClone(best.p.seasonByLevel!.first)}:undefined;
+}
 export const goldGlovePositions=["P","C","1B","2B","3B","SS","LF","CF","RF","DH"] as const;
 const awardClub=(p:Player)=>p.teamId<0?p.professional!.contract?.club??p.professional!.firstClub:p.teamId%10;
 export function goldGloveAwards(s:GameState):ProAward[]{
@@ -51,8 +73,7 @@ export function regularAwards(s:GameState):ProAward[] {
   const normalize=(row:typeof merits[number])=>{const group=merits.filter(m=>m.pitching===row.pitching),mean=group.reduce((n,m)=>n+m.raw,0)/Math.max(1,group.length),sd=Math.sqrt(group.reduce((n,m)=>n+(m.raw-mean)**2,0)/Math.max(1,group.length));return (sd?(row.raw-mean)/sd:0)*10+Math.log1p(row.n)*3;};
   const ranked=merits.map(m=>({...m,score:normalize(m)})).sort((a,b)=>b.score-a.score||b.n-a.n||a.p.id.localeCompare(b.p.id));
   if(ranked[0]){const best=ranked[0];add("시즌 MVP",best.p,best.score);Object.assign(awards.at(-1)!,{category:"mvp",field:best.pitching?"pitching":"batting",records:structuredClone(best.p.seasonByLevel!.first)});}
-  const rookie=ranked.find(({p})=>{if(year-p.professional!.rookieYear>2)return false;const prior=emptyRecord();for(const r of p.career)if(r.careerMode==="pro"&&r.year<year&&r.byLevel)mergeRecord(prior,r.byLevel.first);return prior.batting.PA<50&&prior.pitching.outs<60;});
-  if(rookie)add("신인상",rookie.p,rookie.score);
+  const rookie=rookieOfYearAward(s);if(rookie)awards.push(rookie);
   for(let club=0;club<10;club++){const farm=players.filter(p=>p.teamId>=0&&p.teamId%10===club&&(p.seasonByLevel!.second.batting.PA>=50||p.seasonByLevel!.second.pitching.outs>=30)).sort((a,b)=>performanceValue(b,b.seasonByLevel!.second,true)-performanceValue(a,a.seasonByLevel!.second,true)||ovr(b)-ovr(a)||a.id.localeCompare(b.id));if(farm[0])add("구단 육성 우수 선수",farm[0],performanceValue(farm[0],farm[0].seasonByLevel!.second,true));}
   return [...awards,...goldGloveAwards(s)];
 }

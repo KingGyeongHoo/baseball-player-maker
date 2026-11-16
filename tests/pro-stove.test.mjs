@@ -148,3 +148,12 @@ test('new pro careers and leap-year calendars include February training and late
  const s=pc.createProfessionalDemo('february-camp','캠프검증','SP');assert.equal(s.date.slice(5),'02-01');
  for(const year of [2028,2029]){const c=calendar.developmentCalendar(year,true);assert.ok(c.trainingDays.some(d=>d.startsWith(`${year}-02-`)));assert.ok(c.events.filter(g=>!g.exhibition).every(g=>g.date>=`${year}-03-22`));}
 });
+for(const [kind,year,name] of [['premier12',2031,'프리미어12'],['apbc',2033,'APBC']])test(`${name} has its own participation button and blocks winter/camp controls until it finishes`,()=>{
+ const s=fixture(),p=e.getPlayer(s),nt=require('../.test-build/lib/sim/national-tournament.js');s.date=`${year}-10-25`;s.calendar.seasonYear=year;s.proWorld.year=year;s.proWorld.stage='summary';delete s.proWorld.stove;p.professional.contract.endYear=year+2;
+ const entry={kind,year,date:s.date,start:`${year}-11-01`,end:`${year}-11-30`,simulationVersion:1,roster:[{id:p.id}]};s.nationalTeams=[entry];
+ const panel=()=>renderToStaticMarkup(createElement(ProContractPanel,{state:s,disabled:false,onAction(){},onRetire(){}}));
+ assert.equal(life.canEnterNextProCamp(s),false);let html=panel();assert.ok(html.includes(`${name} 참가 →`));assert.doesNotMatch(html,/<button[^>]*>스토브리그 시작/);assert.doesNotMatch(html,/<button[^>]*>다음 캠프로/);
+ const props={state:s,policy:p.trainingPolicy,busy:false,auto:false,autoStartWeek:s.week,onAdvance(){},onToggleAuto(){},onContinue(){},onNextCamp(){},nationalAction:{...nt.nationalOffseasonActionLabel(s),onClick(){}}};html=renderToStaticMarkup(createElement(ProgressControls,props));assert.ok(html.includes(`${name} 참가 →`));assert.ok(!html.includes('다음 캠프로 바로 가기'));assert.ok(html.includes('INTERNATIONAL'));
+ entry.participated=true;assert.ok(panel().includes(`${name} 참가 →`));entry.participated=false;assert.ok(panel().includes(`${name} 결과 확인 →`));
+ entry.tournament={finished:`${year}-11-18`};assert.equal(life.canEnterNextProCamp(s),true);html=panel();assert.match(html,/<button[^>]*>스토브리그 시작/);assert.ok(!html.includes(`${name} 참가 →`));
+});

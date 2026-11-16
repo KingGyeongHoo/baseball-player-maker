@@ -58,7 +58,7 @@ export function tryCareerOpportunity(s: GameState) {
     const pair = twoWayPositions(p);
     return open(s, { ...base, id: `${p.id}:${s.date}:S01`, definitionId: "S01", title: "감독의 투타 겸업 제안", twoWayProposal: pair,
       description: `감독이 ${positions[pair.pitchingPosition]}와 ${positions[pair.battingPosition]}를 함께 맡아보자고 제안했다. 지금 학교에서도 새로운 역할에 도전할 수 있다.`,
-      choices: [{ id: "accept", label: "투타 겸업에 도전한다", outcomes: [{ weight: 100, message: "감독과 투타 겸업 계획을 세웠다. 팀 경기마다 투수·야수 출전일을 번갈아 배정하며, 실제 출전은 주전 경쟁과 컨디션에 따라 결정된다.", opportunity: { action: "twoWay" } }] },
+      choices: [{ id: "accept", label: "투타 겸업에 도전한다", outcomes: [{ weight: 100, message: "감독과 투타 겸업 계획을 세웠다. 등판하는 경기에도 지명타자로 타순에 들어간다. 실제 출전은 주전 경쟁과 컨디션·투수 휴식에 따라 결정된다.", opportunity: { action: "twoWay" } }] },
         { id: "decline", label: "현재 역할에 집중한다", outcomes: [{ weight: 100, message: "지금은 현재 역할에 집중하기로 했다. 다음 학년에도 양쪽 능력이 충분하면 다시 제안받을 수 있다." }] }] });
   }
   const year = s.calendar.seasonYear;

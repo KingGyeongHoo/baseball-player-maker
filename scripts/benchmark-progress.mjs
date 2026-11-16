@@ -2,11 +2,13 @@ import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {writeFileSync,mkdirSync} from 'node:fs';
 import {performance} from 'node:perf_hooks';
+import {resolve} from 'node:path';
 
 const require=createRequire(import.meta.url);
-const e=require('../.test-build/lib/sim/engine.js');
-const {advanceWeekInPlace}=require('../.test-build/lib/sim/week-engine.js');
-const pc=require('../.test-build/lib/sim/pro-career.js');
+const build=resolve(process.argv.find(arg=>arg.startsWith('--build='))?.slice('--build='.length)??'.test-build');
+const e=require(resolve(build,'lib/sim/engine.js'));
+const {advanceWeekInPlace}=require(resolve(build,'lib/sim/week-engine.js'));
+const pc=require(resolve(build,'lib/sim/pro-career.js'));
 const label=process.argv.find(arg=>arg.startsWith('--label='))?.split('=')[1]??'current';
 mkdirSync('test-results',{recursive:true});
 for(const key of ['events.weekly_chance','events.focus_chance','pro_events.general_chance','pro_events.game_chance'])e.params[key]=0;

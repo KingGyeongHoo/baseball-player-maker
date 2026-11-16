@@ -12,6 +12,7 @@ const Bracket=require('../.test-build/app/components/postseason-bracket.js').def
 e.params['pro_events.enabled']=0;
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('postseason-ladder','가을선수','SS'));
 template.proWorld.farmPostseason={seeds:[10,11,12,13],series:[],champion:10};
+for(const game of template.calendar.events)if(game.competitionId==='pro-second'){game.status='completed';game.score=[1,0];}
 function fixture(){const s=structuredClone(template);s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';life.finishProfessionalDay(s);return s;}
 const round=(s,id)=>s.proWorld.postseason.series.find(v=>v.id===id);
 const next=(s,id)=>{const r=round(s,id);return s.calendar.events.find(g=>g.id===`${s.proWorld.year}:${id}:${r.game-1}`);};
@@ -24,11 +25,12 @@ test('top five enter the stepladder, only ranks four and five start, and the adv
  assert.equal(s.calendar.events.filter(g=>g.competitionId.startsWith('pro-playoffs-')).length,1);assert.equal(next(s,'wildcard').homeTeamId,3);assert.deepEqual(s.rngStates,before.rngStates);assert.deepEqual(template,before);
 });
 
-test('regular-season notices follow the parent club rank and put non-first-team registration last',()=>{
+test('first-team notices follow the parent club rank and stay off lower-squad screens',()=>{
  for(let rank=1;rank<=10;rank++)for(const level of [0,10,20,30]){
   const s=structuredClone(template),p=e.getPlayer(s);p.teamId=rank-1+level;s.careerNotice=null;s.noticeQueue=[];
   s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';life.finishProfessionalDay(s);
   const notice=s.careerNotice,team=clubName(s,rank-1);
+  if(e.getPlayer(s).teamId>=10){assert.equal(notice,null);continue;}
   assert.equal(notice.code,`PRO10:postseason:${s.proWorld.year}`);
   assert.equal(notice.title,rank===1?`${team} 정규시즌 우승!`:rank<=5?`${team} 포스트시즌 진출 성공 !`:`${team}는 포스트 시즌 진출에 실패했습니다.`);
   const entry=rank===1?'1위로 한국시리즈에 진출합니다':rank===2?'2위로 플레이오프에 진출합니다.':rank===3?'3위로 준플레이오프에 직행합니다':rank<=5?`${rank}위로 와일드카드 결정전에 진출합니다`:'포스트시즌 종료 후 시즌이 종료됩니다.';
@@ -49,6 +51,21 @@ test('rank five must win both road games, including forfeits, and a second-game 
  for(const fifthWins of [false,true]){const s=fixture();play(s,'wildcard',4);assert.deepEqual(round(s,'wildcard').wins,[1,1]);assert.equal(round(s,'semi'),undefined);assert.equal(next(s,'wildcard').homeTeamId,3);assert.equal(next(s,'wildcard').round,2);
   play(s,'wildcard',fifthWins?4:3,{forfeit:true});assert.equal(round(s,'wildcard').winner,fifthWins?4:3);assert.deepEqual(round(s,'semi').clubs,[2,fifthWins?4:3]);
  }
+});
+test('wildcard tied finishes explain the fourth seed advantage, and complete records repair only the displayed score',()=>{
+ const {postseasonSeriesResult}=require('../.test-build/lib/pro-postseason.js');
+ for(const firstLoss of [false,true]){
+  const s=fixture();if(firstLoss)play(s,'wildcard',4);play(s,'wildcard',null,{tie:true});
+  const series=round(s,'wildcard'),snapshot=JSON.stringify(s),result=postseasonSeriesResult(s,series);
+  assert.deepEqual(result.wins,firstLoss?[1,1]:[1,0]);assert.equal(result.draws,1);assert.equal(result.drawAdvance,true);
+  const html=renderToStaticMarkup(createElement(Bracket,{state:s}));assert.ok(html.includes('선취 1승 포함'));assert.ok(html.includes('무승부로 정규시즌 4위 우선 진출'));
+  assert.equal(JSON.stringify(s),snapshot);
+ }
+ const s=fixture();play(s,'wildcard',4);play(s,'wildcard',3);const series=round(s,'wildcard');
+ series.wins=[1,1];const snapshot=JSON.stringify(s),result=postseasonSeriesResult(s,series);
+ assert.deepEqual(result.wins,[2,1]);assert.equal(result.drawAdvance,false);assert.equal(JSON.stringify(s),snapshot);
+ s.calendar.events=s.calendar.events.filter(game=>game.id!==`${s.proWorld.year}:wildcard:0`);
+ assert.deepEqual(postseasonSeriesResult(s,series).wins,[1,1],'missing legacy games cannot invent wins');
 });
 test('a fifth-place run meets third, second and first in order and closes the season exactly once',()=>{
  const s=fixture();sweep(s,'wildcard',4);assert.equal(round(s,'playoff'),undefined);sweep(s,'semi',4);assert.deepEqual(round(s,'playoff').clubs,[1,4]);assert.equal(round(s,'playoff').target,3);assert.equal(round(s,'final'),undefined);
@@ -106,7 +123,7 @@ test('expanded registrations survive saving and next camp, then the current thre
  s.date=opening;const before=new Map(s.players.map(p=>[p.id,p.teamId]));world.reviewLeagueRegistrations(s);
  assert.equal(s.players.filter(p=>p.teamId===club).length,29);assert.equal(s.players.filter(p=>before.get(p.id)===club&&p.teamId===club+10).length,3);
  for(const p of lowest)assert.equal(s.players.find(q=>q.id===p.id).teamId,club+10);
- assert.equal(s.postSchool.pro.level,'second');assert.equal(s.careerNotice.kind,'demoted');assert.match(s.careerNotice.message,/출전평가 하위 3명/);
+ assert.equal(s.postSchool.pro.level,'second');assert.equal(s.careerNotice.kind,'demoted');assert.equal(s.careerNotice.message.split("\n\n").length,3);for(const p of lowest)assert.ok(s.careerNotice.message.includes(`[말소] ${p.name}`));
  assert.equal(s.proWorld.postseasonExpansion,undefined);const registrations=s.players.map(p=>p.teamId);
  assert.deepEqual(postRoster.trimPostseasonRostersForOpening(s),[]);assert.deepEqual(s.players.map(p=>p.teamId),registrations);
  world.ensureProWorld(s);world.reviewLeagueRegistrations(s);assert.deepEqual(s.players.map(p=>p.teamId),registrations,'loading or acknowledging the notice cannot undo the final opening roster');

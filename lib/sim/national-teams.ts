@@ -8,11 +8,11 @@ export type NationalKind='premier12'|'apbc'|'olympics'|'wbc'|'youth';
 export const nationalRules={
   premier12:{name:'프리미어12 국가대표',first:2027,month:'11',bonus:8,weeks:6,advanced:8},
   apbc:{name:'APBC 국가대표',first:2029,month:'11',bonus:3,weeks:1,advanced:3},
-  olympics:{name:'올림픽 대표',first:2028,month:'07',bonus:6,weeks:3,advanced:6},
+  olympics:{name:'올림픽 대표',first:2028,month:'08',bonus:6,weeks:3,advanced:6},
   wbc:{name:'WBC 국가대표',first:2030,month:'03',bonus:10,weeks:8,advanced:12},
   youth:{name:'청소년대표',first:2027,month:'09',bonus:0,weeks:4,advanced:8},
 } as const;
-export type NationalSelection={kind:NationalKind;year:number;date:string;start:string;end:string;roster:(NationalRosterMember&{name:string;team:string;field:'pitching'|'batting'})[];offered?:boolean;settled?:boolean;participated?:boolean;result?:string;simulationVersion?:1;tournament?:import('./national-tournament').NationalTournament};
+export type NationalSelection={kind:NationalKind;year:number;date:string;start:string;end:string;roster:(NationalRosterMember&{name:string;team:string;field:'pitching'|'batting'})[];offered?:boolean;settled?:boolean;participated?:boolean;participationField?:'pitching'|'batting';result?:string;simulationVersion?:1;tournament?:import('./national-tournament').NationalTournament};
 export const nationalInYear=(kind:NationalKind,year:number)=>year>=nationalRules[kind].first&&(kind==='youth'||(year-nationalRules[kind].first)%4===0);
 export const nationalWindow=(kind:NationalKind,year:number)=>({start:`${year}-${nationalRules[kind].month}-01`,end:`${year}-${nationalRules[kind].month}-${kind==='wbc'?'20':kind==='olympics'?'31':'30'}`});
 export function nationalRole(p:Player){
@@ -55,7 +55,34 @@ export function nationalInvitation(s:GameState,entry:NationalSelection):CareerEv
   event.choices[0].label=`${rule.name}로 참가한다`;event.choices[1].label=entry.kind==='olympics'?'올림픽 차출을 거부하고 소속팀에 남는다':`${rule.name} 참가를 사양하고 소속팀에 남는다`;
   for(const branch of event.choices[0].outcomes)if(branch.weeks)for(const key of Object.keys(branch.weeks) as (keyof NonNullable<typeof branch.weeks>)[])branch.weeks[key]=branch.weeks[key]!>=6?rule.advanced:rule.weeks;
   event.choices[0].outcomes=[{weight:100,message:`${rule.name}에 합류한다. 경기 결과에 따라 대회 경험과 수상이 결정된다.`}];
-  return event;
+  return nationalParticipationChoices(s,event);
+}
+export function nationalParticipationChoices(s:GameState,event:CareerEvent):CareerEvent{
+  const p=getPlayer(s);if(!p.twoWay)return event;
+  const [accept,decline]=event.choices;
+  event.description+=' 이번 대회에서 맡을 투수·타자 분야를 직접 선택할 수 있다.';
+  event.choices=(['pitching','batting'] as const).map(field=>({
+    ...accept,id:`participate-${field}`,label:`${field==='pitching'?'투수':'타자'}로 참가한다`,
+    outcomes:accept.outcomes.map(branch=>({...branch,nationalField:field,message:`${field==='pitching'?'투수':'타자'}로 대표팀에 합류한다. 소속팀에서의 투타 겸업은 유지한다.`}))
+  }));event.choices.push(decline);return event;
+}
+export function needsNationalInvitationUpgrade(s:GameState){
+  const event=s.careerEvent;
+  return !!event&&!!getPlayer(s).twoWay&&(!!event.proEvent?.nationalKind||event.definitionId==='P08')&&!event.choices.some(choice=>choice.outcomes.some(branch=>branch.nationalField));
+}
+export function upgradeNationalInvitation(s:GameState){
+  if(!needsNationalInvitationUpgrade(s))return false;
+  nationalParticipationChoices(s,s.careerEvent!);return true;
+}
+export function chooseNationalField(s:GameState,entry:NationalSelection,field:'pitching'|'batting'){
+  const p=getPlayer(s),pair=p.twoWay;if(!pair)return;
+  entry.participationField=field;
+  const member=entry.roster.find(row=>row.id===p.id);if(!member)return;
+  member.position=field==='pitching'?pair.pitchingPosition:pair.battingPosition;member.field=field;
+  member.roleScore=roleScore(p,roleFor(member.position));member.selectionScore=entry.kind==='youth'?p.reputation??selectionScore(p,roleFor(member.position)):proSelectionScore(p,roleFor(member.position));
+  const ledger=entry.kind==='wbc'?s.proEvents?.wbc?.[entry.year]:s.proEvents?.national[entry.year],legacy=ledger?.roster.find(row=>row.id===p.id);
+  if(legacy)Object.assign(legacy,{position:member.position,roleScore:member.roleScore,selectionScore:member.selectionScore});
+  const athlete=entry.tournament?.countries[0].players.find(row=>row.id===p.id);if(athlete)athlete.position=member.position;
 }
 export function tryScheduledNational(s:GameState){
   if(!proEventsEnabled(s)||s.careerNotice||s.careerEvent)return false;

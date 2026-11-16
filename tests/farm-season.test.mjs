@@ -120,7 +120,40 @@ test('actual farm playoff records stay separate and survive saves, worker transf
   s.careerNotice=null;s.noticeQueue=[];const mine=e.getPlayer(s);mine.professional.employment='active';mine.professional.contract={...mine.professional.contract,club:mine.teamId%10,startYear:s.calendar.seasonYear,endYear:s.calendar.seasonYear+2};life.startNextProSeason(s);assert.equal(s.proWorld.farmPostseason,undefined);assert.ok(s.players.every(p=>!p.seasonFarmPostseason?.batting.PA&&!p.seasonFarmPostseason?.pitching.BF));verify(s.calendar);
 });
 
-test('first-team playoffs wait until a late legacy farm postseason has actually finished',()=>{
-  const s=fixture();endRegular(s);s.date=s.proWorld.regularEnd;life.finishProfessionalDay(s);assert.equal(s.proWorld.stage,'regular');assert.equal(s.proWorld.postseason,undefined);
-  completePlayoffs(s);s.date=s.proWorld.regularEnd;life.finishProfessionalDay(s);assert.equal(s.proWorld.stage,'postseason');
+test('first-team and late farm playoffs run independently without freezing either competition',()=>{
+  const s=fixture();endRegular(s);s.date=s.proWorld.regularEnd;life.finishProfessionalDay(s);assert.equal(s.proWorld.stage,'postseason');assert.ok(s.proWorld.postseason);
+  completePlayoffs(s);assert.notEqual(s.proWorld.farmPostseason.champion,undefined);assert.equal(s.proWorld.stage,'postseason');
+});
+
+
+test('each farm semifinal and final selects an MVP immediately, displays it and archives all three separately',()=>{
+  const s=fixture();endRegular(s);
+  const expected=new Map();
+  for(let guard=0;guard<20&&s.proWorld.farmPostseason.champion===undefined;guard++){
+    const pending=s.calendar.events.filter(g=>isFarmPostseason(g.competitionId)&&g.status==='scheduled');
+    assert.ok(pending.length);s.date=pending[0].date;
+    for(const g of pending.filter(g=>g.date===s.date)){
+      const series=s.proWorld.farmPostseason.series.find(row=>g.competitionId===`pro-farm-playoffs-${row.id}`);
+      const winner=series.clubs[0],batter=s.players.find(p=>series.rosters[String(winner)].includes(p.id)&&!['SP','RP','CP'].includes(p.position));
+      const losing=s.players.find(p=>series.rosters[String(series.clubs[1])].includes(p.id));
+      assert.ok(batter&&losing);expected.set(series.id,batter.id);
+      g.status='completed';g.score=g.homeTeamId===winner?[8,1]:[1,8];
+      const records=e.emptyRecord(),loser=e.emptyRecord();Object.assign(records.batting,{PA:4,AB:4,H:3,HR:2,RBI:5,R:2});Object.assign(loser.batting,{PA:20,AB:20,H:20,HR:20});
+      g.boxScore={[batter.id]:records,[losing.id]:loser};
+    }
+    finishCompetitionDay(s.calendar,s.date);reviewFarmPostseason(s);
+    for(const row of s.proWorld.farmPostseason.series.filter(row=>row.winner!==undefined)){
+      assert.equal(row.mvp?.playerId,expected.get(row.id));assert.equal(row.mvp.level,'second');assert.equal(row.mvp.seriesId,row.id);
+      const winner=s.players.find(p=>p.id===row.mvp.playerId);
+      assert.ok(winner.professional.awardBonuses.some(bonus=>bonus.level==='second'&&bonus.seriesId===row.id&&bonus.points===1));
+    }
+  }
+  const post=s.proWorld.farmPostseason;assert.equal(post.series.length,3);assert.equal(post.series.filter(row=>row.mvp).length,3);
+  const html=renderToStaticMarkup(createElement(Bracket,{state:s}));assert.equal((html.match(/시리즈 MVP/g)??[]).length,3);
+  for(const row of post.series)assert.ok(html.includes(row.mvp.playerName));
+  s.date=s.proWorld.regularEnd;s.proWorld.postseason={format:'kbo-v1',seeds:[0,1,2,3,4],series:[],champion:0};life.closeProfessionalSeason(s);
+  const season=s.proWorld.seasons.at(-1);assert.equal(season.awards.filter(row=>row.category==='seriesMvp'&&row.level==='second').length,3);
+  assert.deepEqual(season.farmPostseason.series.map(row=>row.mvp),post.series.map(row=>row.mvp));
+  const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+  assert.equal(restored.proWorld.seasons.at(-1).awards.filter(row=>row.category==='seriesMvp'&&row.level==='second').length,3);
 });
