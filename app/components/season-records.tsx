@@ -52,7 +52,7 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
   const rates = recordRates(total);
   const summary = [
     ["타율", rate(rates.average)], ["안타", total.batting.H], ["홈런", total.batting.HR],
-    ["투구 이닝", formatInnings(total.pitching.outs)], ["ERA", rate(rates.era, 2)], ["탈삼진", total.pitching.SO],
+    ["투구 이닝", formatInnings(total.pitching.outs)], ["평균자책점", rate(rates.era, 2)], ["탈삼진", total.pitching.SO],
   ];
   return <div className="season-records">
     <div className="section-intro">
@@ -71,24 +71,24 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
     <section className="panel">
       <div className="panel-heading"><div><span className="eyebrow">PITCHING RECORDS</span><h2>연도별 투수 기록</h2></div><span className="small muted">{total.pitching.BF} 상대 타자</span></div>
       <div className="table-scroll season-table" tabIndex={0} role="region" aria-label="연도별 투수 기록, 가로로 스크롤 가능">
-        <table className="pitching-seasons"><thead><tr>{["시즌", "단계", "BF", "IP", "ERA", "H", "HR", "BB", "SO", "R", "ER", "WHIP"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
+        <table className="pitching-seasons"><thead><tr>{["시즌", "단계", "상대 타자", "이닝", "평균자책점", "피안타", "피홈런", "볼넷", "탈삼진", "실점", "자책점", "WHIP"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
           <tbody>{visible.map(s => <PitchingRow key={s.year} label={String(s.year)} records={s.records} season={s} ended={ended} />)}</tbody>
           <tfoot><PitchingRow label="합계" records={total} ended={ended} /></tfoot>
         </table>
       </div>
-      {!total.pitching.outs && <p className="empty-note">선택한 시즌에 투구 아웃 기록이 없습니다. ERA·WHIP는 미평가로 표시됩니다.</p>}
-      <p className="records-caption">BF 상대 타자 · IP 이닝 · ERA 평균자책점 · H 피안타 · HR 피홈런 · BB 볼넷 · SO 탈삼진 · R 실점 · ER 자책점. 5.2이닝은 5이닝 2아웃입니다.</p>
+      {!total.pitching.outs && <p className="empty-note">선택한 시즌에 투구 아웃 기록이 없습니다. 평균자책점·WHIP는 미평가로 표시됩니다.</p>}
+      <p className="records-caption">5.2이닝은 5이닝 2아웃입니다. WHIP는 이닝당 허용한 안타와 볼넷의 합입니다.</p>
     </section>
     <section className="panel">
       <div className="panel-heading"><div><span className="eyebrow">BATTING RECORDS</span><h2>연도별 타자 기록</h2></div><span className="small muted">{total.batting.AB} 타수</span></div>
       <div className="table-scroll season-table" tabIndex={0} role="region" aria-label="연도별 타자 기록, 가로로 스크롤 가능">
-        <table className="batting-seasons"><thead><tr>{["시즌", "단계", "AB", "AVG", "H", "2B", "3B", "HR", "RBI", "SB", "R", "BB", "SO", "OBP", "SLG", "OPS", "GB", "FB"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
+        <table className="batting-seasons"><thead><tr>{["시즌", "단계", "타수", "타율", "안타", "2루타", "3루타", "홈런", "타점", "도루", "득점", "볼넷", "삼진", "출루율", "장타율", "OPS", "땅볼", "뜬공"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
           <tbody>{visible.map(s => <BattingRow key={s.year} label={String(s.year)} records={s.records} season={s} ended={ended} />)}</tbody>
           <tfoot><BattingRow label="합계" records={total} ended={ended} /></tfoot>
         </table>
       </div>
       {!total.batting.PA && <p className="empty-note">선택한 시즌에 타격 출전 기록이 없습니다. 타율·출루율·장타율·OPS는 미평가로 표시됩니다.</p>}
-      <p className="records-caption">AB 타수 · AVG 타율 · H 안타 · RBI 타점 · SB 도루 · R 득점 · BB 볼넷 · SO 삼진 · OBP 출루율 · SLG 장타율 · GB 땅볼 · FB 뜬공</p>
+      <p className="records-caption">OPS는 출루율과 장타율의 합입니다.</p>
     </section>
     <div className="info-box">통산 비율 기록은 모든 시즌의 실제 타수·출루 기록·투구 아웃을 합산해 계산합니다. 플레이 이전의 시즌 기록은 제공하지 않습니다.</div>
   </div>;

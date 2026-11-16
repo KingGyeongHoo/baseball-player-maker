@@ -21,7 +21,7 @@ const count=(r:RecordLine,key:keyof NonNullable<RecordLine["games"]>)=>r.games?.
 export const rosterMetrics:Record<RosterField,Metric[]>={
   pitching:[{id:"games",label:"출전경기",value:r=>count(r,"pitching")},{id:"outs",label:"이닝",value:r=>r.pitching.outs},
     ...([['wins','승'],['losses','패'],['holds','홀드'],['saves','세이브']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>count(r,id)})),
-    {id:"era",label:"ERA",ascending:true,value:r=>recordRates(r).era}],
+    {id:"era",label:"평균자책점",ascending:true,value:r=>recordRates(r).era}],
   batting:[{id:"games",label:"출전경기",value:r=>count(r,"batting")},...([['AB','타수'],['H','안타'],['HR','홈런'],['RBI','타점']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>r.batting[id]})),
     {id:"avg",label:"타율",value:r=>recordRates(r).average},{id:"ops",label:"OPS",value:r=>recordRates(r).ops}],
 };

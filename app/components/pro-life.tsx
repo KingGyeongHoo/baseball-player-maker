@@ -44,7 +44,7 @@ export function DevelopmentContract({player}:{player:Player}) {
   return <section className="development-contract-note" aria-label="선수 등록 상태"><div><b>신고선수 · 성장 90%</b>
     <p>출전 경쟁에서 불리하며, 정식 전환 후 1군 승격이 가능합니다.</p></div>
     <div className="development-contract-progress">{(player.twoWay||!["SP","RP","CP"].includes(player.position))&&<p>타자 {progress.AB}타수 · 규정 타석 {progress.PA}/80 · OPS .750 이상</p>}
-      {(player.twoWay||["SP","RP","CP"].includes(player.position))&&<p>{progress.pitchingMilestone.key==='wins'?"선발":progress.pitchingMilestone.key==='saves'?"마무리":"중간계투"} {formatInnings(progress.outs)}/{progress.pitchingInningsRequired}.0이닝 · {progress.pitchingMilestoneCount}/{progress.pitchingMilestone.required}{progress.pitchingMilestone.label} · ERA 6.00 이하</p>}
+      {(player.twoWay||["SP","RP","CP"].includes(player.position))&&<p>{progress.pitchingMilestone.key==='wins'?"선발":progress.pitchingMilestone.key==='saves'?"마무리":"중간계투"} {formatInnings(progress.outs)}/{progress.pitchingInningsRequired}.0이닝 · {progress.pitchingMilestoneCount}/{progress.pitchingMilestone.required}{progress.pitchingMilestone.label} · 평균자책점 6.00 이하</p>}
       {player.twoWay&&<p>투수·타자 중 한 조건 달성 시 전환</p>}</div>
   </section>;
 }

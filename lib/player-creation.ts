@@ -16,10 +16,10 @@ export const fieldPositions: { id: Position; x: number; y: number; description: 
   { id: "CF", x: 50, y: 23, description: "외야 한가운데의 넓은 수비 범위. 수비와 스피드를 키워보세요." },
   { id: "RF", x: 75, y: 34, description: "오른쪽 외야를 지키는 야수. 타격과 송구로 기회를 만듭니다." },
 ];
-export const pitchingPositions: { id: Position; image: string; pose: string; description: string }[] = [
-  { id: "SP", image: "/images/pitcher-starter.png", pose: "WINDUP", description: "와인드업 · 긴 이닝을 책임지는 선발" },
-  { id: "RP", image: "/images/pitcher-reliever-front.png", pose: "SET POSITION", description: "셋포지션 · 경기의 흐름을 이어가는 계투" },
-  { id: "CP", image: "/images/pitcher-closer-left.png", pose: "FINISHING PITCH", description: "역동적인 투구 · 마지막 아웃을 책임지는 마무리" },
+export const pitchingPositions: { id: Position; image: string; description: string }[] = [
+  { id: "SP", image: "/images/pitcher-starter.png", description: "Starting" },
+  { id: "RP", image: "/images/pitcher-reliever-front.png", description: "Relief" },
+  { id: "CP", image: "/images/pitcher-closer-left.png", description: "Closer" },
 ];
 export const kindForPosition = (position: Position): PlayerKind => ["SP", "RP", "CP"].includes(position) ? "pitcher" : "batter";
 

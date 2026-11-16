@@ -49,7 +49,7 @@ test('school and pro selection both retain starter, middle relief and closer rol
   assert.equal((html.match(/type="radio"/g) || []).length, 5);
   assert.ok(!html.includes('selection-ballpark'));
   for (const pose of pitchingPositions) {
-    assert.ok(html.includes(`value="${pose.id}"`)); assert.ok(html.includes(pose.pose));
+    assert.ok(html.includes(`value="${pose.id}"`)); assert.ok(html.includes(pose.description));
     const metadata = await sharp('public' + pose.image).metadata();
     assert.equal(metadata.hasAlpha, true); assert.ok(metadata.width > 500 && metadata.height > 500);
     assert.equal(kindForPosition(pose.id), 'pitcher');

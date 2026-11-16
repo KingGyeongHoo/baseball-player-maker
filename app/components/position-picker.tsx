@@ -70,10 +70,10 @@ export default function PositionPicker({ kind, value, onKindChange, onChange, di
             <input type="radio" name={`${id}-position`} value={position.id} checked={value === position.id} onChange={() => onChange(position.id)} />
             <span className="pitcher-card-code">{position.id}</span><i className="pitcher-card-check" aria-hidden="true">{value === position.id ? "✓" : ""}</i>
             <span className="pitcher-pose"><Image src={position.image} width={384} height={384} sizes="(max-width: 760px) 30vw, 200px" alt="" /></span>
-            <span className="pitcher-card-copy"><small>{position.pose}</small><b>{name(position.id)}</b><span>{position.description.split(" · ")[0]}</span></span>
+            <span className="pitcher-card-copy"><b>{name(position.id)}</b><span>{position.description}</span></span>
           </label>)}
         </div>
-        <div className="selected-position-note" role="status"><b>{value ? name(value) : "보직을 골라주세요"}</b><span>{pitchingChoices.find(position => position.id === value)?.description.split(" · ")[1] ?? "선발 · 중간계투 · 마무리 중 하나를 선택하세요."}</span></div>
+        <div className="selected-position-note" role="status"><b>{value ? name(value) : "보직을 골라주세요"}</b><span>{pitchingChoices.find(position => position.id === value)?.description ?? "선발 · 중간계투 · 마무리 중 하나를 선택하세요."}</span></div>
       </>}
     </fieldset>
   </div>;
