@@ -251,7 +251,23 @@ export function talentLabel(p: Player, type: "batting" | "pitching") {
   const n = p.talentExposure[type];
   return n < params["talent.hint"] ? "미상" : n < params["talent.reveal"] ? talentBand(p.talent[type]).label : `${p.talent[type]} / 10`;
 }
-function makePlayer(s: GameState, teamId: number, grade: number, index: number, year: number, pos: Position, talent?:Player["talent"]): Player {
+// Newly generated school players keep one training plan throughout their past
+// seasons. Hoist its constant factors, but preserve every weekly growth step.
+function applySchoolTrainingHistory(p:Player,weeks:number){
+  if(!weeks||!ticketsUsed(p.trainingPolicy))return;
+  const days=params['training.days'],amount=days*.85,base=params['training.base'];
+  const plan=ticketKeys.filter(key=>key!=='physical').map(key=>({key,focus:focusGrowth(p.trainingPolicy.tickets[key]),talent:talentMultiplier(p.talent[['velocity','control','movement'].includes(key)?'pitching':'batting'],params['talent.min_mult'],params['talent.max_mult']),growth:professionalGrowth(p,key)}));
+  const physical=focusGrowth(p.trainingPolicy.tickets.physical),bq=params['training.bq'],bqGrowth=professionalGrowth(p,'bq');
+  const battingExposure=ticketKeys.slice(0,4).some(key=>p.trainingPolicy.tickets[key]),pitchingExposure=ticketKeys.slice(4,7).some(key=>p.trainingPolicy.tickets[key]);
+  for(let week=0;week<weeks;week++){
+    for(const {key,focus,talent,growth}of plan)p.stats[key]=clamp(p.stats[key]+(base+focus)*talent*slowdown(p.stats[key])*amount*growth/days,1);
+    for(const key of ['stamina','recovery','arm'] as const)p.stats[key]=clamp(p.stats[key]+physical/3*slowdown(p.stats[key])*amount/days,1);
+    p.stats.bq=clamp(p.stats.bq+bq*slowdown(p.stats.bq)*amount*bqGrowth/days,1);
+    if(battingExposure)p.talentExposure.batting+=amount/days;
+    if(pitchingExposure)p.talentExposure.pitching+=amount/days;
+  }
+}
+function makePlayer(s: Pick<GameState,'seed'|'rngStates'|'teams'>, teamId: number, grade: number, index: number, year: number, pos: Position, talent?:Player["talent"]): Player {
   const recruitment = recruitmentProfile(s.teams[teamId]);
   const center = params["generation.mean"] + recruitment.abilityOffset + normal(s) * params["generation.player_sd"];
   const stats = Object.fromEntries(statKeys.map(k => [k, clamp(center + normal(s) * params["generation.stat_sd"], 1)])) as Stats;
@@ -314,7 +330,7 @@ function makePlayer(s: GameState, teamId: number, grade: number, index: number, 
   p.eligiblePositions=p.eligiblePositions.filter(position=>canPlayPosition(p,position));
   applySwitchContact(p);
   p.initialStats = { ...p.stats };
-  for (let w = 0; w < 40 * (grade - 1); w++) train(p, params["training.days"] * .85);
+  applySchoolTrainingHistory(p,40*(grade-1));
   return p;
 }
 function schoolPositions(s:GameState,entryYear:number){
@@ -333,26 +349,20 @@ function schoolTalentCohort(s:GameState,year:number,grade:number,intake:Map<numb
   return generatedTalentCohort(candidates,`${s.seed}:school:${year}:${grade}`,s.teams);
 }
 export function previewPlayer(seed: string, name: string, position: Position) {
-  const s = skeleton(seed);
-  s.teams.push(createSchool(0));
+  const s = {...seededState(seed),teams:[createSchool(0)]};
   const p = makePlayer(s, 0, 1, 0, 2027, position);
   p.name = name;
   return p;
+}
+function seededState(seed:string):Pick<GameState,'seed'|'rngStates'>{
+  return {seed,rngStates:{generation:hash(seed+':generation'),training:hash(seed+':training'),match:hash(seed+':match'),injury:hash(seed+':injury'),draft:hash(seed+':draft'),events:hash(seed+':events')}};
 }
 function skeleton(seed: string): GameState {
   return {
     schemaVersion: 1,
     proClubNamesVersion: 2,
     balanceVersion: balance.balanceVersion,
-    seed,
-    rngStates: {
-      generation: hash(seed + ":generation"),
-      training: hash(seed + ":training"),
-      match: hash(seed + ":match"),
-      injury: hash(seed + ":injury"),
-      draft: hash(seed + ":draft"),
-      events: hash(seed + ":events")
-    },
+    ...seededState(seed),
     date: "2027-03-01",
     phase: "weekStart",
     playerId: "",

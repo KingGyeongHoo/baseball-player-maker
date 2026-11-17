@@ -3,6 +3,23 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const e = require('../.test-build/lib/sim/engine.js');
+test('school upperclassmen retain exactly the same weekly training history after batching constant factors',()=>{
+  const state=e.createGame('school-training-history','초기 성장','SS');
+  for(const player of state.players.filter(p=>p.grade>1).slice(0,100)){
+    const replay=structuredClone(player);replay.stats={...player.initialStats};replay.talentExposure={batting:0,pitching:0};
+    for(let week=0;week<40*(player.grade-1);week++)e.train(replay,e.params['training.days']*.85);
+    assert.deepEqual(player.stats,replay.stats,player.id);assert.deepEqual(player.talentExposure,replay.talentExposure,player.id);
+  }
+});
+test('standalone and professional NPC generation do not allocate unused season calendars',()=>{
+  const calendar=require('../.test-build/lib/sim/calendar.js'),original=calendar.buildCalendar;let calls=0;
+  calendar.buildCalendar=(...args)=>{calls++;return original(...args);};
+  try{
+    for(const position of ['SP','RP','CP','C','SS','LF']){e.previewPlayer('preview-calendar',position,position);createCareerNPC(`npc-calendar:${position}`,0,0,'pro',true,position);}
+    assert.equal(calls,0);
+    const state=e.createGame('actual-calendar','시즌 생성','SS');assert.equal(calls,1);assert.ok(state.calendar.events.length>0);
+  }finally{calendar.buildCalendar=original;}
+});
 const {talentIntake,talentFromRoll}=require('../.test-build/lib/sim/talent-generation.js');
 const {createCareerNPC}=require('../.test-build/lib/sim/pro-roster.js');
 const {positionCohort,schoolPositionIntake}=require('../.test-build/lib/sim/position-generation.js');

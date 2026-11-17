@@ -151,10 +151,14 @@ function openDatabase(){
   if(typeof indexedDB==="undefined")return Promise.reject(new Error("이 환경에서는 로컬 저장소를 사용할 수 없습니다."));
   database??=new Promise((resolve,reject)=>{
     let cancelled=false;
-    const request=indexedDB.open("baseball-life-careers",2);
+    const request=indexedDB.open("baseball-life-careers",3);
     request.onblocked=()=>{cancelled=true;database=undefined;reject(new Error("저장소 업데이트가 대기 중입니다. 다른 게임 탭을 닫고 새로고침해 주세요."));};
-    request.onupgradeneeded=()=>{
+    request.onupgradeneeded=event=>{
       const db=request.result,store=db.objectStoreNames.contains("careers")?request.transaction!.objectStore("careers"):db.createObjectStore("careers",{keyPath:"id"});
+      store.createIndex('retirementStage','state.proWorld.stage');
+      // Version 2 already consolidated save slots. Adding an index must leave
+      // those snapshots (including compressed payloads) untouched.
+      if(event.oldVersion>=2)return;
       // The upgrade is atomic: keep the newest snapshot of each career and
       // replace legacy auto/manual/import keys before creating the unique index.
       const latest=new Map<string,CareerSave>(),cursor=store.openCursor();
@@ -193,7 +197,7 @@ export async function listCareerSaves():Promise<CareerSaveSummary[]>{
   });
 }
 export async function savedRetiredNumberClaims(){
-  const files=await transaction('readonly',store=>store.getAll()) as StoredCareerSave[];
+  const files=await transaction('readonly',store=>store.index('retirementStage').getAll('retired')) as StoredCareerSave[];
   return (await Promise.all(files.filter(file=>file.state.proWorld?.stage==='retired').map(async file=>file.retiredNumberClaims??retiredNumberClaims((await unpackStoredSave(file)).state)))).flat();
 }
 export async function refreshSavedRetiredNumbers(state:GameState){return applyRetiredNumberClaims(state,await savedRetiredNumberClaims());}
