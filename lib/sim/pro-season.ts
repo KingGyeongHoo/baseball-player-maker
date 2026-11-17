@@ -3,6 +3,7 @@ import {nationalInvitation,needsNationalInvitationUpgrade,upgradeNationalInvitat
 import {ensureProEvents,recordProChoice} from './pro-event-ledger';
 import {firstTeamAppearances,recordSeasonAssessment,requiresDevelopmentalOffer,seasonExit} from "./pro-assessment";
 import {createProWarContext} from "./pro-war";
+import {freezeSeasonRankings} from './pro-season-ranking';
 import {ensurePlayableFarmRosters} from "./pro-farm";
 import {canAssignProSquad} from "./pro-positions";
 import {canPromoteToFirst} from "./pro-squads";
@@ -178,6 +179,7 @@ export function closeProfessionalSeason(s:GameState){
   reviewDevelopmentContract(s);
   const appearances=firstTeamAppearances(s),warContext=createProWarContext(s);
   for(const p of s.players){if(!p.professional)continue;recordSeasonAssessment(s,p,appearances,warContext);archiveProfessionalSeason(s,p);payroll(s,p);}
+  freezeSeasonRankings(s,warContext);
   applySeasonExitPolicies(s);
   freezeProNational(s);
   for(const p of s.players){if(!p.professional)continue;p.professional.proBonus=0;if(p.professional.employment==="freeAgent")p.professional.unattachedYears++;}
@@ -379,7 +381,7 @@ export function advanceUnattachedMonth(input:GameState,advance:(s:GameState)=>Ga
   }return s;
 }
 export function upgradeProfessionalState(input:GameState){
-  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===1&&!needsPostseasonUpgrade(input)&&!needsPostseasonRosterUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input)&&!needsNationalInvitationUpgrade(input))return input;
+  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===2&&!needsPostseasonUpgrade(input)&&!needsPostseasonRosterUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input)&&!needsNationalInvitationUpgrade(input))return input;
   const s=structuredClone(input);ensureProWorld(s);upgradeContractRules(s);upgradeNationalInvitation(s);
   if(getPlayer(input).professional?.employment==="freeAgent"&&getPlayer(s).professional?.employment==="active")openContractMarket(s);
   migrateActivePostseason(s);

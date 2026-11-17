@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="ssg-title ssg-number">
+  <title id="ssg-title">SSG 랜더스 영구결번</title>
+  <desc>궤도를 도는 우주선</desc>
+  <defs>
+    <clipPath id="ssg-disc"><circle cx="128" cy="128" r="114"/></clipPath>
+    <style>@font-face{font-family:'Dugout Numerals';src:url(data:font/woff;base64,d09GRgABAAAAAARAAAoAAAAABbgAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABPUy8yAAABZAAAACkAAABgRQ9GhWNtYXAAAAGkAAAALAAAADQADACMZ2x5ZgAAAegAAAGLAAACXBvKSM1oZWFkAAAA9AAAADYAAAA2MHmSSmhoZWEAAAEsAAAAHgAAACQHCQNFaG10eAAAAZAAAAARAAAAGAPPATZsb2NhAAAB0AAAABgAAAAYAtMDY21heHAAAAFMAAAAGAAAACAADwAZbmFtZQAAA3QAAACPAAABF3VkJYNwb3N0AAAEBAAAADkAAABWoPtuWwABAAAAAQAAOqcX2l8PPPUAAwPoAAAAAOchpsEAAAAA5yGmwQAjAAAC/QPoAAAAAwACAAAAAAAAeJxjYGRgYH7BAATMCgzKDMpMfxkYGVABIwA5MgJXAAB4nGNgZGBg4GYQZ2BmAAEmBjQAAAQOACl4nGNgZlZgnMDAysDCQBgwInPsgQBIGTBYMr8A8SEkClBgYAAAobgEHQAAAHicY1ZgUAbCdjCJBAEabwIJAAAAeJxjYGBgYmBgYAZiESDJCKZZGBSANAsQgviW//8DSYP///9fBPMZAFHLBpUAAAAAABoAMABOAHMAjwCtAM8A5QENAS54nGWSL0gEQRSH39sRThT/jLJq3HGDYHRZBJPpgmmiLMZBTIeYFUQEg6AGMZgOoxgXk4ggyAWTwSRiGta2mGS5ffjm9nQPZOq83/f93gx4EAJ4nyKDBowCTKtZ2VALclZG8gjJGPKMLURmuh/GiECX+94+IBzxzCnPjLgJGfkqjmQjfsS1g/K7fSGy7nOaeutL18B3f/MnqnT0la8kxqEfxnvesKFFfC1X8KOwTKEretcp7uB8u3U/MDvDs8tOrWcXR34UKz6cERq2TJLKk7o4xDmHrH3bbNKtMdeJTW0CVcuyZzzGUs7ZCagYRYTHOJckljbxMs9FVp6nnQ470Mmg/aSzd+oDBqF3x/Y7rT48EFn60qJtRy0A6s2Ow1SvOwPDfoCc5gC3YFvgbr3ltn4zLkAEFOT5IH+4x0eFijt7T3TDXbfoq8PM7rMIDID4uzsGEvz+W1a0ZX5RBoo+VGtH1NoWhaPSg9b0YAyuao2rTWtpg+H//evmVVz9Qeiw/iWuA57pPP8BznPBZAB4nH2KMQ6CQBBF38IGo4V2VsbQcADiFahJ5AJmi802S0gWttSzO8iagIVTzLz/5gMHXijmUZw+e56MnaSFc6FzYr3qFByp5Kv0XsyVW+JM/D1xLv6RWK86BReeTXRDnMo29jYYP3bWRW/CYr+y3kYaIo5B9kRJK7fHEjB4RjphJ85LDpvub7P+930DCoUsZgB4nH3BCQGAIBREwb9PPIAy3kKf7Z/BBswEMVYjhCYlzVq0alNWUcU7PvCJL3zjB7/4ww33H2j/BmIAAAA=) format('woff');}</style>
+  </defs>
+  <circle cx="128" cy="128" r="124" fill="#BA9147"/>
+  <circle cx="128" cy="128" r="122.5" fill="#D5AD56"/>
+  <circle cx="128" cy="128" r="118.5" fill="#761528"/>
+  <circle cx="128" cy="128" r="114" fill="#B51232"/>
+  <g clip-path="url(#ssg-disc)"><path d="M26 163 C31 210 103 217 173 181 S242 87 215 63" fill="none" stroke="#F18D90" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M33 174 Q62 205 109 193" fill="none" stroke="#FFB0A4" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><g transform="translate(121 53) rotate(-24)"><path d="M-30 8 L-14 -1 Q2 -8 24 -6 L39 -4 Q27 8 12 11 L0 22 -10 23 -4 12 -17 13 -23 18 -31 18 -26 10Z" fill="#FFFAE9" /><path d="M-3 1 Q5 -5 18 -4 L13 0 3 3Z" fill="#AB1D36" /><path d="M-20 4 L-35 7 -41 5 -33 2Z" fill="#F4D991" /></g><path d="M171 40q1 3 4 4q-3 1 -4 4q-1 -3 -4 -4q3 -1 4 -4Z" fill="#F4D991" /><path d="M182 56.5q1 1.5 2.5 2.5q-1.5 1 -2.5 2.5q-1 -1.5 -2.5 -2.5q1.5 -1 2.5 -2.5Z" fill="#FFFAE9" /></g>
+  <!-- Change the jersey number below. Use one or two digits, including 00. -->
+  <text id="ssg-number" data-role="number" x="128" y="176" text-anchor="middle" font-family="Dugout Numerals, DejaVu Sans, sans-serif" font-size="96" fill="#FFFAE9" >47</text>
+</svg>

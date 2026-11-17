@@ -23,7 +23,7 @@ function schedule(year: number, ids: number[], cycles: number, weekdays: number[
   return games;
 }
 export function developmentCalendar(year: number, pro: boolean): Calendar {
-  const definitions = pro ? [{ id: "pro-first", name: "프로 1군 정규리그", ids: Array.from({ length: 10 }, (_, i) => i), cycles: 16, weekdays: [0,2,3,4,5,6] },
+  const definitions = pro ? [{ id: "pro-first", name: "프로 정규리그", ids: Array.from({ length: 10 }, (_, i) => i), cycles: 16, weekdays: [0,2,3,4,5,6] },
     { id: "pro-second", name: "프로 2군 육성리그", ids: Array.from({ length: 10 }, (_, i) => i + 10), cycles: 13, weekdays: [0,1,2,3,5,6] }]
     : [{ id: "college", name: "대학 육성리그", ids: Array.from({ length: 12 }, (_, i) => i), cycles: 4, weekdays: [2,4,6] }];
   const events = definitions.flatMap(c => pro?c.id==='pro-second'?farmSchedule(year,c.ids):threeGameSchedule(year,c.ids,c.cycles,"03-22",c.id,true):schedule(year, c.ids, c.cycles, c.weekdays, "03-22", c.id)).sort((a,b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));

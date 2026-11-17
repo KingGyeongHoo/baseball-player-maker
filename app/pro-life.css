@@ -213,6 +213,12 @@
 .contract-assessment-value { display:flex; align-items:center; gap:10px; min-height:38px; }
 .contract-assessment-value>b { font-size:26px; }
 .contract-assessment-value .player-grade { min-width:38px; height:34px; font-size:22px; }
+.season-medal-gold .player-grade { background:#fff2bf; color:#805500; box-shadow:inset 0 0 0 2px #c99b21; }
+.season-medal-silver .player-grade { background:#edf0f4; color:#475569; box-shadow:inset 0 0 0 2px #9aa6b5; }
+.season-medal-bronze .player-grade { background:#f7e5d7; color:#85471f; box-shadow:inset 0 0 0 2px #b47c51; }
+.season-rank-gold { color:#956800; }
+.season-rank-silver { color:#63748b; }
+.season-rank-bronze { color:#9a5b32; }
 @media(max-width:600px){.compact-contract-metrics>div:nth-child(odd){border-left:0;padding-left:0}.compact-contract-metrics .contract-assessment-value>b{font-size:24px}}
 .contract-season-evaluations { border-top:1px solid var(--line); }
 .contract-season-evaluations>summary { cursor:pointer; padding:12px 0; font-size:12px; color:#60728d; }
@@ -231,10 +237,71 @@
 .awards-season>summary,.awards-rules>summary { cursor:pointer; font-size:13px; padding:12px 0; }
 .awards-category-tabs { margin-bottom:22px; }
 .awards-filters { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
+.awards-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.title-award-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.title-award-field { min-width:0; }
+.title-award-field>h3 { margin:0 0 14px; padding:12px; background:#f1f5fb; color:var(--navy); text-align:center; font-size:15px; }
+.title-awards-table th { white-space:nowrap; }
+.title-awards-table tbody th>small { display:block; margin-top:5px; font-size:10px; font-weight:400; color:var(--muted); }
+.title-award-winner { padding:6px 0; }
+.title-award-winner>small { display:block; margin-top:6px; font-size:10px; color:var(--muted); }
+.title-award-mine { color:#245a9b; }
+.postseason-rounds.series-awards-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:22px; padding:0; }
+.postseason-rounds.series-awards-grid.legacy-bracket { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.series-award-card .series-award-record { font-size:12px; line-height:2; color:#485d79; overflow-wrap:anywhere; }
+@media(max-width:1000px) { .postseason-rounds.series-awards-grid,.postseason-rounds.series-awards-grid.legacy-bracket { grid-template-columns:1fr; } }
+@media(max-width:700px) { .title-award-columns { grid-template-columns:1fr; gap:24px; } .awards-panel-heading { gap:8px; } }
 .awards-year { display:grid; gap:6px; font-size:11px; color:var(--muted); }
 .awards-year select { padding:9px 14px; border:1px solid var(--line); background:#fff; color:var(--navy); }
 .pro-awards-hub>.section-intro { display:flex; align-items:center; justify-content:space-between; gap:18px; }
 .allstar-panel { margin-bottom:22px; }
+.allstar-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.allstar-scoreboard { display:grid; grid-template-columns:1fr auto auto auto 1fr; align-items:center; gap:24px; max-width:760px; margin:10px auto 30px; text-align:center; font:800 36px Arial,sans-serif; }
+.allstar-scoreboard strong { font-size:64px; font-variant-numeric:tabular-nums; }
+.allstar-blue { color:#2269d1; }
+.allstar-white { color:#fff; -webkit-text-stroke:1px #172033; text-shadow:0 1px 1px #172033; }
+.allstar-versus { color:#8793a7; font-size:15px; letter-spacing:2px; }
+.allstar-mister { text-align:center; margin:0 0 28px; }
+.allstar-mister .player-name-button { color:inherit; font:inherit; }
+.allstar-comparison-heading,.allstar-position-row { display:grid; grid-template-columns:minmax(0,1fr) 84px minmax(0,1fr); }
+.allstar-comparison-heading { align-items:center; text-align:center; padding:16px 0; border-bottom:2px solid #dce3ef; }
+.allstar-comparison-heading h3 { margin:0; font:800 24px Arial,sans-serif; }
+.allstar-comparison-heading>span { color:#7a899e; font-size:11px; }
+.allstar-position-row { border-bottom:1px solid #e1e7f0; }
+.allstar-position-row>div { min-width:0; padding:0 12px; }
+.allstar-position-label { display:flex; align-items:center; justify-content:center; margin:0; padding:12px 4px; background:#f4f7fb; color:#425675; text-align:center; font-size:12px; }
+.allstar-vote-list,.allstar-final-list { padding:0; margin:0; list-style:none; }
+.allstar-vote-list li { display:grid; grid-template-columns:30px minmax(0,1fr) auto; align-items:center; gap:10px; min-height:76px; padding:12px 8px; border-bottom:1px solid #edf1f6; }
+.allstar-vote-list li:last-child,.allstar-final-list li:last-child { border-bottom:0; }
+.allstar-vote-list li>b { color:#8796ad; font-size:12px; }
+.allstar-vote-list li>span { min-width:0; }
+.allstar-vote-list li>span>small { display:block; margin-top:5px; color:#7a899e; font-size:10px; }
+.allstar-vote-list strong { color:#304d75; font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.allstar-vote-list strong small { margin-left:3px; font-size:10px; }
+.allstar-final-list li { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; align-items:center; min-height:60px; padding:12px 8px; border-bottom:1px solid #edf1f6; }
+.allstar-final-list small { color:#7a899e; font-size:11px; text-align:right; }
+.allstar-final-list .allstar-selection-method { display:block; margin-top:5px; font-size:10px; text-align:left; }
+.allstar-final-list .allstar-selection-method.is-vote { color:#2269d1; font-weight:700; }
+.allstar-vote-leader { display:inline-flex; align-items:center; gap:3px; margin:4px 0 0 5px; padding:2px 5px; border-radius:4px; background:#fff4d6; color:#8c6115; font:700 10px Arial,sans-serif; white-space:nowrap; vertical-align:middle; }
+.allstar-vote-leader>span { color:#bd881c; }
+.allstar-voting .allstar-position-row { margin-top:18px; border:1px solid #ccd7e6; border-top:4px solid #91a7c5; border-radius:7px; overflow:hidden; }
+.allstar-voting .allstar-position-label { background:#eaf0f8; }
+@media(max-width:650px) {
+  .allstar-heading { gap:8px; }
+  .allstar-heading h2 { font-size:16px; }
+  .allstar-heading .segmented button { padding:8px 12px; }
+  .allstar-scoreboard { gap:10px; font-size:22px; }
+  .allstar-scoreboard strong { font-size:42px; }
+  .allstar-versus { font-size:11px; }
+  .allstar-comparison-heading,.allstar-position-row { grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr); }
+  .allstar-position-row>div { padding:0 4px; }
+  .allstar-position-label { font-size:10px; }
+  .allstar-vote-list li { grid-template-columns:24px minmax(0,1fr); gap:4px; padding:12px 3px; }
+  .allstar-vote-list strong { grid-column:2; font-size:11px; }
+  .allstar-vote-list .player-name-button,.allstar-final-list .player-name-button { font-size:12px; }
+  .allstar-final-list li { grid-template-columns:minmax(0,1fr); gap:5px; }
+  .allstar-final-list small { text-align:left; font-size:10px; }
+}
 .pro-awards-hub .segmented>button { white-space:nowrap; }
 .pro-awards-hub .table-scroll { margin-top:12px; }
 .awards-rules p { font-size:12px; color:#738099; line-height:1.8; }

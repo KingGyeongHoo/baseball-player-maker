@@ -2,6 +2,9 @@ import {recordRates} from "./player-records";
 import {pitchingRole} from "./sim/engine";
 import {careerLeagueTable} from "./sim/pro-calendar";
 import type {GameState,Player,RecordLine} from "./sim/types";
+import {createProWarContext} from './sim/pro-war';
+import {playerSeasonWar} from './player-season-war';
+import {playerSeasons} from './player-records';
 
 export type LeaderField="batting"|"pitching";
 export type LeaderMetric={id:string;label:string;value:(r:RecordLine)=>number|null;ascending?:boolean;format?:"rate"|"decimal"|"innings"|"percent";qualified?:boolean};
@@ -11,7 +14,7 @@ const batting:LeaderMetric[]=[
   {id:"slg",label:"장타율",value:r=>recordRates(r).slugging,format:"rate",qualified:true},
   {id:"ops",label:"OPS",value:r=>recordRates(r).ops,format:"rate",qualified:true},
   {id:"SB",label:"도루",value:r=>r.batting.SB??0},
-  ...([['HR','홈런'],['H','안타'],['RBI','타점'],['R','득점'],['2B','2루타'],['3B','3루타'],['BB','볼넷'],['AB','타수'],['SO','삼진'],['GB','땅볼'],['FB','뜬공']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>r.batting[id],ascending:id==="SO"})),
+  ...([['HR','홈런'],['H','안타'],['RBI','타점'],['R','득점'],['2B','2루타'],['3B','3루타'],['BB','볼넷'],['AB','타수'],['SO','삼진']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>r.batting[id],ascending:id==="SO"})),
 ];
 const pitching:LeaderMetric[]=[
   {id:"era",label:"평균자책점",value:r=>recordRates(r).era,format:"decimal",ascending:true,qualified:true},
@@ -24,6 +27,9 @@ const pitching:LeaderMetric[]=[
   ...([['SO','탈삼진'],['BF','상대한 타자'],['H','피안타'],['BB','볼넷 허용'],['HR','피홈런'],['R','실점'],['ER','자책점']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>r.pitching[id],ascending:!['SO','BF'].includes(id)})),
 ];
 export const leaderMetrics:Record<LeaderField,LeaderMetric[]>={batting,pitching};
+pitching.push({id:'losses',label:'패',value:r=>r.games?.losses??0});
+for(const field of ['batting','pitching'] as const)leaderMetrics[field].push({id:'WAR',label:'WAR',format:'decimal',value:()=>null});
+export const proRankingMetricIds={batting:['avg','H','HR','RBI','SB','WAR'],pitching:['era','wins','losses','holds','saves','WAR']} as const;
 export type LeaderRow={player:Player;value:number;sample:number};
 
 // Pitching samples are recorded as outs: one out per team game is G / 3 innings.
@@ -35,6 +41,7 @@ export function requiredLeaderSample(player:Player,field:LeaderField,games:numbe
 
 export function leagueLeaders(state:GameState,competition:string,field:LeaderField){
   const pro=state.careerMode==="pro",level=competition==="pro-first"?"first":"second";
+  const warContext=pro?createProWarContext(state):undefined;
   const games=new Map(careerLeagueTable(state.calendar,competition).map(row=>[row.teamId,row.wins+row.losses+row.draws]));
   const maxGames=Math.max(0,...games.values());
   const participants=new Set(state.calendar.competitions.find(c=>c.id===competition)?.participantTeamIds??[]);
@@ -48,7 +55,9 @@ export function leagueLeaders(state:GameState,competition:string,field:LeaderFie
     if(!records)return [];
     const sample=field==="batting"?records.batting.PA:records.pitching.outs;
     if(sample<=0||metric.qualified&&sample<requiredSample)return [];
-    const value=metric.value(records);
+    const season=metric.id==='WAR'?playerSeasons(player,state.calendar.seasonYear).find(r=>r.year===state.calendar.seasonYear):undefined;
+    const contribution=season&&pro?playerSeasonWar(player,season,level,'all',warContext):null;
+    const value=metric.id==='WAR'?(contribution?.[field]??null):metric.value(records);
     return value===null||!Number.isFinite(value)?[]:[{player,value,sample}];
   }).sort((a,b)=>(metric.ascending?a.value-b.value:b.value-a.value)||b.sample-a.sample||a.player.id.localeCompare(b.player.id)).slice(0,10)}));
 }

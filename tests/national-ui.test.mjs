@@ -28,7 +28,7 @@ for(const kind of ['apbc','premier12'])test(`${kind} shows one opening/super gro
 });
 test('national career has the same padded panel heading and body as other career panels',()=>{
  const state=fixture(),Honors=require('../.test-build/app/components/national-honors.js').default;
- const html=renderToStaticMarkup(createElement(Honors,{state,playerId:state.playerId}));assert.ok(html.includes('panel national-career'));assert.ok(html.includes('class="panel-heading"'));assert.ok(html.includes('class="career-panel-body"'));assert.ok(html.includes('국가대표 커리어'));
+ const html=renderToStaticMarkup(createElement(Honors,{state,playerId:state.playerId}));assert.ok(html.includes('panel national-career'));assert.ok(html.includes('class="panel-heading"'));assert.ok(html.includes('class="career-panel-body"'));assert.ok(html.includes('<h2>국가대표</h2>'));
 });
 test('round results group matches under chronological date headings',()=>{
  const entry=fixture().nationalTeams[0],t=entry.tournament;t.stages[0].groups=[[0,1,2,3]];

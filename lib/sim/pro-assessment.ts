@@ -9,6 +9,7 @@ import {proSeasonForm} from "./pro-selection";
 import {farmSeasonGames} from './pro-farm-schedule';
 import {recordHonorRegistration,regularSeasonDays} from './retirement-honors';
 import {seasonEvaluation} from './pro-season-evaluation';
+import {playerCareerEvaluation} from './pro-career-evaluation';
 const squad = (id: number): ProSquad | null =>
   id < 0
     ? null
@@ -374,11 +375,8 @@ export function assessmentValue(p: Player, year: number) {
   };
 }
 export function firstTeamRetention(p: Player, year: number) {
-  const rows = (p.professional?.assessments ?? []).filter(
-    (r) => r.year <= year,
-  );
-  const cumulative = average(rows),
-    grade = rosterGrade(cumulative, true);
+  const career=playerCareerEvaluation(p,year),cumulative=career.first.score,
+    grade = career.first.grade;
   return { cumulative, grade, bonus: rules.retentionMargins[grade] ?? 0 };
 }
 export function firstTeamDemotionMargin(p: Player, year: number) {
@@ -437,7 +435,7 @@ export function seasonExit(
   const low = streak(
     (row) =>
       row.year >= pro.rookieYear + rules.rookieGraceSeasons &&
-      rosterGrade(row.score,true) === "F",
+      (row.seasonRank?.grade??rosterGrade(row.score,true)) === "F",
   );
   return low >= duration
     ? {
@@ -454,7 +452,7 @@ export function requiresDevelopmentalOffer(p: Player, year: number) {
     !denied ||
     denied.year > year ||
     ["low-evaluation", "second-team", "reserve", "limited-appearances"].includes(denied.kind) ||
-    rosterGrade((pro?.assessments??[]).find(row=>row.year===denied.year)?.score,true)!=="F"
+    ((pro?.assessments??[]).find(row=>row.year===denied.year)?.seasonRank?.grade??rosterGrade((pro?.assessments??[]).find(row=>row.year===denied.year)?.score,true))!=="F"
   )
     return false;
   const rows = (pro.assessments ?? []).filter((r) => r.year <= year),

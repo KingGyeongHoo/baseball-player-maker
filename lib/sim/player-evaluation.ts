@@ -1,5 +1,6 @@
 import {available,emptyRecord,hash,isPitcher,labels,mergeRecord,params,roleFor,roleLabel,selectionScore,talentLabel} from "./engine";
 import {draftAssessment} from "./draft";
+import {migratePackedRecord} from '../record-schema';
 import {evaluationReference,EVALUATION_MODEL,gradeTool,standardMatchup} from "./evaluation-reference";
 import {performanceEvidence,weightedRecords} from "./evaluation-metrics";
 import {reputationBreakdown} from "./evaluation-reputation";
@@ -109,8 +110,8 @@ export function evaluationSummary(report:EvaluationSnapshot){
 
 // Keep shared baselines once and store only the inputs needed to recreate a report.
 // Numeric record arrays avoid repeating 30+ JSON keys for every NPC every month.
-export function packEvaluationRecord(record:RecordLine){const template=emptyRecord();const packed=[...Object.keys(template.batting).map(k=>record.batting[k as keyof typeof record.batting]??0),...Object.keys(template.pitching).map(k=>record.pitching[k as keyof typeof record.pitching]),...gameCounterKeys.map(key=>record.games?.[key]??-1)];if(record.batting.SB!==undefined||record.batting.CS!==undefined)packed.push(record.batting.SB??-1,record.batting.CS??-1);return packed;}
-export function unpackEvaluationRecord(values:number[]|null|undefined){const record=emptyRecord();let index=0;for(const group of ["batting","pitching"] as const)for(const key of Object.keys(record[group]))(record[group] as Record<string,number>)[key]=values?.[index++]??0;for(const key of gameCounterKeys){const value=values?.[index++];if(value!==undefined&&value>=0)(record.games??={})[key]=value;}for(const key of ['SB','CS'] as const){const value=values?.[index++];if(value!==undefined&&value>=0)record.batting[key]=value;}return record;}
+export function packEvaluationRecord(record:RecordLine){const template=emptyRecord();const packed=[-2,...Object.keys(template.batting).map(k=>record.batting[k as keyof typeof record.batting]??0),...Object.keys(template.pitching).map(k=>record.pitching[k as keyof typeof record.pitching]),...gameCounterKeys.map(key=>record.games?.[key]??-1)];if(record.batting.SB!==undefined||record.batting.CS!==undefined)packed.push(record.batting.SB??-1,record.batting.CS??-1);return packed;}
+export function unpackEvaluationRecord(values:number[]|null|undefined){values=values?migratePackedRecord(values):values;const record=emptyRecord();let index=1;for(const group of ["batting","pitching"] as const)for(const key of Object.keys(record[group]))(record[group] as Record<string,number>)[key]=values?.[index++]??0;for(const key of gameCounterKeys){const value=values?.[index++];if(value!==undefined&&value>=0)(record.games??={})[key]=value;}for(const key of ['SB','CS'] as const){const value=values?.[index++];if(value!==undefined&&value>=0)record.batting[key]=value;}return record;}
 export function archiveEvaluationContext(s:GameState,context:Context,reason:EvaluationReason):EvaluationContextArchive {
   const league=Object.fromEntries(Object.entries(context.league).map(([key,r])=>[key,packEvaluationRecord(r)])) as EvaluationContextArchive["league"];
   return {id:`${EVALUATION_MODEL}:${context.reference.mode}:${s.calendar.seasonYear}:${s.date}:${reason}`,date:s.date,year:s.calendar.seasonYear,mode:context.reference.mode,referenceId:context.reference.id,league,leagueSeasons:context.leagueSeasons,history:Object.fromEntries([...context.history].map(([key,r])=>[key,packEvaluationRecord(r)])),parameters:{...context.reference.parameters}};

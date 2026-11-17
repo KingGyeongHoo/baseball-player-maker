@@ -11,7 +11,7 @@ export function retirementSummary(state:GameState){
   const player=getPlayer(state),pro=player.professional!,world=state.proWorld!,retired=world.retired;
   const retiredDate=retired?.date??state.date,year=Number(retiredDate.slice(0,4)),honors=careerHonors(state);
   const visible=(rows:CareerHonor[])=>rows.filter(row=>row.year<=year);
-  const allstars=visible(honors.allstar).filter(row=>row.title.endsWith(" 올스타")&&!row.title.includes("미스터"));
+  const allstars=visible(honors.allstar).filter(row=>row.title==='올스타'||row.title==='2군 올스타');
   const youthNationals=visible(honors.national).filter(row=>row.title==="청소년 국가대표");
   const nationals=visible(honors.national).filter(row=>isNationalSelection(row)&&row.title!=="청소년 국가대표");
   const mvps=visible(honors.individual).filter(row=>row.title==="시즌 MVP");
@@ -47,7 +47,7 @@ export function retirementSummary(state:GameState){
   }
   const awardTime=(row:CareerHonor)=>{
     const season=world.seasons.find(season=>season.year===row.year);
-    if(row.title.endsWith("미스터 올스타")){const level=row.title.startsWith("1군")?"first":"second";return season?.allstar?.levels[level].game?.date??allstarDates(row.year)[level];}
+    if(row.title.endsWith("미스터 올스타")){const level=row.title.startsWith("2군")?"second":"first";return season?.allstar?.levels[level].game?.date??allstarDates(row.year)[level];}
     if(row.title.endsWith("MVP")&&row.title!=="시즌 MVP")return state.careerEventHistory?.find(event=>["P08","WBC01"].includes(event.definitionId)&&Number(event.date.slice(0,4))===row.year)?.date;
     return honors.gold.includes(row)||row.title==="시즌 MVP"?season?.awardsCeremony?.presentedAt??season?.endDate:season?.endDate;
   };

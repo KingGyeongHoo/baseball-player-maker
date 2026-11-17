@@ -84,7 +84,7 @@ test('calendar upgrade moves only future games, retains completed records and co
 });
 
 test('awards allstar page opens voting from May without a league modal, and late adoption does not replay games',()=>{
- const s=fixture();s.date='2028-04-30';assert.match(renderToStaticMarkup(createElement(Allstar,{state:s,onRecords(){}})),/5월 1일부터/);s.date='2028-05-01';const html=renderToStaticMarkup(createElement(Allstar,{state:s,onRecords(){}}));assert.match(html,/투표 현황/);assert.match(html,/BLUE Team/);assert.doesNotMatch(html,/<dialog/);assert.doesNotMatch(renderToStaticMarkup(createElement(League,{state:s,onRecords(){}})),/>올스타<\/button>/);
+ const s=fixture();s.date='2028-04-30';assert.match(renderToStaticMarkup(createElement(Allstar,{state:s,onRecords(){}})),/5월 1일부터/);s.date='2028-05-01';const html=renderToStaticMarkup(createElement(Allstar,{state:s,onRecords(){}}));assert.match(html,/투표 현황/);assert.match(html,/allstar-blue/);assert.doesNotMatch(html,/<dialog/);assert.doesNotMatch(renderToStaticMarkup(createElement(League,{state:s,onRecords(){}})),/>올스타<\/button>/);
  delete s.proWorld.allstar;s.date='2028-08-01';a.prepareAllstarDay(s);assert.equal(s.proWorld.allstar.skipped,true);assert.equal(s.proWorld.allstar.levels.first.game,undefined);
 });
 
@@ -110,11 +110,12 @@ test('selection growth is awarded once and future migration waits until an activ
  delete s.calendar.proAllstarScheduleVersion;s.weekProgress={};const before=structuredClone(s.calendar.events);assert.equal(c.upgradeAllstarSchedule(s),false);assert.deepEqual(s.calendar.events,before);
 });
 
-test('optional allstar technical exchanges and review can grow role skills without changing actual records',()=>{
+test('pregame technical exchanges remain optional while the postgame result only needs confirmation',()=>{
  const s=selected(),p=e.getPlayer(s);s.date='2028-07-01';a.prepareAllstarDay(s);const learn=s.careerEvent.choices.find(c=>c.id==='learn');assert.equal(learn.outcomes[0].weight,60);assert.equal(learn.outcomes[1].weight,40);assert.ok(learn.outcomes[0].weeks);
  for(let seed=0;seed<10000;seed++){const q={rngStates:{...s.rngStates,events:seed}};if(e.random(q,'events')<.6){s.rngStates.events=seed;break;}}
  const before=structuredClone(p.seasonStats),done=e.answerCareerEvent(s,'learn');assert.ok(Object.values(done.careerEventHistory.at(-1).stats).some(n=>n>0));assert.deepEqual(e.getPlayer(done).seasonStats,before);
- done.date=c.allstarDates(2028).first;a.playAllstarDay(done);const review=done.careerEvent.choices.find(c=>c.id==='review');assert.equal(review.outcomes[0].weeks.contact,1);assert.equal(review.outcomes[0].weight,30);
+ done.date=c.allstarDates(2028).first;a.playAllstarDay(done);assert.equal(done.careerEvent.choices.length,1);assert.equal(done.careerEvent.choices[0].id,'remember');assert.equal(done.careerEvent.choices[0].label,'확인');assert.equal(done.careerEvent.description,'');
+ const stats=structuredClone(e.getPlayer(done).stats),fatigue=e.getPlayer(done).fatigue,confirmed=e.answerCareerEvent(done,'remember');assert.deepEqual(e.getPlayer(confirmed).stats,stats);assert.equal(e.getPlayer(confirmed).fatigue,fatigue);assert.equal(confirmed.careerEvent,null);
 });
 
 

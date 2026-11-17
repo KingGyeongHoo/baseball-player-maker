@@ -23,7 +23,7 @@ const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-10, `${a} != ${b}`);
 
 function record(ab, h, bb, outs, er) {
   const r = e.emptyRecord();
-  Object.assign(r.batting, { PA: ab + bb, AB: ab, H: h, BB: bb, GB: ab - h });
+  Object.assign(r.batting, { PA: ab + bb, AB: ab, H: h, BB: bb });
   Object.assign(r.pitching, { BF: outs + h + bb, outs, H: h, BB: bb, R: er, ER: er });
   return r;
 }

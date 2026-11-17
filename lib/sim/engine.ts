@@ -73,8 +73,6 @@ export const emptyRecord = (): RecordLine => ({
     SO: 0,
     R: 0,
     RBI: 0,
-    GB: 0,
-    FB: 0
   },
   pitching: {
     BF: 0,
@@ -344,7 +342,7 @@ export function previewPlayer(seed: string, name: string, position: Position) {
 function skeleton(seed: string): GameState {
   return {
     schemaVersion: 1,
-    proClubNamesVersion: 1,
+    proClubNamesVersion: 2,
     balanceVersion: balance.balanceVersion,
     seed,
     rngStates: {
@@ -453,7 +451,7 @@ export function mergeRecord(target: RecordLine, add: RecordLine) {
   // allocating key arrays for every player, including when collecting totals.
   const b=target.batting,a=add.batting,p=target.pitching,q=add.pitching;
   b.PA+=a.PA;b.AB+=a.AB;b.H+=a.H;b["2B"]+=a["2B"];b["3B"]+=a["3B"];b.HR+=a.HR;
-  b.BB+=a.BB;b.SO+=a.SO;b.R+=a.R;b.RBI+=a.RBI;b.GB+=a.GB;b.FB+=a.FB;
+  b.BB+=a.BB;b.SO+=a.SO;b.R+=a.R;b.RBI+=a.RBI;
   if(a.SB!==undefined||b.SB!==undefined)b.SB=(b.SB??0)+(a.SB??0);
   if(a.CS!==undefined||b.CS!==undefined)b.CS=(b.CS??0)+(a.CS??0);
   p.BF+=q.BF;p.outs+=q.outs;p.H+=q.H;p.BB+=q.BB;p.SO+=q.SO;p.HR+=q.HR;p.R+=q.R;p.ER+=q.ER;

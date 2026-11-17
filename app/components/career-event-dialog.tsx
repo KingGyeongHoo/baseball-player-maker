@@ -2,7 +2,8 @@ import { scoreText, changeText } from "../../lib/display";
 import { useEffect, useId, useRef, useState } from "react";
 import {submitChoice} from "../../lib/choice-submission";
 import { dateLabel, labels, positions } from "../../lib/sim/engine";
-import type { CareerEvent, CareerEventOutcome, EventScene, MatchEffect, Stat } from "../../lib/sim/types";
+import type { CareerEvent, CareerEventOutcome, EventScene, MatchEffect, Stat, GameState } from "../../lib/sim/types";
+import AllstarResult from './allstar-result';
 
 const awakeningPhrases: Record<Stat, string> = {
   contact: "정교한 타격에 눈을 떴다!", power: "공에 힘을 싣는 타격에 눈을 떴다!", speed: "폭발적인 첫발에 눈을 떴다!", defense: "타구를 읽는 수비에 눈을 떴다!",
@@ -20,7 +21,8 @@ function MatchChanges({ effect, batting }: { effect: MatchEffect; batting: boole
   if(!Object.keys(effect).length)return null;
   return <div className="event-match-effect"><b>{batting ? "이번 타석" : "이번 상대 타자"}에 적용</b><div className="event-changes">{(Object.entries(effect) as [keyof MatchEffect, number][]).map(([key, amount]) => <span key={key}>{names[key]} <b>{changeText(amount * 100)}</b></span>)}</div></div>;
 }
-export default function CareerEventDialog({ event, outcome, disabled, onChoose, onDone, onRecover }: {
+export default function CareerEventDialog({ event, outcome, disabled, onChoose, onDone, onRecover,state }: {
+  state?:GameState;
   event: CareerEvent | null; outcome: CareerEventOutcome | null; disabled: boolean;
   onChoose: (id: string) => boolean; onDone: () => void; onRecover?:()=>void;
 }) {
@@ -30,14 +32,19 @@ export default function CareerEventDialog({ event, outcome, disabled, onChoose, 
   useEffect(() => { const el = dialog.current; el?.showModal(); heading.current?.focus(); return () => el?.close(); }, []);
   useEffect(() => { choosing.current = false; }, [event?.id,disabled]);
   const scene = outcome?.scene ?? event?.scene;
-  return <dialog className="modal career-event-modal" ref={dialog} aria-labelledby={titleId} onCancel={e => { e.preventDefault(); if (outcome) onDone(); }}>
-    <div className="modal-header"><h2 id={titleId} ref={heading} tabIndex={-1}>{outcome ? "선택의 결과" : event?.title}</h2><span className="position-tag">CAREER EVENT</span></div>
+  const allstarId=event?.definitionId??outcome?.definitionId;
+  const allstarResult=!!state&&!!allstarId?.match(/^AS-RESULT-(first|second)$/);
+  const allstarYear=Number((event?.date??outcome?.date)?.slice(0,4));
+  const allstarSeason=state?.proWorld?.allstar?.year===allstarYear?state.proWorld.allstar:state?.proWorld?.seasons.find(row=>row.year===allstarYear)?.allstar;
+  const allstarEntry=allstarResult?allstarSeason?.levels[allstarId?.endsWith('second')?'second':'first']:undefined;
+  return <dialog className={`modal career-event-modal${allstarResult?' allstar-result-modal':''}`} ref={dialog} aria-labelledby={titleId} onCancel={e => { e.preventDefault(); if (outcome) onDone(); }}>
+    <div className="modal-header"><h2 id={titleId} ref={heading} tabIndex={-1}>{allstarResult?'올스타전 결과':outcome ? "선택의 결과" : event?.title}</h2><span className="position-tag">{allstarResult?'ALL-STAR':'CAREER EVENT'}</span></div>
     <div className="guide-content">
       {choiceError&&<p className="error" role="alert">{choiceError}</p>}
       {disabled&&onRecover&&<div className="info-box"><p>선택을 기다리고 있습니다. 진행 잠금을 풀고 이 선택부터 이어갈 수 있습니다.</p><button className="secondary" onClick={()=>{choosing.current=false;setChoiceError("");onRecover();}}>선택 버튼 활성화</button></div>}
       {scene && <Scene scene={scene} />}
       {!outcome&&event?.proEvent?.target&&event.proEvent.channel!=="followup"&&<div className="info-box">평가 대상: {positions[event.proEvent.target]} · 14일 평가<br/>현재 역할과 훈련 배분을 유지합니다. 평가를 마치면 전환 여부를 직접 선택하며 출전은 보장되지 않습니다.</div>}
-      {outcome ? <><p><b>{outcome.title}</b></p><p>{outcome.choice}</p><p className="event-result-message">{outcome.message}</p>
+      {outcome&&allstarResult?<>{allstarEntry?<AllstarResult state={state!} entry={allstarEntry}/>:<p>올스타 경기 기록이 없습니다.</p>}<div className="modal-actions"><button className="primary" onClick={onDone}>확인</button></div></>:outcome ? <><p><b>{outcome.title}</b></p><p>{outcome.choice}</p><p className="event-result-message">{outcome.message}</p>
         {outcome.awakened.length > 0 && <div className="event-awakening" role="status"><b>{outcome.awakened.length === 11 ? "야구 전반의 새로운 감각에 눈을 떴다!" : outcome.awakened.length === 1 ? awakeningPhrases[outcome.awakened[0]] : `${outcome.awakened.map(key => labels[key]).join("·")}의 새로운 감각에 눈을 떴다!`}</b></div>}
         <div className="event-changes">{(Object.entries(outcome.stats) as [Stat, number][]).filter(([,amount])=>!outcome.proEvent||Math.abs(amount)>1e-9).map(([key, amount]) => <span key={key}>{labels[key]} <b>{changeText(amount)}</b></span>)}{outcome.reputation !== 0 && <span>평판 <b>{changeText(outcome.reputation)}</b></span>}{outcome.fatigue !== 0 && <span>피로 <b>{changeText(outcome.fatigue,10)}</b></span>}</div>
         {!Object.keys(outcome.stats).length && !outcome.reputation && !outcome.fatigue && !outcome.injury && !outcome.positionChange && !outcome.match && !outcome.twoWay && !outcome.transfer && !outcome.proEvent?.action && <p>능력치·피로 변화가 없습니다.</p>}
@@ -48,7 +55,7 @@ export default function CareerEventDialog({ event, outcome, disabled, onChoose, 
         {outcome.positionChange && <p>포지션 변경: {positions[outcome.positionChange.from]} → {positions[outcome.positionChange.to]}</p>}
         {outcome.match && <MatchChanges effect={outcome.match} batting={outcome.scene?.batting ?? false} />}
         <div className="modal-actions"><button className="primary" onClick={onDone}>확인</button></div>
-      </> : <><p>{event?.description}</p>{event?.transferOffers?.map(offer => <section className="event-scene" key={offer.teamId}><b>{offer.name} · {offer.kind === "strong" ? "전력 상위권 학교" : "포지션 경쟁이 적은 학교"}</b><span>현재 팀 전력 {scoreText(offer.strength)} · 다음 학년 포지션 경쟁 선수 능력 {scoreText(offer.competition)}</span>{offer.twoWay && <span>투타 겸업을 검토할 수 있는 선수로 관심을 보이고 있습니다.</span>}</section>)}<div className="career-event-choices">{event?.choices.map(choice => <button key={choice.id} disabled={disabled} onClick={() => { try { setChoiceError(""); submitChoice(choosing,disabled,()=>onChoose(choice.id)); } catch(error) { setChoiceError(error instanceof Error?error.message:"선택을 처리하지 못했습니다. 다시 선택해 주세요."); } }}><b>{choice.label}</b></button>)}</div></>}
+      </> : <>{allstarResult?(allstarEntry?<AllstarResult state={state!} entry={allstarEntry}/>:<p>올스타 경기 기록이 없습니다.</p>):<p>{event?.description}</p>}{event?.transferOffers?.map(offer => <section className="event-scene" key={offer.teamId}><b>{offer.name} · {offer.kind === "strong" ? "전력 상위권 학교" : "포지션 경쟁이 적은 학교"}</b><span>현재 팀 전력 {scoreText(offer.strength)} · 다음 학년 포지션 경쟁 선수 능력 {scoreText(offer.competition)}</span>{offer.twoWay && <span>투타 겸업을 검토할 수 있는 선수로 관심을 보이고 있습니다.</span>}</section>)}<div className={allstarResult?"modal-actions":"career-event-choices"}>{(allstarResult?[{id:event?.choices.find(choice=>choice.id==="remember")?.id??event?.choices[0]?.id??"remember",label:"확인"}]:event?.choices)?.map(choice => <button key={choice.id} disabled={disabled} onClick={() => { try { setChoiceError(""); submitChoice(choosing,disabled,()=>onChoose(choice.id)); } catch(error) { setChoiceError(error instanceof Error?error.message:"선택을 처리하지 못했습니다. 다시 선택해 주세요."); } }}><b>{choice.label}</b></button>)}</div></>}
     </div>
   </dialog>;
 }

@@ -1,4 +1,4 @@
-import {rosterGrade} from '../roster-grades';
+import {playerCareerEvaluation} from './pro-career-evaluation';
 import type {GameState,Player} from './types';
 
 export const retirementHonorRules={rookieSeasons:3,registrationRatio:.9,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:15,tourConsecutive:10,numberA:18,numberS:15} as const;
@@ -27,8 +27,8 @@ export function recordHonorRegistration(s:GameState,p:Player){
 }
 export function retirementEligibility(s:GameState,p:Player){
   const pro=p.professional,club=pro?.employment==='active'&&p.teamId>=0?(pro.contract?.club??p.teamId%10):undefined;
-  const rows=(pro?.assessments??[]).filter(row=>row.year<=s.calendar.seasonYear),scores=rows.flatMap(row=>row.score===null||row.clubGamesShortage?[]:[row.score]);
-  const score=scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:null,grade=rosterGrade(score,true);
+  const rows=(pro?.assessments??[]).filter(row=>row.year<=s.calendar.seasonYear);
+  const evaluation=playerCareerEvaluation(p,s.calendar.seasonYear).first,score=evaluation.score,grade=evaluation.grade;
   const clubs=new Set<number>();if(pro){if(pro.firstClub>=0)clubs.add(pro.firstClub);for(const row of pro.service)clubs.add(row.club);if(pro.contract)clubs.add(pro.contract.club);for(const row of pro.movements){if(row.from!==null)clubs.add(row.from);if(row.to!==null)clubs.add(row.to);}}
   const years=club===undefined?[]:[...new Set(rows.filter(row=>{
     const registration=row.honorRegistration;

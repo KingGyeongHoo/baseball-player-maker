@@ -1,5 +1,6 @@
 import type { Calendar, Competition, Game } from "./types";
 import {advanceLeagueTiebreakers,leagueStandings} from "./league-standings";
+import {mainLeagueName} from './club-names';
 
 export const calendarSource = "https://g1.sports.or.kr/schedule/year.do";
 export const resultsSource = "https://result.sports.or.kr/BA/";
@@ -20,7 +21,10 @@ const add = (date: string, days: number) => {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 };
-export const competitionName = (calendar: Calendar, id: string) => calendar.competitions.find(c => c.id === id)?.name ?? "경기";
+export const competitionName = (calendar: Calendar, id: string) => {
+  const name=calendar.competitions.find(c => c.id === id)?.name??'경기';
+  return id.startsWith('pro-')?mainLeagueName(name):name;
+};
 export const roundName = (remaining: number) => remaining === 2 ? "결승" : remaining === 4 ? "준결승" : `${remaining}강`;
 function fixture(id: string, date: string, competitionId: string, homeTeamId: number, awayTeamId: number, round = 0): Game {
   return { id, date, homeTeamId, awayTeamId, competitionId, round, rulesetId: "high-school-v0.4", status: "scheduled", score: [0, 0], innings: [[], []], lineup: [], boxScore: {} };

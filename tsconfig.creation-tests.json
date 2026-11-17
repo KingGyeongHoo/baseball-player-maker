@@ -11,6 +11,7 @@
     "plugins": []
   },
   "include": [
+    "app/components/hall-of-fame.tsx",
     "app/components/international-hub.tsx",
     "app/components/national-honors.tsx",
     "app/components/national-rosters.tsx",

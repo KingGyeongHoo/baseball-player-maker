@@ -4,6 +4,7 @@ import {individualTitleName} from './pro-individual-awards';
 import {createProWarContext,proWarAssessment,type ProWarContext} from './pro-war';
 import type {GameState,Player,RecordLine} from './types';
 import type {ProSeasonEvaluation,ProWarAssessment} from './pro-types';
+import {refreshCareerEvaluation} from './pro-career-evaluation';
 
 const clamp=(n:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,n));
 const played=(r?:RecordLine)=>!!r&&(r.batting.PA>0||r.pitching.BF>0);
@@ -25,7 +26,7 @@ export function seasonEvaluation(s:GameState,p:Player,war:ProWarAssessment,conte
     const key=`${entry.year}:${entry.kind}`;
     if(entry.year!==year||entry.kind==='youth'||tournaments.has(key))continue;
     tournaments.add(key);
-    const member=entry.tournament?.countries[0]?.players.find(row=>row.sourceId===p.id||row.id===p.id);
+    const member=entry.tournament?.countries?.[0]?.players?.find(row=>row.sourceId===p.id||row.id===p.id);
     if(!member||p.id===s.playerId&&entry.participated===false)continue;
     // Completed roster participation is an achievement even in a legacy
     // tournament consisting of forfeits. Never invent missing playing stats.
@@ -84,12 +85,13 @@ export function refreshSeasonEvaluations(s:GameState,year=s.calendar.seasonYear)
     const row=rows?.find(row=>row.year===year);
     if(!row?.war||row.score===null)continue;
     row.seasonEvaluation=seasonEvaluation(s,p,row.war,context,year);
-    row.score=row.seasonEvaluation.score;row.grade=rosterGrade(row.score,true);
+    row.score=row.seasonEvaluation.score;row.grade=row.seasonRank?.grade??rosterGrade(row.score,true);
     let total=0,count=0;
     for(const assessment of [...rows!].sort((a,b)=>a.year-b.year)){
       if(assessment.score!==null&&!assessment.clubGamesShortage){total+=assessment.score;count++;}
       assessment.cumulative=count?total/count:null;
       assessment.cumulativeGrade=rosterGrade(assessment.cumulative,true);
     }
+    refreshCareerEvaluation(p);
   }
 }

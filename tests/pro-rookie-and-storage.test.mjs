@@ -129,8 +129,8 @@ test('farm and first-team series with identical IDs keep independent records, ca
  const titles=careerHonors(s).individual.map(row=>row.title);for(const title of ['한국시리즈 MVP','2군 준결승 1 MVP','2군 챔피언결정전 MVP'])assert.ok(titles.includes(title));
  const {PostseasonAwards}=require('../.test-build/app/components/pro-awards-hub.js');
  const farmHtml=renderToStaticMarkup(createElement(PostseasonAwards,{state:s,year:2028,onRecords(){}}));
- assert.ok(farmHtml.includes('2군 준결승 1'));assert.ok(farmHtml.includes('2군 준결승 2'));assert.ok(farmHtml.includes('2군 챔피언결정전'));assert.ok(!farmHtml.includes('<h3>한국시리즈</h3>'));assert.equal((farmHtml.match(/출전평가 \+1/g)??[]).length,2);
- const firstHtml=renderToStaticMarkup(createElement(PostseasonAwards,{state:s,year:2028,initialLevel:'first',onRecords(){}}));assert.ok(firstHtml.includes('<h3>한국시리즈</h3>'));assert.equal((firstHtml.match(/출전평가 \+1/g)??[]).length,1);
+ assert.ok(farmHtml.includes('2군 준결승 1'));assert.ok(farmHtml.includes('2군 준결승 2'));assert.ok(farmHtml.includes('2군 챔피언결정전'));assert.ok(!farmHtml.includes('<h3>한국시리즈</h3>'));assert.equal((farmHtml.match(/출전평가 \+1/g)??[]).length,0);
+ const firstHtml=renderToStaticMarkup(createElement(PostseasonAwards,{state:s,year:2028,initialLevel:'first',onRecords(){}}));assert.ok(firstHtml.includes('<h3>한국시리즈</h3>'));assert.equal((firstHtml.match(/출전평가 \+1/g)??[]).length,0);
  const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;assert.equal(e.selectionScore(e.getPlayer(restored)),before+3);assert.deepEqual(e.getPlayer(restored).professional.awardBonuses,p.professional.awardBonuses);
  assert.deepEqual(p.stats,stats);assert.deepEqual(s.rngStates,rng);
 });

@@ -186,15 +186,17 @@ test("healthy unplayed and incomplete legacy records receive zero-WAR points, wh
   assert.equal(a.currentSeasonAssessment(s, p).score, null);
 });
 
-test("the season projection, final evaluation, cumulative average and 70/30 contract basis agree and freeze once", () => {
+test("season projections and frozen career percentiles stay independent from the raw contract scoring basis", () => {
   const s = fixture(), p = e.getPlayer(s), year = s.calendar.seasonYear;
   p.professional.assessments = [{ year: year - 1, date: `${year - 1}-10-31`, score: 73, grade: "D", cumulative: 73, cumulativeGrade: "D", ability: 75, role: p.primaryRole, squad: "first", developmental: false, reserveSeason: false, firstTeam: true, secondOnly: false, firstGames: 140, source: "season-end" }];
   p.seasonByLevel.first = batting("good");
   const projection = careerContractSummary(s);
   const estimate = a.currentSeasonAssessment(s, p), row = a.recordSeasonAssessment(s, p);
-  close(projection.seasonScore, row.score); close(projection.projected, row.cumulative);
-  close(row.score, estimate.score); close(row.cumulative, (73 + row.score) / 2);
-  close(a.assessmentValue(p, year).score, row.score * 0.7 + row.cumulative * 0.3);
+  const contractAverage=(73+row.score)/2;
+  require('../.test-build/lib/sim/pro-season-ranking.js').freezeSeasonRankings(s);
+  close(projection.seasonScore,require('../.test-build/lib/sim/pro-career-evaluation.js').seasonPercentile(row.seasonRank)); close(projection.projected, row.cumulative);
+  close(row.score, estimate.score);
+  close(a.assessmentValue(p, year).score, row.score * 0.7 + contractAverage * 0.3);
   const frozen = structuredClone(row);
   p.fatigue = 100; p.stats.contact = 100; p.seasonByLevel.first = batting("bad");
   assert.equal(a.recordSeasonAssessment(s, p), row); assert.deepEqual(row, frozen);

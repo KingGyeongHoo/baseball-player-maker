@@ -14,7 +14,7 @@ export function registerRetiredNumber(s:GameState,p:Player){
   const existing=w.retiredNumbers?.find(row=>row.playerId===p.id);if(existing)return existing;
   const eligibility=retirementEligibility(s,p),number=p.jerseyNumber,club=eligibility.club;
   if(!eligibility.retiredNumber||club===undefined||eligibility.score===null||!Number.isInteger(number)||number!<1||number!>99||[...(w.retiredNumbers??[]),...(s.savedRetiredNumbers??[])].some(row=>row.club===club&&row.number===number))return;
-  const honor={club,number:number!,playerId:p.id,playerName:p.name,date:s.date,score:eligibility.score};
+  const honor={club,number:number!,playerId:p.id,playerName:p.name,date:s.date,score:eligibility.score,grade:eligibility.grade};
   (w.retiredNumbers??=[]).push(honor);
   proNews(s,`${clubName(s,club)} · ${p.name}의 등번호 ${number}번을 영구결번으로 지정했습니다.`,`retired-number:${p.id}`);
   return honor;

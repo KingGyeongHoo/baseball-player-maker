@@ -27,7 +27,7 @@ function retentionFixture(){
  const peer=structuredClone(p);peer.id='strong-incumbent';peer.teamId=club;
  for(const key of Object.keys(peer.stats))peer.stats[key]=100;
  s.players=[p,peer];for(const c of s.proWorld.clubs)c.budget=1e12;
- for(const row of p.professional.assessments){delete row.war;row.score=82;row.grade='S';row.cumulative=82;row.cumulativeGrade='S';}
+ for(const row of p.professional.assessments){delete row.war;delete row.seasonEvaluation;delete row.seasonRank;row.score=82;row.grade='S';row.cumulative=82;row.cumulativeGrade='S';}
  return s;
 }
 test('FA retains a valid home-team offer even when nine rival clubs rank ahead, without duplicates or more than three offers',()=>{

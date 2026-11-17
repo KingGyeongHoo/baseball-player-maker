@@ -215,7 +215,11 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       } else {
         m.outs++; pit.outs++; m.pitchOuts[pitchingSide]++;
         if (random(s, "match") < probs.k) { bat.SO++; pit.SO++; }
-        else {if (random(s, "match") < params[`match.gb_${batter.stance.batting}`]) bat.GB++; else bat.FB++;if(fielder)recordFieldingPlay(line(fielder),true,expectedOut);}
+        else {
+          // Preserve the RNG stream of in-progress legacy games.
+          random(s, "match");
+          if(fielder)recordFieldingPlay(line(fielder),true,expectedOut);
+        }
         if(m.fieldingVersion===1)recordFieldingOuts(m.sides[pitchingSide].field.map(player),line);
         pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.pitch_out"] * params[`stance.${pitcher.stance.pitching}_cost`] * accumulation(pitcher.stats.stamina));
       }

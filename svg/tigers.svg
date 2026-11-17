@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="kia-title kia-number">
+  <title id="kia-title">KIA 타이거즈 영구결번</title>
+  <desc>호랑이 줄무늬</desc>
+  <defs>
+    <clipPath id="kia-disc"><circle cx="128" cy="128" r="114"/></clipPath>
+    <style>@font-face{font-family:'Dugout Numerals';src:url(data:font/woff;base64,d09GRgABAAAAAARAAAoAAAAABbgAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABPUy8yAAABZAAAACkAAABgRQ9GhWNtYXAAAAGkAAAALAAAADQADACMZ2x5ZgAAAegAAAGLAAACXBvKSM1oZWFkAAAA9AAAADYAAAA2MHmSSmhoZWEAAAEsAAAAHgAAACQHCQNFaG10eAAAAZAAAAARAAAAGAPPATZsb2NhAAAB0AAAABgAAAAYAtMDY21heHAAAAFMAAAAGAAAACAADwAZbmFtZQAAA3QAAACPAAABF3VkJYNwb3N0AAAEBAAAADkAAABWoPtuWwABAAAAAQAAOqcX2l8PPPUAAwPoAAAAAOchpsEAAAAA5yGmwQAjAAAC/QPoAAAAAwACAAAAAAAAeJxjYGRgYH7BAATMCgzKDMpMfxkYGVABIwA5MgJXAAB4nGNgZGBg4GYQZ2BmAAEmBjQAAAQOACl4nGNgZlZgnMDAysDCQBgwInPsgQBIGTBYMr8A8SEkClBgYAAAobgEHQAAAHicY1ZgUAbCdjCJBAEabwIJAAAAeJxjYGBgYmBgYAZiESDJCKZZGBSANAsQgviW//8DSYP///9fBPMZAFHLBpUAAAAAABoAMABOAHMAjwCtAM8A5QENAS54nGWSL0gEQRSH39sRThT/jLJq3HGDYHRZBJPpgmmiLMZBTIeYFUQEg6AGMZgOoxgXk4ggyAWTwSRiGta2mGS5ffjm9nQPZOq83/f93gx4EAJ4nyKDBowCTKtZ2VALclZG8gjJGPKMLURmuh/GiECX+94+IBzxzCnPjLgJGfkqjmQjfsS1g/K7fSGy7nOaeutL18B3f/MnqnT0la8kxqEfxnvesKFFfC1X8KOwTKEretcp7uB8u3U/MDvDs8tOrWcXR34UKz6cERq2TJLKk7o4xDmHrH3bbNKtMdeJTW0CVcuyZzzGUs7ZCagYRYTHOJckljbxMs9FVp6nnQ470Mmg/aSzd+oDBqF3x/Y7rT48EFn60qJtRy0A6s2Ow1SvOwPDfoCc5gC3YFvgbr3ltn4zLkAEFOT5IH+4x0eFijt7T3TDXbfoq8PM7rMIDID4uzsGEvz+W1a0ZX5RBoo+VGtH1NoWhaPSg9b0YAyuao2rTWtpg+H//evmVVz9Qeiw/iWuA57pPP8BznPBZAB4nH2KMQ6CQBBF38IGo4V2VsbQcADiFahJ5AJmi802S0gWttSzO8iagIVTzLz/5gMHXijmUZw+e56MnaSFc6FzYr3qFByp5Kv0XsyVW+JM/D1xLv6RWK86BReeTXRDnMo29jYYP3bWRW/CYr+y3kYaIo5B9kRJK7fHEjB4RjphJ85LDpvub7P+930DCoUsZgB4nH3BCQGAIBREwb9PPIAy3kKf7Z/BBswEMVYjhCYlzVq0alNWUcU7PvCJL3zjB7/4ww33H2j/BmIAAAA=) format('woff');}</style>
+  </defs>
+  <circle cx="128" cy="128" r="124" fill="#BA9147"/>
+  <circle cx="128" cy="128" r="122.5" fill="#D5AD56"/>
+  <circle cx="128" cy="128" r="118.5" fill="#151217"/>
+  <circle cx="128" cy="128" r="114" fill="#C60026"/>
+  <g clip-path="url(#kia-disc)"><path d="M0 76 Q35 92 74 129 Q42 114 3 103Z M0 111 Q40 125 69 150 Q26 137 1 133Z M0 143 Q35 150 73 176 Q29 161 4 163Z" fill="#760012" /><g transform="translate(256 0) scale(-1 1)"><path d="M0 76 Q35 92 74 129 Q42 114 3 103Z M0 111 Q40 125 69 150 Q26 137 1 133Z M0 143 Q35 150 73 176 Q29 161 4 163Z" fill="#760012" /></g></g>
+  <!-- Change the jersey number below. Use one or two digits, including 00. -->
+  <text id="kia-number" data-role="number" x="128" y="176" text-anchor="middle" font-family="Dugout Numerals, DejaVu Sans, sans-serif" font-size="96" fill="#FFFAE9" >47</text>
+</svg>

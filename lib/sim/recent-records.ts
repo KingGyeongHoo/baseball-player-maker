@@ -1,14 +1,14 @@
 import type { Pitching, RecordLine } from "./types";
+import {migratePackedRecord} from '../record-schema';
 
-// Stable save order. Keep every statistic, but avoid two objects and twenty
-// repeated property names for each of the thousands of recent plate appearances.
-const battingKeys = ["PA", "AB", "H", "2B", "3B", "HR", "BB", "SO", "R", "RBI", "GB", "FB"] as const;
+// The leading version marker keeps legacy array offsets unambiguous.
+const battingKeys = ["PA", "AB", "H", "2B", "3B", "HR", "BB", "SO", "R", "RBI"] as const;
 const pitchingKeys: (keyof Pitching)[] = ["BF", "outs", "H", "BB", "SO", "HR", "R", "ER"];
 export type RecentRecord = RecordLine | number[];
 
 export function packRecentRecord(record: RecentRecord): number[] {
-  if (Array.isArray(record)) return record;
-  const packed=[...battingKeys.map(key => record.batting[key]), ...pitchingKeys.map(key => record.pitching[key])];
+  if (Array.isArray(record)) return migratePackedRecord(record);
+  const packed=[-2,...battingKeys.map(key => record.batting[key]), ...pitchingKeys.map(key => record.pitching[key])];
   if(record.batting.SB!==undefined||record.batting.CS!==undefined)packed.push(record.batting.SB??0,record.batting.CS??0);
   return packed;
 }
@@ -17,10 +17,10 @@ export function mergeRecentRecord(target: RecordLine, record: RecentRecord) {
   const batting=target.batting,pitching=target.pitching;
   let sb:number|undefined,cs:number|undefined;
   if(Array.isArray(record)){
-    batting.PA+=record[0];batting.AB+=record[1];batting.H+=record[2];batting['2B']+=record[3];batting['3B']+=record[4];batting.HR+=record[5];
-    batting.BB+=record[6];batting.SO+=record[7];batting.R+=record[8];batting.RBI+=record[9];batting.GB+=record[10];batting.FB+=record[11];
-    pitching.BF+=record[12];pitching.outs+=record[13];pitching.H+=record[14];pitching.BB+=record[15];pitching.SO+=record[16];pitching.HR+=record[17];pitching.R+=record[18];pitching.ER+=record[19];
-    sb=record[20];cs=record[21];
+    const values=packRecentRecord(record);
+    battingKeys.forEach((key,i)=>batting[key]+=values[i+1]);
+    pitchingKeys.forEach((key,i)=>pitching[key]+=values[i+11]);
+    sb=values[19];cs=values[20];
   }else{
     for(const key of battingKeys)batting[key]+=record.batting[key];
     for(const key of pitchingKeys)pitching[key]+=record.pitching[key];
@@ -31,5 +31,5 @@ export function mergeRecentRecord(target: RecordLine, record: RecentRecord) {
 }
 
 export function recentSample(record: RecentRecord, pitching: boolean) {
-  return Array.isArray(record) ? record[pitching ? 13 : 0] : pitching ? record.pitching.outs : record.batting.PA;
+  return Array.isArray(record) ? record[record[0]===-2?(pitching?12:1):(pitching?13:0)] : pitching ? record.pitching.outs : record.batting.PA;
 }

@@ -106,7 +106,7 @@ export function finalizeAllstars(s:GameState){
   season.finalizedAt=`${season.year}-06-30`;
   const mine=getPlayer(s),selected=mine.professional?.allstarHistory?.find(row=>row.year===season.year);
   proNews(s,`${season.year} 1·2군 올스타 최종 명단 확정`,`${season.year}:allstar-final`);
-  if(selected)proNotice(s,`allstar-selected:${season.year}`,`${selected.level==="first"?"1군":"2군"} 올스타에 선발됐습니다`,`${allstarSideLabels[selected.side]} · ${selected.method==="vote"?"투표 선발":"감독 추천"}. 평판 보상이 반영됐습니다. 7월 올스타 무대를 준비합니다.`);
+  if(selected)proNotice(s,`allstar-selected:${season.year}`,`${selected.level==="first"?"":"2군 "}올스타에 선발됐습니다`,`${allstarSideLabels[selected.side]} · ${selected.method==="vote"?"투표 선발":"감독 추천"}. 평판 보상이 반영됐습니다. 7월 올스타 무대를 준비합니다.`);
   return true;
 }
 function replaceUnavailable(s:GameState,level:AllstarLevel){
@@ -119,7 +119,7 @@ function replaceUnavailable(s:GameState,level:AllstarLevel){
       target.withdrawn.push(row.playerId);const history=p?.professional?.allstarHistory?.find(r=>r.year===season.year);if(history)history.withdrawn=true;
       const candidates=pool(s,level,side).filter(p=>!used.has(p.id)&&available(p,s.date)&&p.fatigue<85);
       const replacement=candidates.filter(p=>fits(p,row.slot)).sort((a,b)=>allstarMerit(b,level,row.slot)-allstarMerit(a,level,row.slot)||a.id.localeCompare(b.id))[0]??(row.method!=="vote"?candidates.sort((a,b)=>allstarMerit(b,level)-allstarMerit(a,level)||a.id.localeCompare(b.id))[0]:undefined);
-      if(replacement){const next={...member(replacement,row.method==="vote"?row.slot:replacement.position,"replacement"),replacementFor:row.playerId};target.roster[i]=next;used.add(replacement.id);rewardSelection(s,next,level,side);proNews(s,`${level==="first"?"1군":"2군"} 올스타 대체 선발 · ${replacement.name}`);}
+      if(replacement){const next={...member(replacement,row.method==="vote"?row.slot:replacement.position,"replacement"),replacementFor:row.playerId};target.roster[i]=next;used.add(replacement.id);rewardSelection(s,next,level,side);proNews(s,`${level==="first"?"":"2군 "}올스타 대체 선발 · ${replacement.name}`);}
       else target.roster.splice(i,1);
     }
   }
@@ -140,7 +140,7 @@ export function prepareAllstarDay(s:GameState){
     level.prepared=true;
     const keys=isPitcher(mine.primaryRole)?["velocity","control","movement"] as const:["contact","power","speed","defense"] as const;
     const weak=[...keys].sort((a,b)=>mine.stats[a]-mine.stats[b])[0];
-    userEvent(s,`AS-PREP-${selection.level}`,"별들의 무대에 초대받았다",`${allstarSideLabels[selection.side]}의 ${selection.level==="first"?"1군":"2군"} 올스타. ${date} 경기를 앞두고 준비 방식을 정한다. 선발 경험의 능력 성장은 이미 반영됐으며 실제 출전 때 피로와 부상 위험이 생긴다.`,[
+    userEvent(s,`AS-PREP-${selection.level}`,"별들의 무대에 초대받았다",`${allstarSideLabels[selection.side]}의 ${selection.level==="first"?"":"2군 "}올스타. ${date} 경기를 앞두고 준비 방식을 정한다. 선발 경험의 능력 성장은 이미 반영됐으며 실제 출전 때 피로와 부상 위험이 생긴다.`,[
       {id:"routine",label:"평소 루틴과 회복에 집중한다",outcomes:[{weight:100,message:"새 무대에서도 내 페이스를 지키기로 했다.",fatigue:-3}]},
       {id:"team",label:"다른 구단 선수들과 호흡을 맞춘다",outcomes:[{weight:100,message:"낯선 동료들과 야구 이야기를 나누며 긴장을 풀었다.",fatigue:-1,reputation:.5}]},
       {id:"learn",label:"다른 올스타 선수에게 기술을 배운다",outcomes:[{weight:60,message:"상대의 시범을 따라 해보며 내 약점을 다듬을 감각을 찾았다.",weeks:{[weak]:3},fatigue:2},{weight:40,message:"당장 동작에 붙지는 않았지만 상황을 읽는 새로운 관점을 얻었다.",weeks:{bq:1},fatigue:1}]},
@@ -178,7 +178,7 @@ function simulateAllstar(s:GameState,level:AllstarLevel){
   if(ranked[0]){const best=ranked[0],p=s.players.find(p=>p.id===best.id)!;entry.mvp={playerId:p.id,name:p.name,side:best.side,merit:best.score};
     if(p.professional){p.stats.bq=clamp(p.stats.bq+eventTrainingReward(p,"bq",allstarRules.mvpGrowthWeeks),1);const history=p.professional.allstarHistory?.find(row=>row.year===season.year);if(history)history.mvp=true;clearProfessionalReputation(p);}
   }
-  proNews(s,`${level==="first"?"1군":"2군"} 올스타 · BLUE ${game.score[0]} : ${game.score[1]} WHITE${entry.mvp?` · 미스터 올스타 ${entry.mvp.name}`:""}`,`${season.year}:allstar-result:${level}`);
+  proNews(s,`${level==="first"?"":"2군 "}올스타 · BLUE ${game.score[0]} : ${game.score[1]} WHITE${entry.mvp?` · 미스터 올스타 ${entry.mvp.name}`:""}`,`${season.year}:allstar-result:${level}`);
 }
 export function allstarGameOn(s:GameState,date=s.date){const season=s.proWorld?.allstar;if(!season)return undefined;return allstarLevels.map(level=>season.levels[level].game).find(game=>game?.date===date);}
 export function playAllstarDay(s:GameState){
@@ -189,10 +189,8 @@ export function playAllstarDay(s:GameState){
   if(entry.resultShown||!line||!line.batting.PA&&!line.pitching.BF)return false;
   entry.resultShown=true;const mvp=entry.mvp?.playerId===mine.id;
   if(params["pro_events.enabled"]===0)return false;
-  const precision=isPitcher(mine.primaryRole)?"control":"contact";
-  userEvent(s,`AS-RESULT-${level}`,mvp?"미스터 올스타에 선정됐다":"올스타의 하루를 마쳤다",`BLUE ${entry.game!.score[0]} : ${entry.game!.score[1]} WHITE · ${mine.name} ${line.batting.AB}타수 ${line.batting.H}안타 ${line.batting.HR}홈런 / ${Math.floor(line.pitching.outs/3)}.${line.pitching.outs%3}이닝 ${line.pitching.SO}탈삼진. ${entry.mvp?`미스터 올스타: ${entry.mvp.name}.`:""} ${mvp?"추가 평판 보상이 반영됐다.":"정규 성적과 분리해 이 무대를 커리어에 남겼다."}`, [
-    {id:"remember",label:mvp?"별들의 무대에서 받은 박수를 기억한다":"함께한 무대를 기억한다",outcomes:[{weight:100,message:"올스타전의 기록과 경험을 간직하고 후반기를 준비한다."}]},
-    {id:"review",label:"교류하며 배운 기술을 짧게 복습한다",outcomes:[{weight:30,message:"동료의 조언이 실제 승부 장면과 연결되며 감각으로 남았다.",weeks:{[precision]:1},fatigue:1},{weight:70,message:"경험을 노트에 남기고 충분한 회복을 준비했다."}]},
+  userEvent(s,`AS-RESULT-${level}`,mvp?"미스터 올스타에 선정됐다":"올스타의 하루를 마쳤다","", [
+    {id:"remember",label:"확인",outcomes:[{weight:100,message:""}]},
   ]);
   return true;
 }

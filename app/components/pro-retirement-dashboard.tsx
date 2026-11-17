@@ -28,7 +28,7 @@ export default function ProRetirement({state,onRecords,onNew}:{state:GameState;o
     <section className="retirement-honor-counts" aria-label="선발과 수상 횟수">{summaries.map(({label,value,note})=><article className="panel" key={label}><h2>{label}</h2><p><strong>{value}</strong><span>회</span></p><small>{note}</small></article>)}</section>
 
     <section className="panel retirement-farewell" aria-label="은퇴 예우"><div className="panel-heading"><h2>은퇴 예우</h2></div><div className="career-panel-body"><p><b>은퇴식</b> · {retirementHonor?.ceremony?'해당':'해당 없음'}</p><p><b>은퇴 투어</b> · {retirementHonor?.tour?'해당':'해당 없음'}</p><p><b>영구결번</b> · {honor?honor.number+'번':'해당 없음'}</p></div></section>
-    {honor&&<section className="panel retired-number-honor" aria-label="영구결번"><strong>{honor.number}</strong><div><span className="eyebrow">RETIRED NUMBER</span><h2>{clubName(state,honor.club)} 영구결번</h2><p>{honor.playerName} · 누적 평가 {scoreText(honor.score)}점 · {rosterGrade(honor.score,true)}등급</p><p>이 선수의 저장을 보관하는 동안 해당 구단에서 이 번호를 다시 사용할 수 없습니다.</p></div></section>}
+    {honor&&<section className="panel retired-number-honor" aria-label="영구결번"><strong>{honor.number}</strong><div><span className="eyebrow">RETIRED NUMBER</span><h2>{clubName(state,honor.club)} 영구결번</h2><p>{honor.playerName} · 누적 평가 {scoreText(honor.score)}점 · {honor.grade??rosterGrade(honor.score,true)}등급</p><p>이 선수의 저장을 보관하는 동안 해당 구단에서 이 번호를 다시 사용할 수 없습니다.</p></div></section>}
     <div className="retirement-actions"><button className="primary" onClick={onRecords}>연도별·리그별 기록 보기 ↗</button><button className="secondary" onClick={onNew}>선수 재생성</button></div>
   </div>;
 }

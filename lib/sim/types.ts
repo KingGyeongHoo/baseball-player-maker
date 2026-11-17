@@ -39,8 +39,6 @@ export type Batting = {
   SO: number;
   R: number;
   RBI: number;
-  GB: number;
-  FB: number;
 };
 export type Pitching = {
   BF: number;
@@ -347,7 +345,7 @@ export type MatchProgress = {
 };
 export type GameState = {
   savedRetiredNumbers?:{saveId:string;club:number;number:number;playerId:string;playerName:string}[];
-  proClubNamesVersion?:1;
+  proClubNamesVersion?:1|2;
   proEvents?:ProEventState;
   evaluationSystem?:EvaluationSystem;
   schemaVersion: number;

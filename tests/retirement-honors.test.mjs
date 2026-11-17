@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {attachTestRanks} from './helpers/career-ranks.mjs';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js');
@@ -12,7 +13,7 @@ function fixture(count=21,score=80){
  s.date=`${year}-10-31`;s.calendar.seasonYear=year;s.proWorld.year=year;s.proWorld.seasonClosed=true;s.proWorld.stage='summary';s.careerNotice=null;s.noticeQueue=[];
  pro.rookieYear=rookie;pro.firstClub=club;pro.service=[{club,from:rookie,to:year}];pro.movements=[];pro.employment='active';p.teamId=club;p.jerseyNumber=77;pro.contract.endYear=year;
  pro.assessments=Array.from({length:count},(_,i)=>({year:rookie+i,date:`${rookie+i}-10-31`,score,grade:'A',cumulative:score,cumulativeGrade:'A',ability:80,role:p.primaryRole,squad:'first',developmental:false,reserveSeason:false,firstTeam:true,secondOnly:false,firstGames:0,source:'season-end',honorRegistration:{seasonDays:100,firstDaysByClub:{[club]:90}}}));
- return {s,p,pro,club};
+ attachTestRanks(p);return {s,p,pro,club};
 }
 test('A needs 18 credited one-club seasons and S needs 15, excluding the initial three years',()=>{
  for(const [score,count,eligible] of [[80,20,false],[80,21,true],[82,17,false],[82,18,true],[78,30,false]]){
@@ -67,7 +68,7 @@ test('a tour requires A and fifteen total or ten consecutive credited seasons',(
  pro.assessments.forEach((row,i)=>{if(!selected.has(i))row.honorRegistration.firstDaysByClub={};});
  assert.equal(honors.retirementEligibility(s,p).tour,true);
  const consecutive=fixture(13,80);assert.equal(honors.retirementEligibility(consecutive.s,consecutive.p).tour,true);
- for(const row of consecutive.pro.assessments)row.score=78;assert.equal(honors.retirementEligibility(consecutive.s,consecutive.p).tour,false);
+ for(const row of consecutive.pro.assessments)row.score=78;attachTestRanks(consecutive.p);assert.equal(honors.retirementEligibility(consecutive.s,consecutive.p).tour,false);
 });
 test('same-club release and reentry preserve one-club status and totals but restart the consecutive period',()=>{
  const {s,p,pro,club}=fixture();pro.movements=[{date:'2038-01-01',from:club,to:null,kind:'방출',reason:'계약 불가'},{date:'2039-02-01',from:null,to:club,kind:'계약',reason:'신고 재입단'}];

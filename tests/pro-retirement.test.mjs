@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {attachTestRanks} from './helpers/career-ranks.mjs';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {createElement} from 'react';
@@ -20,7 +21,7 @@ function fixture(ability=50){
  for(const c of s.proWorld.clubs)c.budget=1e12;
  return s;
 }
-function scores(p,values){const row=p.professional.assessments.at(-1),expanded=values.flatMap(value=>Array(21).fill(value)),club=p.professional.contract?.club??p.professional.firstClub;p.professional.rookieYear=row.year-expanded.length+1;p.professional.service=[{club,from:p.professional.rookieYear,to:row.year}];p.professional.assessments=expanded.map((score,i)=>{const copy={...row,year:p.professional.rookieYear+i,score,cumulative:score,grade:'S',cumulativeGrade:'S',honorRegistration:{seasonDays:100,firstDaysByClub:{[club]:90}}};delete copy.war;delete copy.seasonEvaluation;return copy;});}
+function scores(p,values){const row=p.professional.assessments.at(-1),expanded=values.flatMap(value=>Array(21).fill(value)),club=p.professional.contract?.club??p.professional.firstClub;p.professional.rookieYear=row.year-expanded.length+1;p.professional.service=[{club,from:p.professional.rookieYear,to:row.year}];p.professional.assessments=expanded.map((score,i)=>{const copy={...row,year:p.professional.rookieYear+i,score,cumulative:score,grade:'S',cumulativeGrade:'S',honorRegistration:{seasonDays:100,firstDaysByClub:{[club]:90}}};delete copy.war;delete copy.seasonEvaluation;return copy;});attachTestRanks(p);}
 
 test('declining veteran without outside FA demand gets only a final one-year minimum-salary home offer',()=>{
  const s=fixture(),p=e.getPlayer(s),before=structuredClone(p.professional.contract),service=structuredClone(p.professional.service);
@@ -67,7 +68,7 @@ test('last-chance choices cannot reroll offers, wait or enter an unattached seas
 test('one-club cumulative S retirement registers the last jersey, persists it and renders the honor',()=>{
  const s=fixture(),p=e.getPlayer(s),club=p.professional.contract.club;jersey.choosePlayerJersey(s,77);scores(p,[84,82]);
  const history=structuredClone(p.career);life.retireProfessional(s);
- const honor=s.proWorld.retiredNumbers[0];assert.equal(honor.club,club);assert.equal(honor.number,77);assert.equal(honor.score,83);assert.equal(honor.playerId,p.id);assert.equal(s.careerNotice.title,`${s.teams[club].name.replace(' 1군','')} 77번 영구결번`);assert.deepEqual(p.career,history);
+ const honor=s.proWorld.retiredNumbers[0];assert.equal(honor.club,club);assert.equal(honor.number,77);assert.equal(honor.score,100);assert.equal(honor.playerId,p.id);assert.equal(s.careerNotice.title,`${s.teams[club].name.replace(' 1군','')} 77번 영구결번`);assert.deepEqual(p.career,history);
  life.retireProfessional(s);assert.equal(s.proWorld.retiredNumbers.length,1);
  const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;assert.deepEqual(restored.proWorld.retiredNumbers,s.proWorld.retiredNumbers);
  assert(careerHonors(restored).individual.some(row=>row.title==='영구결번'&&row.detail.includes('77번')));

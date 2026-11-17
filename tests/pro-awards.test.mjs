@@ -63,7 +63,7 @@ test('individual awards freeze only category leaders, retain ties and separate f
  const rows=individualAwards(s),home=rows.find(row=>row.level==='first'&&row.metric==='H'),second=rows.find(row=>row.level==='second'&&row.metric==='H');assert.equal(home.value,200);assert.deepEqual(home.winners.map(row=>row.playerId).sort(),[p.id,tied.id].sort());assert.equal(second.value,230);assert.equal(second.winners[0].playerId,farm.id);assert.ok(!home.winners.some(row=>row.playerId===farm.id));
  life.closeProfessionalSeason(s);assert.deepEqual(s.proWorld.seasons[0].individualAwards,rows);
  const html=renderToStaticMarkup(createElement(IndividualAwards,{state:s,season:s.proWorld.seasons[0],onRecords(){}}));assert.ok(html.includes('공동 1위'));assert.ok(html.includes('공동안타왕'));assert.ok(!html.includes('farm-champion'));assert.ok(!html.includes('2위'));
- const hub=renderToStaticMarkup(createElement(AwardsHub,{state:s,onRecords(){}}));for(const label of ['어워드','올스타','골든글러브','개인 수상'])assert.ok(hub.includes(label));assert.ok(!hub.includes('<dialog'));
+ const hub=renderToStaticMarkup(createElement(AwardsHub,{state:s,onRecords(){}}));for(const label of ['어워드','올스타','골든글러브','타이틀'])assert.ok(hub.includes(label));assert.ok(!hub.includes('<dialog'));
 });
 
 function titleCelebration(level='first',field='batting'){
@@ -87,7 +87,7 @@ test('one personal title modal follows all individual trophy celebrations, survi
  assert.deepEqual(s.careerNotice.individualTitles,{year:2028,level:'first',field:'batting'});
  s=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
  const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));
- for(const text of ['타이틀 획득!','2028','1군','타자','홈런왕','안타왕','타점왕','공동 1위','다른수상자','my-player-row'])assert.ok(html.includes(text),text);
+ for(const text of ['타이틀 획득!','2028','타자','홈런왕','안타왕','타점왕','공동 1위','다른수상자','my-player-row'])assert.ok(html.includes(text),text);
  for(const text of ['다른군수상자','다른분야수상자','개인 수상 리그','출전평가 수상 보너스'])assert.ok(!html.includes(text),text);
  const {IndividualAwardsTable}=require('../.test-build/app/components/individual-awards-table.js');
  assert.ok(html.includes(renderToStaticMarkup(createElement(IndividualAwardsTable,{state:s,season:s.proWorld.seasons[0],level:'first',field:'batting'}))));
@@ -100,7 +100,7 @@ test('title modal selects only the season-end league and primary field, includin
   ceremonies.presentAwardsCeremony(s);const notice=s.noticeQueue.find(n=>n.individualTitles);
   assert.deepEqual(notice.individualTitles,{year:2028,level,field});
   s.careerNotice=notice;const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));
-  assert.ok(html.includes(level==='first'?'1군':'2군'));assert.ok(html.includes(field==='batting'?'홈런왕':'다승왕'));
+  assert.ok(level==='first'?!html.includes('1군'):html.includes('2군'));assert.ok(html.includes(field==='batting'?'홈런왕':'다승왕'));
   assert.ok(!html.includes('다른군수상자'));assert.ok(!html.includes('다른분야수상자'));
  }
 });
@@ -135,13 +135,13 @@ test('individual pitching titles share starter and relief qualification and requ
  }
 });
 
-test('five batting and four pitching titles are awarded in both leagues, including home runs',()=>{
+test('five batting and five pitching titles are awarded in both leagues, including home runs',()=>{
  const s=fixture();
  for(const p of s.players){p.seasonByLevel.first.batting.SB=20;p.seasonByLevel.first.games={wins:20,holds:10,saves:15};p.seasonByLevel.second=structuredClone(p.seasonByLevel.first);}
  const awards=individualAwards(s);
  for(const level of ['first','second']){
   assert.deepEqual(awards.filter(row=>row.level===level&&row.field==='batting').map(row=>row.metric),['avg','H','HR','RBI','SB']);
-  assert.deepEqual(awards.filter(row=>row.level===level&&row.field==='pitching').map(row=>row.metric),['wins','holds','saves','era']);
+  assert.deepEqual(awards.filter(row=>row.level===level&&row.field==='pitching').map(row=>row.metric),['wins','holds','saves','era','SO']);
  }
  const {leaderMetrics}=require('../.test-build/lib/league-leaders.js');
  for(const id of ['HR','2B','3B','ops'])assert.ok(leaderMetrics.batting.some(row=>row.id===id));

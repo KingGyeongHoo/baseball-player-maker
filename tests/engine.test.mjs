@@ -69,7 +69,8 @@ export function assertGame(game, players) {
     pitching: p
   }] of Object.entries(game.boxScore)) {
     assert.equal(b.PA, b.AB + b.BB, id);
-    assert.equal(b.AB, b.H + b.SO + b.GB + b.FB, id);
+    assert.ok(b.AB >= b.H + b.SO, id);
+    assert.equal('GB' in b,false);assert.equal('FB' in b,false);
     assert.ok(b.H >= b["2B"] + b["3B"] + b.HR, id);
     assert.equal(p.R, p.ER, id);
     if(b.PA&&p.BF)assert.ok(game.lineup.some(side=>side.slice(0,9).includes(id)||side.slice(10).includes(id)),`two-way batter missing from lineup ${id}`);

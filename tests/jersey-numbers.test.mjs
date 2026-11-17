@@ -9,8 +9,8 @@ test('club rename preserves numeric identities and migrates the shared old/new C
   const {syncProClubNames,proClubNames}=require('../.test-build/lib/sim/club-names.js');
   assert.deepEqual(proClubNames,['서울 베어스','서울 트윈스','고양 히어로즈','인천 랜더스','수원 위즈','대전 이글스','광주 타이거즈','대구 라이온즈','창원 다이노스','부산 자이언츠']);
   const s={careerMode:'pro',teams:Array.from({length:20},(_,id)=>({id,name:'old',shortName:'old'})),players:[{career:[{careerMode:'pro',schoolId:7,schoolName:'창원 다이노스 1군'}]}],draft:[{club:'창원 다이노스'},{club:'청주 이글스'}],postSchool:{collegeDraft:[{club:'서울 파이오니어스'}]},proWorld:{archive:[],seasons:[{draft:[{club:'부산 웨이브스'}]}]},rngStates:{draft:123}};
-  syncProClubNames(s);assert.equal(s.teams[0].name,'서울 베어스 1군');assert.equal(s.teams[1].shortName,'서울 트윈스 1군');assert.equal(s.teams[18].name,'창원 다이노스 2군');
-  assert.deepEqual(s.draft.map(p=>p.club),['대구 라이온즈','창원 다이노스']);assert.equal(s.players[0].career[0].schoolName,'대구 라이온즈 1군');assert.deepEqual(s.rngStates,{draft:123});
+  syncProClubNames(s);assert.equal(s.teams[0].name,'서울 베어스');assert.equal(s.teams[1].shortName,'서울 트윈스');assert.equal(s.teams[18].name,'창원 다이노스 2군');
+  assert.deepEqual(s.draft.map(p=>p.club),['대구 라이온즈','창원 다이노스']);assert.equal(s.players[0].career[0].schoolName,'대구 라이온즈');assert.deepEqual(s.rngStates,{draft:123});
   const renamed=structuredClone(s);assert.equal(syncProClubNames(s),false);assert.deepEqual(s,renamed);
   const old=e.createGame('club-save-migration','구단변경','SS');delete old.proClubNamesVersion;old.draft=[{club:'창원 다이노스'}];const file=save.encodeCareerSave(old),restored=save.decodeCareerSave(JSON.stringify(file));
   assert.equal(restored.state.draft[0].club,'대구 라이온즈');assert.equal(restored.checksum,save.saveChecksum(JSON.stringify(restored.state)));assert.deepEqual(restored.state.rngStates,old.rngStates);

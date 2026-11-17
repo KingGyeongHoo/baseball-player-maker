@@ -4036,6 +4036,60 @@ tbody tr:last-child td {
   margin-left: 8px;
   font-size: 11px;
 }
+.records-toolbar>.records-selectors {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.records-toolbar .records-selectors label {
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:7px;
+}
+.records-toolbar .records-selectors select {
+  width:100%;
+  min-width:125px;
+  max-width:none;
+  margin:0;
+}
+.national-career>.panel-heading { background:var(--navy);color:#fff; }
+.national-career>.panel-heading h2 { color:#fff; }
+.hall-of-fame-modal { width:min(1050px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 40px);padding:0; }
+.hall-of-fame-modal .modal-header { padding:24px 28px;background:var(--navy);color:#fff; }
+.hall-of-fame-modal .modal-header h2 { margin:7px 0 0;color:#fff; }
+.hall-of-fame-modal .modal-header .eyebrow { color:#c3cde0; }
+.hall-of-fame-modal .modal-header button { color:var(--navy); }
+.hall-of-fame-body { padding:24px 28px 32px; }
+.hall-club-tabs { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px; }
+.hall-club-tabs button { padding:12px 6px;border:1px solid var(--line);border-radius:3px;background:#fff;color:var(--navy);font-size:12px; }
+.hall-club-tabs button.selected { background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700; }
+.hall-club-heading { display:flex;justify-content:space-between;align-items:center;gap:12px;margin:30px 0 20px; }
+.hall-club-heading h3 { margin:6px 0 0;color:var(--navy);font-size:20px; }
+.hall-club-heading>span { font-size:12px;color:#78869d; }
+.hall-number-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px; }
+.hall-number-card { padding:18px 12px 24px;text-align:center;border:1px solid var(--line);border-radius:4px;background:#fafbfe; }
+.hall-number-card img { display:block;width:100%;max-width:220px;height:auto;margin:0 auto; }
+.hall-number-card h4 { margin:10px 0 8px;font-size:20px;color:var(--navy); }
+.hall-number-card p { margin:0;font-size:11px;color:#748198; }
+.hall-number-placeholder { display:grid;place-items:center;aspect-ratio:1;font-size:64px;color:var(--navy); }
+.hall-empty { padding:50px 16px;text-align:center;font-size:13px;color:#78869d; }
+.pro-header>.hall-of-fame-button { margin-left:auto; }
+.pro-header>.hall-of-fame-button~.text-button { margin-left:0; }
+@media(max-width:600px) {
+  .hall-of-fame-body { padding:18px 16px 24px; }
+  .hall-of-fame-modal .modal-header { padding:18px 16px; }
+  .hall-club-tabs { grid-template-columns:repeat(2,minmax(0,1fr));gap:6px; }
+  .hall-club-tabs button { padding:10px 4px;font-size:11px; }
+  .hall-number-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:10px; }
+  .hall-number-card { padding:10px 5px 18px; }
+  .hall-number-card h4 { font-size:17px; }
+  .hall-club-heading h3 { font-size:17px; }
+}
+@media(max-width:600px) {
+  .records-toolbar>.records-selectors { width:100%; }
+  .records-toolbar .records-selectors select { min-width:0; }
+}
 .career-record-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit,minmax(min(120px,100%),1fr));

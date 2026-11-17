@@ -5,6 +5,9 @@ import {clubName} from "./sim/pro-world";
 import type {GameState,Player} from "./sim/types";
 import {individualTitleName,individualTitleFromKind,isRecordOnlyAward} from './sim/pro-individual-awards';
 import type {NationalKind} from './sim/national-teams';
+import {createSeasonRankings} from './sim/pro-season-ranking';
+import {evaluateCareer,playerCareerEvaluation,seasonPercentile} from './sim/pro-career-evaluation';
+import {proLevelPrefix,mainLeagueName} from './sim/club-names';
 
 export function lifetimeRecords(player:Player,year:number){
   const total=emptyRecord();
@@ -19,15 +22,14 @@ export function lifetimeRecords(player:Player,year:number){
 export function careerContractSummary(state:GameState){
   const p=getPlayer(state),pro=p.professional,year=state.calendar.seasonYear;
   const rows=[...new Map((pro?.assessments??[]).filter(row=>row.year<=year).map(row=>[row.year,row])).values()];
-  const scores=rows.flatMap(row=>row.score===null||row.clubGamesShortage?[]:[row.score]);
-  const mean=(values:number[])=>values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
-  const cumulative=mean(scores),current=rows.find(row=>row.year===year);
+  const career=playerCareerEvaluation(p,year),cumulative=career.first.score,current=rows.find(row=>row.year===year);
   const evaluation=!current&&pro?.employment==="active"&&p.teamId>=0?currentSeasonAssessment(state,p):undefined;
   const estimate=evaluation?.score??null;
-  const projected=current?cumulative:mean([...scores,...(estimate===null?[]:[estimate])]);
   const contract=pro?.contract,firstYear=Math.max(year+(state.proWorld?.seasonClosed?1:0),contract?.startYear??year);
   const seasons=contract&&pro?.employment==="active"?Math.max(0,contract.endYear-firstYear+1):0;
-  return {cumulative,projected,seasons,salary:seasons?contract!.salary:null,seasonScore:current?current.score:estimate,war:current?.war??evaluation?.war};
+  const seasonRank=current?current.seasonRank:evaluation?.score!==null&&evaluation?.score!==undefined?createSeasonRankings(state).get(p.id):undefined;
+  const projected=current||!seasonRank?cumulative:evaluateCareer([...rows,{year,score:estimate,role:p.primaryRole,war:evaluation?.war,seasonRank}],'first',year).score;
+  return {cumulative,career,projected,seasons,salary:seasons?contract!.salary:null,seasonScore:seasonPercentile(seasonRank),seasonRank,seasonGrade:seasonRank?.grade??current?.grade,war:current?.war??evaluation?.war};
 }
 
 export type CareerHonorCategory="national"|"gold"|"allstar"|"individual";
@@ -69,28 +71,32 @@ export function careerHonors(state:GameState):Record<CareerHonorCategory,CareerH
     }
   }
   const allstar=(year:number,level:"first"|"second",side:string,participated?:boolean,withdrawn?:boolean,mvp?:boolean)=>{
-    const label=level==="first"?"1군":"2군";
-    add("allstar",year,`${label} 올스타`,`${side==="blue"?"BLUE":"WHITE"} · ${withdrawn?"선발 · 불참":participated?"출전":"선발"}`);
-    if(mvp)add("allstar",year,`${label} 미스터 올스타`);
+    const prefix=proLevelPrefix(level);
+    add("allstar",year,`${prefix}올스타`,`${side==="blue"?"BLUE":"WHITE"} · ${withdrawn?"선발 · 불참":participated?"출전":"선발"}`);
+    if(mvp)add("individual",year,`${prefix}미스터 올스타`);
   };
   for(const row of player.professional?.allstarHistory??[])allstar(row.year,row.level,row.side,row.participated,row.withdrawn,row.mvp);
   const seasons=state.proWorld?.seasons??[];
   const allstars=[...seasons.flatMap(season=>season.allstar?[season.allstar]:[]),...(state.proWorld?.allstar?[state.proWorld.allstar]:[])];
-  for(const season of allstars)for(const level of ["first","second"] as const)for(const side of ["blue","white"] as const){
-    const league=season.levels[level],team=league[side],selected=team.roster.some(row=>row.playerId===player.id),withdrawn=team.withdrawn.includes(player.id);
-    if(!selected&&!withdrawn)continue;
-    const line=league.game?.boxScore[player.id];allstar(season.year,level,side,!!line&&(line.batting.PA>0||line.pitching.BF>0),withdrawn,league.mvp?.playerId===player.id);
+  for(const season of allstars)for(const level of ["first","second"] as const){
+    const league=season.levels[level];
+    if(league.mvp?.playerId===player.id)add('individual',season.year,`${proLevelPrefix(level)}미스터 올스타`);
+    for(const side of ['blue','white'] as const){
+      const team=league[side],selected=team.roster.some(row=>row.playerId===player.id),withdrawn=team.withdrawn.includes(player.id);
+      if(!selected&&!withdrawn)continue;
+      const line=league.game?.boxScore[player.id];allstar(season.year,level,side,!!line&&(line.batting.PA>0||line.pitching.BF>0),withdrawn,league.mvp?.playerId===player.id);
+    }
   }
   for(const season of seasons){
     const announced=!season.awardsCeremony||!!season.awardsCeremony.presentedAt;
-    for(const row of season.individualAwards??[]){const title=individualTitleName(row);if(title&&row.winners.some(winner=>winner.playerId===player.id))add("individual",season.year,`${row.level==="first"?"1군":"2군"} ${title}`,row.winners.length>1?"공동 1위":undefined);}
+    for(const row of season.individualAwards??[]){const title=individualTitleName(row);if(title&&row.winners.some(winner=>winner.playerId===player.id))add("individual",season.year,`${proLevelPrefix(row.level)}${title}`,row.winners.length>1?"공동 1위":undefined);}
     for(const award of season.awards){
       if(award.playerId!==player.id)continue;
       if(award.category==="goldGlove"||award.kind.startsWith("골든글러브")){if(announced)add("gold",season.year,award.kind.replace("골든글러브 · ",""));continue;}
       if(award.kind==="시즌 MVP"||award.category==='rookie'){if(announced)add("individual",season.year,award.kind);continue;}
       const title=individualTitleFromKind(award.kind);
-      if(title)add("individual",season.year,`1군 ${title}`);
-      else if(!isRecordOnlyAward(award.kind))add("individual",season.year,award.kind);
+      if(title)add("individual",season.year,title);
+      else if(!isRecordOnlyAward(award.kind))add("individual",season.year,mainLeagueName(award.kind));
     }
   }
   for(const series of [...(state.proWorld?.postseason?.series??[]),...(state.proWorld?.farmPostseason?.series??[])])if(series.winner!==undefined&&series.mvp?.playerId===player.id)add('individual',state.proWorld!.year,series.mvp.kind);

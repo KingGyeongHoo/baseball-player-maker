@@ -20,14 +20,14 @@ export function playerSeasons(player: Player, currentYear: number): PlayerSeason
   const seasons = new Map<number, PlayerSeason>();
   for (const season of player.career) {
     seasons.set(season.year, { year: season.year, grade: season.grade, current: false, records: season.records, ...(season.schoolName ? { schoolName: season.schoolName } : {}),
-      ...(season.careerMode ? { careerMode: season.careerMode, age:season.age } : {}), ...(season.byLevel ? {byLevel:season.byLevel} : {}),...(season.spring?{spring:season.spring}:{}),...(season.farmPostseason?{farmPostseason:season.farmPostseason}:{}),...(season.postseason?{postseason:season.postseason,byClub:season.byClub}:{}) });
+      ...(season.careerMode ? { careerMode: season.careerMode, age:season.age } : {}), ...(season.byLevel ? {byLevel:season.byLevel} : {}),...(season.spring?{spring:season.spring}:{}),...(season.farmPostseason?{farmPostseason:season.farmPostseason}:{}),...(season.byClub?{byClub:season.byClub}:{}),...(season.postseason?{postseason:season.postseason}:{}) });
   }
   seasons.set(currentYear, { year: currentYear, grade: player.grade, current: true, records: player.seasonStats,
-    ...(player.careerMode ? {careerMode:player.careerMode,age:player.age} : {}), ...(player.seasonByLevel ? {byLevel:player.seasonByLevel} : {}),...(player.seasonSpring?{spring:player.seasonSpring}:{}),...(player.seasonFarmPostseason?{farmPostseason:player.seasonFarmPostseason}:{}),...(player.seasonPostseason?{postseason:player.seasonPostseason,byClub:player.seasonByClub}:{}) });
+    ...(player.careerMode ? {careerMode:player.careerMode,age:player.age} : {}), ...(player.seasonByLevel ? {byLevel:player.seasonByLevel} : {}),...(player.seasonSpring?{spring:player.seasonSpring}:{}),...(player.seasonFarmPostseason?{farmPostseason:player.seasonFarmPostseason}:{}),...(player.seasonByClub?{byClub:player.seasonByClub}:{}),...(player.seasonPostseason?{postseason:player.seasonPostseason}:{}) });
   return [...seasons.values()].sort((a, b) => a.year - b.year);
 }
 
-export function totalRecords(seasons: PlayerSeason[]): RecordLine {
+export function totalRecords(seasons: Pick<PlayerSeason,'records'>[]): RecordLine {
   const total = emptyRecord();
   for (const season of seasons) mergeRecord(total, season.records);
   return total;
