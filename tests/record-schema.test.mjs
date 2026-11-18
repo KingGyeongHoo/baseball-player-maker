@@ -22,7 +22,7 @@ test('new records and leader metrics contain no ground/fly ball counters',()=>{
   assert.equal('GB' in e.emptyRecord().batting,false);assert.equal('FB' in e.emptyRecord().batting,false);
   assert.equal(leaderMetrics.batting.some(m=>['GB','FB'].includes(m.id)),false);
   assert.deepEqual(proRankingMetricIds.batting,['avg','H','HR','RBI','SB','WAR']);
-  assert.deepEqual(proRankingMetricIds.pitching,['era','wins','losses','holds','saves','WAR']);
+  assert.deepEqual(proRankingMetricIds.pitching,['era','wins','losses','holds','saves','SO','WAR']);
 });
 test('legacy recent arrays preserve pitching and steals through conversion and repeated merges',()=>{
   const packed=recent.packRecentRecord([...old,4,1]),first=e.emptyRecord(),second=e.emptyRecord();

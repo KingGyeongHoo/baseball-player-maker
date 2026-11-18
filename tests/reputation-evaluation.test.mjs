@@ -29,11 +29,17 @@ test('a tiny hot streak has less influence than a well-evidenced season',()=>{
   p.seasonStats=batting(400,200,80,40);r.updateEvaluationReputations(s);const large=r.reputationBreakdown(p);
   assert.ok(tiny.performanceWeight<.06);assert.ok(large.performanceWeight>.3&&large.performanceWeight<.4);assert.ok(large.total>tiny.total);
 });
-test('pro reputation is removed and farm season evidence remains less influential than first-team evidence',()=>{
+test('pro selection uses recent appearances and ability without season totals or awards',()=>{
   const s=fixture(true),p=e.getPlayer(s);p.seasonByLevel.first=e.emptyRecord();p.seasonByLevel.second=batting(400,240,100,40);world.reviewProfessionalReputation(s);
   const farm=e.proSelectionScore(p);assert.equal(p.reputation,null);assert.equal(p.reputationEvaluation,undefined);
   p.seasonByLevel.first=structuredClone(p.seasonByLevel.second);p.seasonByLevel.second=e.emptyRecord();world.reviewProfessionalReputation(s);
-  assert.ok(e.proSelectionScore(p)>farm);assert.equal(p.reputation,null);
+  assert.equal(e.proSelectionScore(p),farm);assert.equal(p.reputation,null);
+  p.professional.awardBonuses=[{year:2028,category:'mvp',points:3}];
+  assert.equal(e.proSelectionScore(p),farm);
+  p.recentAppearances=[batting(5,4,1,1)];
+  const small=e.proSelectionScore(p);assert.ok(small>farm);
+  p.recentAppearances=Array.from({length:5},()=>batting(5,4,1,1));
+  assert.ok(e.proSelectionScore(p)>small);
 });
 test('first-team PA 100 and pitching 30 IP never discard farm evidence or cause a threshold jump',()=>{
   const s=fixture(true),p=e.getPlayer(s);p.seasonByLevel.first=batting(99,28,3,10);p.seasonByLevel.second=batting(200,80,15,20);r.updateEvaluationReputations(s);const before=e.proSelectionScore(p);

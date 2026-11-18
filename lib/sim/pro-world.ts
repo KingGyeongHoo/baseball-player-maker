@@ -82,7 +82,7 @@ export function recordProfessionalDay(s:GameState) {
     recordAssessmentDay(s,p);
     if(pro.registration.year!==w.year)pro.registration={year:w.year,days:0};
     if(first&&s.date>=first.startDate&&s.date<=first.endDate&&p.teamId>=0&&p.teamId<10&&pro.employment==="active"&&p.proContract?.status!=="developmental"&&pro.registration.lastDate!==s.date&&pro.registration.days<150){
-      pro.registration.days++;pro.registration.lastDate=s.date;pro.faDays++;if(pro.faDays>=900)pro.faEligible=true;
+      pro.registration.days++;pro.registration.lastDate=s.date;pro.faDays++;
     }
     for(const key of Object.keys(p.stats) as (keyof Player["stats"])[])pro.peak[key]=Math.max(pro.peak[key],p.stats[key]);
   }

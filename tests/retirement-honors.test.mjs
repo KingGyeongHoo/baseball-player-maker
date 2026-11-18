@@ -20,6 +20,21 @@ test('A needs 18 credited one-club seasons and S needs 15, excluding the initial
   const {s,p}=fixture(count,score),result=honors.retirementEligibility(s,p);assert.equal(result.seasons,count-3);assert.equal(result.retiredNumber,eligible,`${score}:${count}`);
  }
 });
+test('veteran retirement counts consecutive low grades or short registration with age-specific thresholds',()=>{
+ const {s,p,pro,club}=fixture(),year=s.calendar.seasonYear;
+ const [third,previous,current]=pro.assessments.slice(-3);
+ previous.seasonRank.grade='E';
+ current.honorRegistration.firstDaysByClub[club]=89;
+ for(const age of [35,36,39]){p.age=age;assert.equal(retirement.veteranRetirementReason(p,year),undefined);}
+ p.age=40;assert.match(retirement.veteranRetirementReason(p,year),/2시즌/);
+ p.age=41;assert.match(retirement.veteranRetirementReason(p,year),/2시즌/);
+ p.age=36;third.seasonRank.grade='F';assert.match(retirement.veteranRetirementReason(p,year),/3시즌/);
+ p.age=42;assert.ok(retirement.veteranRetirementReason(p,year));
+ current.honorRegistration.firstDaysByClub[club]=90;
+ current.seasonRank.grade='B';assert.ok(retirement.veteranRetirementReason(p,year));
+ current.seasonRank.grade='A';assert.equal(retirement.veteranRetirementReason(p,year),undefined);
+ current.seasonRank.level='second';assert.ok(retirement.veteranRetirementReason(p,year));
+});
 test('90 percent registration applies equally to pitchers, uses exact days and never invents missing historical days',()=>{
  const {s,p,pro,club}=fixture();assert.equal(honors.retirementEligibility(s,p).retiredNumber,true);
  pro.assessments.at(-1).honorRegistration.firstDaysByClub[club]=89;assert.equal(honors.retirementEligibility(s,p).retiredNumber,false);

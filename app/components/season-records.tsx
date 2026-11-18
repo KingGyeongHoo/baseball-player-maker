@@ -6,6 +6,7 @@ import type { GameState,Player, RecordLine } from "../../lib/sim/types";
 import {playerSeasonWar} from '../../lib/player-season-war';
 import {createProWarContext} from '../../lib/sim/pro-war';
 import {draftClubs,emptyRecord} from "../../lib/sim/engine";
+import {dashboardRecordValues} from "./dashboard-records";
 const seasonLabel=(s:PlayerSeason)=>s.careerMode==="pro"?"프로":s.careerMode==="college"?"대학":`고${s.grade}`;
 
 const rate = (value: number | null, digits = 3) => {
@@ -29,7 +30,8 @@ function PitchingRow({ records, label, season, ended,war }: { records: RecordLin
   return <tr className={season?.current ? "current-season" : ""}>
     <th scope="row">{label}{season?.current && <small>{ended ? "최종" : "진행 중"}</small>}{season?.schoolName && <span className="table-school">{season.schoolName}</span>}</th>
     <td>{p.BF}</td><td><b>{formatInnings(p.outs)}</b></td><td><b>{rate(rates.era, 2)}</b></td>
-    <td>{p.H}</td><td>{p.HR}</td><td>{p.BB}</td><td>{p.SO}</td><td>{p.R}</td><td>{p.ER}</td><td>{rate(rates.whip, 2)}</td><td>{war===null?'—':war.toFixed(2)}</td>
+    <td>{records.games?.wins??'—'}</td><td>{records.games?.losses??'—'}</td><td>{records.games?.holds??'—'}</td><td>{records.games?.saves??'—'}</td>
+    <td>{p.BB}</td><td>{p.SO}</td><td>{p.ER}</td><td>{war===null?'—':war.toFixed(2)}</td>
   </tr>;
 }
 
@@ -54,10 +56,10 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
   const contributions=visible.map(season=>playerSeasonWar(player,season,level,club,context));
   const sumWar=(field:'batting'|'pitching')=>contributions.some(w=>w!==null)?contributions.reduce((sum,w)=>sum+(w?.[field]??0),0):null;
   const rates = recordRates(total);
-  const showBatting=total.batting.PA>0,showPitching=total.pitching.outs>0;
+  const showBatting=total.batting.PA>0,showPitching=total.pitching.outs>0||total.pitching.BF>0||(total.games?.pitching??0)>0;
   const summary = [
     ...(showBatting?[["타율", rate(rates.average)], ["안타", total.batting.H], ["홈런", total.batting.HR]]:[]),
-    ...(showPitching?[["투구 이닝", formatInnings(total.pitching.outs)], ["평균자책점", rate(rates.era, 2)], ["탈삼진", total.pitching.SO]]:[]),
+    ...(showPitching?dashboardRecordValues(total,true).slice(1):[]),
   ];
   return <div className="season-records">
     <div className="section-intro">
@@ -75,7 +77,7 @@ export default function SeasonRecords({ player, year, school, ended, mine, onMyR
     {showPitching&&<section className="panel">
       <div className="panel-heading"><div><span className="eyebrow">PITCHING RECORDS</span><h2>연도별 투수 기록</h2></div><span className="small muted">{total.pitching.BF} 상대 타자</span></div>
       <div className="table-scroll season-table" tabIndex={0} role="region" aria-label="연도별 투수 기록, 가로로 스크롤 가능">
-        <table className="pitching-seasons"><thead><tr>{["시즌", "상대 타자", "이닝", "평균자책점", "피안타", "피홈런", "볼넷", "탈삼진", "실점", "자책점", "WHIP", "WAR"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
+        <table className="pitching-seasons"><thead><tr>{["시즌", "상대 타자", "이닝", "평균자책점", "승", "패", "홀드", "세이브", "볼넷", "탈삼진", "자책점", "WAR"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
           <tbody>{visible.map((s,i) => <PitchingRow key={s.year} label={String(s.year)} records={s.records} season={s} ended={ended} war={contributions[i]?.pitching??null}/>)}</tbody>
           <tfoot><PitchingRow label="합계" records={total} ended={ended} war={sumWar('pitching')}/></tfoot>
         </table>

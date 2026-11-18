@@ -58,10 +58,11 @@ test('ERA sorts low to high, counting stats high to low, and missing legacy coun
 
 test('shared roster renders the requested columns and exact selected-league records with a reputation grade',()=>{
   const p=player('기록선수','SP'),s=state([p]);s.careerMode='pro';for(const k of Object.keys(p.stats))p.stats[k]=60;p.fatigue=0;p.recentZ=0;
-  Object.assign(p.seasonByLevel.first.pitching,{BF:30,outs:17,ER:2});p.seasonByLevel.first.games={pitching:7,wins:2,losses:1,holds:3,saves:1};
+  Object.assign(p.seasonByLevel.first.pitching,{BF:30,outs:17,ER:2,SO:13});p.seasonByLevel.first.games={pitching:7,wins:2,losses:1,holds:3,saves:1};
   const html=renderToStaticMarkup(createElement(RosterTable,{state:s,players:[p],field:'pitching',level:'first',onSelect(){}}));
   const headers=[...html.matchAll(/<th(?: [^>]*)?>(.*?)<\/th>/g)].map(m=>m[1]);
-  assert.deepEqual(headers,['선수','OVR','등급','소속','나이','포지션','출전경기','이닝','승','패','홀드','세이브','평균자책점','출전평가']);
+  assert.deepEqual(headers,['선수','OVR','등급','소속','나이','포지션','출전경기','이닝','승','패','홀드','세이브','탈삼진','평균자책점','출전평가']);
+  assert.match(html,/<td>13<\/td><td>3\.18<\/td>/);
   assert.match(html,/출전평가 등급 F/);assert.match(html,/>5\.2</);assert.match(html,/>3\.18</);assert.doesNotMatch(html,/투수 OVR|타자 OVR/);
   Object.assign(p.seasonStats.batting,{PA:30,AB:25,H:10,HR:2,RBI:8,BB:5});p.seasonStats.games={batting:9};
   const bat=renderToStaticMarkup(createElement(RosterTable,{state:s,players:[p],field:'batting',onSelect(){}}));

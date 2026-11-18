@@ -15,7 +15,7 @@ function fixture(){
  for(const competition of ['pro-first','pro-second']){
   const game=calendar.events.find(g=>g.competitionId===competition);game.status='completed';game.score=[3,1];
  }
- return {careerMode:'pro',playerId:'me',date:'2030-04-01',players:[],teams:Array.from({length:20},(_,id)=>({id,name:'팀'+id,shortName:'T'+id})),calendar,proWorld:{archive:[]}};
+ return {careerMode:'pro',playerId:'me',date:'2030-04-01',players:[],teams:Array.from({length:20},(_,id)=>({id,name:'팀'+id,shortName:'T'+id})),calendar,proWorld:{archive:[],seasons:[]}};
 }
 const rows=(s,level,field,id)=>leagueLeaders(s,level,field).find(board=>board.metric.id===id).rows;
 test('leaders separate levels and fields, retain demoted players first-team records, and cap each metric at ten',()=>{
@@ -61,7 +61,7 @@ test('qualified relievers rank the top ten holds and saves separately by level',
  for(const metric of ['holds','saves'])assert.equal(rows(s,'pro-first','pitching',metric)[0].value,0);
 });
 
-test('starter and bullpen qualification uses separate out boundaries for rates, holds and saves in both leagues',()=>{
+test('only ERA uses the starter and bullpen innings thresholds in both leagues',()=>{
  for(const [level,games] of [['first',144],['second',117]]){
   const s=fixture(),competition=level==='first'?'pro-first':'pro-second';
   for(const game of s.calendar.events.filter(g=>g.competitionId===competition)){game.status='completed';game.score=[3,1];}
@@ -71,17 +71,18 @@ test('starter and bullpen qualification uses separate out boundaries for rates, 
    record.games={...record.games,holds:short?100:2,saves:short?100:2};s.players.push(p);
   }
   const twoWay=player('two-way-bullpen',level==='first'?0:10);twoWay.primaryRole='유격수';twoWay.twoWay={pitchingPosition:'RP'};twoWay.seasonByLevel[level]=structuredClone(s.players.find(p=>p.id==='중간계투-false').seasonByLevel[level]);s.players.push(twoWay);
-  for(const metric of ['era','whip','kRate','holds','saves']){
-   const ids=rows(s,competition,'pitching',metric).map(row=>row.player.id);
-   assert.equal(ids.length,4,`${level} ${metric}`);assert.ok(ids.every(id=>id.endsWith('-false')||id==='two-way-bullpen'));
-  }
-  assert.equal(rows(s,competition,'pitching','SO').length,7,'counting strikeouts retain their existing qualification');
+  const ids=rows(s,competition,'pitching','era').map(row=>row.player.id);
+  assert.equal(ids.length,4);assert.ok(ids.every(id=>id.endsWith('-false')||id==='two-way-bullpen'));
+  for(const metric of ['whip','kRate','holds','saves','wins','losses','SO'])assert.equal(rows(s,competition,'pitching',metric).length,7,metric);
  }
  const s=fixture();for(const game of s.calendar.events.filter(g=>g.competitionId==='pro-first').slice(0,50)){game.status='completed';game.score=[3,1];}
  // Ten games per team: the bullpen minimum is ten outs (3.1 innings), not four whole innings.
  const p=player('fractional');p.primaryRole='중간계투';p.seasonByLevel.first.pitching.outs=10;p.seasonByLevel.first.games={saves:1};s.players=[p];
- assert.equal(rows(s,'pro-first','pitching','saves').length,1);p.seasonByLevel.first.pitching.outs=9;
- assert.equal(rows(s,'pro-first','pitching','saves').length,0);
+ assert.equal(rows(s,'pro-first','pitching','era').length,1);p.seasonByLevel.first.pitching.outs=9;
+ assert.equal(rows(s,'pro-first','pitching','era').length,0);
+ p.seasonByLevel.first.pitching.outs=0;p.seasonByLevel.first.pitching.BF=1;p.seasonByLevel.first.games={pitching:1,losses:1};
+ assert.equal(rows(s,'pro-first','pitching','losses')[0].value,1);
+ assert.equal(rows(s,'pro-first','pitching','era').length,0);
 });
 test('retired NPC details are discarded once while recent league totals and the user career remain available',()=>{
  const s=fixture(),me=player('me'),old=player('retired');s.players=[me,old];old.professional.employment='retired';old.seasonByLevel.first.batting.PA=20;old.seasonByLevel.first.batting.H=7;s.proWorld.archive=[old];

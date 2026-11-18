@@ -8,6 +8,11 @@ const require=createRequire(import.meta.url);
 const {retiredNumberLogos,retiredNumberImage,clubRetiredNumbers}=require('../.test-build/lib/hall-of-fame.js');
 const {RetiredNumberGallery}=require('../.test-build/app/components/hall-of-fame.js');
 const {retiredNumberClaims}=require('../.test-build/lib/retired-number-reservations.js');
+test('permanent inductees appear by club without any saved careers',()=>{
+  const galleries=Array.from({length:10},(_,club)=>clubRetiredNumbers([],club));
+  assert.deepEqual(galleries.map(rows=>rows.length),[2,3,0,1,0,4,2,4,0,2]);
+  assert.deepEqual(galleries[0].map(row=>[row.playerName,row.number]),[['박철수',21],['김영선',54]]);
+});
 test('every supplied club SVG retains its design and embedded font while displaying the saved number',()=>{
   assert.equal(retiredNumberLogos.length,10);
   for(const logo of retiredNumberLogos){
@@ -28,9 +33,9 @@ test('only the saved retired player contributes honors, never NPCs or other care
 });
 test('club galleries filter across saves, deduplicate a career, sort jersey numbers, and retain names safely',()=>{
   const entries=[{saveId:'b',playerId:'b',playerName:'두번째',club:1,number:45},{saveId:'a',playerId:'a',playerName:'<송지온>',club:1,number:7},{saveId:'c',playerId:'c',playerName:'다른구단',club:0,number:1}];
-  assert.deepEqual(clubRetiredNumbers([...entries,entries[0]],1).map(row=>row.number),[7,45]);
+  assert.deepEqual(clubRetiredNumbers([...entries,entries[0]],1).map(row=>row.number),[7,9,33,41,45]);
   const template=readFileSync(new URL('../svg/twins.svg',import.meta.url),'utf8');
   const html=renderToStaticMarkup(createElement(RetiredNumberGallery,{entries,club:1,template}));
   assert.ok(html.includes('서울 트윈스 영구결번'));assert.ok(html.includes('&lt;송지온&gt;'));assert.ok(!html.includes('다른구단'));assert.ok(html.includes('영구결번 7번'));
-  const empty=renderToStaticMarkup(createElement(RetiredNumberGallery,{entries,club:9,template:''}));assert.ok(empty.includes('아직 영구결번으로 남은 선수가 없습니다.'));
+  const empty=renderToStaticMarkup(createElement(RetiredNumberGallery,{entries,club:8,template:''}));assert.ok(empty.includes('아직 영구결번으로 남은 선수가 없습니다.'));
 });

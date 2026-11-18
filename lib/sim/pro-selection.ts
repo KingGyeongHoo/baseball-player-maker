@@ -1,9 +1,9 @@
-import {clamp,isPitcher,ops,params,roleScore} from "./engine";
+import {clamp,emptyRecord,isPitcher,ops,params,roleScore} from "./engine";
 import {leftPitcherMultiplier} from './handedness';
-import {awardRatingBonus} from './pro-award-bonuses';
+import {mergeRecentRecord,recentSample} from './recent-records';
 import type {Player,RecordLine,Role} from "./types";
 
-export const proSelectionRules={seasonWeight:.85,recentWeight:.15,farmWeight:.65,battingPrior:100,pitchingPrior:120,recentDeadband:1} as const;
+export const proSelectionRules={farmWeight:.65,battingPrior:100,pitchingPrior:120} as const;
 type Records={first?:RecordLine;second?:RecordLine};
 
 // Legacy fields remain readable in old files, but no professional decision or
@@ -37,12 +37,19 @@ export function proSeasonForm(p:Player,role:Role=p.primaryRole,records:Records|u
   return {value:clamp(first.value+second.value*proSelectionRules.farmWeight*(1-first.reliability)+spring.value*.65*(1-first.reliability)*(1-second.reliability),-1,1),sample:first.sample+second.sample+spring.sample};
 }
 
-export function proSelectionScore(p:Player,role:Role=p.primaryRole,records:Records|undefined=p.seasonByLevel,includeRecent=true){
-  const season=proSeasonForm(p,role,records),pitching=isPitcher(role);
-  // Ordinary fluctuations within one standard deviation do not move selection.
-  // A complete recent window can move it by at most 15% of the seven-point cap.
-  const recent=includeRecent?Math.sign(p.recentZ)*clamp(Math.abs(p.recentZ)-proSelectionRules.recentDeadband,0,1)
-    *Math.min(1,season.sample/(pitching?proSelectionRules.pitchingPrior:params["coach.recent_pa"])):0;
-  return clamp(roleScore(p,role)*leftPitcherMultiplier(p,role)+params["coach.pro_recent_max"]*(proSelectionRules.seasonWeight*season.value+proSelectionRules.recentWeight*recent)
-    +(p.professional?.nationalBonus??0)+awardRatingBonus(p)-(p.proContract?.status==="developmental"?6:0)-(p.professional?.managedUntil?12:0),0,100);
+export function proSelectionScore(p:Player,role:Role=p.primaryRole){
+  const pitching=isPitcher(role),limit=params[pitching?"coach.recent_outs":"coach.recent_pa"];
+  const recent=emptyRecord();
+  let sample=0;
+  for(let index=p.recentAppearances.length-1;index>=0&&sample<limit;index--){
+    const appearance=p.recentAppearances[index];
+    mergeRecentRecord(recent,appearance);
+    sample+=recentSample(appearance,pitching);
+  }
+  return clamp(roleScore(p,role)*leftPitcherMultiplier(p,role)+params["coach.pro_recent_max"]*form(recent,pitching).value
+    -(p.proContract?.status==="developmental"?6:0)-(p.professional?.managedUntil?12:0),0,100);
+}
+
+export function nationalSelectionScore(p:Player,role:Role,records?:RecordLine){
+  return clamp(roleScore(p,role)*leftPitcherMultiplier(p,role)+params["coach.pro_recent_max"]*form(records,isPitcher(role)).value,0,100);
 }

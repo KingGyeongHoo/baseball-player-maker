@@ -1,3 +1,4 @@
+import {reservedJerseyNumbers} from './permanent-retired-numbers';
 import {hash} from "./sim/engine";
 import {startingAssignments} from "./roster-status";
 import type {GameState,Position} from "./sim/types";
@@ -18,7 +19,7 @@ export function syncJerseyNumbers(state:GameState,releaseFreshmen=false) {
   for(const roster of groups.values()){
     const slots=mode==="school"?startingAssignments(roster):new Map<string,Position>();
     const club=state.careerMode==="pro"&&roster[0].teamId>=0?roster[0].teamId%10:-1;
-    const used=new Set([...(state.proWorld?.retiredNumbers??[]),...(state.savedRetiredNumbers??[])].filter(row=>row.club===club).map(row=>row.number));
+    const used=reservedJerseyNumbers(state,club);
     for(const p of roster){
       if(p.jerseyKind!==mode)delete p.jerseyNumber;
       p.jerseyKind=mode;
@@ -43,7 +44,7 @@ export function choosePlayerJersey(state:GameState,number?:number) {
   if(number!==undefined){
     const school=!state.careerMode,min=school?11:1,max=school?23:99;
     if(!Number.isInteger(number)||number<min||number>max)throw new Error("등번호 범위를 확인해 주세요.");
-    if(state.careerMode==="pro"&&p.teamId>=0&&[...(state.proWorld?.retiredNumbers??[]),...(state.savedRetiredNumbers??[])].some(row=>row.club===p.teamId%10&&row.number===number))throw new Error("해당 구단의 영구결번은 사용할 수 없습니다.");
+    if(state.careerMode==="pro"&&p.teamId>=0&&reservedJerseyNumbers(state,p.teamId%10).has(number))throw new Error("해당 구단의 영구결번은 사용할 수 없습니다.");
     p.jerseyNumber=number;p.jerseyKind=school?"school":"pro";
     for(const other of state.players)if(other.id!==p.id&&other.jerseyNumber===number&&(school?other.teamId===p.teamId:other.teamId>=0&&other.teamId%10===p.teamId%10))delete other.jerseyNumber;
   }

@@ -132,7 +132,11 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
         const next = saveEntry?unused.find(p=>p.id===closerId):(rested.length?rested:pool)
           .sort((a, b) => Number(game.evaluationPlayers?.includes(b.id)??false)-Number(game.evaluationPlayers?.includes(a.id)??false)||(pro?tier(a)-tier(b):0)||priority(b)-priority(a)||a.id.localeCompare(b.id))[0];
         if (next) { pitcherEntered(m,game,next.id,pitchingSide);m.pitchers[pitchingSide] = next.id; m.usedPitchers[pitchingSide].push(next.id); m.pitchOuts[pitchingSide] = 0; }
-        else if(!saveEntry&&!(pro&&!starter&&available(current,game.date)&&current.fatigue<params['coach.replace_fatigue']&&m.pitchOuts[pitchingSide]<15))return forfeit(pitchingSide);
+        else if(!saveEntry){
+          const canContinue=available(current,game.date)&&(!!game.national||
+            pro&&!starter&&current.fatigue<params['coach.replace_fatigue']&&m.pitchOuts[pitchingSide]<15);
+          if(!canContinue)return forfeit(pitchingSide);
+        }
       }
       const runner=m.bases[0];
       if(pro&&runner&&!m.bases[1]){

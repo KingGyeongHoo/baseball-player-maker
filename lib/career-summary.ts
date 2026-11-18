@@ -8,6 +8,7 @@ import type {NationalKind} from './sim/national-teams';
 import {createSeasonRankings} from './sim/pro-season-ranking';
 import {evaluateCareer,playerCareerEvaluation,seasonPercentile} from './sim/pro-career-evaluation';
 import {proLevelPrefix,mainLeagueName} from './sim/club-names';
+import {regularSeasonDays} from './sim/retirement-honors';
 
 export function lifetimeRecords(player:Player,year:number){
   const total=emptyRecord();
@@ -28,7 +29,9 @@ export function careerContractSummary(state:GameState){
   const contract=pro?.contract,firstYear=Math.max(year+(state.proWorld?.seasonClosed?1:0),contract?.startYear??year);
   const seasons=contract&&pro?.employment==="active"?Math.max(0,contract.endYear-firstYear+1):0;
   const seasonRank=current?current.seasonRank:evaluation?.score!==null&&evaluation?.score!==undefined?createSeasonRankings(state).get(p.id):undefined;
-  const projected=current||!seasonRank?cumulative:evaluateCareer([...rows,{year,score:estimate,role:p.primaryRole,war:evaluation?.war,seasonRank}],'first',year).score;
+  const usage=pro?.honorUsage?.year===year?pro.honorUsage:undefined;
+  const honorRegistration=usage&&{seasonDays:regularSeasonDays(state),firstDaysByClub:usage.firstDaysByClub,injuryDaysByClub:usage.injuryDaysByClub};
+  const projected=current||!seasonRank?cumulative:evaluateCareer([...rows,{year,score:estimate,role:p.primaryRole,war:evaluation?.war,seasonRank,honorRegistration}],'first',year).score;
   return {cumulative,career,projected,seasons,salary:seasons?contract!.salary:null,seasonScore:seasonPercentile(seasonRank),seasonRank,seasonGrade:seasonRank?.grade??current?.grade,war:current?.war??evaluation?.war};
 }
 

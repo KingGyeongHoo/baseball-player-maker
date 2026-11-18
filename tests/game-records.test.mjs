@@ -36,7 +36,7 @@ test('game totals aggregate and serialize while legacy unknown counts never beco
 });
 test('dashboard fields match the requested order in school and pro level views',()=>{
  const r=e.emptyRecord();Object.assign(r.batting,{PA:10,AB:8,H:4,HR:1,RBI:3});r.games={batting:3,pitching:2,wins:1,losses:0,holds:0,saves:1};r.pitching.outs=17;r.pitching.ER=2;
- assert.deepEqual(dashboardRecordValues(r,true).map(([label])=>label),['출전경기','이닝','승','패','홀드','세이브','평균자책점']);
+ assert.deepEqual(dashboardRecordValues(r,true).map(([label])=>label),['출전경기','이닝','승','패','홀드','세이브','탈삼진','평균자책점']);
  assert.deepEqual(dashboardRecordValues(r,false).map(([label])=>label),['출전경기','타수','안타','홈런','타점','타율','OPS']);
  assert.equal(dashboardRecordValues(r,true)[1][1],'5.2');assert.equal(dashboardRecordValues(r,false).find(([label])=>label==='타율')[1],'.500');
  const html=renderToStaticMarkup(createElement(Dashboard,{records:r,levels:[{label:'1군',records:r},{label:'2군',records:e.emptyRecord()}]}));assert.ok(html.includes('1군'));assert.ok(html.includes('2군'));assert.ok(html.includes('시즌 합계'));assert.ok(html.includes('홀드'));assert.ok(!html.includes('WHIP'));

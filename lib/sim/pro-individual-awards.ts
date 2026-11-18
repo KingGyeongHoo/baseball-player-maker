@@ -19,7 +19,7 @@ export function individualTitleFromKind(kind:string){
 export const isRecordOnlyAward=(kind:string)=>!individualTitleFromKind(kind)&&Object.values(leaderMetrics).flat().some(metric=>metric.label===kind);
 export const individualAwardMetrics=():Record<LeaderField,LeaderMetric[]>=>({
   batting:Object.entries(titleNames.batting).map(([id,label])=>({...leaderMetrics.batting.find(metric=>metric.id===id)!,label})),
-  pitching:Object.entries(titleNames.pitching).map(([id,label])=>({...leaderMetrics.pitching.find(metric=>metric.id===id)!,label}))
+  pitching:Object.entries(titleNames.pitching).map(([id,label])=>({...leaderMetrics.pitching.find(metric=>metric.id===id)!,label,qualified:['era','holds','saves'].includes(id)}))
 });
 export function individualAwards(s:GameState):ProIndividualAward[]{
   const result:ProIndividualAward[]=[];

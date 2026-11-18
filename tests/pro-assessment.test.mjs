@@ -148,6 +148,14 @@ test("a sustained cumulative F triggers release for player and NPCs, preserve ye
   life.closeProfessionalSeason(s);
   assert.equal(p.professional.employment, "freeAgent");
   assert.equal(npc.professional.employment, "freeAgent");
+  const notices=[s.careerNotice,...s.noticeQueue??[]];
+  const index=notices.findIndex(n=>n?.stoveReport);
+  assert.ok(index>=0);
+  const report=notices[index].stoveReport;
+  assert.equal(report.club,contract.club);
+  assert.ok(report.moves.every(row=>row.club===contract.club));
+  assert.ok(report.moves.some(row=>row.id===p.id&&row.direction==='released'));
+  assert.equal(notices[index+1].title,'방출되었습니다');
   assert.equal(p.teamId, -1);
   assert.equal(p.professional.assessments.length, 3);
   assert.ok(p.professional.salaries.some((r) => r.year === 2030));
@@ -161,6 +169,16 @@ test("a sustained cumulative F triggers release for player and NPCs, preserve ye
     s.proWorld.clubs.map((c) => c.deadMoney),
     debt,
   );
+});
+test("veteran retirement takes precedence over a qualifying release streak", () => {
+  const s=fixture(),p=e.getPlayer(s);
+  p.age=40;p.professional.rookieYear=2020;
+  for(const year of [2028,2029,2030])season(s,year,65,{lower:true});
+  assert.ok(a.seasonExit(p,2030));
+  life.closeProfessionalSeason(s);
+  assert.equal(p.professional.employment,'retired');
+  assert.equal(p.professional.movements.at(-1).kind,'은퇴');
+  assert.ok(!p.professional.movements.some(row=>row.kind==='방출'));
 });
 test("reserve metadata records real upper-team play without causing automatic release", () => {
   const s = fixture(),

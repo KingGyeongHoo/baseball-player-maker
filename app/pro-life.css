@@ -213,12 +213,9 @@
 .contract-assessment-value { display:flex; align-items:center; gap:10px; min-height:38px; }
 .contract-assessment-value>b { font-size:26px; }
 .contract-assessment-value .player-grade { min-width:38px; height:34px; font-size:22px; }
-.season-medal-gold .player-grade { background:#fff2bf; color:#805500; box-shadow:inset 0 0 0 2px #c99b21; }
-.season-medal-silver .player-grade { background:#edf0f4; color:#475569; box-shadow:inset 0 0 0 2px #9aa6b5; }
-.season-medal-bronze .player-grade { background:#f7e5d7; color:#85471f; box-shadow:inset 0 0 0 2px #b47c51; }
-.season-rank-gold { color:#956800; }
-.season-rank-silver { color:#63748b; }
-.season-rank-bronze { color:#9a5b32; }
+.app-tooltip .season-rank-gold { color:#ffe491; }
+.app-tooltip .season-rank-silver { color:#e3eaf6; }
+.app-tooltip .season-rank-bronze { color:#ffcc9f; }
 @media(max-width:600px){.compact-contract-metrics>div:nth-child(odd){border-left:0;padding-left:0}.compact-contract-metrics .contract-assessment-value>b{font-size:24px}}
 .contract-season-evaluations { border-top:1px solid var(--line); }
 .contract-season-evaluations>summary { cursor:pointer; padding:12px 0; font-size:12px; color:#60728d; }

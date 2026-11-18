@@ -9,11 +9,22 @@ export function careerPercentileGrade(score:number|null){
   if(score===null)return '—';
   return score>90+1e-9?'S':score>70+1e-9?'A':score>50+1e-9?'B':score>20+1e-9?'C':score>10+1e-9?'D':'F';
 }
-type CareerSeason=Pick<ProSeasonAssessment,'year'|'score'|'war'|'seasonRank'|'clubGamesShortage'|'role'>;
+export const careerRegistrationRatio=.9;
+type CareerSeason=Pick<ProSeasonAssessment,'year'|'score'|'war'|'seasonRank'|'clubGamesShortage'|'role'|'honorRegistration'>;
+
+export function meetsCareerRegistration(registration:CareerSeason['honorRegistration'],club?:number){
+  if(!registration)return false;
+  const days=(counts:Record<string,number>={})=>club===undefined
+    ?Object.values(counts).reduce((sum,count)=>sum+count,0)
+    :counts[club]??0;
+  const eligibleDays=registration.seasonDays-days(registration.injuryDaysByClub);
+  return eligibleDays>0&&days(registration.firstDaysByClub)>=eligibleDays*careerRegistrationRatio;
+}
 export function evaluateCareer(rows:CareerSeason[],level:ProLevel,year=Infinity){
   const seasons=[...new Map(rows.filter(row=>row.year<=year).map(row=>[row.year,row])).values()];
   const valid=seasons.filter(row=>row.score!==null&&!row.clubGamesShortage);
-  const values=valid.flatMap(row=>row.seasonRank?.level===level?[seasonPercentile(row.seasonRank)!]:[]);
+  const ranked=valid.filter(row=>row.seasonRank?.level===level&&(level==='second'||meetsCareerRegistration(row.honorRegistration)));
+  const values=ranked.map(row=>seasonPercentile(row.seasonRank)!);
   const mean=(values:number[])=>values.reduce((sum,n)=>sum+n,0)/values.length;
   const average=values.length?mean(values):null,peak=values.length?mean([...values].sort((a,b)=>b-a).slice(0,5)):null;
   const score=average===null||peak===null?null:.7*average+.3*peak;
@@ -25,7 +36,7 @@ export function evaluateCareer(rows:CareerSeason[],level:ProLevel,year=Infinity)
     const relief=['중간계투','마무리'].includes(row.role);
     return sum+r.batting+r.fielding+r.positional+r.pitching*(relief?3:1);
   },0):null;
-  return {level,score,grade:careerPercentileGrade(score),average,peak,seasons:values.length,war,unranked:valid.filter(row=>!row.seasonRank).length,reconstructed:valid.filter(row=>row.seasonRank?.level===level&&row.seasonRank.basis==='retained-records').length};
+  return {level,score,grade:careerPercentileGrade(score),average,peak,seasons:values.length,war,unranked:valid.filter(row=>!row.seasonRank).length,reconstructed:ranked.filter(row=>row.seasonRank?.basis==='retained-records').length};
 }
 export function playerCareerEvaluation(p:Player,year=Infinity){
   const rows=p.professional?.assessments??[];

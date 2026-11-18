@@ -1,7 +1,7 @@
-import {playerCareerEvaluation} from './pro-career-evaluation';
+import {careerRegistrationRatio,meetsCareerRegistration,playerCareerEvaluation} from './pro-career-evaluation';
 import type {GameState,Player} from './types';
 
-export const retirementHonorRules={rookieSeasons:3,registrationRatio:.9,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:15,tourConsecutive:10,numberA:18,numberS:15} as const;
+export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:15,tourConsecutive:10,numberA:18,numberS:15} as const;
 export function validHonorDays(value:Record<string,number>,maximum:number){
   return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([club,days])=>/^[0-9]$/.test(club)&&Number.isInteger(days)&&days>=0&&days<=maximum)&&Object.values(value).reduce((sum,n)=>sum+n,0)<=maximum;
 }
@@ -30,12 +30,9 @@ export function retirementEligibility(s:GameState,p:Player){
   const rows=(pro?.assessments??[]).filter(row=>row.year<=s.calendar.seasonYear);
   const evaluation=playerCareerEvaluation(p,s.calendar.seasonYear).first,score=evaluation.score,grade=evaluation.grade;
   const clubs=new Set<number>();if(pro){if(pro.firstClub>=0)clubs.add(pro.firstClub);for(const row of pro.service)clubs.add(row.club);if(pro.contract)clubs.add(pro.contract.club);for(const row of pro.movements){if(row.from!==null)clubs.add(row.from);if(row.to!==null)clubs.add(row.to);}}
-  const years=club===undefined?[]:[...new Set(rows.filter(row=>{
-    const registration=row.honorRegistration;
-    const denominator=registration?registration.seasonDays-(registration.injuryDaysByClub?.[club]??0):0;
-    return row.year>=(pro?.rookieYear??Infinity)+retirementHonorRules.rookieSeasons&&registration&&denominator>0
-      &&(registration.firstDaysByClub[club]??0)>=denominator*retirementHonorRules.registrationRatio;
-  }).map(row=>row.year))].sort((a,b)=>a-b);
+  const years=club===undefined?[]:[...new Set(rows.filter(row=>
+    row.year>=(pro?.rookieYear??Infinity)+retirementHonorRules.rookieSeasons&&meetsCareerRegistration(row.honorRegistration,club)
+  ).map(row=>row.year))].sort((a,b)=>a-b);
   const stintStart=pro?.service.at(-1)?.from??-Infinity;
   let consecutive=0;for(let i=years.length-1,expected=s.calendar.seasonYear;i>=0&&years[i]===expected&&years[i]>=stintStart;i--,expected--)consecutive++;
   // During a final-season declaration, the most recent completed season ends the streak.

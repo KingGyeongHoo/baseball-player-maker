@@ -2451,6 +2451,19 @@ tbody tr:last-child td {
   font-size: 10px;
 }
 .registration-changes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.stove-section { margin-top:14px; }
+.registration-player-list>li:has(.stove-move-type) { display:grid; grid-template-columns:minmax(0,1fr) auto; }
+.stove-move-type { color:#586578; font-size:9px; text-align:right; }
+.registration-column th.stove-fa-name { color:var(--navy); font-size:14px; font-weight:800; white-space:nowrap; }
+.stove-fa-direction { display:inline-flex; align-items:center; gap:4px; padding:3px 7px; border-radius:5px; font-size:12px; line-height:1.3; font-weight:700; white-space:nowrap; }
+.stove-fa-direction [aria-hidden] { font-size:16px; }
+.stove-fa-direction.in { color:#12623e; background:#dff3e8; }
+.stove-fa-direction.out { color:#982e35; background:#fce7e8; }
+.stove-fa-direction.stay { color:#204f91; background:#e4edfb; }
+.registration-player-list>li.stove-trade { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:10px; }
+.stove-trade-out { text-align:left; }
+.stove-trade-in { text-align:right; }
+.stove-trade small { display:block; color:var(--navy); margin-bottom:3px; }
 .registration-column { min-width:0; border:1px solid #e3e8ef; border-radius:6px; overflow:hidden; }
 .registration-column h3 { display:flex; align-items:center; gap:8px; margin:0; padding:12px 14px; font-size:13px; color:var(--navy); border-bottom:1px solid #e3e8ef; background:#f8fafc; }
 .registration-direction { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; }

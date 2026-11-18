@@ -22,6 +22,17 @@ test('personal records show compact profile and paired season/team filters witho
   for(const text of ['모든 시즌','모든 팀','시즌 선택','팀별 선택',`${player.age}세`])assert.ok(html.includes(text),text);
   for(const text of ['나의 선수','구단별 기록','재능','OPS는 출루율','5.2이닝은','통산 비율 기록','선택한 시즌에'])assert.ok(!html.includes(text),text);
 });
+test('pitching decisions appear in the season row and total even before the first out',()=>{
+  const {state,player}=setup(),r=player.seasonByLevel.first;
+  r.pitching.BF=1;r.games={pitching:1,wins:2,losses:3,holds:4,saves:5};
+  const html=render(state,player);
+  const summary=html.split('class="career-record-summary"')[1].split('</section>')[0];
+  assert.deepEqual([...summary.matchAll(/<span>([^<]+)<\/span><b>([^<]+)<\/b>/g)].map(([,label,value])=>[label,value]),
+    [['이닝','0.0'],['승','2'],['패','3'],['홀드','4'],['세이브','5'],['탈삼진','0'],['평균자책점','—']]);
+  for(const label of ['승','패','홀드','세이브'])assert.ok(html.includes(`scope="col">${label}</th>`));
+  for(const label of ['WHIP','실점','피안타','피홈런'])assert.ok(!html.includes(`scope="col">${label}</th>`));
+  assert.equal(html.split('<td>2</td><td>3</td><td>4</td><td>5</td>').length-1,2);
+});
 test('club history remains available without postseason records',()=>{
   const {player}=setup();delete player.seasonPostseason;player.seasonByClub={'1':{first:e.emptyRecord(),second:e.emptyRecord()}};
   assert.ok(playerSeasons(player,2028)[0].byClub['1']);

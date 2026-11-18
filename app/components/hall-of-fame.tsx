@@ -10,7 +10,7 @@ export function RetiredNumberGallery({entries,club,template}:{entries:SavedRetir
   const players=clubRetiredNumbers(entries,club);
   return <section className="hall-club" id="hall-club-panel" role="tabpanel" aria-labelledby={`hall-club-${club}`}>
     <div className="hall-club-heading"><div><span className="eyebrow">RETIRED NUMBERS</span><h3>{proClubNames[club]} 영구결번</h3></div><span>{players.length}명</span></div>
-    {players.length?<div className="hall-number-grid">{players.map(player=><article className="hall-number-card" key={`${player.saveId}:${player.playerId}`}>
+    {players.length?<div className="hall-number-grid">{players.map(player=><article className="hall-number-card" key={player.key}>
       {template?<Image unoptimized src={retiredNumberImage(template,player.number)} width={256} height={256} alt={`${proClubNames[club]} 영구결번 ${player.number}번`}/>:<div className="hall-number-placeholder" aria-label={`${player.number}번`}>{player.number}</div>}
       <h4>{player.playerName}</h4><p>{proClubNames[club]} · {player.number}번</p>
     </article>)}</div>:<p className="hall-empty">아직 영구결번으로 남은 선수가 없습니다.</p>}
@@ -26,7 +26,7 @@ function HallOfFameDialog({onClose}:{onClose:()=>void}){
   return <dialog ref={dialog} className="modal hall-of-fame-modal" aria-label="명예의 전당" onCancel={event=>{event.preventDefault();onClose();}}>
     <div className="modal-header"><div><span className="eyebrow">HALL OF FAME</span><h2>명예의 전당</h2></div><button className="secondary" onClick={onClose}>닫기</button></div>
     <div className="hall-of-fame-body"><div className="hall-club-tabs" role="tablist" aria-label="영구결번 구단 선택">{proClubNames.map((name,id)=><button key={id} id={`hall-club-${id}`} role="tab" aria-selected={club===id} aria-controls="hall-club-panel" className={club===id?'selected':''} onClick={()=>setClub(id)}>{name}</button>)}</div>
-      {loading?<p className="hall-empty" role="status">은퇴 선수 기록을 불러오는 중입니다.</p>:error?<p className="hall-empty" role="alert">{error}</p>:<><RetiredNumberGallery entries={entries} club={club} template={template}/>{logoError&&<p role="alert">{logoError}</p>}</>}
+      {loading?<p className="hall-empty" role="status">은퇴 선수 기록을 불러오는 중입니다.</p>:<><RetiredNumberGallery entries={entries} club={club} template={template}/>{error&&<p className="hall-empty" role="alert">{error}</p>}{logoError&&<p role="alert">{logoError}</p>}</>}
     </div>
   </dialog>;
 }

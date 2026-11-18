@@ -9,8 +9,53 @@ const life=require('../.test-build/lib/sim/pro-season.js'),market=require('../.t
 const calendar=require('../.test-build/lib/sim/pro-calendar.js'),storage=require('../.test-build/lib/career-save.js');
 const {ProContractPanel}=require('../.test-build/app/components/pro-career-panels.js');
 const ProgressControls=require('../.test-build/app/components/progress-controls.js').default;
+function confirmReport(state){
+ const report=state.careerNotice?.stoveReport;
+ assert.ok(report);assert.equal(report.club,e.getPlayer(state).teamId%10);
+ assert.ok(report.moves.some(row=>row.direction==='joined'&&row.id.startsWith('pro-rookie-')));
+ assert.ok(report.moves.every(row=>row.club===report.club));
+ return pc.acknowledgeCareer(state);
+}
 let template;
+test('FA credits require eight full seasons and a missed FA season requires two full seasons after expiry',()=>{
+ const {settleFaService}=require('../.test-build/lib/sim/fa-service.js');
+ const pro={faEligible:false,faDays:1800};
+ const finish=(year,days)=>{pro.registration={year,days};settleFaService(pro,year);settleFaService(pro,year);return pro.faEligible;};
+ for(let y=2028;y<2035;y++)assert.equal(finish(y,150),false);
+ assert.equal(finish(2035,149),false);assert.equal(finish(2036,150),true);
+ pro.lastFaTerm={start:2037,end:2039};
+ assert.equal(finish(2037,150),false);assert.equal(finish(2038,149),false);assert.equal(finish(2039,150),false);
+ assert.equal(finish(2040,150),false);assert.equal(finish(2041,100),false);assert.equal(finish(2042,150),true);
+ pro.lastFaTerm={start:2043,end:2044};
+ assert.equal(finish(2043,150),false);assert.equal(finish(2044,150),true);
+ const years=Array.from({length:50},(_,i)=>market.faContractYears({id:'top'+i,age:29},90,2045,0));
+ assert.ok(years.includes(6));assert.ok(years.every(n=>n>=1&&n<=6));
+});
+test('a saved league-wide notice counts only unique moves for my club when reopened',()=>{
+ const StoveChanges=require('../.test-build/app/components/stove-changes.js').default;
+ const mine={id:'mine',club:2,position:'SS',name:'우리선수',direction:'joined',reason:'입단'};
+ const others=Array.from({length:220},(_,i)=>({...mine,id:String(i),club:1,name:'타구단선수'}));
+ const players=[{id:mine.id,professional:{movements:[{kind:'입단',to:2,reason:'draft'}]}}];
+ const html=renderToStaticMarkup(createElement(StoveChanges,{report:{club:2,moves:[mine,...others,mine]},playerId:mine.id,players})).replaceAll('<!-- -->','');
+ assert.ok(html.includes('입단 1명'));assert.ok(html.includes('재계약 불가 0명'));assert.ok(html.includes('우리선수'));assert.ok(!html.includes('타구단선수'));
+});
 function acknowledge(s){for(let i=0;i<40&&s.careerNotice;i++)s=pc.acknowledgeCareer(s);return s;}
+test('my club shows draft and developmental arrivals, paired trades and retirements in separate sections',()=>{
+ const {stovePlayerMoves}=require('../.test-build/lib/sim/stove-report.js');
+ const StoveChanges=require('../.test-build/app/components/stove-changes.js').default;
+ const make=(id,m)=>stovePlayerMoves({id,name:id,position:'SS',professional:{movements:[{date:'2028-12-11',from:null,to:2,...m}]}},'2028-11-01','2029-01-01');
+ const moves=[
+   ...make('지명신인',{kind:'입단',reason:'draft'}),...make('신고신인',{kind:'입단',reason:'developmental'}),
+   ...make('영입FA',{kind:'FA 이적',from:1,to:2}),...make('이적FA',{kind:'FA 이적',from:2,to:1}),
+   ...make('잔류FA',{kind:'FA 잔류',from:2,to:2}),...make('기타계약',{kind:'계약',reason:'정식 계약'}),
+   ...make('거래선수',{kind:'트레이드',from:2,to:4,exchange:{id:'other',name:'상대선수',position:'SP'}}),
+   ...make('은퇴선수',{kind:'은퇴',from:2,to:null}),...make('방출선수',{kind:'방출',from:2,to:null})];
+ const html=renderToStaticMarkup(createElement(StoveChanges,{report:{club:2,moves},playerId:'mine'})).replaceAll('<!-- -->','');
+ for(const label of ['FA 3명','신규 입단 2명','드래프트','신고','재계약 불가 1명','트레이드 1건','거래선수','상대선수','수원 위즈','은퇴 1명','은퇴선수'])assert.ok(html.includes(label),label);
+ for(const kind of ['영입','이적','잔류'])assert.ok(html.includes(`aria-label="${kind}"`));assert.ok(html.includes('잔류FA'));assert.ok(html.indexOf('지명신인')<html.indexOf('신고신인'));assert.ok(!html.includes('기타계약'));
+ assert.match(html,/>영입FA<\/th><td>유격수<\/td><td>고양 히어로즈<\/td><td>.*?←.*?영입<\/span><\/td><td>서울 트윈스<\/td>/);
+ assert.match(html,/>이적FA<\/th><td>유격수<\/td><td>고양 히어로즈<\/td><td>.*?→.*?이적<\/span><\/td><td>서울 트윈스<\/td>/);
+});
 function fixture(){
  if(!template){
   const s=acknowledge(pc.createProfessionalDemo('stove-fixture','스토브검증','SS')),p=e.getPlayer(s);
@@ -22,6 +67,33 @@ function fixture(){
  const s=structuredClone(template),p=e.getPlayer(s);p.professional.faEligible=true;p.professional.faDays=900;p.professional.contract.endYear=s.proWorld.year;return s;
 }
 function clear(s){s.careerNotice=undefined;s.noticeQueue=[];s.careerEvent=null;return s;}
+test('regular-season and stove trades share a league-wide limit and midseason notices show the exchange',()=>{
+ const s=fixture(),world=s.proWorld,year=world.year;
+ world.stage='regular';world.seasonClosed=false;s.phase='weekStart';
+ const first=s.calendar.competitions.find(c=>c.id==='pro-first');
+ let notices=0;
+ for(let i=0;i<85;i++){
+  s.date=e.addDays(first.startDate,i);
+  life.finishProfessionalDay(s);
+  if(s.careerNotice?.stoveReport?.tradeOnly){
+   notices++;
+   const trade=s.careerNotice.stoveReport.moves[0],StoveChanges=require('../.test-build/app/components/stove-changes.js').default;
+   const html=renderToStaticMarkup(createElement(StoveChanges,{report:s.careerNotice.stoveReport,playerId:s.playerId}));
+   assert.ok(trade.exchange);assert.ok(html.includes('↔'));assert.ok(!html.includes('신규 입단'));
+  }
+  clear(s);
+ }
+ assert.equal(world.tradeActivity.regular,2);
+ assert.equal(notices,2);
+ world.stage='offseason';world.stove={openedAt:`${year}-11-01`,movedIds:[],closed:false};
+ for(const p of s.players)if(p.professional.contract)p.professional.contract.endYear=year+1;
+ for(let i=0;i<=60;i++){s.date=e.addDays(world.stove.openedAt,i);market.reviewNPCTrades(s);clear(s);}
+ const total=world.tradeActivity.regular+world.tradeActivity.winter;
+ assert.ok(total===3||total===4);
+ const restored=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(s))).state;
+ market.reviewNPCTrades(restored);
+ assert.deepEqual(restored.proWorld.tradeActivity,world.tradeActivity);
+});
 function retentionFixture(){
  const s=clear(fixture()),p=e.getPlayer(s),club=p.professional.contract.club;
  const peer=structuredClone(p);peer.id='strong-incumbent';peer.teamId=club;
@@ -123,7 +195,7 @@ test('stove UI offers immediate camp entry after signing and keeps unsigned deci
 test('immediate camp entry processes exactly the same remaining stove transactions as weekly progression',()=>{
  let s=fixture();s=clear(life.actOnProCareer(s,{type:'market'}));const offer=s.proWorld.market.offers[0];s=clear(life.actOnProCareer(s,{type:'accept',id:offer.id}));
  const p=e.getPlayer(s),contract=structuredClone(p.professional.contract),career=structuredClone(p.career),before=JSON.stringify(s),year=s.proWorld.year+1;
- const direct=life.actOnProCareer(s,{type:'nextSeason'});assert.equal(JSON.stringify(s),before);assert.equal(direct.date,`${year}-02-01`);assert.equal(direct.proWorld.stage,'camp');assert.equal(direct.proWorld.stove,undefined);assert.equal(direct.careerNotice.title,`${year} 캠프 시작`);assert.deepEqual(e.getPlayer(direct).professional.contract,contract);assert.deepEqual(e.getPlayer(direct).career,career);
+ const direct=confirmReport(life.actOnProCareer(s,{type:'nextSeason'}));assert.equal(JSON.stringify(s),before);assert.equal(direct.date,`${year}-02-01`);assert.equal(direct.proWorld.stage,'camp');assert.equal(direct.proWorld.stove,undefined);assert.equal(direct.careerNotice.title,`${year} 캠프 시작`);assert.deepEqual(e.getPlayer(direct).professional.contract,contract);assert.deepEqual(e.getPlayer(direct).career,career);
  let weekly=structuredClone(s);while(!weekly.proWorld.stove.closed)weekly=clear(life.actOnProCareer(weekly,{type:'wait'}));weekly=life.actOnProCareer(weekly,{type:'nextSeason'});
  const players=state=>state.players.map(p=>({id:p.id,team:p.teamId,age:p.age,stats:p.stats,records:p.seasonStats,career:p.career,contract:p.professional.contract,employment:p.professional.employment,fa:p.professional.faDays,injury:p.injury,fatigue:p.fatigue}));
  assert.deepEqual(players(direct),players(weekly));assert.deepEqual(direct.proWorld.news,weekly.proWorld.news);assert.deepEqual(direct.rngStates,weekly.rngStates);assert.deepEqual(direct.calendar,weekly.calendar);
@@ -131,10 +203,10 @@ test('immediate camp entry processes exactly the same remaining stove transactio
 
 test('ongoing multi-year contracts can enter camp directly before opening the market and after restoring a partial winter',()=>{
  const s=fixture(),p=e.getPlayer(s),year=s.proWorld.year+1;p.professional.contract.endYear=year+1;const contract=structuredClone(p.professional.contract);
- const next=life.actOnProCareer(s,{type:'nextSeason'});assert.equal(next.date,`${year}-02-01`);assert.deepEqual(e.getPlayer(next).professional.contract,contract);assert.ok(!next.proWorld.news.some(row=>/^\d+:stove(?::\d+|-open)$/.test(row.id)));assert.equal(next.proWorld.draftedYears.filter(y=>y===year).length,1);
+ const next=confirmReport(life.actOnProCareer(s,{type:'nextSeason'}));assert.equal(next.date,`${year}-02-01`);assert.deepEqual(e.getPlayer(next).professional.contract,contract);assert.ok(!next.proWorld.news.some(row=>/^\d+:stove(?::\d+|-open)$/.test(row.id)));assert.equal(next.proWorld.draftedYears.filter(y=>y===year).length,1);
  let partial=clear(life.actOnProCareer(s,{type:'market'}));partial=clear(life.actOnProCareer(partial,{type:'wait'}));partial=clear(life.actOnProCareer(partial,{type:'wait'}));
  const restored=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(partial))).state;
- const resumed=life.actOnProCareer(restored,{type:'nextSeason'});assert.equal(resumed.date,next.date);assert.deepEqual(resumed.proWorld.news,next.proWorld.news);assert.deepEqual(e.getPlayer(resumed).professional.contract,contract);assert.equal(new Set(resumed.players.map(p=>p.id)).size,resumed.players.length);
+ const resumed=confirmReport(life.actOnProCareer(restored,{type:'nextSeason'}));assert.equal(resumed.date,next.date);assert.deepEqual(resumed.proWorld.news,next.proWorld.news);assert.deepEqual(e.getPlayer(resumed).professional.contract,contract);assert.equal(new Set(resumed.players.map(p=>p.id)).size,resumed.players.length);
 });
 
 test('immediate camp entry requires a signed next-season contract and the footer waits for pending decisions',()=>{

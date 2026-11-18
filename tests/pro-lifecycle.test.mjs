@@ -34,9 +34,9 @@ test('salary conversion is effective from the conversion date; prior development
   assert.equal(pc.reviewDevelopmentContract(s),false);life.closeProfessionalSeason(s);assert.equal(p.proContract.status,'regular');assert.equal(p.professional.contract.segments.length,2);assert.equal(p.professional.contract.segments[0].salary,.6*world.BASE_SALARY);assert.equal(p.professional.contract.salary,world.BASE_SALARY);assert.equal(p.proContract.convertedDate,s.date);
   life.closeProfessionalSeason(s);assert.ok(p.professional.earnings>.6*world.BASE_SALARY&&p.professional.earnings<world.BASE_SALARY);const amount=p.professional.earnings;life.closeProfessionalSeason(s);assert.equal(p.professional.earnings,amount);
 });
-test('FA service recognizes 899/900, counts a date once, caps at 150 and excludes camp, farm, developmental and postseason days',()=>{
+test('FA service tracks cumulative days without unlocking on 900, counts a date once, caps at 150 and excludes camp, farm, developmental and postseason days',()=>{
   const s=fixture(),p=e.getPlayer(s);p.teamId=0;p.professional.faDays=899;p.professional.registration={year:2028,days:149};s.date=s.calendar.competitions.find(c=>c.id==='pro-first').startDate;
-  world.recordProfessionalDay(s);assert.equal(p.professional.faDays,900);assert.equal(p.professional.faEligible,true);assert.equal(p.professional.registration.days,150);world.recordProfessionalDay(s);assert.equal(p.professional.faDays,900);s.date=e.addDays(s.date,1);world.recordProfessionalDay(s);assert.equal(p.professional.faDays,900);
+  world.recordProfessionalDay(s);assert.equal(p.professional.faDays,900);assert.equal(p.professional.faEligible,false);assert.equal(p.professional.registration.days,150);world.recordProfessionalDay(s);assert.equal(p.professional.faDays,900);s.date=e.addDays(s.date,1);world.recordProfessionalDay(s);assert.equal(p.professional.faDays,900);
   p.professional.registration={year:2028,days:0};s.date='2028-03-01';world.recordProfessionalDay(s);assert.equal(p.professional.registration.days,0);s.date=e.addDays(s.proWorld.regularEnd,1);world.recordProfessionalDay(s);assert.equal(p.professional.registration.days,0);
 });
 test('all clubs evaluate NPC registration; missing first-team positions are filled without exceeding 30/45',()=>{

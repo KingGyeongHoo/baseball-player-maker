@@ -21,6 +21,7 @@ export type ProfessionalPlayer = {
   rookieYear:number; firstClub:number; entry:string; employment:"active"|"freeAgent"|"retired";
   contract:SalaryContract|null; agingOffset:number; agingProfile?:AgingProfile; agedYear:number; ageChanges?:Partial<Stats>;
   faDays:number; faEligible:boolean; registration:{year:number;days:number;lastDate?:string};
+  faSeasons?:number[];lastFaTerm?:{start:number;end:number};
   lastAppearance?:string; lastRegistration?:string; lastEvaluation?:string; requestAfter?:string;
   managedUntil?:string; roleTrial?:ProRoleTrial; unattachedYears:number;
   requestedEvaluationUntil?:string;
@@ -28,7 +29,7 @@ export type ProfessionalPlayer = {
   twoWayHistory?:{date:string;action:string;positions:{pitchingPosition:Position;battingPosition:Position};reason:string}[];
   entryReputation:number; proBonus:number; earnings:number; highestSalary:number; peak:Stats;
   firsts:{debut?:string;start?:string;hit?:string;homeRun?:string;strikeout?:string};
-  movements:{date:string;from:number|null;to:number|null;kind:string;reason:string}[];
+  movements:{date:string;from:number|null;to:number|null;kind:string;reason:string;registration?:'developmental'|'regular';exchange?:{id:string;name:string;position:Position}}[];
   salaries:{year:number;club:number;amount:number;salary:number}[];
   guarantees?:{year:number;club:number;amount:number}[];
   service:{club:number;from:number;to:number}[];
@@ -45,8 +46,10 @@ export type RetirementHonor={club:number;playerId:string;playerName:string;date:
 export type ProPostseason={format?:"kbo-v1";rosterVersion?:1;seeds:number[];series:ProSeries[];champion?:number};
 export type ProWorld = {
   offseasonContinuation?:'national'|'market'|'wait'|'nextSeason';
+  departedStoveMoves?:import('./stove-report').StoveMove[];
   resumeCampAfterAwards?:true;
-  stove?:{version:1;year:number;openedAt:string;closesAt:string;nextUpdate:string;round:number;closed:boolean;movedIds:string[]};
+  tradeActivity?:{year:number;regular:number;winter:number;lastReview?:string};
+  stove?:{version:1;year:number;openedAt:string;closesAt:string;nextUpdate:string;round:number;closed:boolean;movedIds:string[];reported?:true};
   allstar?:ProAllstarSeason;
   version:1; contractRulesVersion?:1|2|3|4|5; year:number; stage:ProStage; regularEnd:string; seasonClosed:boolean;
   clubs:{id:number;direction:"contend"|"balanced"|"rebuild";budget:number;deadMoney:Record<string,number>;nextReview?:string}[];

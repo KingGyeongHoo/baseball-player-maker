@@ -43,12 +43,12 @@ test('two-way players compete only in their stronger field, for both professiona
     const youth=n.nationalRoster(s,q=>q.seasonStats,'youth');assert.equal(youth.find(row=>row.id===p.id).position,pitching?'SP':'SS');
   }
 });
-test('selection bonuses respect prestige, never stack on repeat, and do not alter official records',()=>{
+test('national honors retain their prestige without adding to club selection ratings',()=>{
   let previous=0;
   for(const kind of ['apbc','olympics','premier12','wbc']){
     const s=fixture(),p=e.getPlayer(s),before=structuredClone(p.seasonByLevel),score=e.proSelectionScore(p),member={id:p.id,position:p.position,roleScore:e.roleScore(p),selectionScore:score};
-    const entry=n.rememberNational(s,kind,[member]);assert.equal(e.proSelectionScore(p)-score,n.nationalRules[kind].bonus);assert.ok(n.nationalRules[kind].bonus>previous);previous=n.nationalRules[kind].bonus;
-    assert.equal(n.rememberNational(s,kind,[member]),entry);assert.equal(e.proSelectionScore(p)-score,n.nationalRules[kind].bonus);assert.deepEqual(p.seasonByLevel,before);
+    const entry=n.rememberNational(s,kind,[member]);assert.equal(e.proSelectionScore(p),score);assert.ok(n.nationalRules[kind].bonus>previous);previous=n.nationalRules[kind].bonus;
+    assert.equal(n.rememberNational(s,kind,[member]),entry);assert.equal(e.proSelectionScore(p),score);assert.deepEqual(p.seasonByLevel,before);
     const html=renderToStaticMarkup(createElement(NationalRosters,{state:s,onRecords(){}}));assert.ok(html.includes(n.nationalRules[kind].name));assert.ok(html.includes('대한민국 대표팀'));
   }
 });
@@ -102,7 +102,7 @@ test('all forty-five spring games remain playable during WBC without using any c
     }
   }finally{e.params['pro_events.enabled']=enabled;}
 });
-test('a real spring game commits only spring stats and good spring results increase selection',()=>{
+test('a real spring game commits only spring stats and recent spring appearances inform selection',()=>{
   const s=fixture(2027);for(const p of s.players){p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};p.seasonStats=e.emptyRecord();}
   const g=spring.springSchedule(2027)[0];s.calendar.events=[g];s.date=g.date;
   const before=new Map(s.players.map(p=>[p.id,structuredClone({regular:p.seasonStats,levels:p.seasonByLevel})]));
@@ -110,7 +110,9 @@ test('a real spring game commits only spring stats and good spring results incre
   assert.equal(g.status,'completed');assert.ok(Object.values(g.boxScore).some(r=>r.batting.PA));
   assert.ok(g.evaluationEnvironment.teams.every(team=>team.batting>0&&team.pitching>0));
   for(const id of Object.keys(g.boxScore)){const p=s.players.find(p=>p.id===id);assert.deepEqual(p.seasonStats,before.get(id).regular);assert.deepEqual(p.seasonByLevel,before.get(id).levels);assert.ok(p.seasonSpring);}
-  const p=e.getPlayer(s);p.seasonSpring=e.emptyRecord();const score=e.proSelectionScore(p);Object.assign(p.seasonSpring.batting,{PA:35,AB:30,H:20,HR:5,BB:5});assert.ok(e.proSelectionScore(p)>score);
+  const p=e.getPlayer(s);p.recentAppearances=[];p.seasonSpring=e.emptyRecord();const score=e.proSelectionScore(p);
+  Object.assign(p.seasonSpring.batting,{PA:35,AB:30,H:20,HR:5,BB:5});assert.equal(e.proSelectionScore(p),score);
+  p.recentAppearances.push(p.seasonSpring);assert.ok(e.proSelectionScore(p)>score);
 });
 test('youth roster freezes fifteen pitchers and fifteen hitters in September, never before',()=>{
   const s=fixture(2027);for(const p of s.players){delete p.careerMode;delete p.professional;p.grade=1;p.reputation=60;}

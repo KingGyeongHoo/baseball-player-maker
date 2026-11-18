@@ -1,9 +1,9 @@
-import {addDays,available,clamp,emptyRecord,getPlayer,hash,injuryRisk,mergeRecord,params,pitchingRole,roleFor,simulateGame} from './engine';
+import {addDays,available,clamp,defaultPolicy,emptyRecord,getPlayer,hash,injuryRisk,mergeRecord,params,pitchingRole,roleFor,simulateGame} from './engine';
 import {canPlayPosition} from './position-eligibility';
 import {randomPlayerHands} from './handedness';
 import {statKeys} from './types';
 import {eventTrainingReward} from './event-system';
-import {nationalRules,type NationalSelection} from './national-teams';
+import {nationalRoster,nationalRules,type NationalSelection} from './national-teams';
 import {compactNationalTournament} from './national-storage';
 import {refreshSeasonEvaluations} from './pro-season-evaluation';
 import type {Game,GameState,Player,Position,RecordLine,Stats} from './types';
@@ -48,6 +48,16 @@ function schedule(entry:NationalSelection,stage:NationalStage,date:string){
   });
   function game(a:number,b:number,d:string,group:number){t.games.push({id:`national:${entry.year}:${entry.kind}:${stage.id}:${a}:${b}`,date:d,homeTeamId:a,awayTeamId:b,competitionId:`national-${entry.kind}`,rulesetId:'national-v1',status:'scheduled',score:[0,0],innings:[[],[]],lineup:[],boxScore:{},national:{stage:stage.id,group,knockout:!!stage.knockout,youth:entry.kind==='youth'}});}
 }
+function koreanTournamentRoster(s:GameState,entry:NationalSelection){
+  const preferred=new Map(entry.roster.map(row=>[row.id,row.position]));
+  const excludedId=entry.participated===false?s.playerId:undefined;
+  const records=(p:Player)=>entry.kind==='youth'?p.seasonStats:entry.kind==='wbc'
+    ?p.career.find(row=>row.year===entry.year-1&&row.careerMode==='pro')?.byLevel?.first
+    :p.seasonByLevel?.first;
+  const roster=nationalRoster(s,records,entry.kind,{preferred,excludedId});
+  const players=new Map(s.players.map(p=>[p.id,p]));
+  return roster.map(row=>athlete(players.get(row.id)!,row.position));
+}
 export function ensureNationalTournament(s:GameState,entry:NationalSelection){
   if(entry.tournament)return entry.tournament;
   if(!entry.simulationVersion&&entry.settled&&s.date>entry.end)return;
@@ -56,8 +66,7 @@ export function ensureNationalTournament(s:GameState,entry:NationalSelection){
   const count=entry.kind==='wbc'?20:entry.kind==='premier12'?12:entry.kind==='olympics'?6:entry.kind==='apbc'?4:12;
   const names=entry.kind==='apbc'?['대한민국','일본','대만','호주']:entry.kind==='olympics'?nations.slice(0,6):nations.slice(0,count);
   const countries:NationalCountry[]=names.map((name,id)=>({id,name,players:[]}));
-  countries[0].players=entry.roster.filter(row=>row.id!==s.playerId||entry.participated!==false).flatMap(row=>{const p=s.players.find(p=>p.id===row.id);return p?[athlete(p,row.position)]:[];});
-  if(entry.participated===false){const declined=entry.roster.find(row=>row.id===s.playerId);if(declined){const replacement=s.players.filter(p=>p.id!==s.playerId&&!countries[0].players.some(row=>row.id===p.id)&&p.position===declined.position&&available(p,s.date)&&(entry.kind==='youth'?!p.careerMode:p.careerMode==='pro'&&p.professional?.employment==='active')&&(!['apbc','olympics'].includes(entry.kind)||(p.age??19)<=25)).sort((a,b)=>b.stats.bq-a.stats.bq||a.id.localeCompare(b.id))[0];if(replacement)countries[0].players.push(athlete(replacement,declined.position));}}
+  countries[0].players=koreanTournamentRoster(s,entry);
   const templates=s.players.filter(p=>available(p,s.date));if(!templates.length)return;
   for(const country of countries.slice(1))country.players=slots.map((position,i)=>{
     const p=templates.find(p=>p.position===position)??templates[i%templates.length],row=athlete(p,position),seed=hash(`${s.seed}:${country.name}:${entry.year}:${i}`);
@@ -140,9 +149,10 @@ function finishNational(s:GameState,entry:NationalSelection){
 }
 export function playNationalDay(s:GameState){
   if(s.careerEvent||s.careerNotice)return false;
-  for(const entry of s.nationalTeams??[]){if(s.date<entry.start||entry.tournament?.finished)continue;const t=ensureNationalTournament(s,entry);if(!t)continue;
+  for(const entry of s.nationalTeams??[]){
+    if(s.date<entry.start||entry.tournament?.finished||entry.roster.some(p=>p.id===s.playerId)&&entry.participated===undefined)continue;
+    const t=ensureNationalTournament(s,entry);if(!t)continue;
     if(t.lastDay!==s.date){const days=t.lastDay?Math.max(0,(Date.parse(s.date)-Date.parse(t.lastDay))/86400000):0;for(const c of t.countries.slice(1))for(const p of c.players)p.fatigue*=.85**days;t.lastDay=s.date;}
-    if(entry.roster.some(p=>p.id===s.playerId)&&entry.participated===undefined)continue;
     for(const game of t.games.filter(g=>g.date<=s.date&&g.status!=='completed')){
       if(!playGame(s,entry,game))return true;
     }
@@ -154,9 +164,23 @@ export function playNationalDay(s:GameState){
 }
 function playGame(s:GameState,entry:NationalSelection,game:Game){
   const t=entry.tournament!,template=getPlayer(s),ids=[game.homeTeamId,game.awayTeamId];
-  const rosters=ids.map((id,side)=>t.countries[id].players.map(row=>{const original=row.sourceId?s.players.find(p=>p.id===row.sourceId):undefined,p=structuredClone(original??template);if(!original){let handDraw=0;Object.assign(p,randomPlayerHands(row.position,()=>hash(`${s.seed}:${row.id}:national-hands:${handDraw++}`)/4294967296));}p.id=row.id;p.name=row.name;p.stats={...row.stats};if(id===0&&entry.kind!=='youth'&&t.strengthVersion===2)for(const key of statKeys)p.stats[key]=clamp(p.stats[key]*.98,1);p.age=row.age;p.position=row.position;p.primaryRole=roleFor(row.position);p.teamId=side;p.fatigue=original?.fatigue??row.fatigue;p.lastPitched=row.lastPitched;p.seasonStats=emptyRecord();p.recentAppearances=[];p.injury=original?.injury??row.injury??null;p.forcedRest=false;p.eligiblePositions=[row.position];if(original?.twoWay&&!(row.id===s.playerId&&entry.participationField))p.eligiblePositions=[...new Set([...p.eligiblePositions,original.twoWay.battingPosition,'SP','RP','CP','DH'] as Position[])];else delete p.twoWay;delete p.professional;delete p.careerMode;return p;}));
+  if(ids.includes(0)&&!t.progress&&!t.games.some(g=>[g.homeTeamId,g.awayTeamId].includes(0)&&g.lineup.length)){
+    const players=new Map(s.players.map(p=>[p.id,p]));
+    const roster=t.countries[0].players;
+    if(roster.length<30||roster.some(row=>{
+      const source=players.get(row.sourceId??row.id);
+      return !source||!available(source,s.date)||entry.participated===false&&row.id===s.playerId;
+    })){
+      t.countries[0].players=koreanTournamentRoster(s,entry);
+    }
+  }
+  const rosters=ids.map((id,side)=>t.countries[id].players.map(row=>{const original=row.sourceId?s.players.find(p=>p.id===row.sourceId):undefined,p=structuredClone(original??template);if(!original){let handDraw=0;Object.assign(p,randomPlayerHands(row.position,()=>hash(`${s.seed}:${row.id}:national-hands:${handDraw++}`)/4294967296));}p.id=row.id;p.name=row.name;p.stats={...row.stats};if(id===0&&entry.kind!=='youth'&&t.strengthVersion===2)for(const key of statKeys)p.stats[key]=clamp(p.stats[key]*.98,1);p.age=row.age;p.position=row.position;p.primaryRole=roleFor(row.position);p.trainingPolicy=defaultPolicy(p.primaryRole);p.teamId=side;p.fatigue=original?.fatigue??row.fatigue;p.lastPitched=row.lastPitched;p.seasonStats=emptyRecord();p.recentAppearances=[];p.injury=original?.injury??row.injury??null;p.forcedRest=false;p.eligiblePositions=[row.position];if(original?.twoWay&&!(row.id===s.playerId&&entry.participationField))p.eligiblePositions=[...new Set([...p.eligiblePositions,original.twoWay.battingPosition,'SP','RP','CP','DH'] as Position[])];else delete p.twoWay;delete p.professional;delete p.careerMode;return p;}));
   if(!t.progress){game.proPreparedLineup=rosters.map(rows=>{
-    const pitchers=rows.filter(p=>['선발','중간계투','마무리'].includes(pitchingRole(p))&&available(p,s.date)),starters=pitchers.filter(p=>pitchingRole(p)==='선발'),starter=starters.filter(p=>!p.lastPitched||addDays(p.lastPitched,4)<=game.date).sort((a,b)=>a.fatigue-b.fatigue||b.stats.control-a.stats.control)[0]??starters.sort((a,b)=>(a.lastPitched??'').localeCompare(b.lastPitched??''))[0];
+    const pitchers=rows.filter(p=>['선발','중간계투','마무리'].includes(pitchingRole(p))&&available(p,s.date));
+    const starters=pitchers.filter(p=>pitchingRole(p)==='선발');
+    const rested=starters.filter(p=>p.fatigue<params['coach.replace_fatigue']&&(!p.lastPitched||addDays(p.lastPitched,4)<=game.date));
+    const ready=pitchers.filter(p=>p.fatigue<params['coach.replace_fatigue']);
+    const starter=(rested.length?rested:ready.length?ready:pitchers).sort((a,b)=>a.fatigue-b.fatigue||b.stats.control-a.stats.control)[0];
     const used=new Set<string>(),field=(['C','SS','CF','2B','1B','3B','LF','RF','DH'] as Position[]).flatMap(pos=>{
       const eligible=rows.filter(p=>!used.has(p.id)&&(!['SP','RP','CP'].includes(p.position)||!!p.twoWay)&&available(p,s.date)&&canPlayPosition(p,pos)&&(!p.twoWay||pos==='DH'||p!==starter&&pitchingRole(p)==='선발'));
       const p=pos==='DH'&&starter?.twoWay?starter:eligible.filter(p=>pos==='DH'||p.position===pos||p.twoWay?.battingPosition===pos).sort((a,b)=>b.stats.contact-a.stats.contact)[0]??eligible.sort((a,b)=>b.stats.defense-a.stats.defense)[0];if(p)used.add(p.id);return p?[p.id]:[];

@@ -28,7 +28,7 @@ export const proContractRules = {
   growthBonus: 20,
   needBonus: 30,
   multiYearScore: 73,
-  faDurationBands: [[79,3,4],[77,2,4],[75,2,3],[73,1,2],[0,1,1]] as readonly (readonly [number,number,number])[],
+  faDurationBands: [[85,4,6],[81,3,5],[79,3,4],[77,2,4],[75,2,3],[73,1,2],[0,1,1]] as readonly (readonly [number,number,number])[],
   negotiationScore: 75,
   salaryBands: [
     [0, 1],

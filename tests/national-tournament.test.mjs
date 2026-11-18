@@ -12,9 +12,26 @@ for(const [kind,year,count,stages] of [['wbc',2030,20,4],['premier12',2027,12,3]
   assert.ok(t.finished,`${kind} failed to finish`);assert.equal(t.stages.length,stages);assert.ok(t.games.every(g=>g.status==='completed'));assert.ok(t.games.every(g=>g.score[0]!==g.score[1]));assert.ok(t.awards.find(a=>a.title==='MVP'));assert.equal(t.awards[0].score,Math.max(...t.awards.map(a=>a.score)));assert.ok(t.countries.slice(1).every(country=>country.players.length===0),'foreign players are discarded after the awards');assert.ok(nt.validNationalTournament(t));
   if(kind==='premier12'){assert.deepEqual(t.stages.map(stage=>stage.id),['opening','super','medals']);assert.deepEqual(t.stages[0].groups.map(group=>group.length),[6,6]);assert.deepEqual(t.stages[1].groups,[t.stages[0].groups.flatMap(group=>nt.nationalTable(t,t.stages[0],group).slice(0,2).map(row=>row.id))]);assert.equal(t.games.filter(g=>g.national.stage==='medals').length,2);}
   assert.deepEqual(s.players.map(p=>p.seasonByLevel),before);
-  if(kind!=='youth')assert.ok(t.games.filter(g=>[g.homeTeamId,g.awayTeamId].includes(0)&&!g.national.carried).every(g=>g.forfeitTeamId===undefined),'national quotas must field a playable team');
+  assert.ok(t.games.filter(g=>[g.homeTeamId,g.awayTeamId].includes(0)&&!g.national.carried).every(g=>g.forfeitTeamId===undefined),'national quotas must field a playable team');
   for(const c of t.countries)for(const p of c.players){const total=e.emptyRecord();for(const g of t.games)if(g.boxScore[p.id])e.mergeRecord(total,g.boxScore[p.id]);assert.deepEqual(p.records,total,'carried games must not duplicate appearances');}
   const snapshot=structuredClone(t);nt.playNationalDay(s);assert.deepEqual(t,snapshot);
+});
+test('youth opening games record pitching even when reputation favors relievers and left-handed first basemen',()=>{
+  const s=e.createGame('youth-roster','대표','SS');
+  s.date='2027-09-01';
+  for(const p of s.players)p.reputation=p.position==='RP'||(p.position==='1B'&&p.throws==='L')?99:1;
+  const roster=n.nationalRoster(s,p=>p.seasonStats,'youth');
+  const entry=n.rememberNational(s,'youth',roster);
+  entry.participated=false;
+  const t=nt.ensureNationalTournament(s,entry);
+  const games=t.games.filter(g=>[g.homeTeamId,g.awayTeamId].includes(0));
+  for(const game of games){
+    s.date=game.date;
+    nt.playNationalDay(s);
+    assert.equal(game.status,'completed');
+    assert.equal(game.forfeitTeamId,undefined);
+    assert.ok(t.countries[0].players.some(p=>game.boxScore[p.id]?.pitching.outs>0));
+  }
 });
 test('foreign national teams can field legal lineups when the user throws left-handed',()=>{
  const {s,entry}=fixture('wbc',2030);delete entry.result;e.getPlayer(s).throws='L';
@@ -57,6 +74,29 @@ test('declining a new invitation still plays the tournament, with a replacement 
   assert.ok(t.countries[0].players.every(p=>p.id!==s.playerId));
   for(let i=0;i<40&&!t.finished;i++){nt.playNationalDay(s);s.date=e.addDays(s.date,1);}
   assert.ok(t.finished);assert.ok(t.games.every(g=>!g.boxScore[s.playerId]));
+});
+test('declining after the roster was built fills a short APBC lineup and keeps both sides playable during domestic rest',()=>{
+  const {s,entry}=fixture('apbc',2029),mine=e.getPlayer(s);
+  entry.roster=[{id:mine.id,position:mine.position,name:mine.name,team:'한국',field:'batting',roleScore:80}];
+  delete entry.participated;
+  for(const p of s.players)p.seasonByLevel.first=e.emptyRecord();
+  const t=nt.ensureNationalTournament(s,entry);
+  assert.ok(t.countries[0].players.some(p=>p.id===mine.id));
+  entry.participated=false;entry.result='decline';
+  mine.trainingPolicy.mode='rest';
+  s.date=t.games[0].date;
+  const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;
+  assert.equal(nt.playNationalDay(restored),false);
+  const played=restored.nationalTeams[0].tournament;
+  assert.equal(played.countries[0].players.length,30);
+  assert.ok(!played.countries[0].players.some(p=>p.id===mine.id));
+  const games=played.games.filter(g=>g.status==='completed');
+  assert.equal(games.length,2);
+  for(const game of games){
+    assert.equal(game.forfeitTeamId,undefined);
+    assert.equal(game.lineup.length,2);
+    assert.ok(Object.values(game.boxScore).some(r=>r.pitching.outs>0));
+  }
 });
 
 test('tournament save validation rejects missing country and duplicate athlete records',()=>{

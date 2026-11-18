@@ -1,4 +1,6 @@
-import {available,getPlayer,isPitcher,ovr,proSelectionScore,roleFor,roleScore,selectionScore} from './engine';
+import {available,getPlayer,isPitcher,ovr,roleFor,roleScore,selectionScore} from './engine';
+import {nationalSelectionScore} from './pro-selection';
+import {canPlayPosition} from './position-eligibility';
 import {createProEvent} from './pro-event-catalog';
 import {ensureProEvents,proDayFree,proEventsEnabled,recordProChoice} from './pro-event-ledger';
 import type {CareerEvent,GameState,Player,Position,RecordLine} from './types';
@@ -20,24 +22,33 @@ export function nationalRole(p:Player){
   const position=p.twoWay?(pitching?p.twoWay.pitchingPosition:p.twoWay.battingPosition):p.position;
   return {pitching,position,role:roleFor(position)};
 }
-export function nationalRoster(s:GameState,records:(p:Player)=>RecordLine|undefined,kind:NationalKind='premier12'):NationalRosterMember[]{
-  const youth=kind==='youth',eligible=s.players.filter(p=>available(p,s.date)&&p.fatigue<80&&(youth?!p.careerMode:p.careerMode==='pro'&&p.professional?.employment==='active'&&p.teamId>=0&&p.proContract?.status!=='developmental')&&(!['apbc','olympics'].includes(kind)||(p.age??19)<=25));
-  const ranked=eligible.map(p=>{const n=nationalRole(p),r=records(p);return {p,...n,score:youth?p.reputation??selectionScore(p,n.role):proSelectionScore(p,n.role,{first:r},false),ability:ovr(p,n.pitching),qualified:youth||(n.pitching?(r?.pitching.outs??0)>=90:(r?.batting.PA??0)>=100)};}).filter(row=>row.qualified).sort((a,b)=>b.score-a.score||b.ability-a.ability||a.p.id.localeCompare(b.p.id));
+export function nationalCandidates(s:GameState,records:(p:Player)=>RecordLine|undefined,kind:NationalKind,
+  preferred:ReadonlyMap<string,Position>=new Map(),excludedId?:string){
+  const youth=kind==='youth';
+  const eligible=s.players.filter(p=>p.id!==excludedId&&available(p,s.date)&&p.fatigue<80&&(youth?!p.careerMode:p.careerMode==='pro'&&p.professional?.employment==='active'&&p.teamId>=0&&p.proContract?.status!=='developmental')&&(!['apbc','olympics'].includes(kind)||(p.age??19)<=25));
+  return eligible.map(p=>{
+    const position=preferred.get(p.id)??nationalRole(p).position,role=roleFor(position),pitching=isPitcher(role),r=records(p);
+    return {p,position,role,pitching,score:youth?p.reputation??selectionScore(p,role):nationalSelectionScore(p,role,r),ability:ovr(p,pitching),qualified:youth||(pitching?(r?.pitching.outs??0)>=90:(r?.batting.PA??0)>=100)};
+  }).filter(row=>canPlayPosition(row.p,row.position)).sort((a,b)=>
+    Number(preferred.has(b.p.id)&&b.p.id===s.playerId)-Number(preferred.has(a.p.id)&&a.p.id===s.playerId)||
+    Number(preferred.has(b.p.id))-Number(preferred.has(a.p.id))||Number(b.qualified)-Number(a.qualified)||b.score-a.score||b.ability-a.ability||a.p.id.localeCompare(b.p.id));
+}
+export function nationalRoster(s:GameState,records:(p:Player)=>RecordLine|undefined,kind:NationalKind='premier12',
+  options?:{preferred:ReadonlyMap<string,Position>;excludedId?:string}):NationalRosterMember[]{
+  const candidates=nationalCandidates(s,records,kind,options?.preferred,options?.excludedId);
+  const ranked=options?candidates:candidates.filter(row=>row.qualified);
   const selected:typeof ranked=[],used=new Set<string>();
   const take=(positions:Position[],n:number)=>{for(const row of ranked.filter(row=>positions.includes(row.position)&&!used.has(row.p.id)).slice(0,n)){selected.push(row);used.add(row.p.id);}};
-  if(youth){for(const pitching of [true,false])for(const row of ranked.filter(row=>row.pitching===pitching).slice(0,15)){selected.push(row);used.add(row.p.id);}}
-  else{
-    take(['SP'],5);take(['RP'],8);take(['CP'],2);take(['C'],2);
-    // A playable national roster needs each defensive position, not seven
-    // highly rated first basemen or five centre fielders.
-    for(const position of ['1B','2B','3B','SS'] as Position[])take([position],1);
-    take(['1B','2B','3B','SS'],3);
-    for(const position of ['LF','CF','RF'] as Position[])take([position],1);
-    take(['LF','CF','RF'],2);take(['DH'],1);
-    // A small candidate pool can lack a positional quota. Preserve 15 per field
-    // without duplicating a two-way player or manufacturing candidates.
-    for(const pitching of [true,false])for(const row of ranked.filter(row=>row.pitching===pitching&&!used.has(row.p.id))){if(selected.filter(row=>row.pitching===pitching).length>=15)break;selected.push(row);used.add(row.p.id);}
-  }
+  take(['SP'],5);take(['RP'],8);take(['CP'],2);take(['C'],2);
+  // A playable national roster needs each defensive position, not seven
+  // highly rated first basemen or five centre fielders.
+  for(const position of ['1B','2B','3B','SS'] as Position[])take([position],1);
+  take(['1B','2B','3B','SS'],3);
+  for(const position of ['LF','CF','RF'] as Position[])take([position],1);
+  take(['LF','CF','RF'],2);take(['DH'],1);
+  // A small candidate pool can lack a positional quota. Preserve 15 per field
+  // without duplicating a two-way player or manufacturing candidates.
+  for(const pitching of [true,false])for(const row of ranked.filter(row=>row.pitching===pitching&&!used.has(row.p.id))){if(selected.filter(row=>row.pitching===pitching).length>=15)break;selected.push(row);used.add(row.p.id);}
   return selected.map(row=>({id:row.p.id,position:row.position,selectionScore:row.score,roleScore:roleScore(row.p,row.role)}));
 }
 export function rememberNational(s:GameState,kind:NationalKind,roster:NationalRosterMember[],year=s.calendar.seasonYear){
@@ -79,7 +90,7 @@ export function chooseNationalField(s:GameState,entry:NationalSelection,field:'p
   entry.participationField=field;
   const member=entry.roster.find(row=>row.id===p.id);if(!member)return;
   member.position=field==='pitching'?pair.pitchingPosition:pair.battingPosition;member.field=field;
-  member.roleScore=roleScore(p,roleFor(member.position));member.selectionScore=entry.kind==='youth'?p.reputation??selectionScore(p,roleFor(member.position)):proSelectionScore(p,roleFor(member.position));
+  member.roleScore=roleScore(p,roleFor(member.position));member.selectionScore=entry.kind==='youth'?p.reputation??selectionScore(p,roleFor(member.position)):nationalSelectionScore(p,roleFor(member.position),p.seasonByLevel?.first);
   const ledger=entry.kind==='wbc'?s.proEvents?.wbc?.[entry.year]:s.proEvents?.national[entry.year],legacy=ledger?.roster.find(row=>row.id===p.id);
   if(legacy)Object.assign(legacy,{position:member.position,roleScore:member.roleScore,selectionScore:member.selectionScore});
   const athlete=entry.tournament?.countries[0].players.find(row=>row.id===p.id);if(athlete)athlete.position=member.position;

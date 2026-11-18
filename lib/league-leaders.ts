@@ -18,18 +18,18 @@ const batting:LeaderMetric[]=[
 ];
 const pitching:LeaderMetric[]=[
   {id:"era",label:"평균자책점",value:r=>recordRates(r).era,format:"decimal",ascending:true,qualified:true},
-  {id:"whip",label:"WHIP",value:r=>recordRates(r).whip,format:"decimal",ascending:true,qualified:true},
-  {id:"kRate",label:"탈삼진율",value:r=>r.pitching.BF?r.pitching.SO/r.pitching.BF:null,format:"percent",qualified:true},
+  {id:"whip",label:"WHIP",value:r=>recordRates(r).whip,format:"decimal",ascending:true},
+  {id:"kRate",label:"탈삼진율",value:r=>r.pitching.BF?r.pitching.SO/r.pitching.BF:null,format:"percent"},
   {id:"outs",label:"이닝",value:r=>r.pitching.outs,format:"innings"},
   {id:"wins",label:"승",value:r=>r.games?.wins??0},
-  {id:"holds",label:"홀드",value:r=>r.games?.holds??0,qualified:true},
-  {id:"saves",label:"세이브",value:r=>r.games?.saves??0,qualified:true},
+  {id:"holds",label:"홀드",value:r=>r.games?.holds??0},
+  {id:"saves",label:"세이브",value:r=>r.games?.saves??0},
   ...([['SO','탈삼진'],['BF','상대한 타자'],['H','피안타'],['BB','볼넷 허용'],['HR','피홈런'],['R','실점'],['ER','자책점']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>r.pitching[id],ascending:!['SO','BF'].includes(id)})),
 ];
 export const leaderMetrics:Record<LeaderField,LeaderMetric[]>={batting,pitching};
 pitching.push({id:'losses',label:'패',value:r=>r.games?.losses??0});
 for(const field of ['batting','pitching'] as const)leaderMetrics[field].push({id:'WAR',label:'WAR',format:'decimal',value:()=>null});
-export const proRankingMetricIds={batting:['avg','H','HR','RBI','SB','WAR'],pitching:['era','wins','losses','holds','saves','WAR']} as const;
+export const proRankingMetricIds={batting:['avg','H','HR','RBI','SB','WAR'],pitching:['era','wins','losses','holds','saves','SO','WAR']} as const;
 export type LeaderRow={player:Player;value:number;sample:number};
 
 // Pitching samples are recorded as outs: one out per team game is G / 3 innings.
@@ -54,7 +54,8 @@ export function leagueLeaders(state:GameState,competition:string,field:LeaderFie
   return leaderMetrics[field].map(metric=>({metric,rows:candidates.flatMap(({player,records,requiredSample})=>{
     if(!records)return [];
     const sample=field==="batting"?records.batting.PA:records.pitching.outs;
-    if(sample<=0||metric.qualified&&sample<requiredSample)return [];
+    const appeared=sample>0||field==="pitching"&&(records.pitching.BF>0||(records.games?.pitching??0)>0);
+    if(!appeared||metric.qualified&&sample<requiredSample)return [];
     const season=metric.id==='WAR'?playerSeasons(player,state.calendar.seasonYear).find(r=>r.year===state.calendar.seasonYear):undefined;
     const contribution=season&&pro?playerSeasonWar(player,season,level,'all',warContext):null;
     const value=metric.id==='WAR'?(contribution?.[field]??null):metric.value(records);

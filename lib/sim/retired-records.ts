@@ -1,3 +1,4 @@
+import {stovePlayerMoves} from './stove-report';
 import {emptyRecord,mergeRecord} from "./engine";
 import type {GameState,Player} from "./types";
 
@@ -9,6 +10,11 @@ export function discardRetiredPlayers(s:GameState){
   for(const p of [...world.archive,...s.players])if(p.id!==s.playerId&&p.professional?.employment==="retired")retired.set(p.id,p);
   const changed=world.archive.length>0||retired.size>0;
   if(!changed)return false;
+  const start=world.seasons.find(season=>season.year===world.year)?.endDate;
+  if(world.seasonClosed&&start)for(const p of retired.values()){
+    const moves=stovePlayerMoves(p,start,s.date);
+    if(moves.length)(world.departedStoveMoves??=[]).push(...moves);
+  }
   const totals=world.retiredRecords??={};
   for(const p of retired.values())for(const year of [s.calendar.seasonYear,s.calendar.seasonYear-1,s.calendar.seasonYear-2]){
     const row=p.career.find(row=>row.year===year&&row.careerMode==="pro");

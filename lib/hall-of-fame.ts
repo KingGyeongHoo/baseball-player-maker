@@ -1,3 +1,4 @@
+import {permanentRetiredNumbers} from './permanent-retired-numbers';
 import type {SavedRetiredNumber} from './retired-number-reservations';
 
 // Same club order as proClubNames and the numeric club IDs in career saves.
@@ -12,5 +13,7 @@ export function retiredNumberImage(template:string,number:number){
 export function clubRetiredNumbers(entries:SavedRetiredNumber[],club:number){
   const unique=new Map<string,SavedRetiredNumber>();
   for(const entry of entries)if(entry.club===club)unique.set(`${entry.saveId}:${entry.playerId}`,entry);
-  return [...unique.values()].sort((a,b)=>a.number-b.number||a.playerName.localeCompare(b.playerName,'ko'));
+  const saved=[...unique.values()].map(row=>({...row,key:JSON.stringify([row.saveId,row.playerId])}));
+  const permanent=permanentRetiredNumbers.filter(row=>row.club===club).map(row=>({...row,key:`permanent-${club}-${row.number}`}));
+  return [...permanent,...saved].sort((a,b)=>a.number-b.number||a.playerName.localeCompare(b.playerName,'ko'));
 }

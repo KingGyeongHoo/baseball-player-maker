@@ -2,7 +2,7 @@ import {goldGloveAwards} from "./pro-evaluation";
 import {individualAwardRows,individualAwards} from "./pro-individual-awards";
 import {proNotice} from "./pro-world";
 import {syncAwardBonuses,awardBonusPoints} from './pro-award-bonuses';
-import {getPlayer,isPitcher,selectionScore,positions} from './engine';
+import {getPlayer,isPitcher,positions} from './engine';
 import {backfillSeasonHonors} from './pro-historical-awards';
 import type {GameState} from "./types";
 import {refreshSeasonEvaluations} from './pro-season-evaluation';
@@ -13,13 +13,14 @@ export function queuePersonalAwardNotices(s:GameState,year:number,beforeScore?:n
   if(!season||!ceremony?.presentedAt)return;
   const p=getPlayer(s),order=['mvp','rookie','goldGlove'];
   const owned=season.awards.filter(award=>award.playerId===p.id&&order.includes(award.category??'')).sort((a,b)=>order.indexOf(a.category!)-order.indexOf(b.category!));
-  let cursor=beforeScore;const after=selectionScore(p);
+  let cursor=beforeScore;
+  const after=p.professional?.assessments?.find(row=>row.year===year)?.score??0;
   const notices:NonNullable<GameState['careerNotice']>[]=ceremony.celebrationsQueued?[]:owned.map(award=>{
     const category=award.category as 'mvp'|'rookie'|'goldGlove',bonus=awardBonusPoints[category];
     const title=category==='mvp'?'MVP':category==='rookie'?'신인왕':`${award.position==='P'?'투수':award.position?positions[award.position]:award.kind.replace('골든글러브 · ','')} 골든글러브`;
     const applied=cursor===undefined?undefined:Math.min(bonus,Math.max(0,after-cursor)),before=cursor;
     if(cursor!==undefined)cursor+=applied??0;
-    return {id:`award-celebration:${year}:${category}:${award.position??''}`,date:s.date,kind:'pro' as const,code:`award-celebration:${year}:${category}:${award.position??''}`,title:`${year}년 ${title}${category==='rookie'?'을':'를'} 획득했다!!`,message:`출전평가 수상 보너스 +${bonus}`,award:{year,title,bonus,after:cursor??after,...(before!==undefined?{before,applied}:{})}};
+    return {id:`award-celebration:${year}:${category}:${award.position??''}`,date:s.date,kind:'pro' as const,code:`award-celebration:${year}:${category}:${award.position??''}`,title:`${year}년 ${title}${category==='rookie'?'을':'를'} 획득했다!!`,message:`시즌 평가 수상 보너스 +${bonus}`,award:{year,title,bonus,after:cursor??after,...(before!==undefined?{before,applied}:{})}};
   });
   ceremony.celebrationsQueued=true;
   if(!ceremony.individualTitlesQueued){
@@ -54,7 +55,8 @@ export function ensureAwardsCeremony(s:GameState){
 export function presentAwardsCeremony(s:GameState){
   ensureAwardsCeremony(s);const season=s.proWorld?.seasons.find(row=>row.year===s.proWorld!.year),ceremony=season?.awardsCeremony;
   if(!season||!ceremony||ceremony.presentedAt||s.date<ceremony.scheduledAt)return false;
-  const beforeScore=selectionScore(getPlayer(s));ceremony.presentedAt=s.date;
+  const beforeScore=getPlayer(s).professional?.assessments?.find(row=>row.year===season.year)?.score??undefined;
+  ceremony.presentedAt=s.date;
   syncAwardBonuses(s);
   refreshSeasonEvaluations(s,season.year);
   proNotice(s,`awards:${season.year}`,`${season.year} 골든글러브 시상식`,"한 시즌을 빛낸 포지션별 최고의 선수와 시즌 MVP·신인왕을 발표합니다.");

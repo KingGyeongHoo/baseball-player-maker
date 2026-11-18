@@ -98,7 +98,8 @@ test('retirement dashboard puts lifetime records first, then the timeline and fo
  const s=retiredFixture(),html=renderToStaticMarkup(createElement(Retirement,{state:s,onRecords(){},onNew(){}}));
  assert(html.indexOf('야구인생 통산 기록')<html.indexOf('선수생활의 발자취'));assert(html.indexOf('선수생활의 발자취')<html.indexOf('올스타 선정</h2>'));
  for(const title of ['올스타 선정','개인 수상','시즌 MVP','국가대표 발탁','12.2','연도별·리그별 기록 보기'])assert(html.includes(title),title);
- assert.equal((html.match(/<ol class="career-timeline">/g)||[]).length,1);assert.equal((html.match(/<dd>/g)||[]).length,14);
+ assert.equal((html.match(/<ol class="career-timeline">/g)||[]).length,1);assert.equal((html.match(/<dd>/g)||[]).length,15);
+ assert.ok(html.includes('<dt>탈삼진</dt>'));
  for(const title of ['출발과 전환점','성장의 기록','우승과 수상'])assert(!html.includes(title));
 });
 

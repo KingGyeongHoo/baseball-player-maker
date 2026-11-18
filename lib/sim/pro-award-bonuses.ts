@@ -6,7 +6,6 @@ export function awardCategory(award:ProAward){
   if(award.category==='seriesMvp')return award.series?`${award.series}Mvp` as const:undefined;
   return award.category??(award.kind==='시즌 MVP'?'mvp':award.kind.startsWith('골든글러브')?'goldGlove':award.kind==='신인왕'?'rookie':undefined);
 }
-export const awardRatingBonus=(p:Player)=>Math.min(10,(p.professional?.awardBonuses??[]).reduce((sum,row)=>sum+row.points,0));
 export const awardBonusKey=(row:NonNullable<NonNullable<Player['professional']>['awardBonuses']>[number])=>`${row.year}:${row.level??'first'}:${row.category}:${row.seriesId??''}`;
 // Reconcile from announced trophies, rather than incrementing a score on load
 // or acknowledgment. Each season/category can grant its bonus only once.

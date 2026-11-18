@@ -10,8 +10,9 @@ export function backfillSeasonHonors(s:GameState){
   report.changed=backfillSeriesMvps(s);
   for(const season of s.proWorld.seasons){
     const missingRookie=season.rookieRulesVersion!==1;
-    const missingHR=(['first','second'] as const).some(level=>!season.individualAwards?.some(row=>row.level===level&&row.metric==='HR'));
-    if(!missingRookie&&!missingHR)continue;
+    const missingCountingTitle=(['first','second'] as const).some(level=>
+      ['HR','SO'].some(metric=>!season.individualAwards?.some(row=>row.level===level&&row.metric===metric)));
+    if(!missingRookie&&!missingCountingTitle)continue;
     const players=s.players.flatMap(p=>{
       const old=p.career.find(row=>row.careerMode==='pro'&&row.year===season.year);
       const levels=old?.byLevel??(s.calendar.seasonYear===season.year&&s.proWorld!.seasonClosed?p.seasonByLevel:undefined);
@@ -29,11 +30,11 @@ export function backfillSeasonHonors(s:GameState){
       season.rookieRulesVersion=1;report.changed=true;
       report.rookies.push({year:season.year,recordedPlayers:players.length,...(winner?{playerId:winner.playerId,playerName:winner.playerName}:{})});
     }
-    if(missingHR)for(const award of individualAwards(archived).filter(row=>row.metric==='HR')){
+    if(missingCountingTitle)for(const award of individualAwards(archived).filter(row=>row.metric==='HR'||row.metric==='SO')){
       season.individualAwards??=[];
-      if(season.individualAwards.some(row=>row.level===award.level&&row.metric==='HR'))continue;
+      if(season.individualAwards.some(row=>row.level===award.level&&row.metric===award.metric))continue;
       season.individualAwards.push(award);report.changed=true;
-      report.homeRuns.push({year:season.year,level:award.level,value:award.value,names:award.winners.map(row=>row.playerName)});
+      if(award.metric==='HR')report.homeRuns.push({year:season.year,level:award.level,value:award.value,names:award.winners.map(row=>row.playerName)});
     }
   }
   report.changed=syncAwardBonuses(s)||report.changed;
