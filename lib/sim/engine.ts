@@ -301,7 +301,7 @@ function makePlayer(s: Pick<GameState,'seed'|'rngStates'|'teams'>, teamId: numbe
     trainingPolicy: defaultPolicy(role),
     stance: {
       batting: "level",
-      pitching: "command"
+      pitching: "regular"
     },
     seasonStats: emptyRecord(),
     career: [],

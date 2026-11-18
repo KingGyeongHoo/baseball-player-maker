@@ -272,7 +272,7 @@ export default function BaseballLife({initialState=null}:{initialState?:GameStat
   const [trainingDraft, setTrainingDraft] = useState<Policy | null>(null);
   const [stance, setStance] = useState<Stance>(initialState?{...getPlayer(initialState).stance}:{
     batting: "level",
-    pitching: "command"
+    pitching: "regular"
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

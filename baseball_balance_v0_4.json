@@ -638,7 +638,7 @@
     {
       "key": "stance.full_velocity",
       "label": "전력 구속 배율",
-      "value": 1.12,
+      "value": 1.05,
       "unit": "배율",
       "status": "임시 기본값",
       "note": "설계 가설; 실제 시즌 데이터 보정 전"
@@ -646,7 +646,7 @@
     {
       "key": "stance.full_control",
       "label": "전력 제구 배율",
-      "value": 0.92,
+      "value": 0.95,
       "unit": "배율",
       "status": "임시 기본값",
       "note": "설계 가설; 실제 시즌 데이터 보정 전"
@@ -654,15 +654,18 @@
     {
       "key": "stance.full_cost",
       "label": "전력 투구 피로 배율",
-      "value": 1.25,
+      "value": 1,
       "unit": "배율",
       "status": "임시 기본값",
       "note": "설계 가설; 실제 시즌 데이터 보정 전"
     },
+    { "key": "stance.regular_velocity", "label": "레귤러 구속 배율", "value": 1, "unit": "배율", "status": "사용자 합의", "note": "기본 투구 성향" },
+    { "key": "stance.regular_control", "label": "레귤러 제구 배율", "value": 1, "unit": "배율", "status": "사용자 합의", "note": "기본 투구 성향" },
+    { "key": "stance.regular_cost", "label": "레귤러 피로 배율", "value": 1, "unit": "배율", "status": "사용자 합의", "note": "기본 투구 성향" },
     {
       "key": "stance.command_velocity",
       "label": "커맨드 구속 배율",
-      "value": 0.94,
+      "value": 0.95,
       "unit": "배율",
       "status": "임시 기본값",
       "note": "설계 가설; 실제 시즌 데이터 보정 전"
@@ -670,7 +673,7 @@
     {
       "key": "stance.command_control",
       "label": "커맨드 제구 배율",
-      "value": 1.12,
+      "value": 1.05,
       "unit": "배율",
       "status": "임시 기본값",
       "note": "설계 가설; 실제 시즌 데이터 보정 전"
@@ -678,7 +681,7 @@
     {
       "key": "stance.command_cost",
       "label": "커맨드 피로 배율",
-      "value": 0.9,
+      "value": 1,
       "unit": "배율",
       "status": "임시 기본값",
       "note": "설계 가설; 실제 시즌 데이터 보정 전"

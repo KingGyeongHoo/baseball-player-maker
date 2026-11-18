@@ -326,3 +326,10 @@
 }
 
 .contract-assessments{border:1px solid #dce2d3;border-radius:10px;padding:18px;margin:18px 0;background:#fafbf6}.assessment-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:14px 0}.assessment-metrics span{display:block;color:#78816c;font-size:11px}.assessment-metrics b{display:block;font-size:19px;margin-top:5px}.contract-assessment-notice{padding:10px 12px;border-radius:6px;background:#fff1df;color:#966536;font-size:12px;margin:10px 0}.contract-assessments details{margin-top:14px}@media(max-width:700px){.assessment-metrics{grid-template-columns:1fr}.contract-assessments{padding:14px}}
+
+.pro-league .league-level-tabs{display:flex;width:100%;max-width:none;gap:6px;padding:6px;margin:0 0 24px;border:1px solid #dfe6ef;border-radius:10px;background:#eef2f7;box-sizing:border-box}
+.pro-league .league-level-tabs button{flex:1;min-width:0;padding:13px 18px;border:0;border-radius:6px;background:transparent;color:#738198;font-size:13px;font-weight:700;transition:background .15s,color .15s}
+.pro-league .league-level-tabs button.selected{background:var(--navy);color:#fff;box-shadow:0 2px 5px #0e204619}
+.pro-league .league-level-tabs button:focus-visible{outline:2px solid #638bc1;outline-offset:2px}
+.pro-league>.postseason-view{margin-bottom:24px}.pro-league .league-individual{margin-top:30px}.pro-league .league-leaders-heading{margin:0 0 18px}.pro-league .league-leaders-heading h2{margin:0}.pro-league>.panel{overflow:hidden}
+@media(max-width:600px){.pro-league .league-level-tabs{margin-bottom:18px}.pro-league .league-level-tabs button{padding:11px 14px;font-size:12px}.pro-league .league-leaders-heading{gap:12px}.pro-league .league-leaders-heading h2{font-size:17px}}

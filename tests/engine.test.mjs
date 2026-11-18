@@ -184,6 +184,17 @@ test('swing styles trade a 5 percent strength bonus for a 5 percent opposite-fie
   for(const key of statKeys.filter(k=>!['contact','power'].includes(k))){close(down[key],level[key]);close(up[key],level[key]);}
   assert.deepEqual(p.stats,raw);p.stance.batting='level';assert.deepEqual(e.effective(p),level);
 });
+test('pitching styles trade five percent velocity and control around a neutral regular pitcher',()=>{
+ const p=e.previewPlayer('pitching-style-balance','투구성향','SP');uniform(p,40);p.fatigue=0;p.injury=null;
+ assert.equal(p.stance.pitching,'regular');const raw={...p.stats},regular=e.effective(p);
+ close(regular.velocity,40);close(regular.control,40);
+ for(const [style,velocity,control] of [['full',1.05,.95],['command',.95,1.05]]){
+  p.stance.pitching=style;const stats=e.effective(p);close(stats.velocity/regular.velocity,velocity);close(stats.control/regular.control,control);
+  for(const key of statKeys.filter(key=>!['velocity','control'].includes(key)))close(stats[key],regular[key]);
+  assert.equal(e.params[`stance.${style}_cost`],e.params['stance.regular_cost']);
+ }
+ assert.deepEqual(p.stats,raw);p.stance.pitching='regular';assert.deepEqual(e.effective(p),regular);
+});
 test('conditional probabilities match documented equal-40 example', () => {
   const p = e.getPlayer(newGame());
   uniform(p, 40);

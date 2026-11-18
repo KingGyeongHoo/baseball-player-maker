@@ -97,3 +97,40 @@ test('league page renders separate team and personal standings with clear empty 
  for(const text of ['1군','2군','2군 팀 순위','개인 순위','타자','투수','TOP 10','아직 기록이 없습니다.'])assert.ok(html.includes(text),text);
  for(const removed of ['구단 경기 기록','은퇴 선수','리그 현황','구단 방향과 선수 비용'])assert.ok(!html.includes(removed));
 });
+
+function postseasonFixture(){
+ const s=fixture(),p=player('me',0);p.name='최해승';p.primaryRole='마무리';p.position='CP';p.twoWay=undefined;
+ for(const game of s.calendar.events){game.status='completed';game.score=[3,1];}
+ p.seasonByLevel.second.pitching={...p.seasonByLevel.second.pitching,outs:78,BF:110,SO:50,ER:5};p.seasonByLevel.second.games={saves:26};
+ p.seasonPostseason=e.emptyRecord();p.seasonPostseason.pitching.outs=30;p.seasonPostseason.pitching.BF=40;p.seasonPostseason.games={saves:99};
+ s.players=[p];s.proWorld.stage='postseason';s.proWorld.postseason={format:'kbo-v1',seeds:[0,1,2,3,4],series:[]};s.proWorld.farmPostseason={seeds:[10,11,12,13],series:[]};
+ return s;
+}
+test('postseason call-ups retain farm saves and regular-only qualification, never copying playoff records into rankings',()=>{
+ const {leaderQualification}=require('../.test-build/lib/league-leaders.js'),s=postseasonFixture(),p=s.players[0],before=structuredClone(p.seasonByLevel);
+ assert.deepEqual(leaderQualification(s,p,'pro-second','pitching'),{games:117,current:78,required:117,qualified:false});
+ assert.deepEqual(rows(s,'pro-second','pitching','saves'),[]);assert.deepEqual(rows(s,'pro-first','pitching','saves'),[]);
+ assert.equal(rows(s,'pro-second','pitching','outs')[0].value,78);assert.deepEqual(p.seasonByLevel,before);
+ p.seasonByLevel.second.pitching.outs=117;assert.equal(rows(s,'pro-second','pitching','saves')[0].value,26);assert.deepEqual(rows(s,'pro-first','pitching','saves'),[]);
+ p.teamId=10;assert.equal(rows(s,'pro-second','pitching','saves')[0].value,26);
+});
+test('league has one top selector controlling the bracket and defaults to the regular-season level and pitching field',()=>{
+ const s=postseasonFixture(),html=renderToStaticMarkup(createElement(League,{state:s,onRecords(){}}));
+ assert.equal((html.match(/aria-label="리그 선택"/g)??[]).length,1);assert.ok(!html.includes('포스트시즌 대진표 리그 선택'));
+ assert.ok(html.indexOf('aria-label="리그 선택"')<html.indexOf('2군 포스트시즌 대진표'));
+ assert.ok(html.includes('2군 팀 순위'));assert.ok(html.includes('<h3>세이브'));assert.ok(!html.includes('<h3>홈런'));
+ const View=require('../.test-build/app/components/postseason-view.js').default;
+ for(const level of ['first','second']){
+  const view=renderToStaticMarkup(createElement(View,{state:s,initialLevel:level==='first'?'second':'first',level}));
+  assert.ok(view.includes(level==='first'?'한국시리즈':'2군 포스트시즌'));assert.ok(!view.includes('postseason-level-picker'));
+ }
+ assert.ok(renderToStaticMarkup(createElement(View,{state:s})).includes('포스트시즌 대진표 리그 선택'));
+});
+test('dashboard displays exact league qualification thresholds and unmet or met status using plate appearances and outs',()=>{
+ const {leaderQualification}=require('../.test-build/lib/league-leaders.js'),Records=require('../.test-build/app/components/dashboard-records.js').default;
+ const s=postseasonFixture(),p=s.players[0];p.seasonByLevel.second.batting.PA=362;p.seasonByLevel.second.batting.AB=300;
+ const render=()=>renderToStaticMarkup(createElement(Records,{records:p.seasonStats,qualification:[{label:'2군',batting:leaderQualification(s,p,'pro-second','batting'),pitching:leaderQualification(s,p,'pro-second','pitching')}]}));
+ let html=render();for(const text of ['규정이닝 미달','26.0 / 39.0이닝','규정타석 미달','362 / 363타석'])assert.ok(html.includes(text),text);
+ p.seasonByLevel.second.batting.PA=363;p.seasonByLevel.second.pitching.outs=117;html=render();assert.ok(html.includes('규정이닝 충족'));assert.ok(html.includes('규정타석 충족'));
+ for(const game of s.calendar.events)game.status='scheduled';html=render();assert.ok(html.includes('개막 전'));assert.ok(!html.includes('미달'));
+});

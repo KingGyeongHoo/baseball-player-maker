@@ -39,6 +39,15 @@ export function requiredLeaderSample(player:Player,field:LeaderField,games:numbe
   return Math.max(1,Math.ceil(games*(pro&&bullpen?1:3)));
 }
 
+export function leaderQualification(state:GameState,player:Player,competition:string,field:LeaderField){
+  const level=competition==='pro-first'?'first':'second';
+  const table=careerLeagueTable(state.calendar,competition),team=player.teamId>=0?player.teamId%10+(level==='second'?10:0):undefined;
+  const row=table.find(row=>row.teamId===team),games=row?row.played:Math.max(0,...table.map(row=>row.played));
+  const record=player.seasonByLevel?.[level],current=field==='batting'?(record?.batting.PA??0):(record?.pitching.outs??0);
+  const required=requiredLeaderSample(player,field,games,true);
+  return {games,current,required,qualified:games>0&&current>=required};
+}
+
 export function leagueLeaders(state:GameState,competition:string,field:LeaderField){
   const pro=state.careerMode==="pro",level=competition==="pro-first"?"first":"second";
   const warContext=pro?createProWarContext(state):undefined;

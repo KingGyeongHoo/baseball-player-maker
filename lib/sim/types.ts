@@ -24,7 +24,7 @@ export type Policy = {
 };
 export type Stance = {
   batting: "down" | "level" | "up";
-  pitching: "full" | "command";
+  pitching: "full" | "regular" | "command";
 };
 export type Batting = {
   SB?: number;
