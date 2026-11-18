@@ -120,7 +120,7 @@ test('every first-team roster has exactly 29 registrations and a legal 12-to-15 
  for(let club=0;club<10;club++){
   const roster=s.players.filter(p=>p.teamId===club),count=pos=>roster.filter(p=>p.position===pos).length;
   assert.equal(roster.length,29);const arms=roster.filter(p=>e.isPitcher(p.primaryRole)).length;assert(arms>=12&&arms<=15);
-  assert(count('SP')>=5&&count('SP')<=6);assert.equal(count('CP'),1);assert.equal(count('RP'),arms-count('SP')-1);
+  assert(count('SP')>=5&&count('SP')<=6);assert.equal(count('RP')+count('CP'),arms-count('SP'));
  }
  w.ensureProWorld(s);assert.deepEqual(s.players,snapshot);
 });

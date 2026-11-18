@@ -52,7 +52,7 @@ export type ProWorld = {
   stove?:{version:1;year:number;openedAt:string;closesAt:string;nextUpdate:string;round:number;closed:boolean;movedIds:string[];reported?:true};
   allstar?:ProAllstarSeason;
   version:1; contractRulesVersion?:1|2|3|4|5; year:number; stage:ProStage; regularEnd:string; seasonClosed:boolean;
-  clubs:{id:number;direction:"contend"|"balanced"|"rebuild";budget:number;deadMoney:Record<string,number>;nextReview?:string}[];
+  clubs:{id:number;direction:"contend"|"balanced"|"rebuild";budget:number;deadMoney:Record<string,number>;nextReview?:string;closerId?:string}[];
   seasons:ProSeasonArchive[]; archive:Player[]; retiredRecords?:Record<string,RecordLine>; news:{id:string;date:string;text:string}[];
   postseason?:ProPostseason;
   farmPostseason?:{seeds:number[];series:ProSeries[];champion?:number};

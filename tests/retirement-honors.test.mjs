@@ -23,12 +23,15 @@ test('A needs 18 credited one-club seasons and S needs 15, excluding the initial
 test('veteran retirement counts consecutive low grades or short registration with age-specific thresholds',()=>{
  const {s,p,pro,club}=fixture(),year=s.calendar.seasonYear;
  const [third,previous,current]=pro.assessments.slice(-3);
- previous.seasonRank.grade='E';
+ previous.seasonRank.grade='C';
  current.honorRegistration.firstDaysByClub[club]=89;
  for(const age of [35,36,39]){p.age=age;assert.equal(retirement.veteranRetirementReason(p,year),undefined);}
  p.age=40;assert.match(retirement.veteranRetirementReason(p,year),/2시즌/);
  p.age=41;assert.match(retirement.veteranRetirementReason(p,year),/2시즌/);
- p.age=36;third.seasonRank.grade='F';assert.match(retirement.veteranRetirementReason(p,year),/3시즌/);
+ previous.seasonRank.grade='B';assert.equal(retirement.veteranRetirementReason(p,year),undefined);
+ p.age=36;third.seasonRank.grade='F';previous.seasonRank.grade='C';
+ assert.equal(retirement.veteranRetirementReason(p,year),undefined);
+ previous.seasonRank.grade='D';assert.match(retirement.veteranRetirementReason(p,year),/3시즌/);
  p.age=42;assert.ok(retirement.veteranRetirementReason(p,year));
  current.honorRegistration.firstDaysByClub[club]=90;
  current.seasonRank.grade='B';assert.ok(retirement.veteranRetirementReason(p,year));

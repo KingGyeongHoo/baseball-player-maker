@@ -74,9 +74,11 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   // Reuse pregame condition on a resumed choice, even after an inning has
   // already updated lastPitched. Main/backup closing duties cannot reroll.
   const pregame=new Map(m.original.map(p=>[p.id,p]));
+  const gameTeams=[game.homeTeamId,game.awayTeamId];
   const bullpenPlans=m.sides.map((side,index)=>proBullpenPlan(rosters[index].filter(p=>isPitcher(pitchingRole(p))).map(p=>{
     const original=pregame.get(p.id);return original?{...p,fatigue:original.fatigue,lastPitched:original.lastPitched}:p;
-  }),s.seed,game.date,index,recentTeamGames[index],new Set(side.pitchers),new Set(game.evaluationPlayers??[])));
+  }),s.seed,game.date,index,recentTeamGames[index],new Set(side.pitchers),new Set(game.evaluationPlayers??[]),
+    pro?(gameTeams[index]<10?s.proWorld?.clubs[gameTeams[index]]?.closerId??null:null):undefined));
   const line = (p: Player) => game.boxScore[p.id] ??= emptyRecord();
   const forfeit = (side: number) => {
     game.status = "forfeit"; game.forfeitTeamId = side === 0 ? game.homeTeamId : game.awayTeamId;
@@ -115,7 +117,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
         const outsNeeded=Math.max(1,10-m.inning)*3-m.outs;
         limit=Math.max(limit,Math.min(9,m.pitchOuts[pitchingSide]+Math.max(0,outsNeeded-remaining*3)));
       }
-      const saveEntry=!game.exhibition&&!starter&&!!closerId&&current.id!==closerId&&(m.inning>=9||pro&&earlyCloser&&m.inning===8)&&m.pa===1&&m.outs===0&&game.score[pitchingSide]>game.score[side]&&game.score[pitchingSide]-game.score[side]<=3&&proReliefReady(player(closerId),game.date,undefined,recentTeamGames[pitchingSide]);
+      const saveEntry=!game.exhibition&&!starter&&!!closerId&&current.id!==closerId&&(m.inning>=9||pro&&earlyCloser&&m.inning===8)&&m.pa===1&&m.outs===0&&game.score[pitchingSide]>game.score[side]&&game.score[pitchingSide]-game.score[side]<=3&&proReliefReady(player(closerId),game.date,undefined,recentTeamGames[pitchingSide],true);
       if (saveEntry || m.pitchOuts[pitchingSide] >= limit || current.fatigue >= params["coach.replace_fatigue"] || !available(current, game.date)) {
         const unused=m.sides[pitchingSide].pitchers.map(player).filter(p=>!m.usedPitchers[pitchingSide].includes(p.id)&&(!m.sides[pitchingSide].field.includes(p.id)||!!p.twoWay&&m.sides[pitchingSide].field[8]===p.id)&&available(p,game.date)&&p.fatigue<params['coach.replace_fatigue']&&(!pro||['중간계투','마무리'].includes(pitchingRole(p)))&&(game.exhibition||p.id!==mainCloserId||closerId===mainCloserId));
         // Keep the designated closer out of middle innings even when he is
@@ -123,7 +125,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
         // bullpen can still use him in a genuine emergency.
         const middle=unused.filter(p=>p.id!==closerId||m.inning>=9&&lead>=1&&lead<=3);
         const pool=game.exhibition||!middle.length?unused:middle;
-        const rested=pool.filter(p=>!pro||game.exhibition||proReliefReady(p,game.date,longReliefId,recentTeamGames[pitchingSide]));
+        const rested=pool.filter(p=>!pro||game.exhibition||proReliefReady(p,game.date,longReliefId,recentTeamGames[pitchingSide],p.id===closerId));
         const priority=(p:Player)=>{
           if(pro&&!game.exhibition)return proReliefPriority(p,game.date,m.inning,lead,closerId,longReliefId,setupId,bridgeId,recentTeamGames[pitchingSide].length);
           const closing=!game.exhibition&&p.id===closerId?(m.inning>=9&&lead>=1&&lead<=3?100:-100):0;

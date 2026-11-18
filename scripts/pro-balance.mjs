@@ -35,8 +35,11 @@ export function runSeason(seed){
        const p=s.players.find(p=>p.id===id),row=workloadRows.get(id)??{id,role:p.position,games:0,outs:0,maxOuts:0,starts:0};
        row.games++;row.outs+=record.pitching.outs;row.maxOuts=Math.max(row.maxOuts,record.pitching.outs);row.starts+=Number(g.lineup.some(side=>side[9]===id));workloadRows.set(id,row);
        if(row.role==='SP'&&record.pitching.outs>=24)rareOutings.starterEightInnings++;
-       if(row.role==='RP'&&record.pitching.outs>=9)rareOutings.reliefThreeInnings++;
-       if(row.role==='CP'&&record.pitching.outs===1){const order=Object.entries(g.boxScore).filter(([other,r])=>s.players.find(p=>p.id===other)?.teamId===p.teamId&&r.pitching.BF>0).map(([id])=>id);if(order.slice(order.indexOf(id)+1).some(other=>s.players.find(p=>p.id===other)?.position==='RP'))rareOutings.closerOneOutThenRelief++;}
+       if(row.role!=='SP'&&record.pitching.outs>=9)rareOutings.reliefThreeInnings++;
+       if(s.proWorld.clubs[p.teamId]?.closerId===id&&record.pitching.outs===1){
+         const order=Object.entries(g.boxScore).filter(([other,r])=>s.players.find(p=>p.id===other)?.teamId===p.teamId&&r.pitching.BF>0).map(([id])=>id);
+         if(order.length>order.indexOf(id)+1)rareOutings.closerOneOutThenRelief++;
+       }
      }
      assert.equal(sum(rs.map(r=>r.batting),'H'),sum(rs.map(r=>r.pitching),'H'));
      assert.equal(sum(rs.map(r=>r.batting),'SO'),sum(rs.map(r=>r.pitching),'SO'));
@@ -49,10 +52,11 @@ export function runSeason(seed){
  const hs=records.filter(x=>x.r.batting.PA>=100),ps=records.filter(x=>x.r.pitching.outs>=90);
  const h=hs.map(x=>x.r.batting),p=ps.map(x=>x.r.pitching),qualified=hs.filter(x=>x.r.batting.PA>=446),qp=ps.filter(x=>x.r.pitching.outs>=432);
  const metric=(rs,fn)=>({max:Math.max(...rs.map(fn)),mean:mean(rs.map(fn)),min:Math.min(...rs.map(fn))});
- const closerIds=new Set(Array.from({length:10},(_,team)=>s.players.filter(p=>p.teamId===team&&e.pitchingRole(p)==='마무리').sort((a,b)=>e.roleScore(b,e.pitchingRole(b))-e.roleScore(a,e.pitchingRole(a))||a.id.localeCompare(b.id))[0]?.id));
+ const closerIds=new Set(s.proWorld.clubs.map(club=>club.closerId));
+ const seasonRole=p=>p.position==='SP'?'SP':closerIds.has(p.id)?'CP':'RP';
  const starts=new Map();for(const game of games)for(const side of game.lineup){const id=side[9];starts.set(id,(starts.get(id)??0)+1);}
- const roles=Object.fromEntries(['SP','RP','CP'].map(role=>{const rs=ps.filter(x=>x.p.position===role&&(role!=='CP'||closerIds.has(x.p.id))&&(role!=='SP'||(starts.get(x.p.id)??0)>=20));return [role,{n:rs.length,IP:metric(rs,x=>x.r.pitching.outs/3),W:metric(rs,x=>x.r.games?.wins??0),L:metric(rs,x=>x.r.games?.losses??0),HLD:metric(rs,x=>x.r.games?.holds??0),SV:metric(rs,x=>x.r.games?.saves??0)}];}));
- const workload=Object.fromEntries(['SP','RP','CP'].map(role=>{const rows=[...workloadRows.values()].filter(row=>{const rec=records.find(x=>x.p.id===row.id)?.r;return role==='SP'?row.role==='SP'&&row.games>=20&&row.outs/3/row.games>=4:role==='RP'?row.role==='RP'&&row.games>=40&&row.outs/3/row.games<2&&(rec?.games?.saves??0)<10:row.role==='CP'&&(rec?.games?.saves??0)>=20&&(rec?.games?.saves??0)>=(rec?.games?.holds??0);});return[role,{n:rows.length,games:mean(rows.map(row=>row.games)),innings:mean(rows.map(row=>row.outs/3)),perGame:sum(rows,'outs')/3/Math.max(1,sum(rows,'games')),maxGames:Math.max(0,...rows.map(row=>row.games)),maxOuting:Math.max(0,...rows.map(row=>row.maxOuts))/3}];}));
+ const roles=Object.fromEntries(['SP','RP','CP'].map(role=>{const rs=ps.filter(x=>seasonRole(x.p)===role&&(role!=='SP'||(starts.get(x.p.id)??0)>=20));return [role,{n:rs.length,IP:metric(rs,x=>x.r.pitching.outs/3),W:metric(rs,x=>x.r.games?.wins??0),L:metric(rs,x=>x.r.games?.losses??0),HLD:metric(rs,x=>x.r.games?.holds??0),SV:metric(rs,x=>x.r.games?.saves??0)}];}));
+ const workload=Object.fromEntries(['SP','RP','CP'].map(role=>{const rows=[...workloadRows.values()].filter(row=>{const rec=records.find(x=>x.p.id===row.id)?.r;return role==='SP'?row.role==='SP'&&row.games>=20&&row.outs/3/row.games>=4:role==='RP'?row.role!=='SP'&&row.games>=40&&row.outs/3/row.games<2&&(rec?.games?.saves??0)<10:row.role!=='SP'&&(rec?.games?.saves??0)>=20&&(rec?.games?.saves??0)>=(rec?.games?.holds??0);});return[role,{n:rows.length,games:mean(rows.map(row=>row.games)),innings:mean(rows.map(row=>row.outs/3)),perGame:sum(rows,'outs')/3/Math.max(1,sum(rows,'games')),maxGames:Math.max(0,...rows.map(row=>row.games)),maxOuting:Math.max(0,...rows.map(row=>row.maxOuts))/3}];}));
  for(const row of workloadRows.values()){const record=records.find(x=>x.p.id===row.id).r;assert.equal(record.pitching.outs,row.outs);assert.equal(record.games.pitching,row.games);}
  return {seed,games:games.length,forfeits,hitters:hs.length,pitchers:ps.length,H:metric(h,x=>x.H),HR:metric(h,x=>x.HR),RBI:metric(h,x=>x.RBI),AVG:{max:Math.max(...qualified.map(x=>x.r.batting.H/x.r.batting.AB)),mean:sum(h,'H')/sum(h,'AB')},OPS:{max:Math.max(...qualified.map(x=>e.ops(x.r))),mean:(sum(h,'H')+sum(h,'BB'))/sum(h,'PA')+(sum(h,'H')+sum(h,'2B')+2*sum(h,'3B')+3*sum(h,'HR'))/sum(h,'AB')},ERA:{min:Math.min(...qp.map(x=>27*x.r.pitching.ER/x.r.pitching.outs)),mean:27*sum(p,'ER')/sum(p,'outs')},K:metric(p,x=>x.SO),roles,workload,rareOutings};
 }

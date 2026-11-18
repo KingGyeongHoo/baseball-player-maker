@@ -15,8 +15,8 @@ import type {SalaryContract} from "./pro-types";
 import {discardRetiredPlayers} from "./retired-records";
 import {markHonorInjuryLeave} from './retirement-honors';
 import {syncProClubNames} from "./club-names";
-import {proRotationStarter,proStarterReady} from './pro-balance';
-import {createCareerNPC,firstTeamRosterCapacity} from './pro-roster';
+import {compareClosers,proRotationStarter,proStarterReady} from './pro-balance';
+import {createCareerNPC,firstTeamRosterCapacity,firstTeamSlotPosition} from './pro-roster';
 import {trimPostseasonRostersForOpening} from './pro-postseason-roster';
 import {ensureProSquadTeams,needsProSquadUpgrade,normalizeFirstTeamRoster,proSquad,reorganizeProSquads,reservePromotionCandidates,restoreGuaranteedSquads,setProSquad} from "./pro-squads";
 
@@ -96,8 +96,16 @@ export function reviewProMilestones(s:GameState){
   if(w.stage==="regular"&&halfway&&s.date>=halfway&&w.midseasonShown!==w.year){w.midseasonShown=w.year;proNotice(s,`midseason:${w.year}`,"시즌 중간 점검","전반기 기록·컨디션과 포지션 경쟁을 확인하세요. 커리어 화면에서 현 역할의 기회, 보직 평가, 몸 관리 또는 이적 검토를 요청할 수 있습니다. 중간 점검 이후에는 트레이드 시장이 닫힙니다.");}
 }
 const retentionScore=(p:Player,year:number)=>selectionScore(p)+firstTeamDemotionMargin(p,year);
+function designateCloser(s:GameState,club:NonNullable<GameState['proWorld']>['clubs'][number]){
+  const relievers=s.players.filter(p=>p.teamId===club.id&&['중간계투','마무리'].includes(pitchingRole(p)));
+  club.closerId=relievers.sort((a,b)=>Number(guaranteedProStarter(b,'CP',s.date))-Number(guaranteedProStarter(a,'CP',s.date))||compareClosers(a,b))[0]?.id;
+}
 export function prepareOpeningRegistrations(s:GameState){
   const changes=trimPostseasonRostersForOpening(s);
+  const opening=s.calendar.competitions.find(c=>c.id==='pro-first')?.startDate;
+  if(s.proWorld?.stage==='camp'&&opening&&s.date>=opening){
+    for(const club of s.proWorld.clubs)designateCloser(s,club);
+  }
   for(const {club,players} of changes)if(players.length){
     proNews(s,`${clubName(s,club)} · 개막 엔트리 29명 조정 · ${players.map(p=>p.name).join(', ')} 2군 이동`);
     if(players.some(p=>p.id===s.playerId))proNotice(s,`opening-roster:${s.proWorld!.year}`,"개막 엔트리 조정",registrationChangeMessage([],players.map(p=>p.name)),"demoted");
@@ -121,16 +129,18 @@ export function reviewLeagueRegistrations(s:GameState) {
   if(prepareOpeningRegistrations(s)){summarizeRegistrationNotices(s,before,priorNotices);return !!s.careerNotice;}
   if(w.openingRosterDate===s.date)return false;
   const previous=s.careerNotice?.id;
-  const positions:Position[]=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","RP","CP"];
+  const positions:Position[]=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","RP"];
   for(const club of w.clubs){
     const regular=s.date>=(club.nextReview??`${w.year}-03-15`);if(regular)club.nextReview=addDays(s.date,14);
     for(const pos of positions){
+      const fits=(p:Player)=>currentProPosition(p,pos)||pos==='RP'&&currentProPosition(p,'CP');
+      const score=(p:Player)=>selectionScore(p,roleFor(pos));
       // Fill every earned place at this position in the same review, rather
       // than leaving the second-best farm player behind a weaker incumbent.
       while(true){
-        const first=s.players.filter(p=>p.teamId===club.id&&currentProPosition(p,pos)).sort((a,b)=>selectionScore(a,roleFor(pos))-selectionScore(b,roleFor(pos))||retentionScore(a,w.year)-retentionScore(b,w.year)||a.id.localeCompare(b.id));
+        const first=s.players.filter(p=>p.teamId===club.id&&fits(p)).sort((a,b)=>score(a)-score(b)||retentionScore(a,w.year)-retentionScore(b,w.year)||a.id.localeCompare(b.id));
         if(!first.length){
-          const up=s.players.filter(p=>p.teamId===club.id+10&&canPromoteToFirst(s,p)&&p.position===pos&&available(p,s.date)).sort((a,b)=>selectionScore(b)-selectionScore(a)||a.id.localeCompare(b.id))[0];
+          const up=s.players.filter(p=>p.teamId===club.id+10&&canPromoteToFirst(s,p)&&fits(p)&&available(p,s.date)).sort((a,b)=>score(b)-score(a)||a.id.localeCompare(b.id))[0];
           if(up){const registered=s.players.filter(p=>p.teamId===club.id);if(registered.length>=firstTeamRosterCapacity(s,club.id)){const down=registered.filter(p=>canAssignProSquad(p,"second",s.date)&&registered.filter(q=>q.position===p.position).length>1).sort((a,b)=>retentionScore(a,w.year)-retentionScore(b,w.year)||a.id.localeCompare(b.id))[0];if(down)exchange(s,up,down,"은퇴·이적 뒤 비어 있는 포지션을 보충했습니다.");}
             else {up.teamId=club.id;up.professional!.lastRegistration=s.date;proNews(s,`${up.name} · ${clubName(s,club.id)}의 비어 있는 1군 자리를 보충했습니다.`);if(up.id===s.playerId){s.postSchool!.pro!.level="first";proNotice(s,`vacancy:${s.date}`,"1군 승격 통보",registrationChangeMessage([up.name],[]),"promoted");}}
           }break;
@@ -139,12 +149,13 @@ export function reviewLeagueRegistrations(s:GameState) {
         const injured=adjustable.find(p=>!!p.injury&&p.injury.unavailableUntil>=addDays(s.date,14));
         if(!regular&&!injured)break;
         const down=injured??adjustable.find(p=>!p.forcedRest&&s.date>=addDays(p.professional?.lastRegistration??"1900-01-01",14));if(!down)break;
-        const up=s.players.filter(p=>p.teamId===club.id+10&&currentProPosition(p,pos)&&p.proContract?.status!=="developmental"&&available(p,s.date)&&(!p.professional?.lastRegistration||s.date>=addDays(p.professional.lastRegistration,14)))
-          .sort((a,b)=>selectionScore(b,roleFor(pos))-selectionScore(a,roleFor(pos))||a.id.localeCompare(b.id))[0];if(!up)break;
-        if(!injured&&selectionScore(up,roleFor(pos))<=selectionScore(down,roleFor(pos)))break;
+        const up=s.players.filter(p=>p.teamId===club.id+10&&fits(p)&&p.proContract?.status!=="developmental"&&available(p,s.date)&&(!p.professional?.lastRegistration||s.date>=addDays(p.professional.lastRegistration,14)))
+          .sort((a,b)=>score(b)-score(a)||a.id.localeCompare(b.id))[0];if(!up)break;
+        if(!injured&&score(up)<=score(down))break;
         exchange(s,up,down,injured?"부상으로 인한 등록 변경":"1군·2군 등록 변경");
       }
     }
+    if(regular||!club.closerId||!s.players.some(p=>p.id===club.closerId&&p.teamId===club.id))designateCloser(s,club);
   }
   balanceSquadDepth(s);
   reviewReserveRegistrations(s);
@@ -172,13 +183,13 @@ export function balanceSquadDepth(s:GameState){
   if(!s.proWorld)return;
   const previousTeam=getPlayer(s).teamId;
   const minimum=(pos:Position)=>pos==="C"?2:pos==="SP"?3:pos==="RP"?2:1;
-  for(let club=0;club<10;club++)for(const pos of ["C","SS","2B","CF","1B","3B","LF","RF","DH","SP","RP","CP"] as Position[]){
+  for(let club=0;club<10;club++)for(const pos of ["C","SS","2B","CF","1B","3B","LF","RF","DH","SP","RP"] as Position[]){
     // Keep the registered first-team staff intact. Lower squads are supplied
     // by reserve registration, rather than raiding a five-man rotation.
     for(const target of [club]){
       const source=target===club?club+10:club,needed=minimum(pos);
-      while(s.players.filter(p=>p.teamId===target&&p.position===pos&&p.proContract?.status!=="developmental").length<needed){
-        const candidates=s.players.filter(p=>p.teamId===source&&canPromoteToFirst(s,p)&&p.position===pos&&p.proContract?.status!=="developmental");if(candidates.length<=needed)break;
+      while(s.players.filter(p=>p.teamId===target&&firstTeamSlotPosition(p.position)===pos&&p.proContract?.status!=="developmental").length<needed){
+        const candidates=s.players.filter(p=>p.teamId===source&&canPromoteToFirst(s,p)&&firstTeamSlotPosition(p.position)===pos&&p.proContract?.status!=="developmental");if(candidates.length<=needed)break;
         const move=[...candidates].sort((a,b)=>target<10?selectionScore(b)-selectionScore(a)||a.id.localeCompare(b.id):retentionScore(a,s.proWorld!.year)-retentionScore(b,s.proWorld!.year)||a.id.localeCompare(b.id))[0];
         const targets=s.players.filter(p=>p.teamId===target),capacity=target<10?firstTeamRosterCapacity(s,target):30;
         if(targets.length>=capacity){const back=targets.filter(p=>canAssignProSquad(p,proSquad(source)!,s.date)&&targets.filter(q=>q.position===p.position&&q.proContract?.status!=="developmental").length>minimum(p.position)).sort((a,b)=>(target<10?retentionScore(a,s.proWorld!.year)-retentionScore(b,s.proWorld!.year):selectionScore(a)-selectionScore(b))||a.id.localeCompare(b.id))[0];if(!back)break;move.teamId=target;back.teamId=source;if(back.professional)back.professional.lastRegistration=s.date;}

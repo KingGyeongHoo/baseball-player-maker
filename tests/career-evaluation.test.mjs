@@ -66,10 +66,13 @@ test('derived cumulative grades survive save/load and the compact summary omits 
 test('season and career numbers share the role-percentile scale across the live summary and historical table',()=>{
   const s=structuredClone(template),p=e.getPlayer(s);s.calendar.seasonYear=2032;
   p.professional.rookieYear=2027;p.professional.assessments=[row(2030,1),row(2031,6),row(2032,10)];
+  p.career=[{year:2030,careerMode:'pro',schoolId:11},{year:2031,careerMode:'pro',schoolId:7}];
   const before=structuredClone(p.professional.assessments),summary=careerContractSummary(s);
   assert.equal(summary.seasonScore,10);assert.equal(summary.seasonGrade,'F');
   assert.ok(Math.abs(summary.cumulative-(100+50+10)/3)<1e-9);
   const html=renderToStaticMarkup(createElement(Summary,{state:s}));
+  assert.match(html,/2030<\/th><td>서울 트윈스<\/td>/);
+  assert.match(html,/2031<\/th><td>대구 라이온즈<\/td>/);
   for(const value of ['100.0','50.0','10.0'])assert.ok(html.includes(`<td>${value}</td>`));
   assert.ok(!html.includes('<td>71.0</td>'));
   assert.deepEqual(p.professional.assessments,before);

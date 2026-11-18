@@ -12,7 +12,7 @@ import {beginProRoleTrial} from "./pro-role-evaluation";
 import {retireProfessional,veteranRetirementReason} from "./pro-retirement";
 import {faProposal} from "./pro-fa-terms";
 import {currentProPosition,guaranteedProSquad,guaranteedProStarter} from "./pro-positions";
-import {organizationMinimum,firstTeamRosterCapacity} from "./pro-roster";
+import {organizationMinimum,firstTeamRosterCapacity,firstTeamSlotPosition} from "./pro-roster";
 import {proSquad,setProSquad} from "./pro-squads";
 import type {ProSquad} from "./types";
 import {refreshSeasonEvaluations} from './pro-season-evaluation';
@@ -86,7 +86,9 @@ export function contractPlacement(s:GameState,p:Player,club:number,developmental
     if(first.length>=capacity){
       if(lower.length>=45)return null;
       const pitching=(q:Player)=>["SP","RP","CP"].includes(q.position);
-      const down=first.filter(q=>movable(q)&&pitching(q)===pitching(p)&&(q.position===p.position||first.filter(r=>r.position===q.position).length>1)).sort(order)[0];
+      const slot=(q:Player)=>firstTeamSlotPosition(q.position);
+      const down=first.filter(q=>movable(q)&&pitching(q)===pitching(p)&&(slot(q)===slot(p)||first.filter(r=>slot(r)===slot(q)).length>1))
+        .sort((a,b)=>Number(slot(b)===slot(p))-Number(slot(a)===slot(p))||order(a,b))[0];
       if(!down||!makeSecondRoom())return null;
       moves.push({player:down,level:"second"});
     }

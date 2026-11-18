@@ -1,5 +1,5 @@
 import {selectionScore} from './engine';
-import {firstTeamCapacity,firstTeamSlots,postseasonTeamCapacity} from './pro-roster';
+import {firstTeamCapacity,firstTeamSlotPosition,firstTeamSlots,postseasonTeamCapacity} from './pro-roster';
 import {canPromoteToFirst,setProSquad} from './pro-squads';
 import {canAssignProSquad,guaranteedProStarter} from './pro-positions';
 import type {GameState,Player} from './types';
@@ -22,7 +22,7 @@ export function expandPostseasonRosters(s:GameState){
       ||selectionScore(b)-selectionScore(a)||Number(b.teamId===club)-Number(a.teamId===club)||a.id.localeCompare(b.id));
     const selected=new Set<string>();
     for(const position of firstTeamSlots(s.seed,club)){
-      const p=ranked.find(p=>p.position===position&&!selected.has(p.id));
+      const p=ranked.find(p=>firstTeamSlotPosition(p.position)===firstTeamSlotPosition(position)&&!selected.has(p.id));
       if(p)selected.add(p.id);
     }
     for(const p of ranked)if(selected.size<firstTeamCapacity&&!selected.has(p.id))selected.add(p.id);

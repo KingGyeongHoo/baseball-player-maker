@@ -2,7 +2,7 @@ import {needsConversionRepair,repairConversionRegistrations} from "./pro-convers
 import {available,hash,roleScore,selectionScore} from "./engine";
 import {proTeamName} from "./club-names";
 import type {GameState,Player,Position,ProSquad} from "./types";
-import {firstTeamCapacity,firstTeamRosterCapacity,firstTeamSlots,proRosterPositions} from './pro-roster';
+import {firstTeamCapacity,firstTeamRosterCapacity,firstTeamSlotPosition,firstTeamSlots,proRosterPositions} from './pro-roster';
 import {canAssignProSquad,guaranteedProSquad,guaranteedProStarter} from './pro-positions';
 import {markHonorInjuryLeave} from './retirement-honors';
 
@@ -70,7 +70,8 @@ export function reorganizeProSquads(s:GameState){
       const slots=level==='first'?firstTeamSlots(s.seed,club):proRosterPositions,capacity=level==='first'?firstTeamCapacity:30;
       const eligible=(level==="first"?regular.filter(p=>p.teamId===club||canPromoteToFirst(s,p)):[...regular])
         .sort((a,b)=>Number(guaranteedProSquad(b,s.date)===level)-Number(guaranteedProSquad(a,s.date)===level)||organizationScore(b)-organizationScore(a)||a.id.localeCompare(b.id));
-      for(const pos of slots){const p=eligible.find(p=>!used.has(p.id)&&p.position===pos);if(p){used.add(p.id);chosen.push(p);}}
+      const slotPosition=level==='first'?firstTeamSlotPosition:(position:Position)=>position;
+      for(const pos of slots){const p=eligible.find(p=>!used.has(p.id)&&slotPosition(p.position)===slotPosition(pos));if(p){used.add(p.id);chosen.push(p);}}
       for(const p of eligible)if(chosen.length<capacity&&!used.has(p.id)){used.add(p.id);chosen.push(p);}
       for(const p of chosen)setProSquad(s,p,level);
     }
@@ -92,13 +93,13 @@ export function normalizeFirstTeamRoster(s:GameState,club:number){
   const members=s.players.filter(p=>p.teamId>=0&&p.teamId%10===club&&p.professional?.employment==='active'&&p.proContract?.status!=='developmental');
   const first=members.filter(p=>p.teamId===club),pitching=(p:Player)=>['SP','RP','CP'].includes(p.position),count=(pos:Position)=>first.filter(p=>p.position===pos).length;
   const arms=first.filter(pitching).length;
-  if(first.length===firstTeamCapacity&&arms>=12&&arms<=15&&count('SP')>=5&&count('SP')<=6&&count('CP')===1&&(['C','SS','CF','2B','1B','3B','LF','RF','DH'] as Position[]).every(pos=>count(pos)>0))return;
+  if(first.length===firstTeamCapacity&&arms>=12&&arms<=15&&count('SP')>=5&&count('SP')<=6&&(['C','SS','CF','2B','1B','3B','LF','RF','DH'] as Position[]).every(pos=>count(pos)>0))return;
   const ordered=members.filter(p=>p.teamId===club||canPromoteToFirst(s,p)).sort((a,b)=>Number(b.teamId===club&&guaranteedProStarter(b,b.position,s.date))-Number(a.teamId===club&&guaranteedProStarter(a,a.position,s.date))||Number(b.teamId===club)-Number(a.teamId===club)
     ||Number(!!a.professional?.lastRegistration&&a.teamId!==club)-Number(!!b.professional?.lastRegistration&&b.teamId!==club)
     ||Math.floor(a.teamId/10)-Math.floor(b.teamId/10)||organizationScore(b)-organizationScore(a)||a.id.localeCompare(b.id)),chosen=new Set<string>();
   const desired=first.length<30&&arms>=12&&arms<=15?arms:firstTeamSlots(s.seed,club).filter(pos=>['SP','RP','CP'].includes(pos)).length;
   const sp=Math.max(5,Math.min(6,count('SP')));
-  for(const pos of ['C','SS','CF','2B','1B','3B','LF','RF','DH',...Array(sp).fill('SP'),'CP',...Array(desired-sp-1).fill('RP')] as Position[]){const p=ordered.find(p=>!chosen.has(p.id)&&p.position===pos);if(p)chosen.add(p.id);}
+  for(const pos of ['C','SS','CF','2B','1B','3B','LF','RF','DH',...Array(sp).fill('SP'),...Array(desired-sp).fill('RP')] as Position[]){const p=ordered.find(p=>!chosen.has(p.id)&&firstTeamSlotPosition(p.position)===pos);if(p)chosen.add(p.id);}
   for(const p of ordered)if(chosen.size<firstTeamCapacity&&!pitching(p)){
     if(p.teamId!==club&&p.teamId<20&&members.filter(q=>q.teamId===p.teamId&&q.position===p.position&&!chosen.has(q.id)).length<=1)continue;
     chosen.add(p.id);

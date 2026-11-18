@@ -16,10 +16,12 @@ test('school and pro award the actual setup hold and main/backup closing save, w
   s.players=s.players.filter(p=>p.teamId===0||p.teamId===1);
   if(!professional){delete s.careerMode;for(const p of s.players){delete p.professional;delete p.careerMode;}}
   for(const p of s.players){p.fatigue=0;p.lastPitched=null;p.injury=null;p.forcedRest=false;p.trainingPolicy.mode='light';}
-  const rosters=[0,1].map(team=>s.players.filter(p=>p.teamId===team)),main=rosters[0].find(p=>p.position==='CP');
-  const normal=b.proBullpenPlan(rosters[0],s.seed,s.date,0),closer=absent?normal.backupCloserId:normal.mainCloserId;
+  const rosters=[0,1].map(team=>s.players.filter(p=>p.teamId===team));
+  const normal=b.proBullpenPlan(rosters[0],s.seed,s.date,0,[],undefined,undefined,professional?null:undefined);
+  const main=rosters[0].find(p=>p.id===normal.mainCloserId),closer=absent?normal.backupCloserId:main.id;
+  if(professional)s.proWorld.clubs[0].closerId=main.id;
   if(absent)main.lastPitched='2028-04-09';
-  const middle=rosters[0].find(p=>p.position==='RP'&&p.id!==normal.backupCloserId);
+  const middle=rosters[0].find(p=>p.position==='RP'&&p.id!==normal.backupCloserId&&p.id!==main.id);
   const sides=rosters.map(roster=>{const side=e.lineup(roster,s.date);return{field:side.field.map(p=>p.id),order:side.order.map(p=>p.id),starter:side.starter.id,pitchers:side.pitchers.map(p=>p.id)};});
   const homeSP=sides[0].starter,awaySP=sides[1].starter;
   // Both of the preceding two days were actual appearances by the main closer.
@@ -36,4 +38,24 @@ test('school and pro award the actual setup hold and main/backup closing save, w
   assert.equal(game.boxScore[closer].games.holds,0);if(absent)assert.equal(game.boxScore[main.id]?.pitching.BF??0,0);
   const record=structuredClone(game.boxScore);assert.equal(e.simulateGame(s,game,rosters),true);assert.deepEqual(game.boxScore,record);
  }}finally{Object.assign(e.params,original);}
+});
+test('two top closers can register together and share a bullpen with a designated closer',()=>{
+ const s=structuredClone(base),club=s.proWorld.clubs[0],world=require('../.test-build/lib/sim/pro-world.js');
+ s.date='2028-04-10';club.nextReview=s.date;
+ const main=s.players.find(p=>p.teamId===0&&p.position==='CP');
+ const second=s.players.find(p=>p.teamId===10&&p.position==='CP');
+ const weak=s.players.find(p=>p.teamId===0&&p.position==='RP');
+ for(const [p,ability] of [[main,99],[second,95],[weak,20]]){
+  for(const key of Object.keys(p.stats))p.stats[key]=ability;
+  p.recentAppearances=[];p.fatigue=0;p.lastPitched=null;p.injury=null;
+  delete p.professional.lastRegistration;
+ }
+ world.reviewLeagueRegistrations(s);
+ assert.equal(main.teamId,0);assert.equal(second.teamId,0);assert.equal(weak.teamId,10);
+ assert.equal(club.closerId,main.id);
+ const plan=()=>b.proBullpenPlan(s.players.filter(p=>p.teamId===0),s.seed,s.date,0,[],undefined,undefined,club.closerId);
+ assert.equal(plan().closerId,main.id);
+ assert.ok(b.proReliefPriority(second,s.date,7,2,main.id)>b.proReliefPriority(main,s.date,7,2,main.id));
+ main.injury={startDate:s.date,unavailableUntil:'2028-05-01'};
+ assert.equal(plan().mainCloserId,main.id);assert.equal(plan().closerId,second.id);
 });

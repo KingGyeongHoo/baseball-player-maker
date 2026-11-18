@@ -20,17 +20,21 @@ export function proMatchParameters(base:Record<string,number>):Record<string,num
     'match.double_base':.175,'match.k_base':.29,'match.k_slope':.003,'match.k_max':.48};
 }
 
-export function proBullpenPlan(pitchers:Player[],seed:string,date:string,side:number,recent:Game[]=[],eligibleIds?:Set<string>,evaluationIds?:Set<string>){
+export const compareClosers=(a:Player,b:Player)=>roleScore(b,'마무리')-roleScore(a,'마무리')||a.id.localeCompare(b.id);
+
+export function proBullpenPlan(pitchers:Player[],seed:string,date:string,side:number,recent:Game[]=[],eligibleIds?:Set<string>,evaluationIds?:Set<string>,designatedCloser?:string|null){
   const byAbility=(a:Player,b:Player)=>Number(evaluationIds?.has(b.id)??false)-Number(evaluationIds?.has(a.id)??false)||farmSelectionTier(a)-farmSelectionTier(b)||Number(guaranteedProStarter(b,b.position,date))-Number(guaranteedProStarter(a,a.position,date))||roleScore(b,pitchingRole(b))-roleScore(a,pitchingRole(a))||a.id.localeCompare(b.id);
   const closers=pitchers.filter(p=>pitchingRole(p)==='마무리').sort(byAbility);
   const relief=pitchers.filter(p=>pitchingRole(p)==='중간계투').sort(byAbility);
+  const pooled=designatedCloser!==undefined;
+  const bullpen=pooled?[...closers,...relief].sort((a,b)=>farmSelectionTier(a)-farmSelectionTier(b)||compareClosers(a,b)):relief;
   const club=pitchers[0]?proGameTeam(pitchers[0]):side,key=`${seed}:${date}:${club}:${side}`;
-  const mainCloser=closers[0],backupCloser=relief[0];
-  const ready=(p:Player|undefined)=>!!p&&(!eligibleIds||eligibleIds.has(p.id))&&available(p,date)&&p.fatigue<params['coach.replace_fatigue']&&proReliefReady(p,date,undefined,recent);
-  // One main closer. One designated middle reliever covers only when the main
-  // closer cannot pitch; he remains a middle reliever on other days.
+  const mainCloser=pooled?(bullpen.find(p=>p.id===designatedCloser)??bullpen[0]):closers[0];
+  const ready=(p:Player|undefined)=>!!p&&(!eligibleIds||eligibleIds.has(p.id))&&available(p,date)&&p.fatigue<params['coach.replace_fatigue']&&proReliefReady(p,date,undefined,recent,true);
+  const others=bullpen.filter(p=>p.id!==mainCloser?.id);
+  const backupCloser=pooled?others.find(ready):relief[0];
   const closer=ready(mainCloser)?mainCloser:ready(backupCloser)?backupCloser:undefined;
-  const middle=relief.filter(p=>p.id!==closer?.id);
+  const middle=others.filter(p=>p.id!==closer?.id).sort(byAbility);
   const closerId=closer?.id,mainCloserId=mainCloser?.id,backupCloserId=backupCloser?.id;
   const setupId=middle.find(p=>guaranteedProStarter(p,p.position,date))?.id??middle[hash(`${key}:setup`)%Math.max(1,Math.min(3,middle.length))]?.id;
   const bridgeId=middle.find(p=>p.id!==setupId)?.id;
@@ -44,7 +48,7 @@ export function proPitcherOutLimit(p:Player,starter:boolean,seed:string,date:str
   // A struggling outing can end with zero or one out. A rare good day can
   // reach eight innings or a three-inning relief stint, without record caps.
   if(runs>=(starter?4:2)&&batters>=(starter?12:5))return currentOuts;
-  if(!starter)return p.id===closerId||pitchingRole(p)==='마무리'?(roll<30?6:3):roll<3?9:roll<10?6:roll<12?1:roll<18?2:3;
+  if(!starter)return p.id===closerId?(roll<30?6:3):roll<3?9:roll<10?6:roll<12?1:roll<18?2:3;
   if(roll<3&&runs<=1&&p.fatigue<65)return 24;
   const variation=hash(`${seed}:${date}:${p.id}:starter-length`)%5-2;
   return Math.max(12,Math.min(21,Math.round(18.4+(p.stats.stamina-65)*.06)+variation+(lead!==undefined&&lead<0?-1:0)));
@@ -57,16 +61,17 @@ export function proReliefPriority(p:Player,date:string,inning:number,lead:number
   // the strongest pitcher every day. Starters are emergency long relief only.
   const record=p.seasonByLevel?.[p.teamId<10?'first':'second']??p.seasonStats;
   const outings=record.games?.pitching??record.pitching.outs/3,innings=record.pitching.outs/3;
-  const excess=Math.max(0,outings-(role==='마무리'?59.5:56)*Math.min(1,(teamGames+1)/144));
-  return -1000*farmSelectionTier(p)+selectionScore(p,role)*.35+(guaranteedProStarter(p,p.position,date)?15:0)+(p.id===closerId?(save?100:-200):role==='마무리'?-70:15)
+  const closing=p.id===closerId;
+  const excess=Math.max(0,outings-(closing?59.5:56)*Math.min(1,(teamGames+1)/144));
+  return -1000*farmSelectionTier(p)+selectionScore(p,role)*.35+(guaranteedProStarter(p,p.position,date)?15:0)+(closing?(save?100:-200):15)
     +(p.id===setupId&&inning>=7&&inning<9&&lead>=1&&lead<=3?15:0)
     +(p.id===bridgeId&&inning>=6&&inning<7?10:0)+(p.id===longReliefId&&inning<5?15:0)
-    -(days<=1?30:days<3?8:0)-outings*.65-innings*.35-excess*(role==='마무리'?25:8);
+    -(days<=1?30:days<3?8:0)-outings*.65-innings*.35-excess*(closing?25:8);
 }
-export function proReliefReady(p:Player,date:string,_longReliefId?:string,recent:Game[]=[]){
+export function proReliefReady(p:Player,date:string,_longReliefId?:string,recent:Game[]=[],closing=false){
   if(pitchingRole(p)==='선발'||p.lastPitched===date)return false;
   if(recent.length>=12){
-    const record=p.seasonByLevel?.[p.teamId<10?'first':'second'],target=pitchingRole(p)==='마무리'?59.5:56;
+    const record=p.seasonByLevel?.[p.teamId<10?'first':'second'],target=closing?59.5:56;
     if((record?.games?.pitching??0)>target*Math.min(1,recent.length/144)+2)return false;
   }
   if(p.lastPitched!==addDays(date,-1))return true;

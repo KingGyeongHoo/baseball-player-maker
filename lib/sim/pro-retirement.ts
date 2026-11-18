@@ -18,13 +18,15 @@ export function veteranRetirementReason(p:Player,year:number){
     return;
   }
   const required=age>=40?2:3;
+  const lowestPassingGrade=age>=40?'B':'C';
+  const poorGrades=age>=40?['C','D','E','F']:['D','E','F'];
   for(let offset=0;offset<required;offset++){
     const row=rows.find(row=>row.year===year-offset);
     if(!row)return;
-    const low=['E','F'].includes(row.seasonRank?.grade??row.grade);
+    const low=poorGrades.includes(row.seasonRank?.grade??row.grade);
     if(!low&&meetsCareerRegistration(row.honorRegistration))return;
   }
-  return `${age}세 시즌까지 ${required}시즌 연속으로 1군 등록 기준을 충족하지 못했거나 시즌 평가가 E 이하였습니다.`;
+  return `${age}세 시즌까지 ${required}시즌 연속으로 1군 등록 기준을 충족하지 못했거나 시즌 평가가 ${lowestPassingGrade}에 미치지 못했습니다.`;
 }
 
 export function archiveProfessionalSeason(s:GameState,p:Player){
