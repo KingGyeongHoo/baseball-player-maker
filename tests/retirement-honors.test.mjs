@@ -15,10 +15,35 @@ function fixture(count=21,score=80){
  pro.assessments=Array.from({length:count},(_,i)=>({year:rookie+i,date:`${rookie+i}-10-31`,score,grade:'A',cumulative:score,cumulativeGrade:'A',ability:80,role:p.primaryRole,squad:'first',developmental:false,reserveSeason:false,firstTeam:true,secondOnly:false,firstGames:0,source:'season-end',firstWarByClub:{[club]:i===0?50:0},honorRegistration:{seasonDays:100,firstDaysByClub:{[club]:90}}}));
  attachTestRanks(p);return {s,p,pro,club};
 }
-test('retired numbers require ten credited seasons, excluding the initial three years',()=>{
+test('retired numbers require ten consecutive credited seasons, excluding the initial three years',()=>{
  for(const [score,count,eligible] of [[82,12,false],[78,13,true]]){
   const {s,p}=fixture(count,score),result=honors.retirementEligibility(s,p);assert.equal(result.seasons,count-3);assert.equal(result.retiredNumber,eligible,`${score}:${count}`);
  }
+});
+test('a completed ten-season streak remains valid through a shorter final season',()=>{
+ const {s,p,pro,club}=fixture(14);
+ pro.assessments.at(-1).honorRegistration.firstDaysByClub[club]=89;
+ assert.equal(honors.retirementEligibility(s,p).retiredNumber,true);
+});
+test('thirteen split seasons qualify only when a club-initiated trade interrupted the stint',()=>{
+ const {s,p,pro,club}=fixture(17);
+ const other=(club+1)%10;
+ pro.service=[{club,from:2028,to:2036},{club:other,from:2037,to:2037},{club,from:2038,to:s.calendar.seasonYear}];
+ pro.assessments.find(row=>row.year===2037).honorRegistration.firstDaysByClub={[other]:90};
+ pro.movements=[
+  {date:'2036-12-01',from:club,to:other,kind:'트레이드',reason:'구단 간 교환'},
+  {date:'2037-12-01',from:other,to:club,kind:'FA 이적',reason:'원소속 구단 복귀'}
+ ];
+ const eligible=()=>honors.retirementEligibility(s,p).retiredNumber;
+ assert.equal(honors.retirementEligibility(s,p).seasons,13);
+ assert.equal(eligible(),true);
+ const final=pro.assessments.at(-1).honorRegistration.firstDaysByClub;
+ final[club]=89;assert.equal(eligible(),false);
+ final[club]=90;
+ pro.movements[0].requestedTrade=true;assert.equal(eligible(),false);
+ delete pro.movements[0].requestedTrade;
+ pro.movements[0].kind='FA 이적';assert.equal(eligible(),false);
+ pro.movements=[];assert.equal(eligible(),false);
 });
 test('retired numbers require 40 club WAR and 50 combined points, with at most three points per award season',()=>{
  const {s,p,pro,club}=fixture(13);

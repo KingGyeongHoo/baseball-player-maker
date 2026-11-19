@@ -29,7 +29,7 @@ export type ProfessionalPlayer = {
   twoWayHistory?:{date:string;action:string;positions:{pitchingPosition:Position;battingPosition:Position};reason:string}[];
   entryReputation:number; proBonus:number; earnings:number; highestSalary:number; peak:Stats;
   firsts:{debut?:string;start?:string;hit?:string;homeRun?:string;strikeout?:string};
-  movements:{date:string;from:number|null;to:number|null;kind:string;reason:string;registration?:'developmental'|'regular';exchange?:{id:string;name:string;position:Position}}[];
+  movements:{date:string;from:number|null;to:number|null;kind:string;reason:string;registration?:'developmental'|'regular';requestedTrade?:true;exchange?:{id:string;name:string;position:Position}}[];
   salaries:{year:number;club:number;amount:number;salary:number}[];
   guarantees?:{year:number;club:number;amount:number}[];
   service:{club:number;from:number;to:number}[];

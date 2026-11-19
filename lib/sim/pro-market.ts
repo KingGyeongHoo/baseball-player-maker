@@ -331,7 +331,7 @@ export function trimForRookies(s:GameState,club:number,needed:number,year:number
     .sort((a,b)=>Number(!!a.professional!.contract&&a.professional!.contract!.endYear>=year)-Number(!!b.professional!.contract&&b.professional!.contract!.endYear>=year)||contractValue(a,year-1)-contractValue(b,year-1)||b.age!-a.age!||a.id.localeCompare(b.id));
   for(const p of removable){if(clubRoster(s,club).length+needed<=75&&clubRoster(s,club).filter(q=>q.teamId>=10).length+needed<=45)break;if(canRemove(s,p))releasePlayer(s,p,"신인 합류 후 포지션 수요·하위 군 합산 정원을 검토한 잉여 인원 조정",year);}
 }
-export function tradePlayer(s:GameState,p:Player):boolean{
+export function tradePlayer(s:GameState,p:Player,requestedByPlayer=false):boolean{
   const w=s.proWorld!,pro=p.professional;if(!pro?.contract||pro.employment!=="active"||!["camp","regular","offseason","summary"].includes(w.stage))return false;
   const activity=tradeActivity(s);
   if(activity.regular+activity.winter>=tradeLimit(s))return false;
@@ -350,7 +350,7 @@ export function tradePlayer(s:GameState,p:Player):boolean{
     if(w.stove&&!w.stove.closed)w.stove.movedIds.push(p.id,q.id);
     for(const [player,partner,old,dest] of [[p,q,from,to],[q,p,to,from]] as [Player,Player,number,number][]){
       const info=player.professional!;
-      info.movements.push({date:s.date,from:old,to:dest,kind:"트레이드",reason:"구단 간 포지션 수요와 계약 조건을 반영한 1대1 교환",exchange:{id:partner.id,name:partner.name,position:partner.position}});
+      info.movements.push({date:s.date,from:old,to:dest,kind:"트레이드",reason:"구단 간 포지션 수요와 계약 조건을 반영한 1대1 교환",...(requestedByPlayer&&player.id===p.id?{requestedTrade:true as const}:{}),exchange:{id:partner.id,name:partner.name,position:partner.position}});
       const stint=info.service.at(-1);if(stint)stint.to=w.year;
       info.service.push({club:dest,from:requiredYear,to:requiredYear});info.lastRegistration=s.date;
     }
@@ -395,7 +395,7 @@ export function careerRequest(s:GameState,kind:"chance"|"position"|"manage"|"tra
   if(pro.requestAfter&&s.date<pro.requestAfter)throw new Error(`${pro.requestAfter} 이후 다시 요청할 수 있습니다.`);
   if(pro.employment!=="active")throw new Error("구단 소속 상태에서 요청할 수 있습니다.");
   pro.requestAfter=addDays(s.date,28);
-  if(kind==="trade"){if(!tradePlayer(s,p))proNotice(s,`request:${s.date}`,"이적 요청 검토 결과","현재 조건에 맞는 교환 상대와 구단 합의를 찾지 못했습니다. 계약과 소속은 유지됩니다.");return;}
+  if(kind==="trade"){if(!tradePlayer(s,p,true))proNotice(s,`request:${s.date}`,"이적 요청 검토 결과","현재 조건에 맞는 교환 상대와 구단 합의를 찾지 못했습니다. 계약과 소속은 유지됩니다.");return;}
   if(kind==="release"){
     if(canRemove(s,p)&&contractValue(p,s.proWorld!.year)<55){releasePlayer(s,p,"선수 요청과 구단 동의에 따른 계약 해제",s.proWorld!.year+1);s.proWorld!.market=undefined;}
     proNotice(s,`request:${s.date}`,"계약 해제 요청 결과",p.teamId<0?"구단이 요청에 동의했습니다. 다음 계약 시장에서 새 기회를 찾을 수 있습니다.":"구단이 현재 전력과 계약을 고려해 동의하지 않았습니다. 최종안 또는 은퇴를 검토할 수 있습니다.");return;

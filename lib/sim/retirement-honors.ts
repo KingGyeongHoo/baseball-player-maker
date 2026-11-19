@@ -2,10 +2,10 @@ import {careerRegistrationRatio,meetsCareerRegistration,playerCareerEvaluation} 
 import {individualTitleFromKind,individualTitleName} from './pro-individual-awards';
 import {levelWarValue} from './pro-war';
 import {proTeamName} from './club-names';
-import type {ProSeasonAssessment} from './pro-types';
+import type {ProfessionalPlayer,ProSeasonAssessment} from './pro-types';
 import type {GameState,Player} from './types';
 
-export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:15,tourConsecutive:10,numberSeasons:10,numberWar:40,numberScore:50} as const;
+export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:15,tourConsecutive:10,numberConsecutive:10,numberAfterTrade:13,numberWar:40,numberScore:50} as const;
 export function validHonorDays(value:Record<string,number>,maximum:number){
   return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([club,days])=>/^[0-9]$/.test(club)&&Number.isInteger(days)&&days>=0&&days<=maximum)&&Object.values(value).reduce((sum,n)=>sum+n,0)<=maximum;
 }
@@ -42,6 +42,23 @@ function recordedClubWar(p:Player,row:ProSeasonAssessment,club:number){
   const inSeasonTrade=p.professional!.movements.some(move=>move.from!==null&&move.to!==null&&move.from!==move.to&&move.date.startsWith(`${row.year}-`)&&move.date.slice(5,7)>='03'&&move.date.slice(5,7)<='10');
   if(possibleClubs.size!==1||!possibleClubs.has(club)||inSeasonTrade)return 0;
   return levelWarValue(row.war.first,['불펜','중간계투','마무리'].includes(row.role)||['bullpen','reliever','closer'].includes(row.seasonRank?.role??''));
+}
+
+function meetsRetiredNumberService(pro:ProfessionalPlayer,club:number,years:number[]){
+  const {numberConsecutive,numberAfterTrade}=retirementHonorRules;
+  if(years.length<numberConsecutive)return false;
+  const consecutive=pro.service.some(stint=>stint.club===club&&years.some((year,index)=>
+    year>=stint.from&&year+numberConsecutive-1<=stint.to&&years[index+numberConsecutive-1]===year+numberConsecutive-1
+  ));
+  if(consecutive)return true;
+  if(years.length<numberAfterTrade)return false;
+
+  const departures=pro.movements.filter(move=>{
+    const year=Number(move.date.slice(0,4));
+    return move.from===club&&move.to!==club&&year>=years[0]&&year<years.at(-1)!;
+  });
+  // A departure can link separate stints only when the club traded the player away.
+  return departures.length>0&&departures.every(move=>move.kind==='트레이드'&&move.to!==null&&!move.requestedTrade);
 }
 
 function retiredNumberCriteria(s:GameState,p:Player,rows:ProSeasonAssessment[],club:number,seasons:number){
@@ -86,7 +103,7 @@ export function retirementEligibility(s:GameState,p:Player){
   // During a final-season declaration, the most recent completed season ends the streak.
   if(!s.proWorld?.seasonClosed&&years.at(-1)===s.calendar.seasonYear-1){consecutive=0;for(let i=years.length-1,expected=s.calendar.seasonYear-1;i>=0&&years[i]===expected&&years[i]>=stintStart;i--,expected--)consecutive++;}
   const atLeastB=['S','A','B'].includes(grade),atLeastA=['S','A'].includes(grade),seasons=years.length,oneClub=club!==undefined&&clubs.size===1&&clubs.has(club);
-  const criteria=club===undefined||seasons<retirementHonorRules.numberSeasons?undefined:retiredNumberCriteria(s,p,rows,club,seasons);
+  const criteria=club===undefined||!pro||!meetsRetiredNumberService(pro,club,years)?undefined:retiredNumberCriteria(s,p,rows,club,seasons);
   return {club,score,grade,seasons,consecutive,oneClub,criteria,
     ceremony:club!==undefined&&atLeastB&&(seasons>=retirementHonorRules.ceremonyTotal||consecutive>=retirementHonorRules.ceremonyConsecutive),
     tour:club!==undefined&&atLeastA&&(seasons>=retirementHonorRules.tourTotal||consecutive>=retirementHonorRules.tourConsecutive),

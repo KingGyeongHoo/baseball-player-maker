@@ -77,7 +77,17 @@ test('a trade changes both memberships atomically, keeps contracts/records/statu
   const s=fixture(),p=e.getPlayer(s),ids=new Set(s.players.map(p=>p.id));p.seasonByLevel.second.batting.PA=30;
   for(const q of s.players.filter(q=>q.teamId>=10&&q.teamId%10!==0))for(const key of ['contact','power','speed','defense'])q.stats[key]=76;
   const success=market.tradePlayer(s,p);assert.equal(success,true);assert.notEqual(p.teamId%10,0);assert.equal(p.seasonByLevel.second.batting.PA,30);assert.equal(p.professional.movements.at(-1).kind,'트레이드');assert.deepEqual(new Set(s.players.map(p=>p.id)),ids);assert.equal(p.professional.contract.club,p.teamId%10);
+  assert.equal(p.professional.movements.at(-1).requestedTrade,undefined);
   s.proWorld.stage='regular';s.date=e.addDays(s.calendar.events.filter(g=>g.competitionId==='pro-first')[360].date,1);assert.equal(market.tradePlayer(s,p),false);
+});
+test('a trade request marks only the player who asked to leave',()=>{
+  const s=fixture(),p=e.getPlayer(s);
+  for(const q of s.players.filter(q=>q.teamId>=10&&q.teamId%10!==0))for(const key of ['contact','power','speed','defense'])q.stats[key]=76;
+  market.careerRequest(s,'trade');
+  const movement=p.professional.movements.at(-1);
+  assert.equal(movement.kind,'트레이드');
+  assert.equal(movement.requestedTrade,true);
+  assert.equal(s.players.find(q=>q.id===movement.exchange.id).professional.movements.at(-1).requestedTrade,undefined);
 });
 test('requests have a four-week cooldown; an accepted role request settles without another choice and retains eligibility',()=>{
   const s=fixture(),p=e.getPlayer(s),eligible=[...p.eligiblePositions],original=p.position;market.careerRequest(s,'position','3B');assert.ok(p.professional.roleTrial);assert.throws(()=>market.careerRequest(s,'manage'),/이후/);const trial=p.professional.roleTrial;trial.trainingDates=s.calendar.trainingDays.filter(date=>date>=trial.started&&date<trial.until).slice(0,5);s.date=trial.until;delete s.careerNotice;market.finishRoleTrial(s);assert.equal(p.position,original);assert.ok(require('../.test-build/lib/sim/pro-role-evaluation.js').reviewProRoleTrial(s));assert.equal(p.position,'3B');assert.ok(eligible.every(pos=>p.eligiblePositions.includes(pos)));assert.equal(s.careerEvent,null);assert.equal(s.careerNotice.title,'보직 평가 결과');
