@@ -888,10 +888,17 @@ h3 {
 .stat-bar-row:first-child .stat-track i {
   background: var(--navy);
 }
+.stat-bar-row.item-boosted .stat-track i {
+  background: #2563eb;
+}
 .stat-bar-row strong {
   width: 28px;
   text-align: right;
   font: 700 12px Arial,sans-serif;
+}
+.stat-boost-indicator {
+  margin-inline-start: 3px;
+  color: #2563eb;
 }
 .stat-bar-row small {
   font-size: 10px;

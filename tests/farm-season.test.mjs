@@ -98,6 +98,21 @@ test('farm postseason entry includes all lower squads, excludes first team and p
   const html=renderToStaticMarkup(createElement(Bracket,{state:s}));assert.match(html,/2군 포스트시즌/);assert.match(html,/신고선수/);
 });
 
+test('farm postseason notices use the team name with one squad suffix, including saved notices',()=>{
+ const s=fixture(),p=e.getPlayer(s),team=10+(p.teamId%10),year=s.calendar.seasonYear;
+ const {farmRegularFinishNotice}=require('../.test-build/lib/sim/pro-farm-postseason.js');
+ const {CareerNoticeDialog}=require('../.test-build/app/components/career-continuation.js');
+ p.teamId=team;s.teams[team].name='검증 구단 2군';
+ s.proWorld.farmPostseason={seeds:[team],series:[]};
+ assert.equal(farmRegularFinishNotice(s).title,'검증 구단 2군 포스트시즌 진출!');
+ s.careerNotice={id:'legacy-farm',code:`farm-postseason:${year}`,date:s.date,kind:'pro',title:'검증 구단 2군 2군 포스트시즌 진출!',message:'준결승 진출'};
+ const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));
+ assert.ok(html.includes('검증 구단 2군 포스트시즌 진출!'));
+ assert.doesNotMatch(html,/2군 2군/);
+ s.proWorld.farmPostseason.seeds=[];
+ assert.equal(farmRegularFinishNotice(s).title,'검증 구단 2군 정규시즌 종료');
+});
+
 test('actual farm playoff records stay separate and survive saves, worker transfer, career archive and rollover',()=>{
   const s=fixture();endRegular(s);const g=s.calendar.events.find(g=>isFarmPostseason(g.competitionId)),club=g.homeTeamId%10;
   // A full rested real roster, including third/developmental players, avoids fixture fatigue.

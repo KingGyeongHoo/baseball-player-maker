@@ -3,14 +3,14 @@ import type {GameState,Player} from './types';
 import type {ProSeasonRank} from './pro-types';
 import {refreshCareerEvaluation} from './pro-career-evaluation';
 
-export const seasonRoleNames={batter:'야수',starter:'선발',reliever:'중계',closer:'마무리'} as const;
+export const seasonRoleNames={batter:'야수',starter:'선발',bullpen:'불펜',reliever:'중계',closer:'마무리'} as const;
 export function seasonRankGrade(rank:number,total:number){
   const fraction=(rank-1)/total;
   return fraction<.1?'S':fraction<.3?'A':fraction<.5?'B':fraction<.8?'C':fraction<.9?'D':'F';
 }
 function seasonRole(p:Player):ProSeasonRank['role']{
   const pitching=p.twoWay?.pitchingPosition??p.position;
-  return pitching==='SP'?'starter':pitching==='RP'?'reliever':pitching==='CP'?'closer':'batter';
+  return pitching==='SP'?'starter':pitching==='RP'||pitching==='CP'?'bullpen':'batter';
 }
 // All actual contributors compete within the same league level and role.
 // Equal WAR shares a competition rank; player IDs never break a sporting tie.
@@ -23,7 +23,9 @@ export function createSeasonRankings(s:GameState,context:ProWarContext=createPro
     const level=participated(first)?'first':participated(second)?'second':undefined;
     if(!level)continue;
     const frozen=s.proWorld?.seasonClosed?p.professional.assessments?.find(row=>row.year===s.calendar.seasonYear):undefined;
-    const role=frozen?.seasonRank?.role??seasonRole(p),war=(frozen?.war??proWarAssessment(p,context)).equivalentWins,key=`${level}:${role}`;
+    const savedRole=frozen?.seasonRank?.role;
+    const role=savedRole==='reliever'||savedRole==='closer'?'bullpen':savedRole??seasonRole(p);
+    const war=(frozen?.war??proWarAssessment(p,context)).equivalentWins,key=`${level}:${role}`;
     const pool=pools.get(key)??[];pool.push({id:p.id,war,role,level});pools.set(key,pool);
   }
   const result=new Map<string,ProSeasonRank>();

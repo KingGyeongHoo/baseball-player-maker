@@ -39,7 +39,7 @@ test('direct pro entry evaluates current role skills before assigning status, sa
     const original=structuredClone(source),next=pc.continueCareer(source,'direct'),q=e.getPlayer(next);
     assert.deepEqual(source,original);assert.deepEqual(q.stats,p.stats);
     assert.equal(q.proContract.status,expected);assert.equal(q.professional.entry,'direct');assert.equal(next.postSchool.pro.entry,'direct');
-    assert.equal(q.professional.contract.salary,expected==='developmental'?30_000_000:50_000_000);
+    assert.equal(q.professional.contract.salary,expected==='developmental'?33_000_000:50_000_000);
     assert.equal(next.proWorld.goal,expected==='developmental'?'정식 선수 전환':'1군 정착');
     assert.equal(next.careerNotice.title,expected==='developmental'?'신고선수로 프로에 입단했습니다':'프로 유니폼을 입었습니다');
     assert.equal(e.growthMultiplier(q),expected==='developmental'?.9:1);assert.equal(q.teamId>=10,true);

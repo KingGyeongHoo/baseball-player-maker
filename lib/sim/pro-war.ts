@@ -115,12 +115,25 @@ export function proWarAssessment(p: Player, context: ProWarContext = {
   const second = warLine(p.seasonByLevel?.second, context.second);
   const pitchingPosition = p.twoWay?.pitchingPosition ?? p.position;
   const relief = pitchingPosition === "RP" || pitchingPosition === "CP";
-  const wins = (r: ProWarLine) => r.batting + r.pitching * (relief ? rules.relieverWinScale : 1) + r.fielding + r.positional;
   const firstCoverage=clamp(first.pa/rules.battingSeasonPA+first.outs/(relief?rules.relieverSeasonOuts:rules.starterSeasonOuts),0,1);
-  const farmWins=Math.min(rules.farmMaxWins,wins(second)*rules.farmWeight)*(1-firstCoverage);
-  const equivalentWins=wins(first)+farmWins;
+  const farmWins=Math.min(rules.farmMaxWins,levelWarValue(second,relief)*rules.farmWeight)*(1-firstCoverage);
+  const equivalentWins=levelWarValue(first,relief)+farmWins;
   const score=clamp(rules.scoreAtZero+rules.scorePerWin*equivalentWins,0,100);
   return { version: 1, score, equivalentWins, first, second };
+}
+
+export function levelWarValue(line:ProWarLine,relief:boolean){
+  return line.batting+line.pitching*(relief?rules.relieverWinScale:1)+line.fielding+line.positional;
+}
+
+export function firstTeamClubWar(p:Player,context:ProWarContext){
+  const position=p.twoWay?.pitchingPosition??p.position;
+  const relief=position==='RP'||position==='CP';
+  const entries=Object.entries(p.seasonByClub??{}).filter(([,row])=>row.first.batting.PA>0||row.first.pitching.BF>0||row.first.fielding?.chances);
+  if(entries.length)return Object.fromEntries(entries.map(([club,row])=>[club,levelWarValue(warLine(row.first,context.first),relief)]));
+  const club=p.professional?.contract?.club??p.teamId%10;
+  const line=warLine(p.seasonByLevel?.first,context.first);
+  return club>=0&&(line.pa||line.bf||line.fieldingOuts)?{[club]:levelWarValue(line,relief)}:{};
 }
 
 export function validProWarAssessment(value: unknown): value is ProWarAssessment {

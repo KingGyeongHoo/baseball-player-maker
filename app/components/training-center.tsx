@@ -1,8 +1,10 @@
-import type {ReactNode} from "react";
-import {getPlayer,overall,positionLabel,validPolicy} from "../../lib/sim/engine";
+import {useState,type ReactNode} from "react";
+import {getPlayer,overall,positionLabel,positions,validPolicy} from "../../lib/sim/engine";
+import {canPlayPosition} from "../../lib/sim/position-eligibility";
+import {positionRequestBlock} from "../../lib/sim/pro-role-evaluation";
 import TwoWayRelease from './two-way-release';
 import PlayerTalents from './player-talents';
-import type {GameState,Policy,Stance} from "../../lib/sim/types";
+import type {GameState,Policy,Position,Stance} from "../../lib/sim/types";
 import {scoreText} from "../../lib/display";
 import PlayerAbilities from "./player-abilities";
 import TrainingEditor from "./training-editor";
@@ -25,14 +27,28 @@ function GrowthChart({state}:{state:GameState}){
     <polygon points={`30,120 ${points} ${history.length>1?520:30},120`} fill="url(#chartFill)"/><polyline points={points} fill="none" stroke="#0e2046" strokeWidth="2.5" strokeLinejoin="round"/>{history.length<2&&<circle cx="30" cy={115-(values[0]-min)/(max-min)*90} r="4" fill="#0e2046"/>}<text x="30" y="145" fontSize="10" fill="#8d95a3">{current.length===state.history.length?state.careerMode?"커리어 시작":"입학":"기준 변경"}</text><text x="500" y="145" fontSize="10" fill="#8d95a3">현재</text>
   </svg></div>;
 }
-export default function TrainingCenter({state,policy,setPolicy,stance,setStance,onSave,disabled=false,profile,message,onChange}:{
-  state:GameState;policy:Policy;setPolicy:(p:Policy)=>void;stance:Stance;setStance:(s:Stance)=>void;onSave:()=>void;disabled?:boolean;profile?:ReactNode;message?:string;onChange?:(s:GameState)=>void;
+export default function TrainingCenter({state,policy,setPolicy,stance,setStance,onSave,disabled=false,profile,message,onChange,onPositionRequest,positionRequestDisabled}:{
+  state:GameState;policy:Policy;setPolicy:(p:Policy)=>void;stance:Stance;setStance:(s:Stance)=>void;onSave:()=>void;disabled?:boolean;profile?:ReactNode;message?:string;onChange?:(s:GameState)=>void;onPositionRequest?:(position:Position)=>void;positionRequestDisabled?:boolean;
 }){
   const player=getPlayer(state),locked=disabled||state.phase==="ended"||!!state.weekProgress;
+  const [position,setPosition]=useState<Position|"">("");
+  const requestBlock=onPositionRequest?positionRequestBlock(state,player):undefined;
+  const targets=(Object.keys(positions) as Position[]).filter(target=>target!==player.position&&canPlayPosition(player,target));
+  const target=position&&targets.includes(position)?position:"";
   return <div className="training-center"><div className="section-intro"><div><span className="eyebrow">TRAINING CENTER</span><h1>훈련 센터</h1></div><button className="primary" onClick={onSave} disabled={locked||!validPolicy(policy)}>훈련 설정 저장</button></div>
     {message&&<p className="training-save-message" role="status">{message}</p>}
     <div className="training-layout"><Panel title="주간 훈련 배분" eyebrow="WEEKLY TRAINING"><fieldset className="content-lock" disabled={locked}><TrainingEditor player={player} policy={policy} setPolicy={setPolicy} date={state.date} context={state}/></fieldset></Panel>
       <div className="side-column"><Panel title="경기 성향" eyebrow="PLAYING STYLE"><fieldset className="content-lock" disabled={locked}><StanceEditor stance={stance} setStance={setStance}/></fieldset></Panel>
+        {onPositionRequest&&<Panel title="포지션 변경 요청" eyebrow="POSITION REQUEST">
+          <fieldset className="content-lock pro-position-request" disabled={locked||positionRequestDisabled||!!requestBlock}>
+            <label htmlFor="training-position-request" className="small muted">희망 포지션</label>
+            <select id="training-position-request" value={target} onChange={event=>setPosition(event.target.value as Position|"")}>
+              <option value="">포지션 선택</option>{targets.map(value=><option key={value} value={value}>{positions[value]}</option>)}
+            </select>
+            <button className="secondary" disabled={!target} onClick={()=>{if(target)onPositionRequest(target);}}>변경 요청</button>
+          </fieldset>
+          <p className="small muted position-request-status">{requestBlock??"시즌당 1회 요청할 수 있습니다."}</p>
+        </Panel>}
         {profile??<section className="player-card"><h2>{player.name}</h2><div className="detail-position"><span>{positionLabel(player)}</span><PlayerGrade player={player} pro={state.careerMode==="pro"} state={state}/></div><PlayerAbilities player={player}/><PlayerTalents player={player}/>{onChange&&<TwoWayRelease state={state} onChange={onChange} disabled={locked}/>}</section>}
       </div></div><Panel title="성장의 발자취" eyebrow="GROWTH TRACKER" className="training-growth"><GrowthChart state={state}/></Panel>
   </div>;

@@ -6,6 +6,7 @@ import {
   isPitcher,
   ovr,
   positionLabel,
+  selectionScore,
 } from "../../lib/sim/engine";
 import { scoreText } from "../../lib/display";
 import { rosterAssignments } from "../../lib/roster-status";
@@ -23,6 +24,8 @@ import type { DraftPick, GameState, Player } from "../../lib/sim/types";
 import { dashboardRecordValues } from "./dashboard-records";
 import DraftRoundBadge from "./draft-round-badge";
 import { proSquad } from "../../lib/sim/pro-squads";
+import {positionRivals} from '../../lib/sim/pro-positions';
+import {proRegistrationStatus} from '../../lib/sim/pro-registration-status';
 import Tooltip from "./tooltip";
 import GradeBadge from "./grade-badge";
 
@@ -64,6 +67,7 @@ export function RosterTable({
   projections,
   sort,
   onSort,
+  hideAffiliation = false,
 }: {
   state: GameState;
   players: Player[];
@@ -75,6 +79,7 @@ export function RosterTable({
   projections?: Map<string, DraftPick>;
   sort?: string;
   onSort?: (sort: string) => void;
+  hideAffiliation?: boolean;
 }) {
   const pro = state.careerMode === "pro",
     metrics = rosterMetrics[field];
@@ -102,7 +107,7 @@ export function RosterTable({
                 "등급"
               )}
             </th>
-            <th>{pro ? "소속" : "학교"}</th>
+            {!hideAffiliation&&<th>{pro ? "소속" : "학교"}</th>}
             <th>{pro ? "나이" : "학년"}</th>
             <th>포지션</th>
             {metrics.map((m) => (
@@ -149,6 +154,7 @@ export function RosterTable({
                   {p.jerseyNumber !== undefined && (
                     <small className="roster-number">#{p.jerseyNumber}</small>
                   )}
+                  {hideAffiliation&&pro&&p.proContract?.status==='developmental'&&<small className="roster-badge reserve">육성</small>}
                   {projections?.has(p.id) ? (
                     <DraftRoundBadge
                       round={projections.get(p.id)!.round}
@@ -179,7 +185,7 @@ export function RosterTable({
               <td>
                 <PlayerGrade player={p} pro={pro}/>
               </td>
-              <td>{state.teams[p.teamId]?.name ?? "무소속"}</td>
+              {!hideAffiliation&&<td>{state.teams[p.teamId]?.name ?? "무소속"}</td>}
               <td>{pro ? (p.age ?? "—") : `${p.grade}학년`}</td>
               <td>{positionLabel(p)}</td>
               {dashboardRecordValues(
@@ -202,6 +208,27 @@ export function RosterTable({
       )}
     </div>
   );
+}
+
+export function PositionCompetition({state,player,onSelect}:{
+  state:GameState;player:Player;onSelect:(id:string)=>void;
+}){
+  const rivals=positionRivals(state.players,player).sort((a,b)=>selectionScore(b)-selectionScore(a)||a.id.localeCompare(b.id));
+  if(!rivals.length)return null;
+  const field=isPitcher(player.primaryRole)?'pitching':'batting';
+  const groups=[
+    {label:'1군',players:rivals.filter(p=>proSquad(p.teamId)==='first')},
+    {label:'2군',players:rivals.filter(p=>proSquad(p.teamId)==='second')},
+    {label:'잔류군',players:rivals.filter(p=>p.teamId>=20&&p.teamId<40)},
+  ];
+  return <section className="panel position-competition">
+    <div className="panel-heading"><h2>나의 포지션 경쟁</h2></div>
+    {state.careerMode==='pro'?groups.map(group=><section key={group.label} aria-label={group.label}>
+      <h3>{group.label}</h3>
+      <RosterTable state={state} players={group.players} field={field} onSelect={onSelect} hideAffiliation/>
+    </section>):<RosterTable state={state} players={rivals.slice(0,6)} field={field} onSelect={onSelect}/>}
+    <p className="draft-board-note">{proRegistrationStatus(state,player)}</p>
+  </section>;
 }
 
 function PlayerRoster({

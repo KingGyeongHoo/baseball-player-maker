@@ -14,7 +14,7 @@ export const nationalRules={
   wbc:{name:'WBC 국가대표',first:2030,month:'03',bonus:10,weeks:8,advanced:12},
   youth:{name:'청소년대표',first:2027,month:'09',bonus:0,weeks:4,advanced:8},
 } as const;
-export type NationalSelection={kind:NationalKind;year:number;date:string;start:string;end:string;roster:(NationalRosterMember&{name:string;team:string;field:'pitching'|'batting'})[];offered?:boolean;settled?:boolean;participated?:boolean;participationField?:'pitching'|'batting';result?:string;simulationVersion?:1;tournament?:import('./national-tournament').NationalTournament};
+export type NationalSelection={kind:NationalKind;year:number;date:string;start:string;end:string;roster:(NationalRosterMember&{name:string;team:string;club?:number;field:'pitching'|'batting'})[];offered?:boolean;settled?:boolean;participated?:boolean;participationField?:'pitching'|'batting';result?:string;simulationVersion?:1;tournament?:import('./national-tournament').NationalTournament};
 export const nationalInYear=(kind:NationalKind,year:number)=>year>=nationalRules[kind].first&&(kind==='youth'||(year-nationalRules[kind].first)%4===0);
 export const nationalWindow=(kind:NationalKind,year:number)=>({start:`${year}-${nationalRules[kind].month}-01`,end:`${year}-${nationalRules[kind].month}-${kind==='wbc'?'20':kind==='olympics'?'31':'30'}`});
 export function nationalRole(p:Player){
@@ -53,7 +53,7 @@ export function nationalRoster(s:GameState,records:(p:Player)=>RecordLine|undefi
 }
 export function rememberNational(s:GameState,kind:NationalKind,roster:NationalRosterMember[],year=s.calendar.seasonYear){
   const rows=s.nationalTeams??=[],old=rows.find(row=>row.kind===kind&&row.year===year);if(old)return old;
-  const entry:NationalSelection={kind,year,simulationVersion:1,date:s.date,...nationalWindow(kind,year),roster:roster.map(row=>{const p=s.players.find(p=>p.id===row.id)!;return {...row,name:p.name,team:s.teams[p.teamId]?.name??'무소속',field:isPitcher(roleFor(row.position))?'pitching':'batting'};})};rows.push(entry);
+  const entry:NationalSelection={kind,year,simulationVersion:1,date:s.date,...nationalWindow(kind,year),roster:roster.map(row=>{const p=s.players.find(p=>p.id===row.id)!;return {...row,name:p.name,team:s.teams[p.teamId]?.name??'무소속',...(p.professional&&p.teamId>=0?{club:p.teamId%10}:{}),field:isPitcher(roleFor(row.position))?'pitching':'batting'};})};rows.push(entry);
   if(kind!=='youth')for(const row of roster){const p=s.players.find(p=>p.id===row.id);if(p?.professional)p.professional.nationalBonus=Math.max(p.professional.nationalBonus??0,nationalRules[kind].bonus);}
   return entry;
 }

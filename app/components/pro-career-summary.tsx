@@ -13,6 +13,6 @@ export function CareerHonors({state}:{state:GameState}){
   const honors=careerHonors(state);
   return <section className="panel career-honors"><div className="panel-heading"><h2>선발·수상 내역</h2></div><div className="career-honor-grid">{careerHonorCategories.map(category=>{
     const rows=honors[category.id];
-    return <section className="career-honor-category" key={category.id}><h3>{category.label}<span>{rows.length}회</span></h3>{rows.length?<ul>{rows.map(row=><li key={`${row.year}:${row.title}`}><time>{row.year}</time><div><b>{row.title}</b>{row.detail&&<small>{row.detail}</small>}</div></li>)}</ul>:<p className="empty-note">아직 내역이 없습니다.</p>}</section>;
+    return <section className="career-honor-category" key={category.id}><h3>{category.label}<span>{rows.length}회</span></h3>{rows.length?<ul>{rows.map(row=><li key={`${row.year}:${row.title}:${row.detail??''}`}><time>{row.year}</time><div><b>{row.title}</b>{row.detail&&<small>{row.detail}</small>}</div></li>)}</ul>:<p className="empty-note">아직 내역이 없습니다.</p>}</section>;
   })}</div></section>;
 }

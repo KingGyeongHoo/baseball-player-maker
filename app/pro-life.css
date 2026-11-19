@@ -216,6 +216,26 @@
 .app-tooltip .season-rank-gold { color:#ffe491; }
 .app-tooltip .season-rank-silver { color:#e3eaf6; }
 .app-tooltip .season-rank-bronze { color:#ffcc9f; }
+.offseason-shop { margin:20px 0; padding:14px; border:1px solid var(--line); border-radius:8px; }
+.offseason-shop-heading { display:flex; align-items:baseline; flex-wrap:wrap; justify-content:space-between; gap:8px; margin-bottom:10px; color:var(--navy); }
+.offseason-shop-heading h2 { margin:0; }
+.offseason-shop-heading span { font-size:13px; font-weight:700; }
+.offseason-shop>p { margin:0 0 12px; color:#526278; font-size:12px; }
+.offseason-shop-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.offseason-shop-staff { grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:14px; }
+.offseason-shop-card { display:flex; min-width:0; flex-direction:column; align-items:center; gap:8px; padding:12px 8px; border:1px solid var(--line); border-radius:6px; text-align:center; }
+.offseason-shop-icon { display:grid; place-items:center; width:42px; height:42px; border-radius:8px; background:#edf2fa; font-size:24px; }
+.offseason-shop-card h4 { margin:0; color:var(--navy); font-size:13px; overflow-wrap:anywhere; }
+.offseason-shop-card>strong { color:#274b7c; font-size:12px; white-space:nowrap; }
+.offseason-shop-card p { flex:1; margin:0; color:#53647b; font-size:11px; }
+.offseason-shop-quantity { display:flex; align-items:center; justify-content:center; gap:6px; font-size:12px; }
+.offseason-shop-quantity button { width:30px; height:30px; padding:0; border:1px solid var(--line); border-radius:4px; color:var(--navy); background:#f3f6fb; }
+.offseason-shop-quantity output { min-width:18px; font-variant-numeric:tabular-nums; }
+.offseason-shop-stock { color:#526278; font-size:11px; }
+.offseason-shop-checkout { display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:10px; margin-top:14px; font-size:13px; }
+.position-competition>section+section { margin-top:16px; }
+.position-competition>section>h3 { margin:0; padding:12px 16px; font-size:14px; color:var(--navy); }
+@media(max-width:700px){.offseason-shop-grid,.offseason-shop-staff{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.compact-contract-metrics>div:nth-child(odd){border-left:0;padding-left:0}.compact-contract-metrics .contract-assessment-value>b{font-size:24px}}
 .contract-season-evaluations { border-top:1px solid var(--line); }
 .contract-season-evaluations>summary { cursor:pointer; padding:12px 0; font-size:12px; color:#60728d; }
@@ -230,7 +250,23 @@
 .awards-mvp h3 small { font-size:11px; margin-left:12px; color:#e7cf94; }
 .awards-mvp p { color:#e0e5ef; font-size:12px; line-height:1.8; }
 .season-awards th,.season-awards td { font-size:12px; }
-.season-awards td:last-child { min-width:270px; line-height:1.8; white-space:normal; }
+.season-awards>.segmented { margin-bottom:14px; }
+.modal.awards-ceremony-modal { width:min(840px,calc(100vw - 35px)); }
+.awards-ceremony-modal .modal-header,.club-award-modal .modal-header { background:#102147; border-bottom:2px solid #bd9b52; }
+.awards-ceremony-modal .modal-header h2,.club-award-modal .modal-header h2 { color:#f5d783; }
+.gold-glove-lineup { max-width:720px; margin:auto; }
+.gold-glove-field { position:relative; aspect-ratio:6/5; min-height:500px; overflow:hidden; border:1px solid #dae2d7; border-radius:8px; background:#edf3ea; }
+.gold-glove-field .selection-ballpark { width:100%; height:100%; }
+.gold-glove-player { position:absolute; left:var(--field-x); top:var(--field-y); transform:translate(-50%,-50%); width:min(27%,148px); display:grid; justify-items:center; gap:2px; padding:4px 3px; border:1px solid #dfcf99; border-radius:6px; background:#12233e; color:#f8f2e7; text-align:center; line-height:1.2; }
+.gold-glove-player-mine { outline:2px solid #f5d783; outline-offset:2px; }
+.gold-glove-player .gold-glove-position { color:#f0cd77; font-size:10px; font-weight:700; }
+.gold-glove-player>b { color:#fff; font-size:clamp(11px,2vw,16px); }
+.gold-glove-player>b>small { color:#f0cd77; margin-inline-start:4px; font-size:9px; }
+.gold-glove-club { max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#bfcddc; font-size:clamp(9px,1.4vw,11px); }
+.gold-glove-record { display:grid; gap:1px; margin-top:1px; color:#f1f3f6; font-size:clamp(8px,1.35vw,11px); font-variant-numeric:tabular-nums; }
+.club-award-modal .guide-content>p { color:#273653; font-size:14px; }
+.club-award-modal .guide-content>p:not(:first-child):not(:last-of-type) { color:#715214; font-weight:700; }
+@media(max-width:600px){.awards-ceremony-modal .guide-content{padding-inline:10px}.gold-glove-player{gap:1px}.gold-glove-record{line-height:1.3}}
 .awards-season>summary,.awards-rules>summary { cursor:pointer; font-size:13px; padding:12px 0; }
 .awards-category-tabs { margin-bottom:22px; }
 .awards-filters { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
@@ -310,6 +346,8 @@
 .pro-news-list time { color:#8794a8; }
 .pro-news-list p { color:#566b88; line-height:1.8; }
 .pro-position-request { display:flex; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap; }
+.training-center .pro-position-request { margin:12px 16px 0; }
+.training-center .position-request-status { margin:8px 16px 14px; }
 .pro-series-list > div { display:flex; align-items:center; gap:20px; padding:15px 0; border-bottom:1px solid #edf0f5; font-size:12px; color:#102147; }
 .pro-series-list small { color:#7b8ba2; }
 .pro-monthly-summary { padding:14px 20px; background:#edf2f9; color:#566b88; font-size:11px; line-height:1.8; }

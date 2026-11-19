@@ -4,7 +4,7 @@ import { rosterGrade } from "../roster-grades";
 import { proContractRules as rules } from "./pro-contract-rules";
 import type { GameState, Player, ProSquad, RecordLine } from "./types";
 import type { ProSeasonAssessment } from "./pro-types";
-import { createProWarContext, proWarAssessment, type ProWarContext } from "./pro-war";
+import { createProWarContext, firstTeamClubWar, proWarAssessment, type ProWarContext } from "./pro-war";
 import {proSeasonForm} from "./pro-selection";
 import {farmSeasonGames} from './pro-farm-schedule';
 import {recordHonorRegistration,regularSeasonDays} from './retirement-honors';
@@ -17,7 +17,7 @@ const squad = (id: number): ProSquad | null =>
         Math.floor(id / 10)
       ] ?? null);
 const average = (rows: ProSeasonAssessment[]) => {
-  const values = rows.flatMap((r) => (r.score === null || r.clubGamesShortage ? [] : [r.score]));
+  const values = rows.flatMap((r) => (r.score === null || r.clubGamesShortage ? [] : [r.war?seasonEvaluation(r.war).score:r.score]));
   return values.length
     ? values.reduce((a, b) => a + b, 0) / values.length
     : null;
@@ -272,7 +272,8 @@ export function recordSeasonAssessment(
     second = p.seasonByLevel?.second;
   const pa = (first?.batting.PA ?? 0) + (second?.batting.PA ?? 0),
     outs = (first?.pitching.outs ?? 0) + (second?.pitching.outs ?? 0);
-  const evaluation = currentSeasonAssessment(s, p, warContext), score = evaluation.score;
+  const context=warContext??createProWarContext(s);
+  const evaluation = currentSeasonAssessment(s, p, context), score = evaluation.score;
   const promoted =
     !!usage &&
     usage.upperDays >= rules.upperDays &&
@@ -307,7 +308,7 @@ export function recordSeasonAssessment(
       date: s.date,
       salary:pro.contract&&pro.contract.startYear<=s.calendar.seasonYear&&pro.contract.endYear>=s.calendar.seasonYear?pro.contract.salary:null,
       score,
-      ...(evaluation.war ? { war: evaluation.war } : {}),
+      ...(evaluation.war ? { war: evaluation.war, firstWarByClub:firstTeamClubWar(p,context) } : {}),
       ...(evaluation.seasonEvaluation ? { seasonEvaluation: evaluation.seasonEvaluation } : {}),
       grade: rosterGrade(score, true),
       ability: roleScore(p),
@@ -338,7 +339,7 @@ export function currentSeasonAssessment(s: GameState, p: Player, warContext?: Pr
     && available.availableDays === 0 && available.injuredDays === available.days && !appeared;
   if (p.professional?.employment !== "active" || injuredAllYear) return { score: null };
   const context=warContext??createProWarContext(s),war = proWarAssessment(p, context);
-  const evaluation=seasonEvaluation(s,p,war,context);
+  const evaluation=seasonEvaluation(war);
   return { score: evaluation.score, war, seasonEvaluation:evaluation };
 }
 // Do not make roster/schedule failures look like a player's refusal to play.
@@ -364,7 +365,7 @@ export function assessmentValue(p: Player, year: number) {
     ),
     current = rows.find((r) => r.year === year);
   const cumulative = average(rows),
-    score = current ? current.clubGamesShortage?null:current.score : proWarAssessment(p).score;
+    score = current ? current.clubGamesShortage||current.score===null?null:current.war?seasonEvaluation(current.war).score:current.score : proWarAssessment(p).score;
   const basis = score ?? cumulative ?? proWarAssessment(p).score;
   return {
     current: score,
@@ -375,7 +376,7 @@ export function assessmentValue(p: Player, year: number) {
   };
 }
 export function firstTeamRetention(p: Player, year: number) {
-  const career=playerCareerEvaluation(p,year),cumulative=career.first.score,
+  const career=playerCareerEvaluation(p,year),cumulative=career.first.cumulativeWar,
     grade = career.first.grade;
   return { cumulative, grade, bonus: rules.retentionMargins[grade] ?? 0 };
 }

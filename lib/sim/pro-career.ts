@@ -6,7 +6,7 @@ import {firstTeamRetention} from "./pro-assessment";
 import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, pitchingRole, positions, random, recovery, reputationScore, roleScore, selectionScore } from "./engine";
 import { careerLeagueTable, developmentCalendar } from "./pro-calendar";
 import { developmentalOffer, revealDraftResult } from "./draft-outcome";
-import { ensureProWorld,proNews,proNotice,reviewLeagueRegistrations,BASE_SALARY } from "./pro-world";
+import { clubName,ensureProWorld,proNews,proNotice,reviewLeagueRegistrations,BASE_SALARY } from "./pro-world";
 import { continueToNextProCamp,finishProfessionalDay } from "./pro-season";
 import type { GameState, Player, Position, ProLevel, Team } from "./types";
 import {syncJerseyNumbers} from "../jersey-numbers";
@@ -16,6 +16,7 @@ import {syncProClubNames,proTeamName} from "./club-names";
 import {createCareerNPC,proRosterPositions} from './pro-roster';
 import {rookieDevelopmentalIds,setProSquad} from "./pro-squads";
 import {queuePersonalAwardNotices} from './pro-awards-ceremony';
+import {clubAwardLevel,clubAwardNames} from './pro-career-evaluation';
 import {pendingNationalOffseason} from './national-tournament';
 
 export type CareerChoice = "join" | "tryout" | "college" | "developmental" | "direct";
@@ -23,7 +24,35 @@ const slots: Position[] = ["C","C","C","1B","1B","2B","2B","3B","3B","SS","SS","
 const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind"], title: string, message: string) => {
   s.careerNotice = { id: `${s.date}:${s.week}:${kind}`, date: s.date, kind, title, message };
 };
-export const acknowledgeCareer = (input: GameState): GameState => { const s = structuredClone(input);const awardYear=s.careerNotice?.code?.startsWith('awards:')?Number(s.careerNotice.code.split(':')[1]):s.careerNotice?.award?.year;if(awardYear!==undefined)queuePersonalAwardNotices(s,awardYear);delete s.careerNotice;const next=s.noticeQueue?.shift();if(next)s.careerNotice=next;else if(s.proWorld?.resumeCampAfterAwards&&!s.careerEvent&&!pendingNationalOffseason(s))continueToNextProCamp(s);else tryProNationalInvitation(s); return s; };
+export const acknowledgeCareer = (input: GameState): GameState => {
+  const s=structuredClone(input),notice=s.careerNotice;
+  const ceremony=notice?.code?.match(/^awards(-summary)?:(\d{4})$/);
+  const awardYear=ceremony?Number(ceremony[2]):notice?.award?.year;
+  const season=ceremony?s.proWorld?.seasons.find(row=>row.year===awardYear):undefined;
+  if(awardYear!==undefined)queuePersonalAwardNotices(s,awardYear);
+  if(notice&&season&&ceremony&&!ceremony[1]){
+    s.careerNotice={...notice,id:`${notice.id}:summary`,code:`awards-summary:${awardYear}`,title:`${awardYear} 시즌 어워드`,message:''};
+    return s;
+  }
+  if(notice&&season&&ceremony?.[1]){
+    const clubAwards=new Set(season.awards.flatMap(award=>{
+      const level=clubAwardLevel(award.kind);
+      return level&&award.playerId===s.playerId?[`${clubName(s,award.club)} · ${clubAwardNames[level]}`]:[];
+    }));
+    if(clubAwards.size){
+      const code=`club-award:${season.year}`;
+      const message=['한 해 동안의 활약을 인정받아 구단 최우수 선수로 선정되었습니다!',...clubAwards,'커리어 탭의 개인 수상에 기록됩니다.'].join('\n\n');
+      s.careerNotice={id:code,code,date:notice.date,kind:'pro',title:'구단 최우수 선수 선정',message};
+      return s;
+    }
+  }
+  delete s.careerNotice;
+  const next=s.noticeQueue?.shift();
+  if(next)s.careerNotice=next;
+  else if(s.proWorld?.resumeCampAfterAwards&&!s.careerEvent&&!pendingNationalOffseason(s))continueToNextProCamp(s);
+  else tryProNationalInvitation(s);
+  return s;
+};
 function path(s: GameState) {
   const p = getPlayer(s);
   return s.postSchool ??= { graduationYear: s.calendar.seasonYear, graduationSchool: s.teams[p.teamId].name, collegeYears: 0, tryouts: [] };

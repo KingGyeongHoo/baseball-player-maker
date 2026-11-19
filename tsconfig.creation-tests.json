@@ -31,6 +31,7 @@
     "lib/career-save.ts",
     "lib/sim/pro-registration-status.ts",
     "app/components/pro-career-panels.tsx",
+    "app/components/offseason-shop.tsx",
     "app/components/pro-career-summary.tsx",
     "app/components/pro-awards-hub.tsx",
     "app/components/player-evaluation.tsx",

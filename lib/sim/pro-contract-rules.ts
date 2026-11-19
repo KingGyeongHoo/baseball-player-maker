@@ -1,3 +1,5 @@
+export const MIN_PRO_SALARY = 33_000_000;
+
 // Provisional game balance, in multiples of the existing rookie base salary.
 export const proContractRules = {
   currentWeight: 0.7,
@@ -20,7 +22,6 @@ export const proContractRules = {
   youngAge: 25,
   growthGrace: 0.5,
   decline: 2,
-  developmentalRatio: 0.6,
   reentryMinAbility: 45,
   reentryMaxAge: 32,
   reentryChance: 15,

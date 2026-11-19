@@ -67,24 +67,80 @@ function fixture(){
  const s=structuredClone(template),p=e.getPlayer(s);p.professional.faEligible=true;p.professional.faDays=900;p.professional.contract.endYear=s.proWorld.year;return s;
 }
 function clear(s){s.careerNotice=undefined;s.noticeQueue=[];s.careerEvent=null;return s;}
+test('the shop buys items during the regular season and settles each kind once',()=>{
+ const s=fixture(),p=e.getPlayer(s),year=s.proWorld.year;
+ s.phase='weekStart';s.proWorld.stage='regular';s.proWorld.seasonClosed=false;
+ s.proWorld.seasons=[];
+ p.professional.earnings=200_000_000;
+ assert.throws(()=>life.actOnProCareer(s,{type:'buyOffseasonItems',items:{agent:1}}),/자금/);
+ const bought=life.actOnProCareer(s,{type:'buyOffseasonItems',items:{rosin:2,tee:1}});
+ assert.equal(p.offseasonShop,undefined);
+ const {trainingItemBonus}=require('../.test-build/lib/sim/offseason-shop.js');
+ assert.equal(trainingItemBonus(e.getPlayer(bought),'velocity'),.3);
+ assert.equal(trainingItemBonus(e.getPlayer(bought),'contact'),.3);
+ const Abilities=require('../.test-build/app/components/player-abilities.js').default;
+ const renderAbilities=state=>renderToStaticMarkup(createElement(Abilities,{player:e.getPlayer(state),detailsOnly:true}));
+ assert.equal((renderAbilities(bought).match(/class="stat-boost-indicator"[^>]*>↑<\/span>/g)??[]).length,2);
+ const Shop=require('../.test-build/app/components/offseason-shop.js').default;
+ const html=renderToStaticMarkup(createElement(Shop,{state:bought,player:e.getPlayer(bought),onAction(){}}));
+ for(const text of ['상점','3X3 표적','리바운드 체인','₩20,000만원','₩11,000만원','장바구니 구매'])assert.ok(html.includes(text),text);
+ life.closeProfessionalSeason(bought);life.closeProfessionalSeason(bought);
+ const restored=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(bought))).state;
+ assert.deepEqual(e.getPlayer(restored).offseasonShop,{spent:90_000_000,items:{rosin:1},settlement:{year,agent:false,conditioning:false}});
+ assert.equal((renderAbilities(restored).match(/class="stat-boost-indicator"[^>]*>↑<\/span>/g)??[]).length,1);
+});
+test('purchased training stays active until stock runs out and conditioning covers camp aging',()=>{
+ const p=e.getPlayer(fixture()),year=p.professional.agedYear,base=structuredClone(p);
+ const shop=require('../.test-build/lib/sim/offseason-shop.js');
+ p.offseasonShop={spent:30_000_000,items:{rosin:1}};
+ for(const key of Object.keys(p.stats))p.stats[key]=base.stats[key]=60;
+ e.train(p,6);e.train(base,6);
+ assert.ok(p.stats.velocity>base.stats.velocity);
+ assert.equal(p.stats.control,base.stats.control);
+ const next=structuredClone(p);shop.settleShopItems(next,year);next.professional.agedYear++;
+ const without=structuredClone(next);delete without.offseasonShop;
+ e.train(next,6);e.train(without,6);assert.deepEqual(next.stats,without.stats);
+ const proGrowth=require('../.test-build/lib/sim/pro-growth.js');
+ const ordinary=structuredClone(p);p.age=ordinary.age=40;
+ p.offseasonShop.items.conditioning=1;
+ assert.equal(shop.conditioningMultiplier(p),.7);
+ shop.settleShopItems(p,year);
+ assert.equal(p.offseasonShop.items.conditioning,undefined);
+ const coached=proGrowth.applyAging(p,year+1),normal=proGrowth.applyAging(ordinary,year+1);
+ assert.ok(normal.velocity<0);
+ assert.ok(Math.abs(coached.velocity-.7*normal.velocity)<1e-9);
+ const tickets={...p.trainingPolicy,mode:'normal',tickets:Object.fromEntries(Object.keys(p.trainingPolicy.tickets).map(k=>[k,5]))};
+ const positive=e.trainingFatigueDay(20,60,tickets).training;
+ assert.ok(positive>0);
+ assert.ok(Math.abs(e.trainingFatigueDay(20,60,tickets,.7).training-.7*positive)<1e-9);
+});
 test('regular-season and stove trades share a league-wide limit and midseason notices show the exchange',()=>{
  const s=fixture(),world=s.proWorld,year=world.year;
  world.stage='regular';world.seasonClosed=false;s.phase='weekStart';
  const first=s.calendar.competitions.find(c=>c.id==='pro-first');
- let notices=0;
+ let noticed=0,elsewhere=0;
  for(let i=0;i<85;i++){
   s.date=e.addDays(first.startDate,i);
+  const before=world.tradeActivity?.regular??0,userClub=e.getPlayer(s).teamId%10;
+  const newsBefore=new Set(world.news.map(row=>row.id));
   life.finishProfessionalDay(s);
-  if(s.careerNotice?.stoveReport?.tradeOnly){
-   notices++;
-   const trade=s.careerNotice.stoveReport.moves[0],StoveChanges=require('../.test-build/app/components/stove-changes.js').default;
-   const html=renderToStaticMarkup(createElement(StoveChanges,{report:s.careerNotice.stoveReport,playerId:s.playerId}));
+  const shown=[s.careerNotice,...(s.noticeQueue??[])].find(row=>row?.stoveReport?.tradeOnly);
+  if((world.tradeActivity?.regular??0)>before){
+   const trades=s.players.flatMap(p=>p.professional?.movements??[]).filter(m=>m.kind==='트레이드'&&m.date===s.date);
+   const involved=trades.some(m=>m.from===userClub||m.to===userClub);
+   assert.equal(!!shown,involved);
+   assert.equal(world.news.some(row=>!newsBefore.has(row.id)&&row.text.includes(' ↔ ')),involved);
+   if(involved)noticed++;else elsewhere++;
+  }
+  if(shown){
+   const trade=shown.stoveReport.moves[0],StoveChanges=require('../.test-build/app/components/stove-changes.js').default;
+   const html=renderToStaticMarkup(createElement(StoveChanges,{report:shown.stoveReport,playerId:s.playerId}));
    assert.ok(trade.exchange);assert.ok(html.includes('↔'));assert.ok(!html.includes('신규 입단'));
   }
   clear(s);
  }
  assert.equal(world.tradeActivity.regular,2);
- assert.equal(notices,2);
+ assert.equal(noticed+elsewhere,2);assert.ok(elsewhere>0);
  world.stage='offseason';world.stove={openedAt:`${year}-11-01`,movedIds:[],closed:false};
  for(const p of s.players)if(p.professional.contract)p.professional.contract.endYear=year+1;
  for(let i=0;i<=60;i++){s.date=e.addDays(world.stove.openedAt,i);market.reviewNPCTrades(s);clear(s);}
@@ -94,6 +150,22 @@ test('regular-season and stove trades share a league-wide limit and midseason no
  market.reviewNPCTrades(restored);
  assert.deepEqual(restored.proWorld.tradeActivity,world.tradeActivity);
 });
+test('stove news hides unrelated trade headlines from older saves',()=>{
+ const s=fixture(),club=e.getPlayer(s).teamId%10;
+ const {clubName}=require('../.test-build/lib/sim/pro-world.js');
+ const {ProContractPanel}=require('../.test-build/app/components/pro-career-panels.js');
+ const mine=clubName(s,club),other=clubName(s,(club+1)%10),third=clubName(s,(club+2)%10);
+ s.proWorld.stove={openedAt:s.date,closesAt:s.date,movedIds:[],closed:true};
+ s.proWorld.news=[
+  {id:'own',date:s.date,text:`${other} ↔ ${mine} · 우리팀교환 / 상대선수 1대1 교환`},
+  {id:'unrelated',date:s.date,text:`${other} ↔ ${third} · 타팀교환 / 상대선수 1대1 교환`},
+  {id:'other-news',date:s.date,text:'다른 계약 소식'},
+ ];
+ const html=renderToStaticMarkup(createElement(ProContractPanel,{state:s,onAction(){},onRetire(){},disabled:false}));
+ assert.ok(html.includes('우리팀교환'));
+ assert.ok(!html.includes('타팀교환'));
+ assert.ok(html.includes('다른 계약 소식'));
+});
 function retentionFixture(){
  const s=clear(fixture()),p=e.getPlayer(s),club=p.professional.contract.club;
  const peer=structuredClone(p);peer.id='strong-incumbent';peer.teamId=club;
@@ -102,6 +174,20 @@ function retentionFixture(){
  for(const row of p.professional.assessments){delete row.war;delete row.seasonEvaluation;delete row.seasonRank;row.score=82;row.grade='S';row.cumulative=82;row.cumulativeGrade='S';}
  return s;
 }
+test('an agent consumed at season end still improves that winter’s FA counteroffer',()=>{
+ let s=retentionFixture();
+ e.getPlayer(s).professional.earnings=350_000_000;
+ market.openContractMarket(s);
+ const offer=s.proWorld.market.offers[0],ordinary=life.actOnProCareer(s,{type:'negotiate',id:offer.id});
+ s=life.actOnProCareer(s,{type:'buyOffseasonItems',items:{agent:1}});
+ require('../.test-build/lib/sim/offseason-shop.js').settleShopItems(e.getPlayer(s),s.proWorld.year);
+ assert.equal(e.getPlayer(s).offseasonShop.items.agent,undefined);
+ const improved=life.actOnProCareer(s,{type:'negotiate',id:offer.id});
+ const result=improved.proWorld.market.offers.find(row=>row.id===offer.id);
+ assert.equal(result.salary,Math.trunc(offer.salary*1.18/100_000)*100_000);
+ assert.ok(result.salary>ordinary.proWorld.market.offers.find(row=>row.id===offer.id).salary);
+ assert.ok(result.negotiated);
+});
 test('FA retains a valid home-team offer even when nine rival clubs rank ahead, without duplicates or more than three offers',()=>{
  const s=retentionFixture(),p=e.getPlayer(s),club=p.professional.contract.club,before=structuredClone(p.professional.contract);
  market.openContractMarket(s);const offers=s.proWorld.market.offers;

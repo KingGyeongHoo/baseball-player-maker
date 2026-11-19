@@ -12,9 +12,9 @@ const salaryText=(value:number|null)=>value===null?"—":`${Math.trunc(value/10_
 const squads={first:"1군",second:"2군",third:"3군",developmental:"육성선수"};
 function CareerMetric({evaluation,totalSeasons,label}:{evaluation:ReturnType<typeof evaluateCareer>;totalSeasons:number;label:string}){
   return <div><span>{label}</span><div className="contract-assessment-value">
-    <b>{evaluation.score===null?'미평가':evaluation.score.toFixed(1)}</b>
+    <b>{evaluation.cumulativeWar===null?'미평가':evaluation.cumulativeWar.toFixed(2)}</b>
     <Tooltip content={`인정 ${evaluation.seasons}시즌 / 전체 ${totalSeasons}시즌`}>
-      <GradeBadge score={evaluation.score} grade={evaluation.grade} pro label={label}/>
+      <GradeBadge score={evaluation.cumulativeWar} grade={evaluation.grade} pro label={label}/>
     </Tooltip>
   </div></div>;
 }

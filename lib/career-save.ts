@@ -2,6 +2,7 @@ import {validNationalTournament} from "./sim/national-tournament";
 import {upgradeNationalInvitation} from './sim/national-teams';
 import {hydrateAssessments} from "./sim/pro-assessment";
 import {validFaTerms} from "./sim/pro-positions";
+import {MIN_PRO_SALARY} from './sim/pro-contract-rules';
 import {validProWarAssessment} from "./sim/pro-war";
 import {validSeasonEvaluation} from './sim/pro-season-evaluation';
 import {validSeasonRank} from './sim/pro-season-ranking';
@@ -21,6 +22,7 @@ import {applyRetiredNumberClaims,retiredNumberClaims,type SavedRetiredNumber} fr
 import {validHonorRegistration} from './sim/retirement-honors';
 import {removeBattedBallRecords} from './record-schema';
 import {refreshCareerEvaluation} from './sim/pro-career-evaluation';
+import {validOffseasonShop} from './sim/offseason-shop';
 
 export type CareerSave={format:"baseball-life";version:1;id:string;name:string;date:string;year:number;savedAt:string;manual:boolean;checksum:string;state:GameState};
 type PackedCareerSave=Omit<CareerSave,'version'>&{version:2;recordEncoding:'npc-single-role-v1'};
@@ -37,16 +39,25 @@ export function validateCareerState(value:unknown):asserts value is GameState {
     if(!p||typeof p.id!=="string"||ids.has(p.id)||!Number.isInteger(p.teamId)||p.teamId>=s.teams.length||p.teamId< -1||statKeys.some(k=>!Number.isFinite(p.stats?.[k])||p.stats[k]<1||p.stats[k]>100)||!p.trainingPolicy?.tickets||!Array.isArray(p.career))throw new Error("선수·소속·능력 데이터가 손상됐습니다.");ids.add(p.id);
     if(p.throws!==undefined&&!["R","L"].includes(p.throws)||p.bats!==undefined&&!["R","L","B"].includes(p.bats))throw new Error("투구·타격 손 정보를 복원할 수 없습니다.");
     const assessments=p.professional?.assessments;
+    if(p.offseasonShop!==undefined&&(p.id!==s.playerId||!p.professional||!validOffseasonShop(p.offseasonShop,s.calendar.seasonYear)))throw new Error('오프시즌 상점 기록을 복원할 수 없습니다.');
     const bonuses=p.professional?.awardBonuses;
-    if(bonuses!==undefined&&(!Array.isArray(bonuses)||new Set(bonuses.map(awardBonusKey)).size!==bonuses.length||bonuses.some(row=>!Number.isInteger(row.year)||!Object.hasOwn(awardBonusPoints,row.category)||row.points!==awardBonusPoints[row.category]||row.level!==undefined&&row.level!=='second'||row.level==='second'&&(row.category!=='semiMvp'&&row.category!=='finalMvp'||typeof row.seriesId!=='string'||!row.seriesId)||row.level===undefined&&row.seriesId!==undefined)))throw new Error('수상 출전평가 보상 기록을 복원할 수 없습니다.');
+    if(bonuses!==undefined&&(!Array.isArray(bonuses)||new Set(bonuses.map(awardBonusKey)).size!==bonuses.length||bonuses.some(row=>{
+      if(!Number.isInteger(row.year)||!Object.hasOwn(awardBonusPoints,row.category)||row.points!==awardBonusPoints[row.category])return true;
+      if(row.level===undefined)return row.seriesId!==undefined;
+      if(row.level!=='second')return true;
+      if(row.category==='mvp')return row.seriesId!==undefined;
+      return (row.category!=='semiMvp'&&row.category!=='finalMvp')||typeof row.seriesId!=='string'||!row.seriesId;
+    })))throw new Error('수상 출전평가 보상 기록을 복원할 수 없습니다.');
     if(assessments!==undefined&&(!Array.isArray(assessments)||new Set(assessments.map(row=>row.year)).size!==assessments.length||assessments.some(row=>!Number.isInteger(row.year)||typeof row.date!=="string"||row.score!==null&&!Number.isFinite(row.score)||row.cumulative!==null&&!Number.isFinite(row.cumulative)||!Number.isFinite(row.ability)||typeof row.reserveSeason!=="boolean"||typeof row.developmental!=="boolean"||row.firstTeam!==undefined&&typeof row.firstTeam!=="boolean"||row.secondOnly!==undefined&&typeof row.secondOnly!=="boolean"||row.firstGames!==undefined&&row.firstGames!==null&&(!Number.isInteger(row.firstGames)||row.firstGames<0)||!["season-end","reconstructed"].includes(row.source))))throw new Error("시즌 출전평가 기록을 복원할 수 없습니다.");
     if(assessments?.some(row=>row.seasonRank!==undefined&&(!validSeasonRank(row.seasonRank)||row.seasonRank.year!==row.year||row.score===null||row.grade!==row.seasonRank.grade||!row.war||Math.abs(row.seasonRank.war-row.war.equivalentWins)>1e-7)))throw new Error('시즌 역할별 순위 기록을 복원할 수 없습니다.');
+    if(assessments?.some(row=>row.clubAwardCounts!==undefined&&(!row.clubAwardCounts||[row.clubAwardCounts.first,row.clubAwardCounts.second].some(count=>!Number.isInteger(count)||count<0||count>10))))throw new Error('구단 최우수 선수 기록을 복원할 수 없습니다.');
     const usage=p.professional?.assessmentUsage;
     const honorUsage=p.professional?.honorUsage;
     if(honorUsage&&(!Number.isInteger(honorUsage.year)||!validHonorRegistration({seasonDays:366,...honorUsage})||honorUsage.lastDate!==undefined&&!/^\d{4}-\d{2}-\d{2}$/.test(honorUsage.lastDate)))throw new Error('은퇴 예우 등록 일수 기록을 복원할 수 없습니다.');
     const injuryLeave=p.professional?.honorInjuryLeave;
     if(injuryLeave&&(!Number.isInteger(injuryLeave.club)||injuryLeave.club<0||injuryLeave.club>=10||!/^\d{4}-\d{2}-\d{2}$/.test(injuryLeave.from)))throw new Error('부상에 따른 등록 제외 기록을 복원할 수 없습니다.');
     if(assessments?.some(row=>row.honorRegistration&&!validHonorRegistration(row.honorRegistration)))throw new Error('시즌별 은퇴 예우 등록 기록을 복원할 수 없습니다.');
+    if(assessments?.some(row=>row.firstWarByClub!==undefined&&(!row.firstWarByClub||typeof row.firstWarByClub!=='object'||Array.isArray(row.firstWarByClub)||Object.entries(row.firstWarByClub).some(([club,war])=>!/^[0-9]$/.test(club)||!Number.isFinite(war)))))throw new Error('시즌별 구단 WAR를 복원할 수 없습니다.');
     if(p.professional?.lastSquad!==undefined&&!["first","second","third","developmental"].includes(p.professional.lastSquad))throw new Error("마지막 등록 군을 복원할 수 없습니다.");
     if(p.professional?.contract?.faTerms!==undefined&&!validFaTerms(p.professional.contract.faTerms))throw new Error("FA 계약 조건을 복원할 수 없습니다.");
     if(assessments?.some(row=>row.clubGamesShortage!==undefined&&typeof row.clubGamesShortage!=="boolean"))throw new Error("구단 경기 부족 평가 기록을 복원할 수 없습니다.");
@@ -65,15 +76,18 @@ export function validateCareerState(value:unknown):asserts value is GameState {
     const aging=p.professional?.agingProfile;
     if(aging&&(aging.version!==1||!Number.isFinite(aging.physical)||aging.physical<0||aging.physical>100||!Number.isInteger(aging.peakStart)||aging.peakStart<20||aging.peakStart>32||!Number.isInteger(aging.declineStart)||aging.declineStart<=aging.peakStart||aging.declineStart>40||!aging.loss||Object.entries(aging.loss).some(([key,n])=>!statKeys.includes(key as typeof statKeys[number])||!isPhysicalStat(key as typeof statKeys[number])||!Number.isFinite(n)||n!<0||n!>100)))throw new Error("전성기·노화 기록을 복원할 수 없습니다.");
     const trial=p.professional?.roleTrial;if(trial?.version===1&&(!Array.isArray(trial.trainingDates)||typeof trial.started!=="string"||typeof trial.until!=="string"||typeof trial.sourceId!=="string"))throw new Error("보직 평가의 훈련 근거를 복원할 수 없습니다.");
+    if(p.professional?.positionRequestYear!==undefined&&!Number.isInteger(p.professional.positionRequestYear))throw new Error("포지션 변경 요청 기록을 복원할 수 없습니다.");
   }
   const retiredNumbers=s.proWorld?.retiredNumbers;
   const retirementHonors=s.proWorld?.retirementHonors;
   if(retiredNumbers?.some(row=>row.grade!==undefined&&!['S','A','B','C','D','E','F'].includes(row.grade)))throw new Error('영구결번 누적 등급을 복원할 수 없습니다.');
+  if(retiredNumbers?.some(({criteria})=>criteria!==undefined&&(!criteria||!Number.isFinite(criteria.clubWar)||!Number.isFinite(criteria.awardBonus)||criteria.awardBonus<0||!Number.isInteger(criteria.seasons)||criteria.seasons<0)))throw new Error('영구결번의 구단 WAR와 수상 가산점을 복원할 수 없습니다.');
   if(retirementHonors&&(!Array.isArray(retirementHonors)||new Set(retirementHonors.map(row=>row.playerId)).size!==retirementHonors.length||retirementHonors.some(row=>!Number.isInteger(row.club)||row.club<0||row.club>=10||typeof row.playerId!=='string'||typeof row.playerName!=='string'||!Number.isFinite(row.score)||row.score<0||row.score>100||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||!['S','A','B','C','D','E','F'].includes(row.grade)||!Number.isInteger(row.seasons)||row.seasons<0||!Number.isInteger(row.consecutive)||row.consecutive<0||row.consecutive>row.seasons||typeof row.ceremony!=='boolean'||typeof row.tour!=='boolean')))throw new Error('은퇴 예우 기록을 복원할 수 없습니다.');
   if(s.savedRetiredNumbers&&(!Array.isArray(s.savedRetiredNumbers)||s.savedRetiredNumbers.some(row=>typeof row.saveId!=='string'||typeof row.playerId!=='string'||typeof row.playerName!=='string'||!Number.isInteger(row.club)||row.club<0||row.club>=10||!Number.isInteger(row.number)||row.number<1||row.number>99)))throw new Error('저장된 영구결번 목록을 복원할 수 없습니다.');
   if(retiredNumbers!==undefined&&(!Array.isArray(retiredNumbers)||new Set(retiredNumbers.map(row=>row.playerId)).size!==retiredNumbers.length||new Set(retiredNumbers.map(row=>`${row.club}:${row.number}`)).size!==retiredNumbers.length||retiredNumbers.some(row=>!Number.isInteger(row.club)||row.club<0||row.club>=10||!Number.isInteger(row.number)||row.number<1||row.number>99||typeof row.playerId!=="string"||typeof row.playerName!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||!Number.isFinite(row.score)||row.score<0||row.score>100)))throw new Error("영구결번 기록을 복원할 수 없습니다.");
   if(!ids.has(s.playerId)||!s.rngStates||Object.values(s.rngStates).some(n=>!Number.isInteger(n)))throw new Error("선수 또는 난수 상태를 복원할 수 없습니다.");
   if(s.proWorld?.market?.offers.some(offer=>offer.faTerms!==undefined&&!validFaTerms(offer.faTerms)||offer.startingLevel!==undefined&&!["first","second","third","developmental"].includes(offer.startingLevel)))throw new Error("FA 제안과 시작 군을 복원할 수 없습니다.");
+  if(s.proWorld?.market?.offers.some(offer=>offer.salaryBeforeMinimum!==undefined&&(!Number.isSafeInteger(offer.salaryBeforeMinimum)||offer.salaryBeforeMinimum<0||offer.salaryBeforeMinimum>=MIN_PRO_SALARY||offer.salary!==MIN_PRO_SALARY)))throw new Error('연봉 제안 기록을 복원할 수 없습니다.');
   if(s.weekProgress&&(!Number.isInteger(s.weekProgress.remainingDays)||s.weekProgress.remainingDays<0||s.weekProgress.remainingDays>7))throw new Error("주간 중단 위치가 올바르지 않습니다.");
   if(s.matchProgress&&!s.calendar.events.some(g=>g.id===s.matchProgress!.gameId))throw new Error("진행 중인 경기를 찾을 수 없습니다.");
   if(s.proEvents&&(s.proEvents.version!==1||!Array.isArray(s.proEvents.history)||!Array.isArray(s.proEvents.attemptedGames)||!Array.isArray(s.proEvents.cancellations)||!s.proEvents.national||Object.values(s.proEvents.national).some(row=>!Array.isArray(row.roster)||row.roster.length>30||new Set(row.roster.map(p=>p.id)).size!==row.roster.length)))throw new Error("프로 이벤트 저장 상태가 손상됐거나 지원하지 않는 버전입니다.");

@@ -1,4 +1,4 @@
-import {goldGloveAwards} from "./pro-evaluation";
+import {goldGloveAwards,seasonMvpAward} from "./pro-evaluation";
 import {individualAwardRows,individualAwards} from "./pro-individual-awards";
 import {proNotice} from "./pro-world";
 import {syncAwardBonuses,awardBonusPoints} from './pro-award-bonuses';
@@ -16,11 +16,12 @@ export function queuePersonalAwardNotices(s:GameState,year:number,beforeScore?:n
   let cursor=beforeScore;
   const after=p.professional?.assessments?.find(row=>row.year===year)?.score??0;
   const notices:NonNullable<GameState['careerNotice']>[]=ceremony.celebrationsQueued?[]:owned.map(award=>{
-    const category=award.category as 'mvp'|'rookie'|'goldGlove',bonus=awardBonusPoints[category];
-    const title=category==='mvp'?'MVP':category==='rookie'?'신인왕':`${award.position==='P'?'투수':award.position?positions[award.position]:award.kind.replace('골든글러브 · ','')} 골든글러브`;
+    const category=award.category as 'mvp'|'rookie'|'goldGlove',bonus=awardBonusPoints[category]*(award.level==='second'?.5:1);
+    const title=category==='mvp'?(award.level==='second'?'2군 MVP':'MVP'):category==='rookie'?'신인왕':`${award.position==='P'?'투수':award.position?positions[award.position]:award.kind.replace('골든글러브 · ','')} 골든글러브`;
     const applied=cursor===undefined?undefined:Math.min(bonus,Math.max(0,after-cursor)),before=cursor;
     if(cursor!==undefined)cursor+=applied??0;
-    return {id:`award-celebration:${year}:${category}:${award.position??''}`,date:s.date,kind:'pro' as const,code:`award-celebration:${year}:${category}:${award.position??''}`,title:`${year}년 ${title}${category==='rookie'?'을':'를'} 획득했다!!`,message:`시즌 평가 수상 보너스 +${bonus}`,award:{year,title,bonus,after:cursor??after,...(before!==undefined?{before,applied}:{})}};
+    const code=`award-celebration:${year}:${category}:${award.position??(award.level==='second'?'second':'')}`;
+    return {id:code,date:s.date,kind:'pro' as const,code,title:`${year}년 ${title}${category==='rookie'?'을':'를'} 획득했다!!`,message:`시즌 평가 수상 보너스 +${bonus}`,award:{year,title,bonus,after:cursor??after,...(before!==undefined?{before,applied}:{})}};
   });
   ceremony.celebrationsQueued=true;
   if(!ceremony.individualTitlesQueued){
@@ -34,7 +35,7 @@ export function queuePersonalAwardNotices(s:GameState,year:number,beforeScore?:n
   }
   if(!notices.length)return;
   const queue=s.noticeQueue??=[];
-  const lastAwardIndex=queue.reduce((last,notice,index)=>notice.code===`awards:${year}`||notice.award?.year===year?index:last,-1);
+  const lastAwardIndex=queue.reduce((last,notice,index)=>notice.code===`awards:${year}`||notice.code===`awards-summary:${year}`||notice.award?.year===year?index:last,-1);
   queue.splice(lastAwardIndex+1,0,...notices);
 }
 export function ensureAwardsCeremony(s:GameState){
@@ -42,6 +43,9 @@ export function ensureAwardsCeremony(s:GameState){
   if(!w?.seasonClosed||!season||s.date>`${w.year}-12-31`)return;
   backfillSeasonHonors(s);
   season.individualAwards??=individualAwards(s);
+  if(!season.awardsCeremony?.presentedAt&&!season.awards.some(row=>row.category==='mvp'&&row.level==='second')){
+    const mvp=seasonMvpAward(s,'second',season.individualAwards);if(mvp)season.awards.push(mvp);
+  }
   if(season.awardsCeremony)return;
   // An ongoing legacy winter still has its season records. Preserve announced
   // MVPs and add only the new positional awards, never reroll past trophies.
@@ -59,7 +63,7 @@ export function presentAwardsCeremony(s:GameState){
   ceremony.presentedAt=s.date;
   syncAwardBonuses(s);
   refreshSeasonEvaluations(s,season.year);
-  proNotice(s,`awards:${season.year}`,`${season.year} 골든글러브 시상식`,"한 시즌을 빛낸 포지션별 최고의 선수와 시즌 MVP·신인왕을 발표합니다.");
+  proNotice(s,`awards:${season.year}`,`${season.year} 골든글러브 시상식`,"포지션별 골든글러브 수상자를 발표합니다.");
   queuePersonalAwardNotices(s,season.year,beforeScore);
   return true;
 }

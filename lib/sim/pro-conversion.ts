@@ -1,5 +1,6 @@
 import type {GameState,Player} from './types';
 import {BASE_SALARY,contractFor} from './pro-world';
+import {MIN_PRO_SALARY} from './pro-contract-rules';
 
 export const conversionYear=(p:Player)=>p.proContract?.status==='regular'&&p.proContract.convertedDate?Number(p.proContract.convertedDate.slice(0,4)):undefined;
 function prematurePlayerConversion(s:GameState,p:Player){
@@ -7,7 +8,7 @@ function prematurePlayerConversion(s:GameState,p:Player){
   if(p.id!==s.playerId||!s.proWorld||s.proWorld.seasonClosed||!['camp','regular','postseason'].includes(s.proWorld.stage)||s.careerEvent||s.pendingEventOutcome
     ||p.proContract?.status!=='regular'||pro?.employment!=='active'||p.teamId<10||!date||Number(date.slice(0,4))!==s.calendar.seasonYear||!contract||pro.salaries.some(row=>row.year===s.calendar.seasonYear))return;
   const last=contract.segments.at(-1),previous=contract.segments.at(-2);
-  if(last?.from!==date||last.salary!==BASE_SALARY||previous?.salary!==BASE_SALARY*.6||contract.salary!==BASE_SALARY)return;
+  if(last?.from!==date||last.salary!==BASE_SALARY||!previous||![30_000_000,MIN_PRO_SALARY].includes(previous.salary)||contract.salary!==BASE_SALARY)return;
   return {contract,date,salary:previous.salary};
 }
 function falseConversionRelease(s:GameState,p:Player){

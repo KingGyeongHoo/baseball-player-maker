@@ -14,8 +14,8 @@ export function retirementSummary(state:GameState){
   const allstars=visible(honors.allstar).filter(row=>row.title==='올스타'||row.title==='2군 올스타');
   const youthNationals=visible(honors.national).filter(row=>row.title==="청소년 국가대표");
   const nationals=visible(honors.national).filter(row=>isNationalSelection(row)&&row.title!=="청소년 국가대표");
-  const mvps=visible(honors.individual).filter(row=>row.title==="시즌 MVP");
-  const awards=[...visible(honors.gold),...visible(honors.individual).filter(row=>!["시즌 MVP","영구결번"].includes(row.title)),
+  const mvps=visible(honors.individual).filter(row=>row.title.endsWith("시즌 MVP"));
+  const awards=[...visible(honors.gold),...visible(honors.individual).filter(row=>!mvps.includes(row)&&row.title!=="영구결번"),
     ...visible(honors.allstar).filter(row=>row.title.endsWith("미스터 올스타"))];
   const milestones:CareerMilestone[]=[];
   const add=(id:string,date:string,title:string,detail:string,kind:CareerMilestone["kind"],dateLabel=date.replaceAll("-","."))=>{
@@ -48,8 +48,8 @@ export function retirementSummary(state:GameState){
   const awardTime=(row:CareerHonor)=>{
     const season=world.seasons.find(season=>season.year===row.year);
     if(row.title.endsWith("미스터 올스타")){const level=row.title.startsWith("2군")?"second":"first";return season?.allstar?.levels[level].game?.date??allstarDates(row.year)[level];}
-    if(row.title.endsWith("MVP")&&row.title!=="시즌 MVP")return state.careerEventHistory?.find(event=>["P08","WBC01"].includes(event.definitionId)&&Number(event.date.slice(0,4))===row.year)?.date;
-    return honors.gold.includes(row)||row.title==="시즌 MVP"?season?.awardsCeremony?.presentedAt??season?.endDate:season?.endDate;
+    if(row.title.endsWith("MVP")&&!mvps.includes(row))return state.careerEventHistory?.find(event=>["P08","WBC01"].includes(event.definitionId)&&Number(event.date.slice(0,4))===row.year)?.date;
+    return honors.gold.includes(row)||mvps.includes(row)?season?.awardsCeremony?.presentedAt??season?.endDate:season?.endDate;
   };
   const award=[...awards,...mvps].sort((a,b)=>(awardTime(a)??`${a.year}-09-01`).localeCompare(awardTime(b)??`${b.year}-09-01`)||a.title.localeCompare(b.title,"ko"))[0];
   if(award){const date=awardTime(award);add("first-award",date??`${award.year}-09-01`,"첫 수상",`${honors.gold.includes(award)?"골든글러브 · ":""}${award.title}`,"award",date?date.replaceAll("-","."):`${award.year}년`);}

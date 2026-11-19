@@ -243,3 +243,21 @@ test('existing two-way proposals respect the new daily choice limit and wait unt
 test('a manual cross-field role trial preserves training but never grants unqualified pro two-way eligibility',()=>{
  const s=fixture(),p=e.getPlayer(s),policy=structuredClone(p.trainingPolicy);roles.beginProRoleTrial(s,'SP','ROLE_REQUEST');const trial=p.professional.roleTrial;trial.trainingDates=s.calendar.trainingDays.filter(date=>date>=s.date&&date<trial.until).slice(0,5);s.date=trial.until;assert.ok(roles.reviewProRoleTrial(s));assert.equal(p.position,'SP');assert.equal(p.twoWay,undefined);assert.ok(p.eligiblePositions.every(pos=>['SP','RP','CP'].includes(pos)));assert.deepEqual(p.trainingPolicy,policy);assert.equal(s.careerEvent,null);
 });
+test('position requests use the shared trial, consume a rejected request and renew next season',()=>{
+ const {actOnProCareer}=require('../.test-build/lib/sim/pro-season.js');
+ const input=fixture();for(const skill of Object.keys(e.getPlayer(input).stats))e.getPlayer(input).stats[skill]=20;
+ const rejected=actOnProCareer(input,{type:'request',kind:'position',position:'3B'});
+ const s=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(rejected))).state,p=e.getPlayer(s);
+ assert.equal(p.professional.positionRequestYear,s.calendar.seasonYear);
+ assert.equal(p.professional.roleTrial,undefined);
+ s.date=e.addDays(s.date,29);
+ assert.throws(()=>market.careerRequest(s,'position','3B'),/이번 시즌/);
+ delete s.careerNotice;
+ s.calendar.seasonYear++;s.date=`${s.calendar.seasonYear}-03-20`;
+ for(const skill of Object.keys(p.stats))p.stats[skill]=60;
+ p.stats.speed=54;
+ assert.match(roles.proRoleAptitudeIssue(p,'CF'),/55/);
+ const next=actOnProCareer(s,{type:'request',kind:'position',position:'3B'}),trial=e.getPlayer(next).professional.roleTrial;
+ assert.equal(trial.sourceId,'ROLE_REQUEST');
+ assert.equal(trial.until,e.addDays(s.date,14));
+});

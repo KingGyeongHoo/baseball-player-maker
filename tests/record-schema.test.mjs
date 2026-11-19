@@ -21,8 +21,8 @@ const old=[10,8,3,1,0,1,2,2,1,3,7,9,30,18,5,2,6,1,2,2];
 test('new records and leader metrics contain no ground/fly ball counters',()=>{
   assert.equal('GB' in e.emptyRecord().batting,false);assert.equal('FB' in e.emptyRecord().batting,false);
   assert.equal(leaderMetrics.batting.some(m=>['GB','FB'].includes(m.id)),false);
-  assert.deepEqual(proRankingMetricIds.batting,['avg','H','HR','RBI','SB','WAR']);
-  assert.deepEqual(proRankingMetricIds.pitching,['era','wins','losses','holds','saves','SO','WAR']);
+  assert.deepEqual(proRankingMetricIds.batting,['avg','H','HR','RBI','R','SB','obp','slg']);
+  assert.deepEqual(proRankingMetricIds.pitching,['wins','era','SO','winRate','holds','saves']);
 });
 test('legacy recent arrays preserve pitching and steals through conversion and repeated merges',()=>{
   const packed=recent.packRecentRecord([...old,4,1]),first=e.emptyRecord(),second=e.emptyRecord();
@@ -54,8 +54,8 @@ test('personal records put WAR last in both tables and keep batting and pitching
   const leader=leagueLeaders(s,'pro-first','batting').find(b=>b.metric.id==='WAR').rows.find(r=>r.player.id===p.id);
   assert.equal(leader.value,contribution.batting);
 });
-test('league batting boards show exactly the six requested categories in order',()=>{
+test('league batting boards show exactly the eight title categories in order',()=>{
   const html=renderToStaticMarkup(createElement(League,{state:structuredClone(template),onRecords(){}}));
   const headings=[...html.matchAll(/<h3>(.*?) <span>TOP 10<\/span><\/h3>/g)].map(match=>match[1]);
-  assert.deepEqual(headings,['타율','안타','홈런','타점','도루','WAR']);
+  assert.deepEqual(headings,['타율','안타','홈런','타점','득점','도루','출루율','장타율']);
 });

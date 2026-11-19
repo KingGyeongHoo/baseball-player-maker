@@ -1,6 +1,7 @@
 import { statKeys, type Player, type Stats, type Stat } from "./types";
 import type { AgingProfile } from "./pro-types";
 import {handednessGrowth} from './handedness';
+import {winterShopBenefit} from './offseason-shop';
 
 const physicalStats: readonly Stat[] = [
   "power",
@@ -97,6 +98,7 @@ export function applyAging(player: Player, year: number): Partial<Stats> {
   initializeAgingProfile(player);
   const profile = pro.agingProfile!,
     elapsed = (player.age ?? 19) - profile.declineStart;
+  const lossMultiplier=winterShopBenefit(player,'conditioning',year)? .7 : 1;
   const changes: Partial<Stats> = {};
   for (const key of statKeys) {
     const fast =
@@ -129,7 +131,7 @@ export function applyAging(player: Player, year: number): Partial<Stats> {
               : Math.min(0.8, 0.05 + 0.05 * (elapsed - 3));
     const before = player.stats[key];
     pro.peak[key] = Math.max(pro.peak[key], before);
-    player.stats[key] = Math.max(1, before - rate);
+    player.stats[key] = Math.max(1, before - rate*lossMultiplier);
     changes[key] = player.stats[key] - before;
     if (isPhysicalStat(key))
       profile.loss[key] = (profile.loss[key] ?? 0) - changes[key]!;

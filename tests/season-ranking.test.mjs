@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const require=createRequire(import.meta.url);
 const e=require('../.test-build/lib/sim/engine.js');
@@ -20,13 +19,14 @@ function fixture(){
     Object.assign(p.seasonByLevel.first.pitching,{BF:260,outs:180,SO:75,BB:15,HR:i,ER:10+i*5});return p;
   });return s;
 }
-test('ten closers receive S A A B B C C C D F; other roles and levels do not dilute their pool',()=>{
+test('relievers and closers share a bullpen pool, with starters and other levels ranked separately',()=>{
   const s=fixture(),extra=structuredClone(s.players[0]);extra.id='starter';extra.position='SP';s.players.push(extra);
+  for(const p of s.players.slice(5,10))p.position='RP';
   const farm=structuredClone(s.players[0]);farm.id='farm';farm.seasonByLevel.second=farm.seasonByLevel.first;farm.seasonByLevel.first=e.emptyRecord();s.players.push(farm);
   const none=structuredClone(s.players[0]);none.id='no-appearance';none.seasonByLevel.first=e.emptyRecord();s.players.push(none);
   const snapshot=structuredClone(s),ranks=r.createSeasonRankings(s);
   assert.deepEqual(s.players.slice(0,10).map(p=>ranks.get(p.id).grade),['S','A','A','B','B','C','C','C','D','F']);
-  for(const p of s.players.slice(0,10))assert.equal(ranks.get(p.id).total,10);
+  for(const p of s.players.slice(0,10)){assert.equal(ranks.get(p.id).total,10);assert.equal(ranks.get(p.id).role,'bullpen');}
   assert.equal(ranks.get('starter').role,'starter');assert.equal(ranks.get('farm').level,'second');assert.equal(ranks.has('no-appearance'),false);assert.deepEqual(s,snapshot);
 });
 test('equal WAR shares rank, grade and medal rather than using arbitrary player IDs',()=>{
@@ -44,19 +44,23 @@ test('frozen ranks survive awards, roster changes and save/load while numeric ev
   assert.deepEqual(row.seasonRank,rank);assert.equal(row.grade,'S');
   const loaded=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;
   assert.deepEqual(e.getPlayer(loaded).professional.assessments[0].seasonRank,rank);
+  row.seasonRank={...rank,role:'closer'};
+  const legacy=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;
+  assert.deepEqual(e.getPlayer(legacy).professional.assessments[0].seasonRank,row.seasonRank);
   row.seasonRank.rank=3;assert.throws(()=>save.validateCareerState(s),/순위/);
 });
 test('season badges expose WAR and role rank accessibly, with gold silver bronze for the podium',()=>{
   const s=fixture(),ranks=r.createSeasonRankings(s);
   for(let index=0;index<3;index++){
-    const rank=ranks.get(s.players[index].id),html=renderToStaticMarkup(createElement(Badge,{score:75,rank,war:rank.war}));
-    assert.ok(html.includes(`season-medal-${['gold','silver','bronze'][index]}`));assert.ok(html.includes(`마무리 ${index+1}위 / 10명`));assert.ok(html.includes('WAR '));
+    const rank=ranks.get(s.players[index].id);
+    const html=renderToStaticMarkup(Badge({score:75,rank,war:rank.war}).props.content);
+    assert.ok(html.includes(`season-rank-${['gold','silver','bronze'][index]}`));assert.ok(html.includes(`불펜 ${index+1}위 / 10명`));assert.ok(html.includes('WAR '));
   }
 });
 test('reconstructed historical ranks disclose incomplete saved populations and validate their provenance',()=>{
   const s=fixture(),rank={...r.createSeasonRankings(s).get(s.playerId),basis:'retained-records'};
   assert.equal(r.validSeasonRank(rank),true);
   assert.equal(r.validSeasonRank({...rank,basis:'invented'}),false);
-  const html=renderToStaticMarkup(createElement(Badge,{score:75,rank,war:rank.war}));
+  const html=renderToStaticMarkup(Badge({score:75,rank,war:rank.war}).props.content);
   assert.ok(html.includes('남아 있는 저장 기록 기준'));
 });

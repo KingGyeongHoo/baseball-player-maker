@@ -10,8 +10,8 @@ export const isFarmPostseason=(id:string)=>id.startsWith('pro-farm-playoffs-');
 export const farmPostseasonActive=(s:GameState)=>!!s.proWorld?.farmPostseason&&s.proWorld.farmPostseason.champion===undefined;
 export function farmRegularFinishNotice(s:GameState){
   const p=getPlayer(s),team=proGameTeam(p),rank=(s.proWorld?.farmPostseason?.seeds.indexOf(team)??-1)+1,name=s.teams[team]?.name??'소속 2군';
-  return rank?{title:`${name} 2군 포스트시즌 진출!`,message:`2군 정규시즌 ${rank}위로 준결승에 출전합니다. 준결승 3전 2선승·결승 5전 3선승입니다. 포스트시즌 진행중에도 엔트리 변경이 있을 수 있습니다.`}:
-    {title:`${name} 2군 정규시즌 종료`,message:'2군 상위 4팀 포스트시즌 진출에 실패했습니다. 다른 구단의 남은 경기가 끝나면 시즌을 결산합니다.'};
+  return rank?{title:`${name} 포스트시즌 진출!`,message:`2군 정규시즌 ${rank}위로 준결승에 출전합니다. 준결승 3전 2선승·결승 5전 3선승입니다. 포스트시즌 진행중에도 엔트리 변경이 있을 수 있습니다.`}:
+    {title:`${name} 정규시즌 종료`,message:'2군 상위 4팀 포스트시즌 진출에 실패했습니다. 다른 구단의 남은 경기가 끝나면 시즌을 결산합니다.'};
 }
 function schedule(s:GameState,series:ProSeries,date:string){
   date=nextFarmDate(date,s.calendar.seasonYear);const number=series.game++,pattern=series.stage==='final'?[0,0,1,1,0]:[0,1,0],home=series.clubs[pattern[number]],away=series.clubs[1-series.clubs.indexOf(home)];

@@ -1,4 +1,5 @@
 import {repairConversionRegistrations} from "./pro-conversion";
+import {MIN_PRO_SALARY} from './pro-contract-rules';
 import {canAssignProSquad,currentProPosition,guaranteedProStarter} from "./pro-positions";
 import {registrationChangeMessage,summarizeRegistrationNotices} from '../pro-registration-notice';
 import {ensurePlayableFarmRosters} from "./pro-farm";
@@ -39,7 +40,7 @@ export function initializeProfessional(s:GameState,p:Player,club:number,entry="v
   if(p.professional){clearProfessionalReputation(p);initializeProTwoWay(s,p,true);initializeAgingProfile(p);return;}
   const year=s.calendar.seasonYear,age=p.age??19,rookieYear=entry==="veteran"?year-Math.max(0,age-19):year;
   p.proContract??={status:"regular",joinedDate:`${rookieYear}-03-01`};
-  const salary=entry!=="veteran"?(p.proContract.status==="developmental"?.6:1)*BASE_SALARY:(p.teamId<10?2+Math.max(0,ovr(p)-66)*.2:1)*BASE_SALARY;
+  const salary=entry!=="veteran"?(p.proContract.status==="developmental"?MIN_PRO_SALARY:BASE_SALARY):(p.teamId<10?2+Math.max(0,ovr(p)-66)*.2:1)*BASE_SALARY;
   p.professional={rookieYear,firstClub:club,entry,employment:club<0?"freeAgent":"active",contract:club<0?null:contractFor(club,year,Math.trunc(salary)),
     agingOffset:hash(`${s.seed}:${p.id}:aging`)%5-2,agedYear:year,faDays:0,faEligible:false,registration:{year,days:0},
     assessments:[],unattachedYears:0,entryReputation:p.reputation??50,proBonus:0,earnings:0,highestSalary:salary,peak:{...p.stats},

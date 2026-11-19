@@ -10,6 +10,7 @@ const war=require('../.test-build/lib/sim/pro-war.js');
 const ranks=require('../.test-build/lib/sim/pro-season-ranking.js');
 const c=require('../.test-build/lib/sim/pro-career-evaluation.js');
 const honors=require('../.test-build/lib/sim/retirement-honors.js');
+const {firstTeamRetention}=require('../.test-build/lib/sim/pro-assessment.js');
 const save=require('../.test-build/lib/career-save.js');
 const {careerContractSummary}=require('../.test-build/lib/career-summary.js');
 const Summary=require('../.test-build/app/components/pro-assessments.js').default;
@@ -21,18 +22,37 @@ function row(year,rank=1,level='first'){
 }
 test('career evaluation combines all-season mean 70% with best five mean 30%, using percentile rather than raw scores',()=>{
   const rows=Array.from({length:10},(_,i)=>row(2030+i,i+1)),evaluation=c.evaluateCareer(rows,'first');
-  assert.equal(evaluation.average,55);assert.equal(evaluation.peak,80);assert.equal(evaluation.score,62.5);assert.equal(evaluation.grade,'B');
+  assert.equal(evaluation.average,55);assert.equal(evaluation.peak,80);assert.equal(evaluation.score,62.5);assert.equal(evaluation.grade,'F');
   rows.forEach(r=>r.score=99);assert.equal(c.evaluateCareer(rows,'first').score,62.5);
 });
-test('rank boundary grades match season cuts; fewer than five seasons use available seasons without zero padding',()=>{
-  for(const [score,grade]of [[100,'S'],[90,'A'],[70,'B'],[50,'C'],[20,'D'],[10,'F'],[null,'—']])assert.equal(c.careerPercentileGrade(score),grade);
+test('cumulative WAR grades include the lower bound of every band and distinguish missing scores',()=>{
+  for(const [score,grade]of [[100,'S'],[60,'S'],[59.99,'A'],[50,'A'],[49.99,'B'],[40,'B'],[39.99,'C'],[30,'C'],[29.99,'D'],[20,'D'],[19.99,'E'],[10,'E'],[9.99,'F'],[-1,'F'],[null,'—']])assert.equal(c.careerWarGrade(score),grade);
   assert.equal(c.evaluateCareer([row(2030,2)],'first').score,90);
   assert.equal(c.evaluateCareer([],'first').score,null);
+});
+test('club awards add once per club and year to the matching career level across save and reload',()=>{
+ const s=structuredClone(template),p=e.getPlayer(s);
+ p.professional.assessments=[row(2030,2),row(2031,3,'second')];
+ s.calendar.seasonYear=2031;s.date='2031-10-31';
+ const award=(year,kind,club=0)=>({year,kind,playerId:p.id,playerName:p.name,club,value:1});
+ const firstAward=award(2030,'1군 최우수 선수');
+ const archive={standings:[],farmStandings:[],champion:null,draft:[],rookieRulesVersion:1};
+ s.proWorld.seasons=[{...archive,year:2030,awards:[firstAward,{...firstAward}]},{...archive,year:2031,awards:[award(2031,'구단 육성 우수 선수')]}];
+ assert.equal(c.syncClubAwardCounts(s),true);
+ assert.equal(c.syncClubAwardCounts(s),false);
+ const career=c.playerCareerEvaluation(p);
+ assert.equal(career.first.score,90.1);
+ assert.equal(career.second.score,80.05);
+ assert.equal(p.professional.assessments[0].cumulative,90.1);
+ assert.equal(p.professional.assessments[0].score,71);
+ for(const assessment of p.professional.assessments)delete assessment.clubAwardCounts;
+ const loaded=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;
+ assert.deepEqual(c.playerCareerEvaluation(e.getPlayer(loaded)),career);
 });
 test('levels remain separate, injury/unrated seasons are excluded, and real F seasons are included',()=>{
   const rows=[row(2030),row(2031,10),row(2032,1,'second'),{...row(2033),score:null},{...row(2034),clubGamesShortage:true},{...row(2035),seasonRank:undefined}];
   const first=c.evaluateCareer(rows,'first'),second=c.evaluateCareer(rows,'second');
-  assert.equal(first.seasons,2);assert.equal(first.score,55);assert.equal(second.seasons,1);assert.equal(second.grade,'S');assert.equal(first.unranked,1);
+  assert.equal(first.seasons,2);assert.equal(first.score,55);assert.equal(second.seasons,1);assert.equal(second.grade,'F');assert.equal(first.unranked,1);
   assert.equal(c.evaluateCareer(rows,'first',2030).score,100);
 });
 test('first-team career scores require 90% registration across clubs after injury leave',()=>{
@@ -49,19 +69,24 @@ test('historical role changes use each saved rank; level WAR sums include fieldi
   p.professional.rookieYear=2027;p.professional.assessments=[first,second];p.position='SS';
   const result=c.playerCareerEvaluation(p);assert.equal(result.first.score,85);assert.equal(result.first.war,5.3);assert.equal(result.second.war,1.5);
 });
-test('retirement honors use first-team career rank grade, preserving existing service requirements',()=>{
+test('retirement ceremonies still use first-team career grade independently of retired-number WAR',()=>{
   const s=structuredClone(template),p=e.getPlayer(s),pro=p.professional,club=pro.contract.club;
   pro.rookieYear=2030;pro.firstClub=club;pro.service=[{club,from:2030,to:2050}];pro.movements=[];pro.contract.endYear=2050;p.teamId=club;s.calendar.seasonYear=2050;s.proWorld.seasonClosed=true;
   pro.assessments=Array.from({length:21},(_,i)=>({...row(2030+i,2),honorRegistration:{seasonDays:100,firstDaysByClub:{[club]:90}}}));
-  let eligibility=honors.retirementEligibility(s,p);assert.equal(eligibility.grade,'A');assert.equal(eligibility.retiredNumber,true);
-  pro.assessments.forEach(r=>r.seasonRank.level='second');eligibility=honors.retirementEligibility(s,p);assert.equal(eligibility.grade,'—');assert.equal(eligibility.retiredNumber,false);
+  pro.assessments[0].war.first.batting=50;
+  pro.assessments[0].firstWarByClub={[club]:20,[(club+1)%10]:30};
+  let eligibility=honors.retirementEligibility(s,p);assert.equal(eligibility.grade,'A');assert.equal(eligibility.ceremony,true);assert.equal(eligibility.retiredNumber,false);
+  assert.equal(firstTeamRetention(p,2050).grade,'A');
+  pro.assessments.forEach(r=>r.seasonRank.level='second');eligibility=honors.retirementEligibility(s,p);assert.equal(eligibility.grade,'—');assert.equal(eligibility.ceremony,false);assert.equal(eligibility.retiredNumber,false);
 });
-test('derived cumulative grades survive save/load and the compact summary omits career WAR',()=>{
+test('derived cumulative grades survive save/load and the compact summary displays points',()=>{
   const s=structuredClone(template),p=e.getPlayer(s);s.calendar.seasonYear=2032;p.professional.rookieYear=2027;p.professional.assessments=[row(2030,2),row(2031,4),row(2032,1,'second')];
+  p.professional.assessments[0].war.first.batting=20;
+  p.professional.assessments[1].war.first.batting=30;
   c.refreshCareerEvaluation(p);assert.equal(p.professional.assessments[1].cumulative,80);assert.equal(p.professional.assessments[1].cumulativeGrade,'A');
   const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;
   assert.deepEqual(e.getPlayer(restored).professional.assessments,p.professional.assessments);
-  const html=renderToStaticMarkup(createElement(Summary,{state:restored}));assert.ok(html.includes('<span>누적 평가</span>'));assert.doesNotMatch(html,/누적 평가 · 2군|통산 WAR/);
+  const html=renderToStaticMarkup(createElement(Summary,{state:restored}));assert.ok(html.includes('<span>누적 평가</span>'));assert.match(html,/<b>50\.00<\/b>/);assert.match(html,/누적 평가 등급 A/);assert.doesNotMatch(html,/누적 평가 · 2군/);
 });
 test('season and career numbers share the role-percentile scale across the live summary and historical table',()=>{
   const s=structuredClone(template),p=e.getPlayer(s);s.calendar.seasonYear=2032;

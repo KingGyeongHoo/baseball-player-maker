@@ -27,17 +27,18 @@ test('rookie eligibility includes exactly five entry seasons and prior first-tea
  prior(p,60,90);p.career[0].byLevel.second.batting.PA=9999;p.career[0].byLevel.second.pitching.outs=9999;assert.equal(awards.rookieEligibility(p,2028,'batting'),true);
  assert.equal(awards.rookieOfYearAward(s).playerId,p.id);
 });
-test('rookie winners need current qualified first-team PA or role-specific innings; farm and postseason records cannot qualify them',()=>{
+test('rookie candidates need 60 first-team PA or 30 first-team innings in any role',()=>{
  const s=fixture(),p=e.getPlayer(s);p.seasonByLevel.first=e.emptyRecord();p.seasonByLevel.second.batting.PA=1000;p.seasonPostseason.batting.PA=500;
- p.seasonByLevel.first.batting.PA=446;assert.equal(awards.rookieOfYearAward(s),undefined);p.seasonByLevel.first.batting.PA=447;assert.equal(awards.rookieOfYearAward(s).playerId,p.id);
- for(const [position,outs] of [['SP',432],['RP',144],['CP',144]]){p.position=position;p.primaryRole=e.roleFor(position);p.seasonByLevel.first=e.emptyRecord();Object.assign(p.seasonByLevel.first.pitching,{BF:200,SO:70,ER:10,outs:outs-1});assert.equal(awards.rookieOfYearAward(s),undefined);p.seasonByLevel.first.pitching.outs=outs;assert.equal(awards.rookieOfYearAward(s).field,'pitching');}
+ p.seasonByLevel.first.batting.PA=59;assert.equal(awards.rookieOfYearAward(s),undefined);p.seasonByLevel.first.batting.PA=60;assert.equal(awards.rookieOfYearAward(s).playerId,p.id);
+ p.seasonByLevel.second.pitching.outs=360;p.seasonPostseason.pitching.outs=180;
+ for(const position of ['SP','RP','CP']){p.position=position;p.primaryRole=e.roleFor(position);p.seasonByLevel.first=e.emptyRecord();Object.assign(p.seasonByLevel.first.pitching,{BF:120,SO:30,ER:10,outs:89});assert.equal(awards.rookieOfYearAward(s),undefined);p.seasonByLevel.first.pitching.outs=90;assert.equal(awards.rookieOfYearAward(s).field,'pitching');}
 });
 test('exactly one rookie wins on actual records rather than skills, and sits below MVP at the December ceremony',()=>{
  const s=fixture(),p=e.getPlayer(s),rival=structuredClone(p);rival.id='other-rookie';rival.name='다른신인';rival.seasonByLevel.first.batting.H=140;for(const key of Object.keys(rival.stats))rival.stats[key]=99;s.players.push(rival);
  const before=structuredClone(s),winner=awards.rookieOfYearAward(s);assert.equal(winner.playerId,p.id);assert.deepEqual(s,before);
  const rows=awards.regularAwards(s);assert.equal(rows.filter(r=>r.category==='rookie').length,1);
  const season={year:2028,awards:rows},html=renderToStaticMarkup(createElement(SeasonAwards,{state:s,season}));
- assert.ok(html.indexOf('SEASON MVP')<html.indexOf('ROOKIE OF THE YEAR'));assert.ok(html.indexOf('ROOKIE OF THE YEAR')<html.indexOf('골든글러브 수상자'));
+ assert.ok(html.includes('1군 MVP')&&html.indexOf('1군 MVP')<html.indexOf('신인상'));assert.doesNotMatch(html,/골든글러브/);
 });
 test('MVP, gold glove and rookie bonuses take effect only when presented and never duplicate on repeated acknowledgments or reloads',()=>{
  const s=fixture(),p=e.getPlayer(s),rows=awards.regularAwards(s),season={year:2028,endDate:s.date,standings:[],farmStandings:[],champion:0,awards:rows,draft:[],rookieRulesVersion:1,awardsCeremony:{version:1,scheduledAt:'2028-12-06'}};
@@ -53,6 +54,7 @@ test('historical rookie and home-run titles use archived final records, preserve
  p.career=[{year:2028,grade:0,careerMode:'pro',stats:{...p.stats},records:e.emptyRecord(),byLevel:record,schoolId:10}];p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};p.seasonByLevel.second.batting.HR=999;
  s.calendar.seasonYear=2029;s.proWorld.year=2029;s.date='2029-06-01';s.proWorld.seasons=[{year:2028,standings:[],farmStandings:[],champion:0,awards:[{year:2028,kind:'시즌 MVP',category:'mvp',playerId:'frozen-mvp',playerName:'기존MVP',club:0,value:99}],draft:[],awardsCeremony:{version:1,scheduledAt:'2028-12-06',presentedAt:'2028-12-06'}}];
  const report=historical.backfillSeasonHonors(s);assert.equal(report.rookies[0].playerId,p.id);assert.equal(report.homeRuns.find(r=>r.level==='second').value,26);
+ assert.equal(s.proWorld.seasons[0].rookieRulesVersion,awards.rookieRulesVersion);
  assert.equal(s.proWorld.seasons[0].awards.find(r=>r.category==='mvp').playerId,'frozen-mvp');assert.ok(careerHonors(s).individual.some(r=>r.title==='2군 홈런왕'));
  const state=structuredClone(s);assert.equal(historical.backfillSeasonHonors(s).changed,false);assert.deepEqual(s,state);
 });
@@ -105,7 +107,8 @@ test('forfeit-only series cannot invent an MVP or a bonus',()=>{
 test('MVP, rookie and positional gold glove celebrations follow the ceremony one at a time and survive mid-queue reload',()=>{
  let s=fixture();const p=e.getPlayer(s),rows=awards.regularAwards(s);s.proWorld.seasonClosed=true;s.phase='ended';s.proWorld.stage='summary';s.proWorld.seasons=[{year:2028,endDate:s.date,standings:[],farmStandings:[],champion:0,awards:rows,draft:[],rookieRulesVersion:1,awardsCeremony:{version:1,scheduledAt:'2028-12-06'}}];
  s.date='2028-12-06';const before=e.selectionScore(p);ceremony.presentAwardsCeremony(s);const score=e.selectionScore(p),ledger=structuredClone(p.professional.awardBonuses);assert.equal(s.careerNotice.code,'awards:2028');assert.deepEqual(s.noticeQueue.filter(row=>row.award).map(row=>row.award.title),['MVP','신인왕','1루수 골든글러브']);
- s=pc.acknowledgeCareer(s);const {CareerNoticeDialog}=require('../.test-build/app/components/career-continuation.js'),html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));assert.ok(html.includes('2028년 <span class="award-celebration-title">MVP</span>를 획득했다!!'));assert.ok(html.includes('+3'));assert.equal(s.careerNotice.award.before,before);
+ s=pc.acknowledgeCareer(pc.acknowledgeCareer(s));if(s.careerNotice.code==='club-award:2028')s=pc.acknowledgeCareer(s);
+ const {CareerNoticeDialog}=require('../.test-build/app/components/career-continuation.js'),html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));assert.ok(html.includes('2028년 <span class="award-celebration-title">MVP</span>를 획득했다!!'));assert.ok(html.includes('+3'));assert.equal(s.careerNotice.award.before,before);
  s=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;const titles=[];while(s.careerNotice?.award){titles.push(s.careerNotice.award.title);s=pc.acknowledgeCareer(s);}assert.deepEqual(titles,['MVP','신인왕','1루수 골든글러브']);assert.equal(s.careerNotice.title,'타이틀 획득!');s=pc.acknowledgeCareer(s);assert.deepEqual(e.getPlayer(s).professional.awardBonuses,ledger);assert.equal(e.selectionScore(e.getPlayer(s)),score);assert.equal(ceremony.presentAwardsCeremony(s),false);assert.equal(s.noticeQueue.length,0);
 });
 

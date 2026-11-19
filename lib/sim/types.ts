@@ -87,6 +87,7 @@ export type Player = {
   transferAdaptation?: { schoolId: number; weeksRemaining: number };
   proContract?: { status: "developmental" | "regular"; joinedDate: string; convertedDate?: string };
   professional?: ProfessionalPlayer;
+  offseasonShop?: import('./offseason-shop').OffseasonShop;
   seasonPostseason?: RecordLine;
   seasonFarmPostseason?:RecordLine;
   seasonSpring?:RecordLine;

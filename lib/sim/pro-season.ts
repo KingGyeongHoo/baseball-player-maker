@@ -1,4 +1,5 @@
 import {showStoveReport} from './stove-report';
+import {buyShopItems,settleShopItems,type OffseasonShopAction} from './offseason-shop';
 import {settleFaService} from './fa-service';
 import {advanceNationalOffseason,pendingNationalOffseason} from "./national-tournament";
 import {nationalInvitation,needsNationalInvitationUpgrade,upgradeNationalInvitation} from './national-teams';
@@ -18,10 +19,11 @@ import {positionCohort} from './position-generation';
 import {reviewDevelopmentContract} from './pro-career';
 import {developmentCalendar,careerLeagueTable} from "./pro-calendar";
 import {applyAging} from "./pro-growth";
-import {regularAwards,contractValue} from "./pro-evaluation";
+import {regularAwards,contractValue,rookieRulesVersion} from "./pro-evaluation";
 import {firstTeamRosterCapacity,postseasonTeamCapacity} from './pro-roster';
 import {expandPostseasonRosters,needsPostseasonRosterUpgrade} from './pro-postseason-roster';
 import {BASE_SALARY,clubName,contractFor,ensureProWorld,initializeProfessional,prepareOpeningRegistrations,proNews,proNotice} from "./pro-world";
+import {MIN_PRO_SALARY} from './pro-contract-rules';
 import {upgradeContractRules,needsContractUpgrade,applySeasonExitPolicies,offerFor,careerRequest,clubRoster,negotiateOffer,openContractMarket,refreshOffers,releasePlayer,renewNPCs,reviewNPCTrades,reviewStoveReleases,signContract,trimForRookies} from "./pro-market";
 import {type GameState,type Game,type Player,type Position} from "./types";
 import type {ProSeries} from "./pro-types";
@@ -34,6 +36,7 @@ import {needsAllstarScheduleUpgrade,upgradeAllstarSchedule} from "./pro-allstar-
 import {ensureAllstarSeason} from "./pro-allstar";
 import {awardsDate,ensureAwardsCeremony,presentAwardsCeremony} from "./pro-awards-ceremony";
 import {individualAwards} from "./pro-individual-awards";
+import {syncClubAwardCounts} from './pro-career-evaluation';
 import {farmPostseasonActive,reviewFarmPostseason} from './pro-farm-postseason';
 import {settleSeriesMvp} from './pro-series-awards';
 import {archiveProfessionalSeason,registerRetiredNumber,registerRetirementFarewell,retireProfessional,veteranRetirementReason} from "./pro-retirement";
@@ -184,9 +187,12 @@ export function closeProfessionalSeason(s:GameState){
   for(const p of s.players){if(!p.professional)continue;recordSeasonAssessment(s,p,appearances,warContext);settleFaService(p.professional,w.year);archiveProfessionalSeason(s,p);payroll(s,p);}
   freezeSeasonRankings(s,warContext);
   for(const p of s.players){if(!p.professional)continue;p.professional.proBonus=0;if(p.professional.employment==="freeAgent")p.professional.unattachedYears++;}
-  const awards=[...regularAwards(s),...[...(w.postseason?.series??[]),...(w.farmPostseason?.series??[])].flatMap(series=>series.mvp?[structuredClone(series.mvp)]:[])];w.seasons.push({year:w.year,endDate:s.date,standings:careerLeagueTable(s.calendar,"pro-first"),farmStandings:careerLeagueTable(s.calendar,"pro-second"),champion:w.postseason?.champion??null,farmChampion:w.farmPostseason?.champion??null,...(w.farmPostseason?{farmPostseason:structuredClone(w.farmPostseason)}:{}),awards,draft:[],...(w.allstar?{allstar:structuredClone(w.allstar)}:{})});
-  const archived=w.seasons.at(-1)!;archived.individualAwards=individualAwards(s);archived.rookieRulesVersion=1;if(awards.some(a=>a.category))archived.awardsCeremony={version:1,scheduledAt:awardsDate(w.year)};
+  const titles=individualAwards(s);
+  const awards=[...regularAwards(s,titles,warContext),...[...(w.postseason?.series??[]),...(w.farmPostseason?.series??[])].flatMap(series=>series.mvp?[structuredClone(series.mvp)]:[])];w.seasons.push({year:w.year,endDate:s.date,standings:careerLeagueTable(s.calendar,"pro-first"),farmStandings:careerLeagueTable(s.calendar,"pro-second"),champion:w.postseason?.champion??null,farmChampion:w.farmPostseason?.champion??null,...(w.farmPostseason?{farmPostseason:structuredClone(w.farmPostseason)}:{}),awards,draft:[],individualAwards:titles,rookieRulesVersion,...(w.allstar?{allstar:structuredClone(w.allstar)}:{})});
+  const archived=w.seasons.at(-1)!;if(awards.some(a=>a.category))archived.awardsCeremony={version:1,scheduledAt:awardsDate(w.year)};
+  syncClubAwardCounts(s);
   const p=getPlayer(s),notice=professionalSeasonFinishNotice(s);
+  settleShopItems(p,w.year);
   proNotice(s,`season:${w.year}`,notice.title,notice.message,"seasonComplete");
   retireAtSeasonEnd(s);
   applySeasonExitPolicies(s);
@@ -209,7 +215,7 @@ export function addRookieClass(s:GameState,year:number){
   s.rngStates.draft=state.rngStates.draft;
   const developmentalIds=rookieDevelopmentalIds(s.seed,year,picks.map(p=>p.playerId));
   for(const pick of picks){const p=candidates.find(p=>p.id===pick.playerId)!,club=draftClubs.indexOf(pick.club),developmental=developmentalIds.has(p.id);p.grade=0;p.age=19;p.teamId=club+(developmental?30:20);p.careerMode="pro";p.seasonStats=emptyRecord();p.recentAppearances=[];p.proContract={status:developmental?"developmental":"regular",joinedDate:`${year}-03-01`};
-    initializeProfessional(s,p,club,developmental?"developmental":"draft");p.professional!.rookieYear=year;p.professional!.agedYear=year;p.professional!.contract=contractFor(club,year,BASE_SALARY*(developmental?.6:1));p.professional!.service=[{club,from:year,to:year}];s.players.push(p);
+    initializeProfessional(s,p,club,developmental?"developmental":"draft");p.professional!.rookieYear=year;p.professional!.agedYear=year;p.professional!.contract=contractFor(club,year,developmental?MIN_PRO_SALARY:BASE_SALARY);p.professional!.service=[{club,from:year,to:year}];s.players.push(p);
   }
   // Assess the completed intake, not an empty place reserved for an unknown
   // prospect. New rookies count when deciding which old positions are surplus.
@@ -218,8 +224,8 @@ export function addRookieClass(s:GameState,year:number){
   proNews(s,`${year} 신인 ${picks.length}명 · 잔류군 ${picks.length-developmentalIds.size}명 / 육성선수 ${developmentalIds.size}명 · 직전 정규 시즌 하위 구단 우선`,`${year}:rookie-class`);
 }
 function retireNPC(s:GameState,p:Player,reason:string){
-  registerRetirementFarewell(s,p);
-  registerRetiredNumber(s,p);
+  const eligibility=registerRetirementFarewell(s,p);
+  registerRetiredNumber(s,p,eligibility);
   if(p.teamId>=0)p.professional!.movements.push({date:s.date,from:p.teamId%10,to:null,kind:"은퇴",reason});
   p.professional!.employment="retired";p.professional!.contract=null;p.teamId=-1;
   proNews(s,`${p.name} 은퇴 · ${reason}`,`retirement:${p.id}`);
@@ -348,11 +354,15 @@ export function startNextProSeason(s:GameState,unattached=false){
   capturePlayerEvaluations(s,"season-start");
   proNotice(s,`camp:${year}`,`${year} 캠프 시작`,`${p.age}세 · ${clubName(s,p.teamId<0?null:p.teamId%10)} · 지난 시즌 기록과 계약을 유지합니다. 노화는 이번 시즌 나이에 따라 한 번 적용했습니다.${unattached?" 무소속 훈련은 성장 60%, 공식 경기와 FA 공헌일은 없습니다.":" 개막 등록은 경쟁·컨디션에 따라 평가합니다."}`);
 }
-export type ProAction={type:"national"|"market"|"nextSeason"|"unattached"|"retire"|"wait"}|{type:"accept"|"negotiate";id:string}|{type:"request";kind:"chance"|"position"|"manage"|"trade"|"release";position?:Position}|{type:"goal";goal:string};
+export type ProAction=OffseasonShopAction|{type:"national"|"market"|"nextSeason"|"unattached"|"retire"|"wait"}|{type:"accept"|"negotiate";id:string}|{type:"request";kind:"chance"|"position"|"manage"|"trade"|"release";position?:Position}|{type:"goal";goal:string};
 export function actOnProCareer(input:GameState,action:ProAction):GameState{
   if(input.careerNotice||input.careerEvent||input.weekProgress||input.matchProgress)throw new Error("진행 중인 경기·선택·통보를 먼저 마쳐 주세요.");
   const s=structuredClone(input);ensureProWorld(s);const w=s.proWorld!,p=getPlayer(s);const finish=()=>{syncJerseyNumbers(s);if(["market","negotiate","accept"].includes(action.type))capturePlayerEvaluations(s,"contract",[p.id]);return captureEvaluationChange(s,getPlayer(input));};
   if(w.stage==="retired")throw new Error("은퇴한 커리어입니다.");
+  if(action.type==='buyOffseasonItems'){
+    buyShopItems(s,p,action.items);
+    return s;
+  }
   if(w.seasonClosed)freezeProNational(s);
   const national=pendingNationalOffseason(s);
   if(action.type==='national'){

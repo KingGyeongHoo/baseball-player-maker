@@ -211,7 +211,7 @@ test('opt-in repair restores only the last unfair retirement, preserves records 
  assert.deepEqual(q.career,p.career);assert.deepEqual(q.professional.salaries,p.professional.salaries);assert.deepEqual(q.stats,p.stats);
  assert.equal(q.professional.developmentalRetry.deadlineYear,2029);assert.equal(q.professional.assessments.at(-1).clubGamesShortage,true);
  repaired.careerNotice=undefined;repaired.noticeQueue=[];market.openContractMarket(repaired);
- assert.equal(repaired.proWorld.market.kind,'renewal');const offer=repaired.proWorld.market.offers[0];assert.ok(offer);assert.equal(offer.salary,30_000_000);
+ assert.equal(repaired.proWorld.market.kind,'renewal');const offer=repaired.proWorld.market.offers[0];assert.ok(offer);assert.equal(offer.salary,33_000_000);
  market.signContract(repaired,q,offer);assert.equal(q.teamId,club+10);assert.equal(q.professional.contract.endYear,2029);
  const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(repaired))).state;
  assert.deepEqual(e.getPlayer(restored).professional.developmentalRetry,q.professional.developmentalRetry);

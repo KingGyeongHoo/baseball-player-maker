@@ -4,7 +4,6 @@ import {choosePlayerJersey} from "./jersey-numbers";
 import {choosePlayerHands} from "./player-handedness";
 import type { PlayerHands, Position } from "./sim/types";
 import {applySwitchContact} from './sim/handedness';
-import {positionFromRoll} from './sim/position-generation';
 
 export type PlayerKind = "batter" | "pitcher";
 export const fieldPositions: { id: Position; x: number; y: number; description: string }[] = [
@@ -23,9 +22,17 @@ export const pitchingPositions: { id: Position; image: string; description: stri
   { id: "CP", image: "/images/pitcher-closer-left.png", description: "Closer" },
 ];
 export const kindForPosition = (position: Position): PlayerKind => ["SP", "RP", "CP"].includes(position) ? "pitcher" : "batter";
+const playablePositions=Object.keys(positions) as Position[];
+
+function randomIndex(count:number,entropy:Pick<Crypto,'getRandomValues'>){
+  const limit=Math.floor(2**32/count)*count;
+  const value=new Uint32Array(1);
+  do { entropy.getRandomValues(value); } while(value[0]>=limit);
+  return value[0]%count;
+}
+
 export function randomPlayerPosition(entropy:Pick<Crypto,'getRandomValues'>=globalThis.crypto):Position{
-  const value=entropy.getRandomValues(new Uint32Array(1))[0];
-  return positionFromRoll(value/2**32);
+  return playablePositions[randomIndex(playablePositions.length,entropy)];
 }
 
 // The seed is internal: every start gets fresh entropy, while replayable engine
@@ -33,11 +40,7 @@ export function randomPlayerPosition(entropy:Pick<Crypto,'getRandomValues'>=glob
 export function createRandomCareer(name: string, position: Position, entropy: Pick<Crypto, "randomUUID" | "getRandomValues"> = globalThis.crypto, jerseyNumber?:number,hands?:PlayerHands) {
   if (!name.trim()) throw new Error("선수 이름을 입력해 주세요.");
   if (!Object.hasOwn(positions, position)) throw new Error("희망 포지션을 선택해 주세요.");
-  const teams = params["world.teams"];
-  const limit = Math.floor(2 ** 32 / teams) * teams;
-  const value = new Uint32Array(1);
-  do { entropy.getRandomValues(value); } while (value[0] >= limit);
-  const teamId = value[0] % teams;
+  const teamId=randomIndex(params["world.teams"],entropy);
   const s=choosePlayerJersey(createGame(entropy.randomUUID(), name, position, teamId),jerseyNumber);choosePlayerHands(getPlayer(s),hands);return s;
 }
 

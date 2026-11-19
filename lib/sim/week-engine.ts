@@ -1,4 +1,5 @@
 import {playNationalDay} from "./national-tournament";
+import {conditioningMultiplier} from './offseason-shop';
 import {nationalAway} from "./national-teams";
 import {proGameTeam} from "./pro-farm-roster";
 import { tryTrainingFocus } from "./training-focus";
@@ -199,7 +200,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
           if(s.careerMode==="pro")recordProRoleTraining(s,p);
         }
         const allocation=p.forcedRest||injured||p.trainingPolicy.mode==="rest"||!trainingCycle||allstarRest||p.id===s.playerId&&day.skipPlayerTraining?0:p.trainingPolicy;
-        const beforeFatigue=p.fatigue,fatigueDay=trainingFatigueDay(p.fatigue,fatigueRecoveryStats.get(p.id)??p.stats.recovery,allocation);
+        const beforeFatigue=p.fatigue,fatigueDay=trainingFatigueDay(p.fatigue,fatigueRecoveryStats.get(p.id)??p.stats.recovery,allocation,conditioningMultiplier(p));
         p.fatigue=fatigueDay.end;
         if(p.id===s.playerId){day.fatigue.training+=fatigueDay.training;day.fatigue.recovered+=fatigueDay.recovered;day.fatigue.peak=Math.max(day.fatigue.peak,beforeFatigue,p.fatigue);day.fatigue.end=p.fatigue;}
         if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;

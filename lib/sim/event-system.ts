@@ -204,7 +204,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   Object.assign(opportunityChanges,applyProTwoWayChoice(s,outcome));
   if (outcome.role) assignRole(p, outcome.role);
   let proAction:ProEventResult["action"];
-  if(outcome.proRoleTrial&&p.professional){assertPositionEligible(p,outcome.proRoleTrial);if(event.proEvent){const trial=beginProRoleTrial(s,outcome.proRoleTrial,event.proEvent.catalogId,false,outcome.proAutoTransition===true);proAction={kind:"trial",target:trial.position,until:trial.until};}else p.professional.roleTrial={position:outcome.proRoleTrial,until:addDays(s.date,14)};}
+  if(outcome.proRoleTrial&&p.professional){assertPositionEligible(p,outcome.proRoleTrial);if(event.proEvent){const trial=beginProRoleTrial(s,outcome.proRoleTrial,event.proEvent.catalogId,outcome.proAutoTransition===true);proAction={kind:"trial",target:trial.position,until:trial.until};}else p.professional.roleTrial={position:outcome.proRoleTrial,until:addDays(s.date,14)};}
   if(outcome.proTrialDecision)proAction=decideProRoleTrial(s,outcome.proTrialDecision==="accept");
   if(outcome.proChanceRequest&&p.professional){const pro=p.professional;if(pro.employment!=="active"||pro.requestAfter&&s.date<pro.requestAfter||pro.requestedEvaluationUntil&&s.date<=pro.requestedEvaluationUntil)throw new Error("평가 출전 요청의 재사용 대기가 끝나지 않았습니다.");pro.requestAfter=addDays(s.date,28);pro.requestedEvaluationUntil=addDays(s.date,21);proAction={kind:"request",until:pro.requestedEvaluationUntil};}
   if (event.definitionId === "P06") { p.roleOffer = null; p.offerWeeks = 0; p.offerCooldown = params["coach.offer_cooldown"]; }

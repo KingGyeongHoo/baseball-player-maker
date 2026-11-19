@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import PositionPicker, { Ballpark } from "./position-picker";
+import PositionPicker from "./position-picker";
+import Ballpark from './ballpark';
 import { createRandomCareer, createRandomProCareer, kindForPosition, randomPlayerPosition, type PlayerKind } from "@/lib/player-creation";
 import {generatePlayerName} from "@/lib/sim/player-names";
 import {refreshSavedRetiredNumbers} from "../../lib/career-save";

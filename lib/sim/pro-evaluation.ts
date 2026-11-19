@@ -1,8 +1,9 @@
 import {clamp,emptyRecord,isPitcher,mergeRecord,ops,ovr,positions,roleScore,proSelectionScore} from "./engine";
-import type {GameState,Player,Position,RecordLine} from "./types";
-import type {ProAward} from "./pro-types";
+import type {GameState,Player,Position,ProLevel,RecordLine} from "./types";
+import type {ProAward,ProIndividualAward} from "./pro-types";
 import {individualAwards} from './pro-individual-awards';
-import {requiredLeaderSample} from '../league-leaders';
+import {createProWarContext,levelWarValue,proWarAssessment,proWarRules,type ProWarContext} from './pro-war';
+import {clubAwardNames} from './pro-career-evaluation';
 
 export function performanceValue(p:Player,records:RecordLine,farm=false) {
   const r=records,pit=r.pitching,b=r.batting;
@@ -25,7 +26,8 @@ function recordAwardMerit(r:RecordLine,league:RecordLine,pitching:boolean) {
     :((ops(r)??0)-(ops(league)??.72))*n+(b.HR+b.RBI)*.15;
   return {raw,n,pitching};
 }
-export function awardMerit(p:Player,r:RecordLine,league:RecordLine) {return recordAwardMerit(r,league,isPitcher(p.primaryRole));}
+export const rookieRulesVersion=2;
+const rookieRecordThreshold={batting:60,pitching:30*3};
 export function rookieEligibility(p:Player,year:number,field:'batting'|'pitching'){
   const entry=p.professional?.rookieYear,prior=emptyRecord();
   for(const row of p.career)if(row.careerMode==='pro'&&row.year<year&&row.byLevel)mergeRecord(prior,row.byLevel.first);
@@ -37,7 +39,7 @@ export function rookieOfYearAward(s:GameState):ProAward|undefined{
   for(const p of players)mergeRecord(league,p.seasonByLevel!.first);
   const merits=players.flatMap(p=>(['batting','pitching'] as const).flatMap(field=>{
     const records=p.seasonByLevel!.first,sample=field==='batting'?records.batting.PA:records.pitching.outs;
-    return sample>=requiredLeaderSample(p,field,144)?[{p,field,...recordAwardMerit(records,league,field==='pitching')}]:[];
+    return sample>=rookieRecordThreshold[field]?[{p,field,...recordAwardMerit(records,league,field==='pitching')}]:[];
   }));
   const ranked=merits.filter(row=>rookieEligibility(row.p,year,row.field)).map(row=>{
     const group=merits.filter(other=>other.field===row.field),mean=group.reduce((sum,m)=>sum+m.raw,0)/group.length;
@@ -62,18 +64,64 @@ export function goldGloveAwards(s:GameState):ProAward[]{
     const best=ranked[0];return best?[{year:s.calendar.seasonYear,kind:`골든글러브 · ${slot==="P"?"투수":positions[slot]}`,category:"goldGlove" as const,position:slot,field:pitching?"pitching" as const:"batting" as const,playerId:best.p.id,playerName:best.p.name,club:awardClub(best.p),value:best.raw,records:structuredClone(best.p.seasonByLevel!.first)}]:[];
   });
 }
-export function regularAwards(s:GameState):ProAward[] {
-  const year=s.calendar.seasonYear,players=s.players.filter(p=>p.professional&&p.seasonByLevel),league=emptyRecord(),awards:ProAward[]=[];
-  for(const p of players)mergeRecord(league,p.seasonByLevel!.first);
+export function seasonMvpAward(s:GameState,level:ProLevel,titles=individualAwards(s),context=createProWarContext(s)):ProAward|undefined{
+  const crowns=new Map<string,{batting:number;pitching:number}>();
+  for(const title of titles)if(title.level===level)for(const {playerId} of title.winners){
+    const count=crowns.get(playerId)??{batting:0,pitching:0};
+    count[title.field]++;
+    crowns.set(playerId,count);
+  }
+  const candidates=s.players.flatMap(p=>{
+    const records=p.seasonByLevel?.[level];
+    if(!p.professional||!records||!(records.batting.PA||records.pitching.BF||records.pitching.outs||records.games?.pitching||Object.values(records.fielding?.outs??{}).some(Boolean)))return [];
+    const line=proWarAssessment(p,context)[level];
+    const position=p.twoWay?.pitchingPosition??p.position,relief=position==='RP'||position==='CP';
+    const {batting=0,pitching=0}=crowns.get(p.id)??{};
+    return [{p,records,batting,pitching,war:levelWarValue(line,relief),pitchingWar:line.pitching*(relief?proWarRules.relieverWinScale:1),battingWar:line.batting+line.fielding+line.positional}];
+  }).sort((a,b)=>b.war-a.war||a.p.id.localeCompare(b.p.id));
+  const [leader,runnerUp]=candidates;if(!leader)return;
+  const clearLeader=runnerUp&&leader.war-runnerUp.war>=1.5;
+  const priority=(row:typeof leader)=>{
+    if(row.batting+row.pitching>=4||row===leader&&clearLeader)return 5;
+    if(row.pitching>=3)return 4;
+    if(row.batting>=3)return 3;
+    if(row.pitching>=2)return 2;
+    if(row.batting>=2)return 1;
+    return 0;
+  };
+  // Candidates are already sorted by WAR, the tiebreaker within each tier.
+  const best=candidates.reduce((highest,row)=>priority(row)>priority(highest)?row:highest,leader);
+  const pitch=best.pitching!==best.batting?best.pitching>best.batting:best.pitchingWar>best.battingWar;
+  return {year:s.calendar.seasonYear,kind:level==='second'?'2군 시즌 MVP':'시즌 MVP',category:'mvp',...(level==='second'?{level}:{}),playerId:best.p.id,playerName:best.p.name,club:awardClub(best.p),value:best.war,field:pitch?'pitching':'batting',records:structuredClone(best.records)};
+}
+export function regularAwards(s:GameState,titles:ProIndividualAward[]=individualAwards(s),context:ProWarContext=createProWarContext(s)):ProAward[] {
+  const year=s.calendar.seasonYear,players=s.players.filter(p=>p.professional&&p.seasonByLevel),awards:ProAward[]=[];
   const add=(kind:string,p:Player,value:number)=>awards.push({year,kind,playerId:p.id,playerName:p.name,club:p.teamId<0?p.professional!.contract?.club??p.professional!.firstClub:p.teamId%10,value});
-  for(const title of individualAwards(s).filter(row=>row.level==='first'))for(const winner of title.winners){
+  for(const title of titles.filter(row=>row.level==='first'))for(const winner of title.winners){
     const p=players.find(p=>p.id===winner.playerId);if(p)add(title.label,p,title.value);
   }
-  const candidates=players.filter(p=>p.seasonByLevel!.first.batting.PA>=100||p.seasonByLevel!.first.pitching.outs>=90),merits=candidates.map(p=>({p,...awardMerit(p,p.seasonByLevel!.first,league)}));
-  const normalize=(row:typeof merits[number])=>{const group=merits.filter(m=>m.pitching===row.pitching),mean=group.reduce((n,m)=>n+m.raw,0)/Math.max(1,group.length),sd=Math.sqrt(group.reduce((n,m)=>n+(m.raw-mean)**2,0)/Math.max(1,group.length));return (sd?(row.raw-mean)/sd:0)*10+Math.log1p(row.n)*3;};
-  const ranked=merits.map(m=>({...m,score:normalize(m)})).sort((a,b)=>b.score-a.score||b.n-a.n||a.p.id.localeCompare(b.p.id));
-  if(ranked[0]){const best=ranked[0];add("시즌 MVP",best.p,best.score);Object.assign(awards.at(-1)!,{category:"mvp",field:best.pitching?"pitching":"batting",records:structuredClone(best.p.seasonByLevel!.first)});}
+  for(const level of ['first','second'] as const){const mvp=seasonMvpAward(s,level,titles,context);if(mvp)awards.push(mvp);}
   const rookie=rookieOfYearAward(s);if(rookie)awards.push(rookie);
-  for(let club=0;club<10;club++){const farm=players.filter(p=>p.teamId>=0&&p.teamId%10===club&&(p.seasonByLevel!.second.batting.PA>=50||p.seasonByLevel!.second.pitching.outs>=30)).sort((a,b)=>performanceValue(b,b.seasonByLevel!.second,true)-performanceValue(a,a.seasonByLevel!.second,true)||ovr(b)-ovr(a)||a.id.localeCompare(b.id));if(farm[0])add("구단 육성 우수 선수",farm[0],performanceValue(farm[0],farm[0].seasonByLevel!.second,true));}
+  const firstTeamAwards=new Map<number,ProAward>();
+  for(const p of players){
+    const splits=Object.entries(p.seasonByClub??{});
+    const playedForMultipleClubs=p.professional!.movements.some(row=>row.kind==='트레이드'&&row.date.startsWith(`${year}-`));
+    const position=p.twoWay?.pitchingPosition??p.position;
+    const relief=position==='RP'||position==='CP';
+    const firstRecords=splits.length?splits.map(([club,row])=>[Number(club),row.first] as const):playedForMultipleClubs?[]:[[awardClub(p),p.seasonByLevel!.first] as const];
+    for(const [club,first] of firstRecords){
+      if(club<0||club>=10||!first||first.batting.PA<50&&first.pitching.outs<30)continue;
+      const war=proWarAssessment({...p,seasonByLevel:{first,second:emptyRecord()}},context).first;
+      const value=levelWarValue(war,relief),previous=firstTeamAwards.get(club);
+      if(!previous||value>previous.value||value===previous.value&&p.id.localeCompare(previous.playerId)<0){
+        firstTeamAwards.set(club,{year,kind:clubAwardNames.first,playerId:p.id,playerName:p.name,club,value,level:'first'});
+      }
+    }
+  }
+  for(let club=0;club<10;club++){
+    const first=firstTeamAwards.get(club);if(first)awards.push(first);
+    const farm=players.filter(p=>p.teamId>=0&&p.teamId%10===club&&(p.seasonByLevel!.second.batting.PA>=50||p.seasonByLevel!.second.pitching.outs>=30)).sort((a,b)=>performanceValue(b,b.seasonByLevel!.second,true)-performanceValue(a,a.seasonByLevel!.second,true)||ovr(b)-ovr(a)||a.id.localeCompare(b.id));
+    if(farm[0])add(clubAwardNames.second,farm[0],performanceValue(farm[0],farm[0].seasonByLevel!.second,true));
+  }
   return [...awards,...goldGloveAwards(s)];
 }

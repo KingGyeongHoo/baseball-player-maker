@@ -105,7 +105,7 @@ test("salary responds to this year and cumulative ratings with 70/30 weights, re
   const s = fixture(),
     p = e.getPlayer(s);
   season(s, 2028, 60);
-  season(s, 2029, 80);
+  season(s, 2029, 80).honorRegistration={seasonDays:200,firstDaysByClub:{0:180}};
   close(a.assessmentValue(p, 2029).score, 77);
   close(m.salaryQuote(p, 2029), 225_000_000);
   const improved = structuredClone(p);
@@ -123,7 +123,30 @@ test("salary responds to this year and cumulative ratings with 70/30 weights, re
   m.salaryQuote(p, 2029);
   assert.deepEqual(p.professional.contract, signed);
   p.proContract.status = "developmental";
-  assert.equal(m.salaryQuote(p, 2029), 30_000_000);
+  assert.equal(m.salaryQuote(p, 2029), 33_000_000);
+});
+test('new salary quotes apply actual regular-season registration across clubs before the minimum',()=>{
+  const s=fixture(),p=e.getPlayer(s),club=p.professional.contract.club;
+  const row=season(s,2029,78.2);
+  row.honorRegistration={seasonDays:200,firstDaysByClub:{}};
+  assert.equal(m.salaryQuote(p,2029),90_000_000);
+  assert.equal(m.offerFor(s,p,club,2030,'renewal').salary,90_000_000);
+  row.honorRegistration.firstDaysByClub={[club]:100};
+  assert.equal(m.salaryQuote(p,2029),180_000_000);
+  row.honorRegistration.firstDaysByClub[(club+1)%10]=80;
+  assert.equal(m.salaryQuote(p,2029),300_000_000);
+  row.honorRegistration.firstDaysByClub={};row.score=60;
+  const offer=m.offerFor(s,p,club,2030,'renewal');
+  assert.equal(offer.salary,33_000_000);
+  p.offseasonShop={spent:0,items:{agent:1}};
+  s.proWorld.market={year:2030,kind:'renewal',round:0,offers:[offer],settled:false};
+  const stored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;
+  assert.equal(stored.proWorld.market.offers[0].salary,33_000_000);
+  assert.equal(stored.proWorld.market.offers[0].salaryBeforeMinimum,15_000_000);
+  m.negotiateOffer(s,offer.id);
+  assert.equal(offer.salary,33_000_000);
+  m.signContract(s,p,offer);
+  assert.equal(p.professional.contract.salary,33_000_000);
 });
 test("a sustained cumulative F triggers release for player and NPCs, preserve year pay and future guarantees, and never release twice", () => {
   const s = fixture(),
@@ -343,7 +366,7 @@ test("release offers can only be one-year developmental reentry at another club,
   const offer = offers[0];
   assert.equal(offer.registration, "developmental");
   assert.equal(offer.years, 1);
-  assert.equal(offer.salary, 30_000_000);
+  assert.equal(offer.salary, 33_000_000);
   assert.throws(
     () => m.signContract(s, p, { ...offer, registration: undefined }),
     /신고 계약/,

@@ -17,7 +17,7 @@ test('regular rookies start in the third squad at full growth, with no independe
 test('annual intake is split 90/10, salaries and growth follow status, and repeated drafts add nobody',()=>{
  const s=fixture(),old=new Set(s.players.map(p=>p.id)),year=s.calendar.seasonYear+1;life.addRookieClass(s,year);const added=s.players.filter(p=>!old.has(p.id)),dev=added.filter(p=>p.proContract.status==='developmental');
  assert.ok(added.length>=90&&added.length<=110);assert.equal(dev.length,Math.round(added.length*.1));
- for(const p of added){const d=p.proContract.status==='developmental';assert.equal(q.proSquad(p.teamId),d?'developmental':'third');assert.equal(e.growthMultiplier(p),d?.9:1);assert.equal(p.professional.contract.salary,d?30_000_000:50_000_000);}
+ for(const p of added){const d=p.proContract.status==='developmental';assert.equal(q.proSquad(p.teamId),d?'developmental':'third');assert.equal(e.growthMultiplier(p),d?.9:1);assert.equal(p.professional.contract.salary,d?33_000_000:50_000_000);}
  const ids=s.players.map(p=>p.id);life.addRookieClass(s,year);assert.deepEqual(s.players.map(p=>p.id),ids);life.settleNPCFreeAgents(s,year);assert.equal(s.players.filter(p=>!old.has(p.id)&&p.professional.rookieYear===year).length,added.length);
 });
 test('one-time organization respects the second-team promotion step and preserves records and contracts',()=>{
@@ -42,6 +42,24 @@ test('a reserve can play a real second-team evaluation without changing squads a
  assert.equal(game.status,'completed');assert.equal(p.teamId,team);assert.ok(p.seasonByLevel.second.batting.PA>0);assert.equal(p.seasonStats.games.batting,1);assert.equal(game.proAppearances[p.id].teamId,club+10);assert.equal(p.professional.faDays,0);
  const later=s.calendar.events.find(g=>g.competitionId==='pro-second'&&g.date>game.date&&[g.homeTeamId,g.awayTeamId].includes(club+10));s.date=later.date;world.prepareEvaluationOpportunities(s,[later.id]);assert.ok(!later.evaluationPlayers.includes(p.id));
  const html=renderToStaticMarkup(createElement(RosterTable,{state:s,players:[p],field:'batting',level:'third',assignments:new Map([[p.id,true]]),onSelect(){}}));assert.match(html,/잔류/);assert.doesNotMatch(html,/주전|후보/);assert.match(html,/출전평가/);
+});
+test('position competition groups actual registrations and hides the affiliation column',()=>{
+ const {PositionCompetition}=require('../.test-build/app/components/player-roster.js');
+ const s=fixture(),mine=e.getPlayer(s),club=mine.teamId%10;
+ const rival=(name,offset,developmental=false)=>{
+  const p=structuredClone(mine);p.id=p.name=name;p.teamId=club+offset;
+  p.proContract.status=developmental?'developmental':'regular';
+  p.seasonByLevel.first.batting.PA=50;
+  return p;
+ };
+ s.players=[mine,rival('1군예시',0),rival('2군육성예시',10,true),rival('잔류예시',20),rival('육성등록예시',30,true)];
+ const html=renderToStaticMarkup(createElement(PositionCompetition,{state:s,player:mine,onSelect(){}}));
+ const sections=[...html.matchAll(/<section aria-label="([^"]+)">([\s\S]*?)<\/section>/g)];
+ assert.deepEqual(sections.map(([,label])=>label),['1군','2군','잔류군']);
+ assert.ok(sections[0][2].includes('1군예시'));assert.ok(!sections[0][2].includes('2군육성예시'));
+ assert.ok(sections[1][2].includes('2군육성예시'));assert.ok(!sections[1][2].includes('잔류예시'));
+ assert.ok(sections[2][2].includes('잔류예시'));assert.ok(sections[2][2].includes('육성등록예시'));
+ assert.ok(!html.includes('<th>소속</th>'));
 });
 test('pro grade boundaries center C on 76 and use the same rounded score shown in the roster',()=>{
  for(const [score,grade] of [[70.9,'F'],[71,'E'],[72.9,'E'],[73,'D'],[74.9,'D'],[75,'C'],[76,'C'],[76.9,'C'],[77,'B'],[78.9,'B'],[79,'A'],[81,'A'],[81.1,'S'],[81.04,'A'],[81.06,'S'],[null,'—']])assert.equal(r.rosterGrade(score,true),grade);

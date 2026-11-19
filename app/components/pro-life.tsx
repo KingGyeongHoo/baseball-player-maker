@@ -1,18 +1,16 @@
 "use client";
 import {leaderQualification} from "../../lib/league-leaders";
-import {positionRivals} from "../../lib/sim/pro-positions";
-import {proRegistrationStatus} from "../../lib/sim/pro-registration-status";
 import PlayerEvaluationButton from "./player-evaluation";
 import { scoreText } from "../../lib/display";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { answerCareerEvent, dateLabel, getPlayer, isPitcher, validPolicy,draftRoleLabel,selectionScore } from "../../lib/sim/engine";
+import { answerCareerEvent, dateLabel, getPlayer, validPolicy,draftRoleLabel } from "../../lib/sim/engine";
 import { careerLabel, developmentProgress } from "../../lib/sim/pro-career";
 import {createProWarContext} from '../../lib/sim/pro-war';
 import { AutoProgress, acceptedNationalInvitation, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } from "../../lib/auto-progress";
 import {restoreWorkerState,workerStateInput} from "../../lib/sim/worker-state";
 import ProLeague from "./pro-league";
 import InternationalHub from './international-hub';
-import PlayerRoster, {RosterTable} from "./player-roster";
+import PlayerRoster, {PositionCompetition} from "./player-roster";
 import { formatInnings } from "../../lib/player-records";
 import DashboardRecords from "./dashboard-records";
 import type { CareerEventOutcome, DraftPick, GameState, Player } from "../../lib/sim/types";
@@ -30,6 +28,7 @@ import {deleteCareerInBackground,saveCareerInBackground} from "../../lib/career-
 import CareerRegenerationDialog from "./career-regeneration-dialog";
 import {careerSaveId} from "../../lib/career-save-key";
 import {ProGoals,ProContractPanel,ProRetirement,salaryText} from "./pro-career-panels";
+import OffseasonShop from "./offseason-shop";
 import ProAwardsHub from "./pro-awards-hub";
 import {CareerHonors,CareerLifetimeRecords} from "./pro-career-summary";
 import {actOnProCareer,canEnterNextProCamp,needsContractUpgrade,needsPostseasonUpgrade,resumeOffseasonProgress,upgradeProfessionalState,type ProAction} from "../../lib/sim/pro-season";
@@ -40,9 +39,6 @@ import { DraftRoundTable } from "./draft-board";
 import {nationalOffseasonActionLabel} from '../../lib/sim/national-tournament';
 import {needsNationalInvitationUpgrade} from '../../lib/sim/national-teams';
 
-function Panel({ title, action, children }: { title: ReactNode; action?: ReactNode; children: ReactNode }) {
-  return <section className="panel"><div className="panel-heading"><h2>{title}</h2>{action}</div>{children}</section>;
-}
 export function DevelopmentContract({player,state}:{player:Player;state:GameState}) {
   if (player.proContract?.status!=="developmental") return null;
   const progress=developmentProgress(player,state.calendar.seasonYear,createProWarContext(state));
@@ -95,7 +91,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const recordsPlayer=state.players.find(q=>q.id===recordId)??p;
   const [retireConfirm,setRetireConfirm]=useState(false);
   const careerDisabled=busy||auto||!!state.weekProgress||!!state.careerNotice||!!state.careerEvent||!!outcome;
-  const onAction=(action:ProAction)=>{if(locked.current||careerDisabled)return;stop();try{const next=actOnProCareer(state,action);onChange(next);if(next.phase!=="ended"||next.proWorld?.stage==="retired")setTab("home");}catch(error){setError(error instanceof Error?error.message:"커리어 선택에 실패했습니다.");}};
+  const onAction=(action:ProAction)=>{if(locked.current||careerDisabled)return;stop();try{const next=actOnProCareer(state,action);onChange(next);if(action.type!=="buyOffseasonItems"&&!(action.type==="request"&&action.kind==="position")&&(next.phase!=="ended"||next.proWorld?.stage==="retired"))setTab("home");}catch(error){setError(error instanceof Error?error.message:"커리어 선택에 실패했습니다.");}};
   const load=(next:GameState)=>{if(locked.current)return;stop();worker.current?.terminate();worker.current=null;request.current++;onChange(next);setOutcome(next.pendingEventOutcome??null);setPolicy(structuredClone(getPlayer(next).trainingPolicy));setStance({...getPlayer(next).stance});setTab(next.proWorld?.stage==="retired"?"home":next.phase==="ended"?"career":"home");};
   const finishEventOutcome=()=>{
     setOutcome(null);
@@ -132,21 +128,21 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const openRecords=useCallback((id=state.playerId)=>{setRecordId(id);setTab("records");},[state.playerId]);
   const openTraining=()=>setTab("training");
   const saveTraining=()=>{if(editing||!validPolicy(policy))return;const next=structuredClone(state);getPlayer(next).trainingPolicy=structuredClone(policy);getPlayer(next).stance={...stance};onChange(next);setTrainingMessage("훈련 설정을 저장했습니다.");};
-  const rivals=tab!=="roster"||p.teamId<0?[]:positionRivals(state.players,p).sort((a,b)=>selectionScore(b)-selectionScore(a)||a.id.localeCompare(b.id));
 
   return <><div className="utility-bar"><div><span>나만의 야구선수 만들기</span><span>CAREER LIFE · v0.7.4</span></div></div>
     <header className="site-header"><div className="header-main pro-header"><button className="pro-brand" onClick={()=>setTab("home")}>BASEBALL <b>LIFE.</b></button><span className="live-badge">{state.calendar.seasonYear} · {state.careerMode==="pro"?"PRO CAREER":"COLLEGE DEVELOPMENT"}</span><HallOfFameButton onOpen={stop}/><button className="text-button" disabled={busy} onClick={()=>{stop();setReset(true);}}>선수 재생성</button></div>
-      <nav className="main-nav" aria-label="프로 라이프 메뉴"><div>{[["home","주간 대시보드"],["training","훈련 센터"],["roster","선수·로스터"],["records","개인 기록"],["league","리그"],["international","국제대회"],...(state.careerMode==='pro'?[["awards","어워드"]]:[]),["career","커리어"]].map(([id,label])=><button className={tab===id?"active":""} key={id} onClick={()=>setTab(id)}>{label}</button>)}</div></nav>
+      <nav className="main-nav" aria-label="프로 라이프 메뉴"><div>{[["home","주간 대시보드"],["training","훈련 센터"],["roster","선수·로스터"],["records","개인 기록"],["league","리그"],["international","국제대회"],...(state.careerMode==='pro'?[["awards","어워드"],...(state.proWorld?.stage!=="retired"?[["shop","상점"]]:[])]:[]),["career","커리어"]].map(([id,label])=><button className={tab===id?"active":""} key={id} onClick={()=>{if(id==="shop")stop();setTab(id);}}>{label}</button>)}</div></nav>
     </header><main className="app-main pro-main"><CareerStorage state={state} onLoad={load} disabled={busy||auto}/><div className="page-kicker"><span>{state.careerMode==="pro"?"PRO LIFE":"THE NEXT CHANCE"} · {careerLabel(p)}</span><span>{dateLabel(state.date)} · {p.teamId<0?(state.proWorld?.stage==="retired"?"은퇴":"무소속"):pro?squadLabel(p.teamId)+" 등록":"대학 육성 시즌"}</span></div>
       {error&&<div className="error-banner" role="alert">{error}<button onClick={()=>setError("")}>닫기</button></div>}
       {tab==="home"&&state.proWorld?.stage==="retired"&&<ProRetirement state={state} onRecords={()=>openRecords()} onNew={()=>setReset(true)}/>}
       {tab==="home"&&state.proWorld?.stage!=="retired"&&<ProDashboard state={state} onTab={tab=>tab==="records"?openRecords():setTab(tab)} onTraining={openTraining} trainingDisabled={editing} records={<ProSeasonStats player={p} state={state}/>} notice={<DevelopmentContract player={p} state={state}/>}/>}
-      {tab==="training"&&<TrainingCenter state={state} policy={policy} setPolicy={next=>{setPolicy(next);setTrainingMessage("");}} stance={stance} setStance={next=>{setStance(next);setTrainingMessage("");}} onSave={saveTraining} disabled={editing} message={trainingMessage} onChange={onChange}/>}
+      {tab==="training"&&<TrainingCenter state={state} policy={policy} setPolicy={next=>{setPolicy(next);setTrainingMessage("");}} stance={stance} setStance={next=>{setStance(next);setTrainingMessage("");}} onSave={saveTraining} disabled={editing} message={trainingMessage} onChange={onChange} onPositionRequest={state.careerMode==="pro"?position=>onAction({type:"request",kind:"position",position}):undefined} positionRequestDisabled={careerDisabled}/>}
       {tab==="international"&&<InternationalHub state={state} onRecords={openRecords}/>}
-      {tab==="roster"&&<><PlayerRoster state={state} onSelect={openRecords}/>{rivals.length>0&&<Panel title="나의 포지션 경쟁"><RosterTable state={state} players={rivals.slice(0,6)} field={isPitcher(p.primaryRole)?"pitching":"batting"} onSelect={openRecords}/><p className="draft-board-note">{proRegistrationStatus(state,p)}</p></Panel>}</>}
+      {tab==="roster"&&<><PlayerRoster state={state} onSelect={openRecords}/><PositionCompetition state={state} player={p} onSelect={openRecords}/></>}
       {tab==="records"&&<><div className="records-evaluation-action"><PlayerEvaluationButton state={state} player={recordsPlayer}/></div><SeasonRecords state={state} key={recordsPlayer.id} player={recordsPlayer} year={state.calendar.seasonYear} school={(recordsPlayer.professional?.employment==="retired"?"은퇴 선수":state.teams[recordsPlayer.teamId]?.name??"무소속")} ended={ended} mine={recordsPlayer.id===p.id} onMyRecords={()=>openRecords()}/><NationalHonors state={state} playerId={recordsPlayer.id}/></>}
       {tab==="league"&&<ProLeague state={state} onRecords={openRecords}/>}
       {tab==="awards"&&<ProAwardsHub state={state} onRecords={openRecords}/>}
+      {tab==="shop"&&state.careerMode==="pro"&&state.proWorld?.stage!=="retired"&&<OffseasonShop state={state} player={p} disabled={careerDisabled} onAction={onAction}/>}
       {tab==="career"&&<>
         <ProGoals state={state} onAction={onAction} disabled={careerDisabled}/>
         <CareerLifetimeRecords state={state}/>

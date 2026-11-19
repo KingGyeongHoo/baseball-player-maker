@@ -104,12 +104,14 @@ test('random hands persist into pro careers and saves, with switch hitting suppo
 });
 
 
-test('random player starts use the same five position shares, while bullpen jobs remain distinct',()=>{
- const counts={starter:0,bullpen:0,catcher:0,infield:0,outfield:0},bullpen={RP:0,CP:0};
- for(let i=0;i<40000;i++){
-  const position=randomPlayerPosition({getRandomValues(array){array[0]=Math.floor((i+.5)/40000*2**32);return array;}});
-  const group=position==='SP'?'starter':['RP','CP'].includes(position)?'bullpen':position==='C'?'catcher':['1B','2B','3B','SS'].includes(position)?'infield':'outfield';counts[group]++;
-  if(position==='RP'||position==='CP')bullpen[position]++;assert.notEqual(position,'DH');
+test('random player starts give all selectable positions equal weight',()=>{
+ const positions=[...fieldPositions.map(({id})=>id),'DH',...pitchingPositions.map(({id})=>id)];
+ const limit=Math.floor(2**32/positions.length)*positions.length;
+ for(const start of [0,limit-positions.length]){
+  const results=positions.map((_,index)=>randomPlayerPosition({getRandomValues(values){values[0]=start+index;return values;}}));
+  assert.deepEqual(results,positions);
  }
- assert.deepEqual(counts,{starter:7000,bullpen:13000,catcher:4000,infield:8000,outfield:8000});assert.deepEqual(bullpen,{RP:11000,CP:2000});
+ const rolls=[2**32-1,0];
+ assert.equal(randomPlayerPosition({getRandomValues(values){values[0]=rolls.shift();return values;}}),positions[0]);
+ assert.equal(rolls.length,0);
 });

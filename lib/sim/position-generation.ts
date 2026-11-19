@@ -6,15 +6,6 @@ const groups:{weight:number;positions:Position[]}[]=[
   {weight:7,positions:['SP']},{weight:11,positions:['RP']},{weight:2,positions:['CP']},
   {weight:4,positions:['C']},{weight:8,positions:['1B','2B','3B','SS']},{weight:8,positions:['LF','CF','RF']},
 ];
-export function positionFromRoll(roll:number):Position{
-  if(!Number.isFinite(roll)||roll<0||roll>=1)throw new RangeError('포지션 추첨값이 범위를 벗어났습니다.');
-  const value=roll*40;let start=0;
-  for(const group of groups){
-    if(value<start+group.weight)return group.positions[Math.floor((value-start)/group.weight*group.positions.length)];
-    start+=group.weight;
-  }
-  return 'RF';
-}
 function shuffle<T>(items:T[],random:()=>number){
   for(let i=items.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[items[i],items[j]]=[items[j],items[i]];}
   return items;

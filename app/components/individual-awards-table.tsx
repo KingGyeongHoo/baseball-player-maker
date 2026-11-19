@@ -1,5 +1,5 @@
 import {formatInnings} from '../../lib/player-records';
-import {individualAwardRows,individualAwardMetrics} from '../../lib/sim/pro-individual-awards';
+import {hasRunsTitle,individualAwardRows,individualAwardMetrics,recoverRunsTitle} from '../../lib/sim/pro-individual-awards';
 import type {GameState,ProLevel} from '../../lib/sim/types';
 import type {ProIndividualAward,ProSeasonArchive} from '../../lib/sim/pro-types';
 
@@ -7,9 +7,14 @@ export function awardValueText(row:ProIndividualAward){
   return row.format==='innings'?formatInnings(row.value):row.format==='percent'?`${(row.value*100).toFixed(1)}%`:row.format==='decimal'?row.value.toFixed(2):row.format==='rate'?row.value.toFixed(3).replace(/^0\./,'.'):String(row.value);
 }
 export function IndividualAwardsTable({state,season,level,field,onRecords,compact=false}:{state:GameState;season?:ProSeasonArchive;level:ProLevel;field:'batting'|'pitching';onRecords?:(id:string)=>void;compact?:boolean}){
-  const rows=individualAwardRows(season?.individualAwards,level,field);
+  let rows=individualAwardRows(season?.individualAwards,level,field);
+  if(season&&field==='batting'&&!hasRunsTitle(season,level)){
+    const runs=recoverRunsTitle(state,season,level);
+    rows=rows.filter(row=>row.metric!=='R');
+    if(runs)rows.push(runs);
+  }
   if(compact){
-    const units:Record<string,string>={wins:'승',holds:'홀드',saves:'세이브',SO:'탈삼진',H:'안타',HR:'홈런',RBI:'타점',SB:'도루'};
+    const units:Record<string,string>={wins:'승',holds:'홀드',saves:'세이브',SO:'탈삼진',H:'안타',HR:'홈런',RBI:'타점',R:'득점',SB:'도루'};
     const displayRows=individualAwardMetrics()[field].flatMap(metric=>{
       const matches=rows.filter(row=>row.metric===metric.id);
       return matches.length?matches:[{level,field,metric:metric.id,label:metric.label,value:0,winners:[]}];

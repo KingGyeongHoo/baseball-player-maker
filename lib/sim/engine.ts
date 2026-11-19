@@ -11,6 +11,7 @@ import { simulateGame } from "./match-engine";
 import { advanceWeek, refreshWeekReport } from "./week-engine";
 import { resolveCareerEvent } from "./event-system";
 import { professionalGrowth,limitPhysicalGrowth } from "./pro-growth";
+import {conditioningMultiplier,trainingItemBonus} from './offseason-shop';
 import {syncJerseyNumbers} from "../jersey-numbers";
 import {captureEvaluationChange,capturePlayerEvaluations} from "./evaluation-lifecycle";
 import {reputationBreakdown,updateEvaluationReputations} from "./evaluation-reputation";
@@ -199,8 +200,9 @@ export function trainingLoad(recoveryStat:number,allocation:number|Policy) {
   const marker=weeklyDelta<=0?50+50*weeklyDelta/maxRecovery:50+50*weeklyDelta/maxAccumulation;
   return {used,maxTickets,maxRecovery,maxAccumulation,neutralTickets,neutralRatio,weeklyDelta,marker,loadRatio:used/maxTickets,...(effort??{})};
 }
-export function trainingFatigueDay(fatigue:number,recoveryStat:number,allocation:number|Policy) {
-  const delta=trainingLoad(recoveryStat,allocation).weeklyDelta/7,end=clamp(fatigue+delta),applied=end-fatigue;
+export function trainingFatigueDay(fatigue:number,recoveryStat:number,allocation:number|Policy,accumulationMultiplier=1) {
+  const delta=trainingLoad(recoveryStat,allocation).weeklyDelta/7;
+  const end=clamp(fatigue+(delta>0?delta*accumulationMultiplier:delta)),applied=end-fatigue;
   return {end,training:Math.max(0,applied),recovered:Math.max(0,-applied)};
 }
 export function fatigueForecast(player: Player, policy: Policy, date?:string) {
@@ -210,7 +212,7 @@ export function fatigueForecast(player: Player, policy: Policy, date?:string) {
     if(end>=params["fatigue.force_rest"])forcedRest=true;
     if(forcedRest&&end<params["fatigue.ready_return"])forcedRest=false;
     const injured=!!date&&!!player.injury&&addDays(date,day)<player.injury.unavailableUntil;
-    const next=trainingFatigueDay(end,player.stats.recovery,forcedRest||injured?0:policy);
+    const next=trainingFatigueDay(end,player.stats.recovery,forcedRest||injured?0:policy,conditioningMultiplier(player));
     end=next.end;weeklyTraining+=next.training;recovered+=next.recovered;peak=Math.max(peak,end);
     if(end>=params["fatigue.force_rest"])forcedRest=true;
   }
@@ -223,12 +225,12 @@ export function train(p: Player, a: number) {
   for (const key of ticketKeys) {
     const g = focusGrowth(policy.tickets[key]);
     if (key === "physical") {
-      for (const k of ["stamina", "recovery", "arm"] as const) p.stats[k] = clamp(limitPhysicalGrowth(p,k,p.stats[k] + g / 3 * slowdown(p.stats[k]) * growthDays * professionalGrowth(p,k) / params["training.days"]), 1);
+      for (const k of ["stamina", "recovery", "arm"] as const) p.stats[k] = clamp(limitPhysicalGrowth(p,k,p.stats[k] + g / 3 * (1+trainingItemBonus(p,k)) * slowdown(p.stats[k]) * growthDays * professionalGrowth(p,k) / params["training.days"]), 1);
       continue;
     }
     const pitching = ["velocity", "control", "movement"].includes(key);
     const talent = p.talent[pitching ? "pitching" : "batting"];
-    const mult = talentMultiplier(talent,params['talent.min_mult'],params['talent.max_mult']);
+    const mult = talentMultiplier(talent,params['talent.min_mult'],params['talent.max_mult'])+trainingItemBonus(p,key);
     p.stats[key] = clamp(limitPhysicalGrowth(p,key,p.stats[key] + (params["training.base"] + g) * mult * slowdown(p.stats[key]) * growthDays * professionalGrowth(p,key) / params["training.days"]), 1);
   }
   p.stats.bq = clamp(p.stats.bq + params["training.bq"] * slowdown(p.stats.bq) * growthDays * professionalGrowth(p,"bq") / params["training.days"], 1);

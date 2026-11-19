@@ -24,7 +24,13 @@ export function syncProClubNames(s:GameState){
   }
   for(const competition of s.calendar?.competitions??[])competition.name=mainLeagueName(competition.name);
   for(const row of s.proWorld?.news??[])row.text=mainLeagueName(row.text);
-  for(const entry of s.nationalTeams??[])for(const member of entry.roster)member.team=mainLeagueName(member.team);
+  for(const entry of s.nationalTeams??[])for(const member of entry.roster){
+    if(entry.kind!=='youth'&&legacy&&member.club===undefined){
+      const id=legacyNames.indexOf(member.team.replace(/ (?:1군|2군|잔류군\(3군\)|육성선수)$/,''));
+      if(id>=0){member.club=id;member.team=proClubNames[id];}
+    }
+    member.team=mainLeagueName(member.team);
+  }
   for(const season of s.proWorld?.seasons??[])for(const award of season.awards??[])award.kind=mainLeagueName(award.kind);
   for(const notice of [s.careerNotice,...s.noticeQueue??[]])if(notice){notice.title=mainLeagueName(notice.title);notice.message=mainLeagueName(notice.message);}
   if(s.careerEvent){s.careerEvent.title=mainLeagueName(s.careerEvent.title);s.careerEvent.description=mainLeagueName(s.careerEvent.description);}

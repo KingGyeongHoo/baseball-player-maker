@@ -1,7 +1,11 @@
 import {careerRegistrationRatio,meetsCareerRegistration,playerCareerEvaluation} from './pro-career-evaluation';
+import {individualTitleFromKind,individualTitleName} from './pro-individual-awards';
+import {levelWarValue} from './pro-war';
+import {proTeamName} from './club-names';
+import type {ProSeasonAssessment} from './pro-types';
 import type {GameState,Player} from './types';
 
-export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:15,tourConsecutive:10,numberA:18,numberS:15} as const;
+export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:15,tourConsecutive:10,numberSeasons:10,numberWar:40,numberScore:50} as const;
 export function validHonorDays(value:Record<string,number>,maximum:number){
   return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([club,days])=>/^[0-9]$/.test(club)&&Number.isInteger(days)&&days>=0&&days<=maximum)&&Object.values(value).reduce((sum,n)=>sum+n,0)<=maximum;
 }
@@ -25,6 +29,50 @@ export function recordHonorRegistration(s:GameState,p:Player){
   if(p.teamId<10)usage.firstDaysByClub[p.teamId]=(usage.firstDaysByClub[p.teamId]??0)+1;
   else if(pro.honorInjuryLeave){const days=usage.injuryDaysByClub??={};days[pro.honorInjuryLeave.club]=(days[pro.honorInjuryLeave.club]??0)+1;}
 }
+
+function recordedClubWar(p:Player,row:ProSeasonAssessment,club:number){
+  if(row.firstWarByClub)return row.firstWarByClub[club]??0;
+  if(!row.war)return 0;
+  const history=p.career.find(record=>record.careerMode==='pro'&&record.year===row.year);
+  const registration=Object.entries(row.honorRegistration?.firstDaysByClub??{}).filter(([,days])=>days>0).map(([id])=>Number(id));
+  const stints=p.professional!.service.filter(stint=>stint.from<=row.year&&row.year<=stint.to).map(stint=>stint.club);
+  const recordedClub=registration.length===1?registration[0]:history?.schoolId!==undefined&&history.schoolId>=0?history.schoolId%10:undefined;
+  const possibleClubs=new Set([...registration,...stints,...(recordedClub===undefined?[]:[recordedClub])]);
+  // The season-level WAR in old saves cannot be split after a midseason trade.
+  const inSeasonTrade=p.professional!.movements.some(move=>move.from!==null&&move.to!==null&&move.from!==move.to&&move.date.startsWith(`${row.year}-`)&&move.date.slice(5,7)>='03'&&move.date.slice(5,7)<='10');
+  if(possibleClubs.size!==1||!possibleClubs.has(club)||inSeasonTrade)return 0;
+  return levelWarValue(row.war.first,['불펜','중간계투','마무리'].includes(row.role)||['bullpen','reliever','closer'].includes(row.seasonRank?.role??''));
+}
+
+function retiredNumberCriteria(s:GameState,p:Player,rows:ProSeasonAssessment[],club:number,seasons:number){
+  const clubWar=rows.reduce((sum,row)=>sum+recordedClubWar(p,row,club),0);
+  const bonuses=new Map<number,number>();
+  const add=(year:number,tenths:number)=>bonuses.set(year,(bonuses.get(year)??0)+tenths);
+  for(const season of s.proWorld?.seasons??[]){
+    if(season.year>s.calendar.seasonYear)continue;
+    const awards=season.awards.filter(award=>award.club===club&&award.playerId===p.id&&award.level!=='second');
+    if(awards.some(award=>award.category==='mvp'||!award.category&&award.kind==='시즌 MVP'))add(season.year,10);
+    if(awards.some(award=>award.category==='goldGlove'||!award.category&&award.kind.startsWith('골든글러브')))add(season.year,5);
+    const titles=new Set(awards.flatMap(award=>{const title=individualTitleFromKind(award.kind);return title?[title]:[];}));
+    for(const award of season.individualAwards??[]){
+      if(award.level!=='first'||!award.winners.some(winner=>winner.playerId===p.id&&winner.club===club))continue;
+      const title=individualTitleName(award);
+      if(title)titles.add(title);
+    }
+    add(season.year,5*titles.size);
+  }
+  const nationalKinds=new Set<string>();
+  for(const entry of s.nationalTeams??[]){
+    if(entry.kind==='youth'||entry.year>s.calendar.seasonYear)continue;
+    const member=entry.roster.find(row=>row.id===p.id);
+    const matchesClub=member&&(member.club!==undefined?member.club===club:member.team.replace(/ (?:1군|2군|잔류군\(3군\)|육성선수)$/,'')===proTeamName(club));
+    const key=`${entry.year}:${entry.kind}`;
+    if(matchesClub&&!nationalKinds.has(key)){nationalKinds.add(key);add(entry.year,2);}
+  }
+  const awardBonus=[...bonuses.values()].reduce((sum,tenths)=>sum+Math.min(30,tenths),0)/10;
+  return {clubWar,awardBonus,seasons};
+}
+
 export function retirementEligibility(s:GameState,p:Player){
   const pro=p.professional,club=pro?.employment==='active'&&p.teamId>=0?(pro.contract?.club??p.teamId%10):undefined;
   const rows=(pro?.assessments??[]).filter(row=>row.year<=s.calendar.seasonYear);
@@ -38,8 +86,9 @@ export function retirementEligibility(s:GameState,p:Player){
   // During a final-season declaration, the most recent completed season ends the streak.
   if(!s.proWorld?.seasonClosed&&years.at(-1)===s.calendar.seasonYear-1){consecutive=0;for(let i=years.length-1,expected=s.calendar.seasonYear-1;i>=0&&years[i]===expected&&years[i]>=stintStart;i--,expected--)consecutive++;}
   const atLeastB=['S','A','B'].includes(grade),atLeastA=['S','A'].includes(grade),seasons=years.length,oneClub=club!==undefined&&clubs.size===1&&clubs.has(club);
-  return {club,score,grade,seasons,consecutive,oneClub,
+  const criteria=club===undefined||seasons<retirementHonorRules.numberSeasons?undefined:retiredNumberCriteria(s,p,rows,club,seasons);
+  return {club,score,grade,seasons,consecutive,oneClub,criteria,
     ceremony:club!==undefined&&atLeastB&&(seasons>=retirementHonorRules.ceremonyTotal||consecutive>=retirementHonorRules.ceremonyConsecutive),
     tour:club!==undefined&&atLeastA&&(seasons>=retirementHonorRules.tourTotal||consecutive>=retirementHonorRules.tourConsecutive),
-    retiredNumber:oneClub&&((grade==='S'&&seasons>=retirementHonorRules.numberS)||(atLeastA&&seasons>=retirementHonorRules.numberA))};
+    retiredNumber:!!criteria&&criteria.clubWar+1e-9>=retirementHonorRules.numberWar&&criteria.clubWar+criteria.awardBonus+1e-9>=retirementHonorRules.numberScore};
 }

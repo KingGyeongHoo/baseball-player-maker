@@ -12,13 +12,36 @@ function fixture(count=21,score=80){
  const s=structuredClone(template),p=e.getPlayer(s),pro=p.professional,club=pro.contract.club,rookie=2028,year=rookie+count-1;
  s.date=`${year}-10-31`;s.calendar.seasonYear=year;s.proWorld.year=year;s.proWorld.seasonClosed=true;s.proWorld.stage='summary';s.careerNotice=null;s.noticeQueue=[];
  pro.rookieYear=rookie;pro.firstClub=club;pro.service=[{club,from:rookie,to:year}];pro.movements=[];pro.employment='active';p.teamId=club;p.jerseyNumber=77;pro.contract.endYear=year;
- pro.assessments=Array.from({length:count},(_,i)=>({year:rookie+i,date:`${rookie+i}-10-31`,score,grade:'A',cumulative:score,cumulativeGrade:'A',ability:80,role:p.primaryRole,squad:'first',developmental:false,reserveSeason:false,firstTeam:true,secondOnly:false,firstGames:0,source:'season-end',honorRegistration:{seasonDays:100,firstDaysByClub:{[club]:90}}}));
+ pro.assessments=Array.from({length:count},(_,i)=>({year:rookie+i,date:`${rookie+i}-10-31`,score,grade:'A',cumulative:score,cumulativeGrade:'A',ability:80,role:p.primaryRole,squad:'first',developmental:false,reserveSeason:false,firstTeam:true,secondOnly:false,firstGames:0,source:'season-end',firstWarByClub:{[club]:i===0?50:0},honorRegistration:{seasonDays:100,firstDaysByClub:{[club]:90}}}));
  attachTestRanks(p);return {s,p,pro,club};
 }
-test('A needs 18 credited one-club seasons and S needs 15, excluding the initial three years',()=>{
- for(const [score,count,eligible] of [[80,20,false],[80,21,true],[82,17,false],[82,18,true],[78,30,false]]){
+test('retired numbers require ten credited seasons, excluding the initial three years',()=>{
+ for(const [score,count,eligible] of [[82,12,false],[78,13,true]]){
   const {s,p}=fixture(count,score),result=honors.retirementEligibility(s,p);assert.equal(result.seasons,count-3);assert.equal(result.retiredNumber,eligible,`${score}:${count}`);
  }
+});
+test('retired numbers require 40 club WAR and 50 combined points, with at most three points per award season',()=>{
+ const {s,p,pro,club}=fixture(13);
+ const other=(club+1)%10;
+ pro.assessments[0].firstWarByClub={[club]:40,[other]:60};
+ for(const row of pro.assessments.slice(0,4)){
+  const {year}=row,award={year,playerId:p.id,playerName:p.name,club,value:1};
+  const awards=[{...award,kind:'시즌 MVP',category:'mvp'},{...award,kind:'골든글러브',category:'goldGlove'}];
+  if(year!==pro.rookieYear+3)for(const kind of ['타점왕','득점왕','도루왕','홈런왕'])awards.push({...award,kind});
+  else awards.splice(1,1,{...award,kind:'골든글러브',category:'goldGlove',club:other});
+  s.proWorld.seasons.push({year,awards,individualAwards:[],draft:[]});
+ }
+ const last=s.proWorld.seasons.at(-1);
+ last.awards.push({playerId:p.id,club,kind:'도루왕'});
+ last.individualAwards=[{level:'first',field:'batting',metric:'SB',winners:[{playerId:p.id,club}]}];
+ s.nationalTeams=[{year:last.year,kind:'wbc',roster:[{id:p.id,club,team:s.teams[club].name}]},{year:last.year,kind:'youth',roster:[{id:p.id,club}]}];
+ assert.deepEqual(honors.retirementEligibility(s,p).criteria,{clubWar:40,awardBonus:10.7,seasons:10});
+ assert.equal(honors.retirementEligibility(s,p).retiredNumber,true);
+ s.proWorld.seasons.at(-1).awards[0].level='second';
+ assert.equal(honors.retirementEligibility(s,p).retiredNumber,false);
+ pro.assessments[0].firstWarByClub[club]=39.99;
+ s.proWorld.seasons.at(-1).awards.push({playerId:p.id,club,kind:'타점왕'},{playerId:p.id,club,kind:'득점왕'},{playerId:p.id,club,kind:'도루왕'});
+ assert.equal(honors.retirementEligibility(s,p).retiredNumber,false);
 });
 test('veteran retirement counts consecutive low grades or short registration with age-specific thresholds',()=>{
  const {s,p,pro,club}=fixture(),year=s.calendar.seasonYear;
@@ -39,26 +62,26 @@ test('veteran retirement counts consecutive low grades or short registration wit
  current.seasonRank.level='second';assert.ok(retirement.veteranRetirementReason(p,year));
 });
 test('90 percent registration applies equally to pitchers, uses exact days and never invents missing historical days',()=>{
- const {s,p,pro,club}=fixture();assert.equal(honors.retirementEligibility(s,p).retiredNumber,true);
+ const {s,p,pro,club}=fixture(13);assert.equal(honors.retirementEligibility(s,p).retiredNumber,true);
  pro.assessments.at(-1).honorRegistration.firstDaysByClub[club]=89;assert.equal(honors.retirementEligibility(s,p).retiredNumber,false);
- delete pro.assessments.at(-1).honorRegistration;assert.equal(honors.retirementEligibility(s,p).seasons,17);
+ delete pro.assessments.at(-1).honorRegistration;assert.equal(honors.retirementEligibility(s,p).seasons,9);
  for(const row of pro.assessments)row.honorRegistration={seasonDays:100,firstDaysByClub:{}};
  assert.equal(honors.retirementEligibility(s,p).seasons,0);
 });
 test('a ceremony can use ten nonconsecutive B seasons, while seven consecutive seasons also qualify',()=>{
- const {s,p,pro}=fixture(18,77),selected=new Set([3,4,5,7,8,9,11,12,14,17]);
+ const {s,p,pro}=fixture(18,79),selected=new Set([3,4,5,7,8,9,11,12,14,17]);
  pro.assessments.forEach((row,i)=>{if(!selected.has(i))row.honorRegistration.firstDaysByClub={};});
  let result=honors.retirementEligibility(s,p);assert.equal(result.seasons,10);assert.equal(result.consecutive,1);assert.equal(result.ceremony,true);assert.equal(result.tour,false);
- const consecutive=fixture(10,77);assert.equal(honors.retirementEligibility(consecutive.s,consecutive.p).ceremony,true);
+ const consecutive=fixture(10,79);assert.equal(honors.retirementEligibility(consecutive.s,consecutive.p).ceremony,true);
  consecutive.pro.assessments[5].honorRegistration.firstDaysByClub={};assert.equal(honors.retirementEligibility(consecutive.s,consecutive.p).ceremony,false);
 });
 
 test('injury demotion days are removed from the denominator, with zero eligible days never earning credit',()=>{
- const {s,p,pro,club}=fixture();const row=pro.assessments.at(-1);
+ const {s,p,pro,club}=fixture(13);const row=pro.assessments.at(-1);
  row.honorRegistration={seasonDays:100,firstDaysByClub:{[club]:72},injuryDaysByClub:{[club]:20}};
  assert.equal(honors.retirementEligibility(s,p).retiredNumber,true,'72 / (100 - 20) is exactly 90 percent');
  row.honorRegistration.firstDaysByClub[club]=71;assert.equal(honors.retirementEligibility(s,p).retiredNumber,false);
- row.honorRegistration={seasonDays:100,firstDaysByClub:{},injuryDaysByClub:{[club]:100}};assert.equal(honors.retirementEligibility(s,p).seasons,17);
+ row.honorRegistration={seasonDays:100,firstDaysByClub:{},injuryDaysByClub:{[club]:100}};assert.equal(honors.retirementEligibility(s,p).seasons,9);
  row.honorRegistration={seasonDays:100,firstDaysByClub:{[club]:90},injuryDaysByClub:{[club]:20}};assert.throws(()=>save.encodeCareerSave(s),/은퇴 예우/);
 });
 
@@ -92,7 +115,7 @@ test('same-club release and reentry preserve one-club status and totals but rest
  const {s,p,pro,club}=fixture();pro.movements=[{date:'2038-01-01',from:club,to:null,kind:'방출',reason:'계약 불가'},{date:'2039-02-01',from:null,to:club,kind:'계약',reason:'신고 재입단'}];
  pro.service=[{club,from:2028,to:2037},{club,from:2039,to:s.calendar.seasonYear}];
  let result=honors.retirementEligibility(s,p);assert.equal(result.oneClub,true);assert.equal(result.seasons,18);assert.equal(result.consecutive,10);assert.equal(result.retiredNumber,true);
- pro.service.push({club:(club+1)%10,from:2038,to:2038});assert.equal(honors.retirementEligibility(s,p).retiredNumber,false);
+ pro.service.push({club:(club+1)%10,from:2038,to:2038});assert.equal(honors.retirementEligibility(s,p).retiredNumber,true);
 });
 test('a player must retire attached to the honoring club',()=>{
  const {s,p,pro}=fixture();pro.employment='freeAgent';pro.contract=null;p.teamId=-1;
@@ -108,13 +131,13 @@ test('regular registration is counted once per day, excludes spring/postseason a
  pro.honorUsage.firstDaysByClub[club]=0;assert.equal(row.honorRegistration.firstDaysByClub[club],90);
 });
 test('the existing retirement action decides ceremony, tour and number together without a separate declaration',()=>{
- const {s,p}=fixture(13,80);retirement.retireProfessional(s);assert.equal(s.proWorld.stage,'retired');assert.equal(s.proWorld.retirementHonors[0].ceremony,true);assert.equal(s.proWorld.retirementHonors[0].tour,true);assert.equal(s.proWorld.retiredNumbers,undefined);
+ const {s,p,pro}=fixture(13,80);delete pro.assessments[0].firstWarByClub;retirement.retireProfessional(s);assert.equal(s.proWorld.stage,'retired');assert.equal(s.proWorld.retirementHonors[0].ceremony,true);assert.equal(s.proWorld.retirementHonors[0].tour,true);assert.equal(s.proWorld.retiredNumbers,undefined);
  const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;assert.equal(restored.proWorld.retirementHonors[0].tour,true);
  const html=renderToStaticMarkup(createElement(Retirement,{state:restored,onRecords(){},onNew(){}}));assert.match(html,/은퇴식/);assert.match(html,/은퇴 투어/);assert.doesNotMatch(html,/은퇴 선언/);
 });
-test('A retirement honors and the actual grade render, and saved careers reserve a number across games until removed',()=>{
+test('retirement criteria render, and saved careers reserve a number across games until removed',()=>{
  const {s,p,club}=fixture();retirement.retireProfessional(s);assert.equal(s.proWorld.retirementHonors[0].ceremony,true);assert.equal(s.proWorld.retiredNumbers[0].number,77);
- const html=renderToStaticMarkup(createElement(Retirement,{state:s,onRecords(){},onNew(){}}));assert.match(html,/은퇴식/);assert.match(html,/A등급/);
+ const html=renderToStaticMarkup(createElement(Retirement,{state:s,onRecords(){},onNew(){}}));assert.match(html,/은퇴식/);assert.match(html,/구단 WAR 50.0/);
  const claims=locks.retiredNumberClaims(s);assert.equal(claims.length,1);const other=fixture().s;other.seed='another-career';
  const locked=locks.applyRetiredNumberClaims(other,claims);assert.throws(()=>jersey.choosePlayerJersey(locked,77),/영구결번/);assert.equal(e.getPlayer(locked).jerseyNumber===77,false);
  const released=locks.applyRetiredNumberClaims(locked,[]);jersey.choosePlayerJersey(released,77);assert.equal(e.getPlayer(released).jerseyNumber,77);

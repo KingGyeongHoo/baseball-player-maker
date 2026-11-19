@@ -2,7 +2,7 @@
 import {useState} from "react";
 import type {GameState,ProLevel} from "../../lib/sim/types";
 import type {ProSeasonArchive} from "../../lib/sim/pro-types";
-import {SeasonAwards,seriesAwardRecordText} from "./pro-awards";
+import {GoldGloveAwards,SeasonAwards,seriesAwardRecordText} from "./pro-awards";
 import ProAllstar from "./pro-allstar";
 import {IndividualAwardsTable} from './individual-awards-table';
 export {awardValueText} from './individual-awards-table';
@@ -35,7 +35,7 @@ export default function ProAwardsHub({state,onRecords}:{state:GameState;onRecord
   return <div className="pro-awards-hub"><div className="section-intro"><div><span className="eyebrow">SEASON AWARDS</span><h1>어워드</h1><p>올스타와 한 시즌을 빛낸 선수들</p></div><label className="awards-year">시즌<select aria-label="어워드 시즌" value={year} onChange={event=>setYear(Number(event.target.value))}>{years.map(value=><option key={value} value={value}>{value}</option>)}</select></label></div>
     <div className="segmented awards-category-tabs" aria-label="어워드 종류">{[['allstar','올스타'],['gold','골든글러브'],['individual','타이틀'],['postseason','포스트시즌 MVP']].map(([key,label])=><button key={key} className={category===key?'selected':''} aria-pressed={category===key} onClick={()=>selectCategory(key)}>{label}</button>)}</div>
     {category==='allstar'&&(year!==state.calendar.seasonYear&&!season?.allstar?<p className="empty-note">이 시즌의 올스타 기록이 없습니다.</p>:<ProAllstar key={year} state={viewState} onRecords={onRecords}/>)}
-    {category==='gold'&&<section className="panel"><div className="panel-heading"><h2>{year} 골든글러브</h2></div><div className="career-panel-body">{season?.awardsCeremony?.presentedAt?<SeasonAwards state={state} season={season}/>:<p className="empty-note">{season?.awardsCeremony?`${season.awardsCeremony.scheduledAt} 시상식에서 리그 MVP·신인왕과 포지션별 수상자를 발표합니다.`:'시즌 종료 후 12월 시상식에서 수상자를 발표합니다.'}</p>}</div></section>}
+    {category==='gold'&&<section className="panel"><div className="panel-heading"><h2>{year} 골든글러브</h2></div><div className="career-panel-body">{season?.awardsCeremony?.presentedAt?<><SeasonAwards state={state} season={season}/><GoldGloveAwards state={state} season={season}/></>:<p className="empty-note">{season?.awardsCeremony?`${season.awardsCeremony.scheduledAt} 시상식에서 포지션별 골든글러브 수상자를 발표합니다.`:'시즌 종료 후 12월 시상식에서 수상자를 발표합니다.'}</p>}</div></section>}
     {category==='individual'&&<IndividualAwards key={year} state={state} season={season} onRecords={onRecords}/>}
     {category==='postseason'&&<PostseasonAwards state={state} year={year} onRecords={onRecords}/>}
   </div>;

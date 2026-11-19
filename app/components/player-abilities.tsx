@@ -1,5 +1,6 @@
 import { scoreText, changeText } from "../../lib/display";
 import { effective, labels, ovr, positions } from "../../lib/sim/engine";
+import { trainingItemBonus } from "../../lib/sim/offseason-shop";
 import type { Player, Stat } from "../../lib/sim/types";
 
 const groups: { id: string; title: string; keys: Stat[] }[] = [
@@ -16,7 +17,14 @@ export default function PlayerAbilities({ player, compare = false, showEffective
     {groups.map(group => <section className={`ability-group ${group.id}`} key={group.id} aria-label={group.title}>
       <h3>{group.title}</h3><div className="stat-bars">{group.keys.map(key => {
         const growth = player.stats[key] - player.initialStats[key];
-        return <div className="stat-bar-row" key={key}><span>{labels[key]}</span><div className="stat-track"><i style={{ width: `${player.stats[key]}%` }} /></div><strong>{scoreText(player.stats[key])}</strong>{compare && <small className="positive">{changeText(growth)}</small>}{gameStats && <small className="muted">유효 {scoreText(gameStats[key])}</small>}</div>;
+        const bonus = trainingItemBonus(player, key);
+        return <div className={`stat-bar-row${bonus > 0 ? " item-boosted" : ""}`} key={key}>
+          <span>{labels[key]}</span>
+          <div className="stat-track"><i style={{ width: `${player.stats[key]}%` }} /></div>
+          <strong>{scoreText(player.stats[key])}{bonus > 0 && <span className="stat-boost-indicator" role="img" title={`아이템 훈련 배율 +${bonus.toFixed(1)}`} aria-label={`아이템 훈련 배율 +${bonus.toFixed(1)}`}>↑</span>}</strong>
+          {compare && <small className="positive">{changeText(growth)}</small>}
+          {gameStats && <small className="muted">유효 {scoreText(gameStats[key])}</small>}
+        </div>;
       })}</div>
     </section>)}
     {!detailsOnly && <p className="eligibility-note">출전 자격 · {player.eligiblePositions.map(p => positions[p]).join(" · ")}</p>}

@@ -22,6 +22,13 @@ export function ProGoals({state,onAction,disabled}:{state:GameState;onAction:(a:
 export function ProContractPanel({state,onAction,onRetire,disabled}:{state:GameState;onAction:(a:ProAction)=>void;onRetire:()=>void;disabled:boolean}){
   const p=getPlayer(state),w=state.proWorld,pro=p.professional;if(!w||!pro)return null;
   const market=w.market,closed=w.seasonClosed,stove=w.stove,campReady=canEnterNextProCamp(state),national=pendingNationalOffseason(state),nationalAction=nationalOffseasonActionLabel(state);
+  const myClub=p.teamId>=0?clubName(state,p.teamId%10):undefined;
+  const stoveNews=stove?w.news.filter(row=>{
+    if(row.date<stove.openedAt||/^\d+:stove(?::\d+|-open)$/.test(row.id))return false;
+    // Older saves include league-wide exchange headlines without club IDs.
+    const clubs=/^(.+) ↔ (.+) · .+ 1대1 교환$/.exec(row.text);
+    return !clubs||clubs[1]===myClub||clubs[2]===myClub;
+  }).slice(-12).reverse():[];
   return <Panel title="계약과 시즌 평가">
     <ProAssessments state={state}/>
     {closed&&nationalAction&&<div className="info-box"><b>11월 국제대회 · {nationalAction.name}</b><p>국제대회를 마친 뒤 스토브리그를 시작합니다. 경기 준비와 승부처 선택을 확인하면 다음 일정으로 이어집니다.</p></div>}
@@ -34,6 +41,6 @@ export function ProContractPanel({state,onAction,onRetire,disabled}:{state:GameS
         {market.kind==="renewal"&&<><button className="secondary" disabled={disabled} onClick={()=>onAction({type:"request",kind:"trade"})}>이적 검토 요청</button><button className="secondary" disabled={disabled} onClick={()=>onAction({type:"request",kind:"release"})}>구단에 계약 해제 요청</button></>}
       </div><p className="micro muted">FA 전에는 계약 만료만으로 자유계약 시장에 나가지 않습니다. 요청에는 구단 동의가 필요하며 반복 요청은 4주 간격입니다.</p></>}
     {closed&&w.stage!=="retired"&&<div className="modal-actions">{nationalAction?<button className="primary" disabled={disabled} onClick={()=>onAction({type:'national'})}>{nationalAction.label}</button>:<>{campReady&&<button className="primary" disabled={disabled} onClick={()=>onAction({type:"nextSeason"})}>다음 캠프로 바로 가기 →</button>}{!stove?<button className={campReady?"secondary":"primary"} disabled={disabled} onClick={()=>onAction({type:"market"})}>스토브리그 시작 →</button>:!stove.closed&&(!market?.retentionOnly||market.settled)&&<button className={campReady?"secondary":"primary"} disabled={disabled} onClick={()=>onAction({type:"wait"})}>다음 주 스토브리그 →</button>}</>}{(!market?.retentionOnly||market.settled)&&<button className="secondary" disabled={disabled} onClick={onRetire}>은퇴 검토</button>}</div>}
-    {stove&&<details className="career-pay-history"><summary>스토브리그 소식</summary><div className="pro-transactions">{w.news.filter(row=>row.date>=stove.openedAt&&!/^\d+:stove(?::\d+|-open)$/.test(row.id)).slice(-12).reverse().map(row=><div key={row.id}><time>{row.date}</time><p>{row.text}</p></div>)}</div></details>}
+    {stove&&<details className="career-pay-history"><summary>스토브리그 소식</summary><div className="pro-transactions">{stoveNews.map(row=><div key={row.id}><time>{row.date}</time><p>{row.text}</p></div>)}</div></details>}
   </Panel>;
 }

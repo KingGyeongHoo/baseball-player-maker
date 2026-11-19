@@ -1,18 +1,28 @@
-import {individualAwards} from './pro-individual-awards';
-import {rookieOfYearAward} from './pro-evaluation';
+import {hasRunsTitle,individualAwards,recoverRunsTitle} from './pro-individual-awards';
+import {rookieOfYearAward,rookieRulesVersion} from './pro-evaluation';
 import {syncAwardBonuses} from './pro-award-bonuses';
 import {backfillSeriesMvps} from './pro-series-awards';
+import {syncClubAwardCounts} from './pro-career-evaluation';
 import type {GameState,Player,Position} from './types';
+
+const recoverableTitleMetrics=['HR','SO','winRate','obp','slg'];
 
 export function backfillSeasonHonors(s:GameState){
   const report:{rookies:{year:number;playerId?:string;playerName?:string;recordedPlayers:number}[];homeRuns:{year:number;level:'first'|'second';value:number;names:string[]}[];changed:boolean}={rookies:[],homeRuns:[],changed:false};
   if(!s.proWorld)return report;
   report.changed=backfillSeriesMvps(s);
   for(const season of s.proWorld.seasons){
-    const missingRookie=season.rookieRulesVersion!==1;
-    const missingCountingTitle=(['first','second'] as const).some(level=>
-      ['HR','SO'].some(metric=>!season.individualAwards?.some(row=>row.level===level&&row.metric===metric)));
-    if(!missingRookie&&!missingCountingTitle)continue;
+    for(const level of ['first','second'] as const){
+      if(hasRunsTitle(season,level))continue;
+      const award=recoverRunsTitle(s,season,level);
+      if(!award)continue;
+      season.individualAwards=(season.individualAwards??[]).filter(row=>!(row.level===level&&row.field==='batting'&&row.metric==='R'));
+      season.individualAwards.push(award);report.changed=true;
+    }
+    const missingRookie=season.rookieRulesVersion===undefined;
+    const missingTitles=(['first','second'] as const).some(level=>
+      recoverableTitleMetrics.some(metric=>!season.individualAwards?.some(row=>row.level===level&&row.metric===metric)));
+    if(!missingRookie&&!missingTitles)continue;
     const players=s.players.flatMap(p=>{
       const old=p.career.find(row=>row.careerMode==='pro'&&row.year===season.year);
       const levels=old?.byLevel??(s.calendar.seasonYear===season.year&&s.proWorld!.seasonClosed?p.seasonByLevel:undefined);
@@ -27,10 +37,10 @@ export function backfillSeasonHonors(s:GameState){
       const winner=rookieOfYearAward(archived);
       season.awards=season.awards.filter(row=>row.category!=='rookie'&&row.kind!=='신인상'&&row.kind!=='신인왕');
       if(winner)season.awards.push(winner);
-      season.rookieRulesVersion=1;report.changed=true;
+      season.rookieRulesVersion=rookieRulesVersion;report.changed=true;
       report.rookies.push({year:season.year,recordedPlayers:players.length,...(winner?{playerId:winner.playerId,playerName:winner.playerName}:{})});
     }
-    if(missingCountingTitle)for(const award of individualAwards(archived).filter(row=>row.metric==='HR'||row.metric==='SO')){
+    if(missingTitles)for(const award of individualAwards(archived).filter(row=>recoverableTitleMetrics.includes(row.metric))){
       season.individualAwards??=[];
       if(season.individualAwards.some(row=>row.level===award.level&&row.metric===award.metric))continue;
       season.individualAwards.push(award);report.changed=true;
@@ -38,5 +48,6 @@ export function backfillSeasonHonors(s:GameState){
     }
   }
   report.changed=syncAwardBonuses(s)||report.changed;
+  report.changed=syncClubAwardCounts(s)||report.changed;
   return report;
 }

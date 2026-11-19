@@ -6,7 +6,7 @@ import type {GameState,Player} from "./sim/types";
 import {individualTitleName,individualTitleFromKind,isRecordOnlyAward} from './sim/pro-individual-awards';
 import type {NationalKind} from './sim/national-teams';
 import {createSeasonRankings} from './sim/pro-season-ranking';
-import {evaluateCareer,playerCareerEvaluation,seasonPercentile} from './sim/pro-career-evaluation';
+import {clubAwardLevel,clubAwardNames,evaluateCareer,playerCareerEvaluation,seasonPercentile} from './sim/pro-career-evaluation';
 import {proLevelPrefix,mainLeagueName} from './sim/club-names';
 import {regularSeasonDays} from './sim/retirement-honors';
 
@@ -42,7 +42,7 @@ export const nationalHonorTitles:Record<NationalKind,string>={youth:'청소년 �
 export const isNationalSelection=(row:CareerHonor)=>Object.values(nationalHonorTitles).includes(row.title)||row.title==='성인 대표팀 합동훈련';
 export function careerHonors(state:GameState):Record<CareerHonorCategory,CareerHonor[]>{
   const player=getPlayer(state),result:Record<CareerHonorCategory,CareerHonor[]>={national:[],gold:[],allstar:[],individual:[]},seen=new Set<string>();
-  const add=(category:CareerHonorCategory,year:number,title:string,detail?:string)=>{const key=`${category}:${year}:${title}`;if(seen.has(key))return;seen.add(key);result[category].push({year,title,...(detail?{detail}:{})});};
+  const add=(category:CareerHonorCategory,year:number,title:string,detail?:string,club?:number)=>{const key=`${category}:${year}:${title}:${club??''}`;if(seen.has(key))return;seen.add(key);result[category].push({year,title,...(detail?{detail}:{})});};
   const nationalEntries=(state.nationalTeams??[]).filter(entry=>entry.roster.some(row=>row.id===player.id));
   for(const entry of nationalEntries){
     const records=entry.tournament?.countries[0].players.find(row=>row.id===player.id)?.records,played=!!records&&(records.batting.PA>0||records.pitching.BF>0);
@@ -95,8 +95,10 @@ export function careerHonors(state:GameState):Record<CareerHonorCategory,CareerH
     for(const row of season.individualAwards??[]){const title=individualTitleName(row);if(title&&row.winners.some(winner=>winner.playerId===player.id))add("individual",season.year,`${proLevelPrefix(row.level)}${title}`,row.winners.length>1?"공동 1위":undefined);}
     for(const award of season.awards){
       if(award.playerId!==player.id)continue;
+      const clubLevel=clubAwardLevel(award.kind);
+      if(clubLevel){add('individual',season.year,clubAwardNames[clubLevel],clubName(state,award.club),award.club);continue;}
       if(award.category==="goldGlove"||award.kind.startsWith("골든글러브")){if(announced)add("gold",season.year,award.kind.replace("골든글러브 · ",""));continue;}
-      if(award.kind==="시즌 MVP"||award.category==='rookie'){if(announced)add("individual",season.year,award.kind);continue;}
+      if(award.category==='mvp'||award.kind==="시즌 MVP"||award.category==='rookie'){if(announced)add("individual",season.year,award.kind);continue;}
       const title=individualTitleFromKind(award.kind);
       if(title)add("individual",season.year,title);
       else if(!isRecordOnlyAward(award.kind))add("individual",season.year,mainLeagueName(award.kind));

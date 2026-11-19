@@ -1,7 +1,10 @@
+import {useState,type CSSProperties} from 'react';
 import {formatInnings,recordRates} from "../../lib/player-records";
 import type {ProAward,ProSeasonArchive} from "../../lib/sim/pro-types";
-import type {GameState} from "../../lib/sim/types";
-import {emptyRecord,mergeRecord} from '../../lib/sim/engine';
+import type {GameState,ProLevel} from "../../lib/sim/types";
+import {emptyRecord,mergeRecord,positions} from '../../lib/sim/engine';
+import {IndividualAwardsTable} from './individual-awards-table';
+import Ballpark from './ballpark';
 
 const rate=(n:number|null,digits=3)=>n===null?"—":n.toFixed(digits);
 export function awardRecordText(award:ProAward){
@@ -22,11 +25,54 @@ export function seriesAwardRecordText(state:GameState,award:ProAward){
   return pitching?`${lead}${formatInnings(r.pitching.outs)}이닝 · 평균자책점 ${rate(rates.era,2)} · ${r.pitching.SO}탈삼진 · ${r.games?.wins??0}승 · ${r.games?.holds??0}홀드 · ${r.games?.saves??0}세이브 · WHIP ${rate(rates.whip,2)}`
     :`${lead}${r.batting.AB}타수 · ${r.batting.H}안타 · 타율 ${rate(rates.average)} · ${r.batting.HR}홈런 · ${r.batting.RBI}타점 · OPS ${rate(rates.ops)}`;
 }
-export function SeasonAwards({state,season}:{state:GameState;season:ProSeasonArchive}){
-  const rows=season.awards.filter(row=>row.category==="mvp"||row.category==="goldGlove"||row.category==='rookie'),mvp=rows.find(row=>row.category==="mvp"),rookie=rows.find(row=>row.category==='rookie');
+const glovePositions=[['CF',50,15],['LF',20,29],['RF',80,29],['SS',31,46],['2B',69,46],['3B',18,64],['1B',82,64],['P',50,65],['DH',18,88],['C',50,88]] as const;
+
+function GoldGlovePlayer({state,award,position,x,y}:{state:GameState;award:ProAward;position:string;x:number;y:number}){
+  const records=award.records,rates=records&&recordRates(records);
+  const lines=records&&rates?(award.field==='pitching'||position==='투수'?
+    [`${formatInnings(records.pitching.outs)}이닝 · ERA ${rate(rates.era,2)}`,`${records.pitching.SO}탈삼진`]:
+    [`타율 ${rate(rates.average).replace(/^0(?=\.)/,'')} · ${records.batting.HR}홈런`,`${records.batting.H}안타 · ${records.batting.RBI}타점`]):[];
+  return <div className={`gold-glove-player${award.playerId===state.playerId?' gold-glove-player-mine':''}`}
+    style={{'--field-x':`${x}%`,'--field-y':`${y}%`} as CSSProperties}>
+    <span className="gold-glove-position">{position}</span>
+    <b>{award.playerName}{award.playerId===state.playerId&&<small>나</small>}</b>
+    <span className="gold-glove-club">{state.teams[award.club]?.name.replace(/ 1군$/,"")??'—'}</span>
+    <span className="gold-glove-record" title={records?awardRecordText(award):undefined}>
+      {lines.length?lines.map(line=><span key={line}>{line}</span>):'기록 없음'}
+    </span>
+  </div>;
+}
+
+export function GoldGloveAwards({state,season}:{state:GameState;season:ProSeasonArchive}){
+  const rows=season.awards.filter(row=>row.category==='goldGlove');
+  if(!rows.length)return <p className="empty-note">골든글러브 수상자가 없습니다.</p>;
+  const find=(position:'P'|keyof typeof positions)=>rows.find(row=>row.position===position||!row.position&&row.kind===`골든글러브 · ${position==='P'?'투수':positions[position]}`);
+  return <section className="gold-glove-lineup" aria-label="골든글러브 포지션별 수상자">
+    <div className="gold-glove-field">
+      <Ballpark showCaption={false} stretch/>
+      {glovePositions.map(([position,x,y])=>{
+        const award=find(position);
+        return award&&<GoldGlovePlayer key={position} state={state} award={award} position={position==='P'?'투수':positions[position]} x={x} y={y}/>;
+      })}
+    </div>
+  </section>;
+}
+
+export function SeasonAwards({state,season,showTitles=false}:{state:GameState;season:ProSeasonArchive;showTitles?:boolean}){
+  const [level,setLevel]=useState<ProLevel>('first');
+  const cards=[
+    {label:'1군 MVP',award:season.awards.find(row=>row.category==='mvp'&&(row.level??'first')==='first')},
+    {label:'2군 MVP',award:season.awards.find(row=>row.category==='mvp'&&row.level==='second')},
+    {label:'신인상',award:season.awards.find(row=>row.category==='rookie')},
+  ];
   return <div className="season-awards">
-    {mvp&&<div className={`awards-mvp ${mvp.playerId===state.playerId?'awards-mine':''}`}><span>SEASON MVP</span><h3>{mvp.playerName}{mvp.playerId===state.playerId&&<small>나의 선수</small>}</h3><p>{state.teams[mvp.club]?.name.replace(/ 1군$/,"")}</p><p>{awardRecordText(mvp)}</p></div>}
-    {rookie&&<div className={`awards-mvp ${rookie.playerId===state.playerId?'awards-mine':''}`}><span>ROOKIE OF THE YEAR · 신인왕</span><h3>{rookie.playerName}{rookie.playerId===state.playerId&&<small>나의 선수</small>}</h3><p>{state.teams[rookie.club]?.name.replace(/ 1군$/,"")}</p><p>{awardRecordText(rookie)}</p></div>}
-    <h3>골든글러브 수상자</h3><div className="table-scroll"><table><thead><tr><th>부문</th><th>선수</th><th>소속</th><th>시즌 기록</th></tr></thead><tbody>{rows.filter(row=>row.category==="goldGlove").map(row=><tr key={row.position} className={row.playerId===state.playerId?'my-player-row':''}><th scope="row">{row.kind.replace('골든글러브 · ','')}</th><td><b>{row.playerName}</b>{row.playerId===state.playerId&&' · 나'}</td><td>{state.teams[row.club]?.name.replace(/ 1군$/,"")??'—'}</td><td>{awardRecordText(row)}</td></tr>)}</tbody></table></div>
+    {cards.map(({label,award})=>award||showTitles?<div key={label} className={`awards-mvp${award?.playerId===state.playerId?' awards-mine':''}`}><span>{label}</span>{award?<><h3>{award.playerName}{award.playerId===state.playerId&&<small>나의 선수</small>}</h3><p>{state.teams[award.club]?.name.replace(/ 1군$/,"")}</p><p>{awardRecordText(award)}</p></>:<p className="empty-note">수상자 없음</p>}</div>:null)}
+    {showTitles&&<>
+      <div className="segmented" aria-label="타이틀홀더 리그">{(['first','second'] as const).map(key=><button type="button" key={key} aria-pressed={level===key} className={level===key?'selected':''} onClick={()=>setLevel(key)}>{key==='first'?'1군':'2군'}</button>)}</div>
+      <div className="title-award-columns">{(['pitching','batting'] as const).map(field=><section className="title-award-field" key={field}>
+        <h3>{field==='pitching'?'투수 타이틀홀더':'타자 타이틀홀더'}</h3>
+        <IndividualAwardsTable state={state} season={season} level={level} field={field} compact/>
+      </section>)}</div>
+    </>}
   </div>;
 }
