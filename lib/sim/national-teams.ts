@@ -1,3 +1,4 @@
+import {syncCareerHonorBonuses} from './pro-career-evaluation';
 import {available,getPlayer,isPitcher,ovr,roleFor,roleScore,selectionScore} from './engine';
 import {nationalSelectionScore} from './pro-selection';
 import {canPlayPosition} from './position-eligibility';
@@ -55,6 +56,7 @@ export function rememberNational(s:GameState,kind:NationalKind,roster:NationalRo
   const rows=s.nationalTeams??=[],old=rows.find(row=>row.kind===kind&&row.year===year);if(old)return old;
   const entry:NationalSelection={kind,year,simulationVersion:1,date:s.date,...nationalWindow(kind,year),roster:roster.map(row=>{const p=s.players.find(p=>p.id===row.id)!;return {...row,name:p.name,team:s.teams[p.teamId]?.name??'무소속',...(p.professional&&p.teamId>=0?{club:p.teamId%10}:{}),field:isPitcher(roleFor(row.position))?'pitching':'batting'};})};rows.push(entry);
   if(kind!=='youth')for(const row of roster){const p=s.players.find(p=>p.id===row.id);if(p?.professional)p.professional.nationalBonus=Math.max(p.professional.nationalBonus??0,nationalRules[kind].bonus);}
+  syncCareerHonorBonuses(s);
   return entry;
 }
 // Every called-up player is unavailable to their club until the national team returns.

@@ -1,6 +1,9 @@
+import {buildCareerHonorBonusIndex,careerHonorBonusYears} from './career-honor-bonus';
 import type {GameState,Player,ProLevel} from './types';
 import type {ProSeasonAssessment,ProSeasonRank} from './pro-types';
 import {levelWarValue} from './pro-war';
+
+export const isBullpenSeason=(row:{role:string;seasonRank?:{role:string}})=>['불펜','중간계투','마무리'].includes(row.role)||['bullpen','reliever','closer'].includes(row.seasonRank?.role??'');
 
 export function seasonPercentile(rank:Pick<ProSeasonRank,'rank'|'total'>|undefined|null){
   return rank?100*(rank.total-rank.rank+1)/rank.total:null;
@@ -28,36 +31,37 @@ export function meetsCareerRegistration(registration:CareerSeason['honorRegistra
   const eligibleDays=registration.seasonDays-days(registration.injuryDaysByClub);
   return eligibleDays>0&&days(registration.firstDaysByClub)>=eligibleDays*careerRegistrationRatio;
 }
-export function evaluateCareer(rows:CareerSeason[],level:ProLevel,year=Infinity){
+export function evaluateCareer(rows:CareerSeason[],level:ProLevel,year=Infinity,honorBonus=0){
   const seasons=[...new Map(rows.filter(row=>row.year<=year).map(row=>[row.year,row])).values()];
   const valid=seasons.filter(row=>row.score!==null&&!row.clubGamesShortage);
   const ranked=valid.filter(row=>row.seasonRank?.level===level&&(level==='second'||meetsCareerRegistration(row.honorRegistration)));
   const values=ranked.map(row=>seasonPercentile(row.seasonRank)!);
   const mean=(values:number[])=>values.reduce((sum,n)=>sum+n,0)/values.length;
   const average=values.length?mean(values):null,peak=values.length?mean([...values].sort((a,b)=>b-a).slice(0,5)):null;
-  const awardBonus=seasons.reduce((sum,row)=>sum+(row.clubAwardCounts?.[level]??0),0)*clubAwardBonus[level];
+  const awardBonus=seasons.reduce((sum,row)=>sum+(row.clubAwardCounts?.[level]??0),0)*clubAwardBonus[level]+honorBonus;
   const score=average===null||peak===null?null:Math.min(100,.7*average+.3*peak+awardBonus);
   const seasonWar=(row:CareerSeason)=>{
     const line=row.war?.[level];
-    if(line)return levelWarValue(line,['불펜','중간계투','마무리'].includes(row.role)||['bullpen','reliever','closer'].includes(row.seasonRank?.role??''));
+    if(line)return levelWarValue(line,isBullpenSeason(row));
   };
   const totalWar=(rows:CareerSeason[])=>{
     const values=rows.flatMap(row=>{const value=seasonWar(row);return value===undefined?[]:[value];});
     return values.length?values.reduce((sum,value)=>sum+value,0):null;
   };
   const creditedWar=totalWar(ranked);
-  const cumulativeWar=creditedWar===null?null:creditedWar+awardBonus;
-  return {level,score,grade:careerWarGrade(cumulativeWar),average,peak,seasons:ranked.length,war:totalWar(seasons),cumulativeWar,unranked:valid.filter(row=>!row.seasonRank).length,reconstructed:ranked.filter(row=>row.seasonRank?.basis==='retained-records').length};
+  const cumulativeWar=creditedWar===null?(awardBonus>0?awardBonus:null):creditedWar+awardBonus;
+  return {level,score,creditedWar,awardBonus,grade:careerWarGrade(cumulativeWar),average,peak,seasons:ranked.length,war:totalWar(seasons),cumulativeWar,unranked:valid.filter(row=>!row.seasonRank).length,reconstructed:ranked.filter(row=>row.seasonRank?.basis==='retained-records').length};
 }
-export function playerCareerEvaluation(p:Player,year=Infinity){
+export function playerCareerEvaluation(p:Player,year=Infinity,state?:GameState){
   const rows=p.professional?.assessments??[];
-  return {first:evaluateCareer(rows,'first',year),second:evaluateCareer(rows,'second',year)};
+  const bonus=state?[...careerHonorBonusYears(buildCareerHonorBonusIndex(state),p.id,undefined,year).values()].reduce((sum,n)=>sum+n,0):(p.professional?.careerHonorBonuses??[]).filter(row=>row.year<=year).reduce((sum,row)=>sum+row.points,0);
+  return {first:evaluateCareer(rows,'first',year,bonus),second:evaluateCareer(rows,'second',year)};
 }
 export function refreshCareerEvaluation(p:Player){
   const rows=p.professional?.assessments;
   if(!rows?.some(row=>row.seasonRank))return;
   for(const row of rows){
-    const first=evaluateCareer(rows,'first',row.year);
+    const first=playerCareerEvaluation(p,row.year).first;
     // Preserve the percentile snapshot for older saves. Career grades use WAR.
     row.cumulative=first.score;row.cumulativeGrade=first.grade;
   }
@@ -84,6 +88,18 @@ export function syncClubAwardCounts(s:GameState){
       updated=true;
     }
     if(updated){refreshCareerEvaluation(player);changed=true;}
+  }
+  return syncCareerHonorBonuses(s)||changed;
+}
+
+export function syncCareerHonorBonuses(s:GameState){
+  const index=buildCareerHonorBonusIndex(s);let changed=false;
+  for(const player of s.players){
+    const pro=player.professional;if(!pro)continue;
+    const bonuses=[...careerHonorBonusYears(index,player.id)].sort((a,b)=>a[0]-b[0]).map(([year,points])=>({year,points}));
+    if(JSON.stringify(pro.careerHonorBonuses??[])===JSON.stringify(bonuses))continue;
+    if(bonuses.length)pro.careerHonorBonuses=bonuses;else delete pro.careerHonorBonuses;
+    refreshCareerEvaluation(player);changed=true;
   }
   return changed;
 }

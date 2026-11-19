@@ -1,8 +1,8 @@
 import {proNotice} from './pro-world';
-import type {GameState,Player,Position} from './types';
+import type {GameState,Player,Position,ProSquad} from './types';
 
 type StovePlayer={id:string;name:string;position:Position};
-export type StoveMove=StovePlayer&{club:number;direction:'joined'|'released'|'traded'|'retired'|'fa';reason:string;date?:string;otherClub?:number;exchange?:StovePlayer;from?:number;to?:number;retiredNumber?:number};
+export type StoveMove=StovePlayer&{club:number;direction:'joined'|'released'|'traded'|'retired'|'fa';reason:string;date?:string;otherClub?:number;exchange?:StovePlayer;from?:number;to?:number;retiredNumber?:number;squad?:ProSquad};
 export type StoveReport={club:number;moves:StoveMove[];tradeOnly?:true};
 
 function arrivalLabel(m:NonNullable<Player['professional']>['movements'][number]){
@@ -15,7 +15,8 @@ function arrivalLabel(m:NonNullable<Player['professional']>['movements'][number]
 
 export function clubStoveMoves(rows:StoveMove[],club:number,players?:Player[]){
   const unique=new Map<string,StoveMove>();
-  for(const row of rows){
+  for(const saved of rows){
+    const row=saved.direction==='released'&&!saved.squad?{...saved,squad:players?.find(p=>p.id===saved.id)?.professional?.lastSquad}:saved;
     if(row.club!==club)continue;
     const key=row.direction==='traded'?`trade:${row.date}:${row.id}:${row.otherClub}:${row.exchange?.id}`:`${row.direction}:${row.id}`;
     if((row.direction==='joined'||row.direction==='released')&&['FA','FA 이적'].includes(row.reason)){
@@ -41,7 +42,7 @@ export function stovePlayerMoves(p:Player,start:string,end:string):StoveMove[]{
       continue;
     }
     if(m.from===m.to)continue;
-    if(m.kind==='방출'&&m.from!==null)moves.push({...player,club:m.from,direction:'released',reason:m.reason});
+    if(m.kind==='방출'&&m.from!==null)moves.push({...player,club:m.from,direction:'released',reason:m.reason,date:m.date,squad:m.squad??p.professional?.lastSquad});
     else if(m.kind==='은퇴'&&m.from!==null)moves.push({...player,club:m.from,direction:'retired',reason:m.reason});
     else if(m.kind==='트레이드'&&m.from!==null&&m.to!==null){
       moves.push({...player,club:m.from,direction:'traded',date:m.date,otherClub:m.to,exchange:m.exchange,reason:m.kind});

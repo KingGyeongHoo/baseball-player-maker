@@ -125,48 +125,28 @@ function titleCelebration(level='first',field='batting'){
  ];
  s.date='2028-12-06';return s;
 }
-test('one personal title modal follows all individual trophy celebrations, survives reload and shares the awards table',()=>{
+test('the season summary contains title holders once and queues no separate title table',()=>{
  let s=titleCelebration();ceremonies.presentAwardsCeremony(s);
- assert.equal(s.noticeQueue.at(-1).title,'타이틀 획득!');assert.equal(s.noticeQueue.filter(n=>n.individualTitles).length,1);
- const bonuses=structuredClone(e.getPlayer(s).professional.awardBonuses);
- s=dismissSeasonAwards(s);while(s.careerNotice?.award)s=pc.acknowledgeCareer(s);
- assert.deepEqual(s.careerNotice.individualTitles,{year:2028,level:'first',field:'batting'});
- s=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
- const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));
- for(const text of ['타이틀 획득!','2028','타자','홈런왕','안타왕','타점왕','공동 1위','다른수상자','my-player-row'])assert.ok(html.includes(text),text);
- for(const text of ['다른군수상자','다른분야수상자','개인 수상 리그','출전평가 수상 보너스'])assert.ok(!html.includes(text),text);
- const {IndividualAwardsTable}=require('../.test-build/app/components/individual-awards-table.js');
- assert.ok(html.includes(renderToStaticMarkup(createElement(IndividualAwardsTable,{state:s,season:s.proWorld.seasons[0],level:'first',field:'batting'}))));
- s=pc.acknowledgeCareer(s);assert.ok(!s.careerNotice?.individualTitles);assert.deepEqual(e.getPlayer(s).professional.awardBonuses,bonuses);
- ceremonies.queuePersonalAwardNotices(s,2028);assert.equal(s.noticeQueue.filter(n=>n.individualTitles).length,0);
-});
-test('title modal selects only the season-end league and primary field, including second-team pitchers after a winter move',()=>{
- for(const level of ['first','second'])for(const field of ['batting','pitching']){
-  const s=titleCelebration(level,field),p=e.getPlayer(s);p.teamId=-1;p.primaryRole=field==='pitching'?'센터라인':'선발';
-  ceremonies.presentAwardsCeremony(s);const notice=s.noticeQueue.find(n=>n.individualTitles);
-  assert.deepEqual(notice.individualTitles,{year:2028,level,field});
-  s.careerNotice=notice;const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));
-  assert.ok(level==='first'?!html.includes('1군'):html.includes('2군'));assert.ok(html.includes(field==='batting'?'홈런왕':'다승왕'));
-  assert.ok(!html.includes('다른군수상자'));assert.ok(!html.includes('다른분야수상자'));
- }
-});
-test('titles in a different league or field do not trigger a personal title modal',()=>{
- const s=titleCelebration(),season=s.proWorld.seasons[0];
- season.individualAwards.push(...individualAwards(s).filter(row=>row.level==='first'&&['obp','slg','R'].includes(row.metric)));
- for(const row of season.individualAwards.filter(row=>row.level==='first'&&row.field==='batting'))row.winners=[{playerId:'someone-else',playerName:'다른수상자',club:1}];
- ceremonies.presentAwardsCeremony(s);assert.ok(!s.noticeQueue.some(n=>n.individualTitles));
-});
-test('winning only individual titles still shows a single title modal without a trophy celebration',()=>{
- let s=titleCelebration('second','pitching');s.proWorld.seasons[0].awards=[];
- ceremonies.presentAwardsCeremony(s);assert.equal(s.noticeQueue.filter(n=>n.award).length,0);assert.equal(s.noticeQueue.filter(n=>n.individualTitles).length,1);
- s=dismissSeasonAwards(s);assert.equal(s.careerNotice.title,'타이틀 획득!');assert.equal(s.careerNotice.individualTitles.level,'second');
-});
-test('an older saved trophy queue appends the new title modal after remaining gold gloves exactly once',()=>{
- let s=titleCelebration();ceremonies.presentAwardsCeremony(s);s.noticeQueue=s.noticeQueue.filter(n=>!n.individualTitles);delete s.proWorld.seasons[0].awardsCeremony.individualTitlesQueued;
- s=dismissSeasonAwards(s);assert.ok(s.careerNotice.award);assert.equal(s.noticeQueue.at(-1).title,'타이틀 획득!');assert.equal(s.noticeQueue.filter(n=>n.individualTitles).length,1);
- delete s.proWorld.seasons[0].awardsCeremony.individualTitlesQueued;s.noticeQueue=s.noticeQueue.filter(n=>!n.individualTitles);
+ assert.ok(!s.noticeQueue.some(n=>n.individualTitles));s=pc.acknowledgeCareer(s);assert.equal(s.careerNotice.code,'awards-summary:2028');
+ const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));for(const text of ['시즌 어워드','홈런왕','안타왕','타점왕','공동 1위'])assert.ok(html.includes(text),text);
+ assert.ok(!html.includes('타이틀 획득!'));const bonuses=structuredClone(e.getPlayer(s).professional.awardBonuses);
+ s=pc.acknowledgeCareer(s);if(s.careerNotice?.code?.startsWith('club-award:'))s=pc.acknowledgeCareer(s);
  while(s.careerNotice?.award)s=pc.acknowledgeCareer(s);
- assert.equal(s.careerNotice.title,'타이틀 획득!');assert.equal(s.noticeQueue.filter(n=>n.individualTitles).length,0);
+ assert.ok(!s.careerNotice?.individualTitles);assert.ok(!s.noticeQueue.some(n=>n.individualTitles));assert.deepEqual(e.getPlayer(s).professional.awardBonuses,bonuses);
+});
+test('winning only titles finishes after the season summary instead of opening another table',()=>{
+ let s=titleCelebration('second','pitching');s.proWorld.seasons[0].awards=[];ceremonies.presentAwardsCeremony(s);
+ assert.ok(!s.noticeQueue.some(n=>n.award||n.individualTitles));s=pc.acknowledgeCareer(s);assert.equal(s.careerNotice.code,'awards-summary:2028');
+ s=pc.acknowledgeCareer(s);assert.ok(!s.careerNotice?.individualTitles);assert.ok(!s.noticeQueue.some(n=>n.individualTitles));
+});
+test('acknowledging an older saved award queue drops duplicate title tables and preserves the next career notice',()=>{
+ let s=titleCelebration();ceremonies.presentAwardsCeremony(s);
+ s.noticeQueue.push({id:'individual-titles:2028',code:'individual-titles:2028',date:s.date,kind:'pro',title:'타이틀 획득!',message:'',individualTitles:{year:2028,level:'first',field:'batting'}},{id:'after-awards',date:s.date,kind:'pro',title:'다음 안내',message:'보존'});
+ s=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;const before=structuredClone(s);
+ const next=pc.acknowledgeCareer(s);assert.deepEqual(s,before);s=next;
+ assert.ok(!s.noticeQueue.some(n=>n.individualTitles));assert.ok(s.noticeQueue.some(n=>n.id==='after-awards'));
+ s=pc.acknowledgeCareer(s);if(s.careerNotice?.code?.startsWith('club-award:'))s=pc.acknowledgeCareer(s);while(s.careerNotice?.award)s=pc.acknowledgeCareer(s);
+ assert.equal(s.careerNotice.id,'after-awards');
 });
 
 test('only the ERA title requires pitching innings, using separate starter and relief minimums',()=>{

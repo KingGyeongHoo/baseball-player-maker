@@ -1,4 +1,5 @@
 "use client";
+import {needsCareerHonorUpgrade} from '../../lib/sim/career-honor-upgrade';
 import {leaderQualification} from "../../lib/league-leaders";
 import PlayerEvaluationButton from "./player-evaluation";
 import { scoreText } from "../../lib/display";
@@ -69,7 +70,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const resetPending=useRef(false);
   const [autoProgress]=useState(()=>new AutoProgress());
   useEffect(()=>{
-    if(state.careerMode!=="pro"||state.proWorld&&state.proClubNamesVersion===2&&!needsPostseasonUpgrade(state)&&!needsProScheduleUpgrade(state)&&!needsProSquadUpgrade(state)&&!needsContractUpgrade(state)&&!needsAllstarScheduleUpgrade(state)&&!needsNationalInvitationUpgrade(state))return;
+    if(state.careerMode!=="pro"||state.proWorld&&state.proClubNamesVersion===2&&!needsPostseasonUpgrade(state)&&!needsProScheduleUpgrade(state)&&!needsProSquadUpgrade(state)&&!needsContractUpgrade(state)&&!needsAllstarScheduleUpgrade(state)&&!needsNationalInvitationUpgrade(state)&&!needsCareerHonorUpgrade(state))return;
     const scheduled=setTimeout(()=>{
       autoProgress.pause();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);setAuto(false);setOutcome(null);
       const next=upgradeProfessionalState(state);onChange(next);setPolicy(structuredClone(getPlayer(next).trainingPolicy));setStance({...getPlayer(next).stance});

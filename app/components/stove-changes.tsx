@@ -5,6 +5,7 @@ import {clubStoveMoves,type StoveReport} from '../../lib/sim/stove-report';
 import type {Player} from '../../lib/sim/types';
 
 export default function StoveChanges({report,playerId,players}:{report:StoveReport;playerId:string;players?:Player[]}){
+  const squadNames={first:"1군",second:"2군",third:"잔류군",developmental:"육성"};
   const moves=clubStoveMoves(report.moves,report.club,players);
   const trades=moves.filter(p=>p.direction==='traded'&&p.exchange&&p.otherClub!==undefined);
   const freeAgents=moves.filter(p=>p.direction==='fa');
@@ -50,7 +51,7 @@ export default function StoveChanges({report,playerId,players}:{report:StoveRepo
         return <section className={`registration-column ${joined?'promoted':'removed'}`} key={direction}>
           <h3><span className="registration-direction" aria-hidden="true">{joined?'↑':'↓'}</span>{joined?'신규 입단':'재계약 불가'} {players.length}명</h3>
           {players.length?<ul className="registration-player-list">{players.map((p,i)=><li key={`${p.id}-${i}`} className={p.id===playerId?'registration-mine':''}>
-            <span>{player(p)}</span>{joined&&<small className="stove-move-type">{p.reason}</small>}
+            <span>{player(p)}</span>{joined?<small className="stove-move-type">{p.reason}</small>:<small className="stove-move-type">{p.squad?squadNames[p.squad]:"—"}</small>}
           </li>)}</ul>:<p className="registration-empty">없음</p>}
         </section>;
       })}

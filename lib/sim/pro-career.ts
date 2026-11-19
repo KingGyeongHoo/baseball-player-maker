@@ -26,6 +26,7 @@ const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind
 };
 export const acknowledgeCareer = (input: GameState): GameState => {
   const s=structuredClone(input),notice=s.careerNotice;
+  if(s.noticeQueue)s.noticeQueue=s.noticeQueue.filter(row=>!row.individualTitles&&!row.code?.startsWith('individual-titles:'));
   const ceremony=notice?.code?.match(/^awards(-summary)?:(\d{4})$/);
   const awardYear=ceremony?Number(ceremony[2]):notice?.award?.year;
   const season=ceremony?s.proWorld?.seasons.find(row=>row.year===awardYear):undefined;

@@ -1,3 +1,4 @@
+import {upgradeCareerHonors} from './sim/career-honor-upgrade';
 import {validNationalTournament} from "./sim/national-tournament";
 import {upgradeNationalInvitation} from './sim/national-teams';
 import {hydrateAssessments} from "./sim/pro-assessment";
@@ -50,6 +51,8 @@ export function validateCareerState(value:unknown):asserts value is GameState {
     })))throw new Error('수상 출전평가 보상 기록을 복원할 수 없습니다.');
     if(assessments!==undefined&&(!Array.isArray(assessments)||new Set(assessments.map(row=>row.year)).size!==assessments.length||assessments.some(row=>!Number.isInteger(row.year)||typeof row.date!=="string"||row.score!==null&&!Number.isFinite(row.score)||row.cumulative!==null&&!Number.isFinite(row.cumulative)||!Number.isFinite(row.ability)||typeof row.reserveSeason!=="boolean"||typeof row.developmental!=="boolean"||row.firstTeam!==undefined&&typeof row.firstTeam!=="boolean"||row.secondOnly!==undefined&&typeof row.secondOnly!=="boolean"||row.firstGames!==undefined&&row.firstGames!==null&&(!Number.isInteger(row.firstGames)||row.firstGames<0)||!["season-end","reconstructed"].includes(row.source))))throw new Error("시즌 출전평가 기록을 복원할 수 없습니다.");
     if(assessments?.some(row=>row.seasonRank!==undefined&&(!validSeasonRank(row.seasonRank)||row.seasonRank.year!==row.year||row.score===null||row.grade!==row.seasonRank.grade||!row.war||Math.abs(row.seasonRank.war-row.war.equivalentWins)>1e-7)))throw new Error('시즌 역할별 순위 기록을 복원할 수 없습니다.');
+    const honorBonuses=p.professional?.careerHonorBonuses;
+    if(honorBonuses!==undefined&&(!Array.isArray(honorBonuses)||new Set(honorBonuses.map(row=>row.year)).size!==honorBonuses.length||honorBonuses.some(row=>!Number.isInteger(row.year)||!Number.isFinite(row.points)||row.points<0||row.points>3)))throw new Error('커리어 수상 가산점을 복원할 수 없습니다.');
     if(assessments?.some(row=>row.clubAwardCounts!==undefined&&(!row.clubAwardCounts||[row.clubAwardCounts.first,row.clubAwardCounts.second].some(count=>!Number.isInteger(count)||count<0||count>10))))throw new Error('구단 최우수 선수 기록을 복원할 수 없습니다.');
     const usage=p.professional?.assessmentUsage;
     const honorUsage=p.professional?.honorUsage;
@@ -134,6 +137,7 @@ function validateCareerSave(file:CareerSave):CareerSave {
   syncProClubNames(file.state);
   upgradeNationalInvitation(file.state);
   backfillSeasonHonors(file.state);
+  upgradeCareerHonors(file.state);
   discardRetiredPlayers(file.state);
   const needsNumbers=file.state.players.some(p=>p.jerseyNumber===undefined);
   if(needsNumbers)syncJerseyNumbers(file.state);

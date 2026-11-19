@@ -1,4 +1,5 @@
-import { addDays, fatigueForecast, labels, policyForMode, ticketsUsed, trainingLoad, validPolicy } from "../../lib/sim/engine";
+import {conditioningMultiplier} from '../../lib/sim/offseason-shop';
+import { addDays, fatigueForecast, labels, policyForMode, ticketsUsed, validPolicy } from "../../lib/sim/engine";
 import { scoreText } from "../../lib/display";
 import PlayerTalents from './player-talents';
 import type { GameState, Player, Policy, Ticket } from "../../lib/sim/types";
@@ -14,7 +15,7 @@ const amount=(n:number)=>Math.abs(n)>0&&Math.abs(n)<1?"1 미만":scoreText(Math.
 const deltaText=(n:number)=>Math.abs(n)<1e-9?"피로 유지":n<0?"피로 회복 "+amount(n):"피로 쌓임 "+amount(n);
 
 export default function TrainingEditor({player,policy,setPolicy,date,context,showTalents=false}:{player:Player;policy:Policy;setPolicy:(p:Policy)=>void;date?:string;context?:Pick<GameState,"calendar"|"report">;showTalents?:boolean}){
-  const used=policy.mode==="rest"?0:ticketsUsed(policy),load=trainingLoad(player.stats.recovery,policy),forecast=fatigueForecast(player,policy,date);
+  const used=policy.mode==="rest"?0:ticketsUsed(policy),forecast=fatigueForecast(player,policy,date),load=forecast,conditioning=conditioningMultiplier(player);
   const training=used>0,previous=policy.mode==="rest"?policy.previousTraining:undefined;
   const update=(tickets:Policy["tickets"])=>setPolicy({mode:"normal",tickets});
   const tone=load.weeklyDelta<0?"recovery":load.weeklyDelta>0?"accumulation":"neutral";
@@ -27,6 +28,7 @@ export default function TrainingEditor({player,policy,setPolicy,date,context,sho
       <div className="ticket-summary-main"><div className="ticket-remaining"><span>현재 배분</span><strong>{used}<small>개</small></strong></div><div className="ticket-allocation"><b>항목별 0~5</b><span>회복력 {scoreText(player.stats.recovery)}</span></div></div>
       <button className="ticket-reset" disabled={used===0} onClick={()=>update(Object.fromEntries(Object.keys(policy.tickets).map(k=>[k,0])) as Policy["tickets"])}>모두 0으로</button>
       <div className={"load-current "+tone} role="status" aria-live="polite" aria-atomic="true"><strong>훈련 기준 · {deltaText(load.weeklyDelta)}</strong><span>훈련·회복만 반영 · 1주 기준</span></div>
+      {conditioning<1&&<div className="conditioning-coach-note" role="note"><span>컨디셔닝 코치 적용중</span><b>피로 누적 {Math.round((1-conditioning)*100)}% 감소</b></div>}
       <div className="load-gauge">
         <div className="load-spectrum" role="meter" aria-label="훈련 피로와 회복 균형" aria-valuemin={0} aria-valuemax={100} aria-valuenow={load.marker} aria-valuetext={deltaText(load.weeklyDelta)} data-load-marker={load.marker}>
           <span className="load-neutral" aria-hidden="true"/><span className="load-marker" style={{left:load.marker+"%"}} aria-hidden="true"/>

@@ -1,3 +1,4 @@
+import {needsCareerHonorUpgrade,upgradeCareerHonors} from './career-honor-upgrade';
 import {showStoveReport} from './stove-report';
 import {buyShopItems,settleShopItems,type OffseasonShopAction} from './offseason-shop';
 import {settleFaService} from './fa-service';
@@ -420,8 +421,8 @@ export function advanceUnattachedMonth(input:GameState,advance:(s:GameState)=>Ga
   }return s;
 }
 export function upgradeProfessionalState(input:GameState){
-  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===2&&!needsPostseasonUpgrade(input)&&!needsPostseasonRosterUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input)&&!needsNationalInvitationUpgrade(input))return input;
-  const s=structuredClone(input);ensureProWorld(s);upgradeContractRules(s);upgradeNationalInvitation(s);
+  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===2&&!needsPostseasonUpgrade(input)&&!needsPostseasonRosterUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input)&&!needsNationalInvitationUpgrade(input)&&!needsCareerHonorUpgrade(input))return input;
+  const s=structuredClone(input);ensureProWorld(s);upgradeContractRules(s);upgradeNationalInvitation(s);upgradeCareerHonors(s);
   if(getPlayer(input).professional?.employment==="freeAgent"&&getPlayer(s).professional?.employment==="active")openContractMarket(s);
   migrateActivePostseason(s);
   if(expandPostseasonRosters(s)){

@@ -17,6 +17,15 @@ function confirmReport(state){
  return pc.acknowledgeCareer(state);
 }
 let template;
+test('released players retain their departure squad on the right even after joining a different squad',()=>{
+ const {stovePlayerMoves,clubStoveMoves}=require('../.test-build/lib/sim/stove-report.js'),View=require('../.test-build/app/components/stove-changes.js').default;
+ const players=Object.entries({first:'1군',second:'2군',third:'잔류군',developmental:'육성'}).map(([squad,name],i)=>({id:`released-${i}`,name:`방출${name}`,position:'SS',teamId:0,professional:{lastSquad:'first',movements:[{date:'2028-11-01',from:2,to:null,kind:'방출',reason:'계약 종료',squad}]}}));
+ const moves=players.flatMap(p=>stovePlayerMoves(p,'2028-11-01','2029-01-01'));
+ const html=renderToStaticMarkup(createElement(View,{report:{club:2,moves},playerId:'mine',players}));
+ for(const name of ['1군','2군','잔류군','육성'])assert.ok(html.includes(`<small class="stove-move-type">${name}</small>`));
+ const snapshot=structuredClone(moves);clubStoveMoves(moves,2,players);assert.deepEqual(moves,snapshot);
+ const legacy={...moves[0]};delete legacy.squad;players[0].professional.lastSquad='third';assert.equal(clubStoveMoves([legacy],2,players)[0].squad,'third');
+});
 test('FA credits require eight full seasons and a missed FA season requires two full seasons after expiry',()=>{
  const {settleFaService}=require('../.test-build/lib/sim/fa-service.js');
  const pro={faEligible:false,faDays:1800};
@@ -103,16 +112,17 @@ test('purchased training stays active until stock runs out and conditioning cove
  const proGrowth=require('../.test-build/lib/sim/pro-growth.js');
  const ordinary=structuredClone(p);p.age=ordinary.age=40;
  p.offseasonShop.items.conditioning=1;
- assert.equal(shop.conditioningMultiplier(p),.7);
+ assert.equal(shop.conditioningMultiplier(p),.5);
  shop.settleShopItems(p,year);
  assert.equal(p.offseasonShop.items.conditioning,undefined);
  const coached=proGrowth.applyAging(p,year+1),normal=proGrowth.applyAging(ordinary,year+1);
  assert.ok(normal.velocity<0);
- assert.ok(Math.abs(coached.velocity-.7*normal.velocity)<1e-9);
+ assert.ok(Math.abs(coached.velocity-.5*normal.velocity)<1e-9);
+ for(const key of Object.keys(normal))assert.ok(Math.abs(coached[key]-.5*normal[key])<1e-9,key);
  const tickets={...p.trainingPolicy,mode:'normal',tickets:Object.fromEntries(Object.keys(p.trainingPolicy.tickets).map(k=>[k,5]))};
  const positive=e.trainingFatigueDay(20,60,tickets).training;
  assert.ok(positive>0);
- assert.ok(Math.abs(e.trainingFatigueDay(20,60,tickets,.7).training-.7*positive)<1e-9);
+ assert.ok(Math.abs(e.trainingFatigueDay(20,60,tickets,.5).training-.5*positive)<1e-9);
 });
 test('regular-season and stove trades share a league-wide limit and midseason notices show the exchange',()=>{
  const s=fixture(),world=s.proWorld,year=world.year;

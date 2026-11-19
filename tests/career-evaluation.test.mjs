@@ -20,6 +20,37 @@ function row(year,rank=1,level='first'){
   const grade=ranks.seasonRankGrade(rank,10);
   return {year,date:`${year}-10-31`,score:71,grade,cumulative:null,cumulativeGrade:'—',ability:70,role:'선발',squad:level,developmental:false,reserveSeason:false,firstTeam:level==='first',secondOnly:level==='second',firstGames:100,honorRegistration:{seasonDays:100,firstDaysByClub:level==='first'?{0:90}:{}},source:'season-end',war:assessment,seasonRank:{version:1,year,role:'starter',level,war:0,rank,total:10,grade}};
 }
+test('career totals include the same deduplicated MVP, gold glove, title and national bonuses as retired-number criteria',()=>{
+ const s=structuredClone(template),p=e.getPlayer(s),club=p.teamId%10;s.calendar.seasonYear=2030;s.date='2030-10-31';
+ p.professional.assessments=[row(2030)];p.professional.assessments[0].war.first.batting=29.5;
+ const award=(kind,category)=>({year:2030,playerId:p.id,playerName:p.name,club,kind,category,value:1});
+ const mvp=award('시즌 MVP','mvp');s.proWorld.seasons=[{year:2030,standings:[],farmStandings:[],champion:null,draft:[],rookieRulesVersion:2,awards:[mvp,{...mvp},award('골든글러브','goldGlove'),award('홈런왕')],individualAwards:[{level:'first',field:'batting',metric:'HR',label:'홈런왕',value:30,winners:[{playerId:p.id,playerName:p.name,club}]}]}];
+ s.nationalTeams=[{year:2030,kind:'wbc',roster:[{id:p.id,club,team:s.teams[club].name}]},{year:2030,kind:'wbc',roster:[{id:p.id,club,team:s.teams[club].name}]},{year:2030,kind:'youth',roster:[{id:p.id,club,team:s.teams[club].name}]}];
+ assert.equal(c.syncCareerHonorBonuses(s),true);assert.equal(c.syncCareerHonorBonuses(s),false);
+ const evaluation=c.playerCareerEvaluation(p,2030).first;assert.equal(evaluation.awardBonus,2.2);assert.equal(evaluation.cumulativeWar,31.7);assert.equal(evaluation.grade,'C');
+ const helper=require('../.test-build/lib/sim/career-honor-bonus.js');assert.equal(helper.careerHonorBonusYears(helper.buildCareerHonorBonusIndex(s),p.id,club).get(2030),2.2);
+ assert.equal(careerContractSummary(s).career.first.cumulativeWar,31.7);
+ s.nationalTeams=s.nationalTeams.filter((_,i)=>i!==1).map(entry=>({...entry,start:'2030-03-01',end:'2030-03-20',roster:entry.roster.map(member=>({...member,name:p.name,field:'pitching',roleScore:80}))}));
+ const loaded=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;assert.equal(c.playerCareerEvaluation(e.getPlayer(loaded),2030).first.cumulativeWar,31.7);
+ const national=award('도루왕');s.proWorld.seasons[0].awards.push(national,award('타점왕'),award('안타왕'));c.syncCareerHonorBonuses(s);
+ assert.equal(c.playerCareerEvaluation(p,2030).first.awardBonus,3);assert.equal(c.playerCareerEvaluation(p,2029).first.awardBonus,0);
+});
+test('a senior national selection immediately adds career points and retains its original club after a move',()=>{
+ const s=structuredClone(template),p=e.getPlayer(s),club=p.teamId%10,year=s.calendar.seasonYear;
+ require('../.test-build/lib/sim/national-teams.js').rememberNational(s,'wbc',[{id:p.id,position:p.position,selectionScore:80,roleScore:80}]);
+ assert.equal(c.playerCareerEvaluation(p,year).first.awardBonus,.2);
+ p.teamId=(club+1)%10;const helper=require('../.test-build/lib/sim/career-honor-bonus.js'),index=helper.buildCareerHonorBonusIndex(s);
+ assert.equal(helper.careerHonorBonusYears(index,p.id,club).get(year),.2);assert.equal(helper.careerHonorBonusYears(index,p.id,p.teamId).size,0);
+});
+test('bullpen career WAR uses original WAR with unchanged bonuses and historical starter seasons',()=>{
+ for(const role of ['불펜','중간계투','마무리']){
+  const bullpen=row(2030),starter=row(2031);bullpen.role=role;bullpen.seasonRank.role='bullpen';
+  bullpen.war.first.pitching=1;starter.war.first.pitching=2;bullpen.clubAwardCounts={first:1};
+  const before=structuredClone([bullpen,starter]),evaluation=c.evaluateCareer([bullpen,starter],'first');
+  assert.equal(evaluation.war,5);assert.equal(evaluation.cumulativeWar,5.1);assert.deepEqual([bullpen,starter],before);
+  assert.equal(c.evaluateCareer([bullpen,starter],'first').cumulativeWar,5.1);
+ }
+});
 test('career evaluation combines all-season mean 70% with best five mean 30%, using percentile rather than raw scores',()=>{
   const rows=Array.from({length:10},(_,i)=>row(2030+i,i+1)),evaluation=c.evaluateCareer(rows,'first');
   assert.equal(evaluation.average,55);assert.equal(evaluation.peak,80);assert.equal(evaluation.score,62.5);assert.equal(evaluation.grade,'F');

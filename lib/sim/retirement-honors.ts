@@ -1,11 +1,10 @@
 import {careerRegistrationRatio,meetsCareerRegistration,playerCareerEvaluation} from './pro-career-evaluation';
-import {individualTitleFromKind,individualTitleName} from './pro-individual-awards';
+import {buildCareerHonorBonusIndex,careerHonorBonusYears} from './career-honor-bonus';
 import {levelWarValue} from './pro-war';
-import {proTeamName} from './club-names';
 import type {ProfessionalPlayer,ProSeasonAssessment} from './pro-types';
 import type {GameState,Player} from './types';
 
-export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:15,tourConsecutive:10,numberConsecutive:10,numberAfterTrade:13,numberWar:40,numberScore:50} as const;
+export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:13,tourConsecutive:10,numberConsecutive:10,numberAfterTrade:13,numberWar:40,numberScore:50} as const;
 export function validHonorDays(value:Record<string,number>,maximum:number){
   return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([club,days])=>/^[0-9]$/.test(club)&&Number.isInteger(days)&&days>=0&&days<=maximum)&&Object.values(value).reduce((sum,n)=>sum+n,0)<=maximum;
 }
@@ -63,37 +62,14 @@ function meetsRetiredNumberService(pro:ProfessionalPlayer,club:number,years:numb
 
 function retiredNumberCriteria(s:GameState,p:Player,rows:ProSeasonAssessment[],club:number,seasons:number){
   const clubWar=rows.reduce((sum,row)=>sum+recordedClubWar(p,row,club),0);
-  const bonuses=new Map<number,number>();
-  const add=(year:number,tenths:number)=>bonuses.set(year,(bonuses.get(year)??0)+tenths);
-  for(const season of s.proWorld?.seasons??[]){
-    if(season.year>s.calendar.seasonYear)continue;
-    const awards=season.awards.filter(award=>award.club===club&&award.playerId===p.id&&award.level!=='second');
-    if(awards.some(award=>award.category==='mvp'||!award.category&&award.kind==='시즌 MVP'))add(season.year,10);
-    if(awards.some(award=>award.category==='goldGlove'||!award.category&&award.kind.startsWith('골든글러브')))add(season.year,5);
-    const titles=new Set(awards.flatMap(award=>{const title=individualTitleFromKind(award.kind);return title?[title]:[];}));
-    for(const award of season.individualAwards??[]){
-      if(award.level!=='first'||!award.winners.some(winner=>winner.playerId===p.id&&winner.club===club))continue;
-      const title=individualTitleName(award);
-      if(title)titles.add(title);
-    }
-    add(season.year,5*titles.size);
-  }
-  const nationalKinds=new Set<string>();
-  for(const entry of s.nationalTeams??[]){
-    if(entry.kind==='youth'||entry.year>s.calendar.seasonYear)continue;
-    const member=entry.roster.find(row=>row.id===p.id);
-    const matchesClub=member&&(member.club!==undefined?member.club===club:member.team.replace(/ (?:1군|2군|잔류군\(3군\)|육성선수)$/,'')===proTeamName(club));
-    const key=`${entry.year}:${entry.kind}`;
-    if(matchesClub&&!nationalKinds.has(key)){nationalKinds.add(key);add(entry.year,2);}
-  }
-  const awardBonus=[...bonuses.values()].reduce((sum,tenths)=>sum+Math.min(30,tenths),0)/10;
+  const awardBonus=[...careerHonorBonusYears(buildCareerHonorBonusIndex(s),p.id,club,s.calendar.seasonYear).values()].reduce((sum,n)=>sum+n,0);
   return {clubWar,awardBonus,seasons};
 }
 
 export function retirementEligibility(s:GameState,p:Player){
   const pro=p.professional,club=pro?.employment==='active'&&p.teamId>=0?(pro.contract?.club??p.teamId%10):undefined;
   const rows=(pro?.assessments??[]).filter(row=>row.year<=s.calendar.seasonYear);
-  const evaluation=playerCareerEvaluation(p,s.calendar.seasonYear).first,score=evaluation.score,grade=evaluation.grade;
+  const evaluation=playerCareerEvaluation(p,s.calendar.seasonYear,s).first,score=evaluation.score,grade=evaluation.grade;
   const clubs=new Set<number>();if(pro){if(pro.firstClub>=0)clubs.add(pro.firstClub);for(const row of pro.service)clubs.add(row.club);if(pro.contract)clubs.add(pro.contract.club);for(const row of pro.movements){if(row.from!==null)clubs.add(row.from);if(row.to!==null)clubs.add(row.to);}}
   const years=club===undefined?[]:[...new Set(rows.filter(row=>
     row.year>=(pro?.rookieYear??Infinity)+retirementHonorRules.rookieSeasons&&meetsCareerRegistration(row.honorRegistration,club)
@@ -102,10 +78,10 @@ export function retirementEligibility(s:GameState,p:Player){
   let consecutive=0;for(let i=years.length-1,expected=s.calendar.seasonYear;i>=0&&years[i]===expected&&years[i]>=stintStart;i--,expected--)consecutive++;
   // During a final-season declaration, the most recent completed season ends the streak.
   if(!s.proWorld?.seasonClosed&&years.at(-1)===s.calendar.seasonYear-1){consecutive=0;for(let i=years.length-1,expected=s.calendar.seasonYear-1;i>=0&&years[i]===expected&&years[i]>=stintStart;i--,expected--)consecutive++;}
-  const atLeastB=['S','A','B'].includes(grade),atLeastA=['S','A'].includes(grade),seasons=years.length,oneClub=club!==undefined&&clubs.size===1&&clubs.has(club);
+  const atLeastC=['S','A','B','C'].includes(grade),atLeastB=['S','A','B'].includes(grade),seasons=years.length,oneClub=club!==undefined&&clubs.size===1&&clubs.has(club);
   const criteria=club===undefined||!pro||!meetsRetiredNumberService(pro,club,years)?undefined:retiredNumberCriteria(s,p,rows,club,seasons);
   return {club,score,grade,seasons,consecutive,oneClub,criteria,
-    ceremony:club!==undefined&&atLeastB&&(seasons>=retirementHonorRules.ceremonyTotal||consecutive>=retirementHonorRules.ceremonyConsecutive),
-    tour:club!==undefined&&atLeastA&&(seasons>=retirementHonorRules.tourTotal||consecutive>=retirementHonorRules.tourConsecutive),
+    ceremony:club!==undefined&&atLeastC&&(seasons>=retirementHonorRules.ceremonyTotal||consecutive>=retirementHonorRules.ceremonyConsecutive),
+    tour:club!==undefined&&atLeastB&&(seasons>=retirementHonorRules.tourTotal||consecutive>=retirementHonorRules.tourConsecutive),
     retiredNumber:!!criteria&&criteria.clubWar+1e-9>=retirementHonorRules.numberWar&&criteria.clubWar+criteria.awardBonus+1e-9>=retirementHonorRules.numberScore};
 }

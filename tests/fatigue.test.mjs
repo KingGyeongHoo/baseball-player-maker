@@ -10,6 +10,33 @@ function policy(total,mode='normal'){const tickets={};for(const key of Object.ke
 function fixture(total=10,r=50,stamina=50){const state=structuredClone(template),player=e.getPlayer(state);require('../.test-build/lib/sim/career-opportunities.js').opportunityState(state).transferOffered=true;for(const key of Object.keys(player.stats))player.stats[key]=50;player.stats.recovery=r;player.stats.stamina=stamina;player.fatigue=30;state.calendar.events=[];state.calendar.competitions=[];return {state,player,policy:policy(total)};}
 function conservation(s){const r=s.report,f=r.fatigue;close(r.fatigueBefore+f.training+f.game+(f.events??0)-f.recovered,r.fatigueAfter);for(const key of ['training','game','recovered'])close(f[key],f.days.reduce((n,d)=>n+d[key],0));close(f.peak,Math.max(...f.days.map(d=>d.peak)));for(let i=0;i<f.days.length;i++){const d=f.days[i];close(d.start+d.training+d.game+(d.events??0)-d.recovered,d.end);close(d.start,i?f.days[i-1].end:r.fatigueBefore);assert.ok(d.end>=0&&d.end<=100&&d.peak<=100);assert.ok(d.recovered>=0&&d.recovered<=d.peak+1e-8);}close(f.days.at(-1).end,e.getPlayer(s).fatigue);}
 
+test('conditioning halves displayed and actual training accumulation while leaving recovery capacity unchanged',()=>{
+ const {createElement}=require('react'),{renderToStaticMarkup}=require('react-dom/server'),Editor=require('../.test-build/app/components/training-editor.js').default;
+ for(const total of [0,5,20,40]){
+  const {state,player,policy}=fixture(total,50);player.offseasonShop={spent:0,items:{conditioning:1}};
+  const base=e.trainingLoad(player.stats.recovery,policy),forecast=e.fatigueForecast(player,policy,state.date);
+  close(forecast.weeklyDelta,base.weeklyDelta>0?base.weeklyDelta*.5:base.weeklyDelta);close(forecast.maxAccumulation,base.maxAccumulation*.5);close(forecast.maxRecovery,base.maxRecovery);
+  const html=renderToStaticMarkup(createElement(Editor,{player,policy,setPolicy(){},date:state.date}));
+  assert.ok(html.includes('컨디셔닝 코치 적용중'));assert.ok(html.includes('피로 누적 50% 감소'));assert.ok(html.includes('최대 +37 / 주'));
+  const next=e.advanceWeek(state,policy,player.stance);close(e.getPlayer(next).fatigue,forecast.end);close(next.report.fatigue.training,forecast.weeklyTraining);conservation(next);
+  delete player.offseasonShop;const inactive=renderToStaticMarkup(createElement(Editor,{player,policy,setPolicy(){},date:state.date}));assert.ok(!inactive.includes('컨디셔닝 코치 적용중'));close(e.fatigueForecast(player,policy,state.date).weeklyDelta,base.weeklyDelta);
+ }
+});
+test('conditioning halves pitcher and fielding game fatigue without changing the game result or records',()=>{
+ const original=e.createGame('conditioning-game','컨디셔닝','SP'),ordinary=structuredClone(original),coached=structuredClone(original);
+ for(const p of coached.players)p.offseasonShop={spent:0,items:{conditioning:1}};
+ const play=s=>{const g=s.calendar.events[0];e.simulateGame(s,g,[g.homeTeamId,g.awayTeamId].map(team=>s.players.filter(p=>p.teamId===team)));return g;};
+ const normal=play(ordinary),adjusted=play(coached);assert.deepEqual(adjusted.score,normal.score);assert.deepEqual(adjusted.boxScore,normal.boxScore);
+ assert.ok(ordinary.players.some(p=>p.fatigue>0));coached.players.forEach((p,i)=>close(p.fatigue,ordinary.players[i].fatigue*.5));
+});
+test('the conditioning indicator and forecast stop applying when a legacy activated coach expires',()=>{
+ const {createElement}=require('react'),{renderToStaticMarkup}=require('react-dom/server'),Editor=require('../.test-build/app/components/training-editor.js').default;
+ const {player,policy}=fixture(20,50);player.professional={agedYear:2028};player.offseasonShop={spent:0,items:{},active:{id:'conditioning',year:2027}};
+ const render=()=>renderToStaticMarkup(createElement(Editor,{player,policy,setPolicy(){}}));
+ assert.ok(!render().includes('컨디셔닝 코치 적용중'));close(e.fatigueForecast(player,policy).maxAccumulation,75);
+ player.offseasonShop.active.year=2028;assert.ok(render().includes('컨디셔닝 코치 적용중'));close(e.fatigueForecast(player,policy).maxAccumulation,37.5);
+});
+
 test('all eight fields independently accept 0-5 without an intensity budget',()=>{
   for(const mode of ['light','normal','hard']){assert.ok(e.validPolicy(policy(40,mode)));assert.equal(e.budget(mode),40);}
   for(const value of [-1,.5,6,NaN]){const p=policy(0);p.tickets.velocity=value;assert.equal(e.validPolicy(p),false);}

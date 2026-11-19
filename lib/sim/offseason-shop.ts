@@ -1,5 +1,7 @@
 import type {GameState,Player,Stat} from './types';
 
+export const conditioningEffectMultiplier=.5;
+
 const pitchers:readonly Stat[]=['velocity','control','movement'];
 const hitters:readonly Stat[]=['contact','power','speed','defense'];
 const physical:readonly Stat[]=['stamina','recovery','arm'];
@@ -16,7 +18,7 @@ export const offseasonItems={
   pitchingCoach:{name:'투수 트레이너',icon:'🧢',price:200_000_000,stats:pitchers,bonus:.5,detail:'구속·제구·변화구 훈련 배율 +0.5'},
   battingCoach:{name:'타자 트레이너',icon:'🥎',price:200_000_000,stats:hitters,bonus:.5,detail:'컨택·파워·주루·수비 훈련 배율 +0.5'},
   physicalCoach:{name:'피지컬 코치',icon:'💪',price:180_000_000,stats:physical,bonus:.5,detail:'스태미나·회복·송구 훈련 배율 +0.5'},
-  conditioning:{name:'컨디셔닝 코치',icon:'🩺',price:150_000_000,stats:[],bonus:0,detail:'경기·훈련 피로와 노화에 따른 능력 하락 30% 감소'},
+  conditioning:{name:'컨디셔닝 코치',icon:'🩺',price:150_000_000,stats:[],bonus:0,detail:'경기·훈련 피로와 노화에 따른 능력 하락 50% 감소'},
   agent:{name:'에이전트',icon:'🤝',price:300_000_000,stats:[],bonus:0,detail:'FA·연봉 재협상 시 인상률 +10%p. 구단 예산 내 적용'},
 } satisfies Record<string,{name:string;icon:string;price:number;stats:readonly Stat[];bonus:number;detail:string}>;
 
@@ -84,7 +86,7 @@ export function trainingItemBonus(p:Player,stat:Stat){
   return bonus;
 }
 export function conditioningMultiplier(p:Player,year=p.professional?.agedYear){
-  return hasShopItem(p,'conditioning',year)? .7 : 1;
+  return hasShopItem(p,'conditioning',year)? conditioningEffectMultiplier : 1;
 }
 export function winterShopBenefit(p:Player,id:'agent'|'conditioning',year:number){
   // Contract negotiations and camp aging follow the season's stock deduction.

@@ -8,6 +8,7 @@ export type FaTerms={plan:"starter"|"money"|"contender"|"security"|"rebuild"|"co
 export type SalaryContract = { id:string; club:number; startYear:number; endYear:number; salary:number; segments:{from:string;salary:number}[]; source:"rookie"|"renewal"|"fa"|"released";faTerms?:FaTerms };
 export type AgingProfile={version:1;physical:number;peakStart:number;declineStart:number;loss:Partial<Stats>};
 export type ProfessionalPlayer = {
+  careerHonorBonuses?:{year:number;points:number}[];
   awardBonuses?:{year:number;category:"mvp"|"goldGlove"|"rookie"|"wildcardMvp"|"semiMvp"|"playoffMvp"|"finalMvp";points:number;level?:"second";seriesId?:string}[];
   nationalBonus?:number;
   allstarBonus?:number;allstarHistory?:AllstarSelection[];
@@ -29,7 +30,7 @@ export type ProfessionalPlayer = {
   twoWayHistory?:{date:string;action:string;positions:{pitchingPosition:Position;battingPosition:Position};reason:string}[];
   entryReputation:number; proBonus:number; earnings:number; highestSalary:number; peak:Stats;
   firsts:{debut?:string;start?:string;hit?:string;homeRun?:string;strikeout?:string};
-  movements:{date:string;from:number|null;to:number|null;kind:string;reason:string;registration?:'developmental'|'regular';requestedTrade?:true;exchange?:{id:string;name:string;position:Position}}[];
+  movements:{date:string;from:number|null;to:number|null;kind:string;reason:string;registration?:'developmental'|'regular';squad?:ProSquad;requestedTrade?:true;exchange?:{id:string;name:string;position:Position}}[];
   salaries:{year:number;club:number;amount:number;salary:number}[];
   guarantees?:{year:number;club:number;amount:number}[];
   service:{club:number;from:number;to:number}[];
@@ -46,6 +47,7 @@ export type RetiredNumber={club:number;number:number;playerId:string;playerName:
 export type RetirementHonor={club:number;playerId:string;playerName:string;date:string;score:number;grade:string;seasons:number;consecutive:number;ceremony:boolean;tour:boolean};
 export type ProPostseason={format?:"kbo-v1";rosterVersion?:1;seeds:number[];series:ProSeries[];champion?:number};
 export type ProWorld = {
+  careerHonorRulesVersion?:1|2|3;
   offseasonContinuation?:'national'|'market'|'wait'|'nextSeason';
   departedStoveMoves?:import('./stove-report').StoveMove[];
   resumeCampAfterAwards?:true;

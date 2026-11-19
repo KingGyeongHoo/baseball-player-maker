@@ -132,7 +132,7 @@ export function releasePlayer(s:GameState,p:Player,reason:string,year:number){
   const old=pro.contract,club=old?.club??p.teamId%10;
   pro.lastSquad=proSquad(p.teamId)??pro.lastSquad;
   if(old&&old.endYear>=year)for(let y=year;y<=old.endYear;y++){const debt=s.proWorld!.clubs[club].deadMoney;s.proWorld!.clubs[club].deadMoney[String(y)]=(debt[String(y)]??0)+old.salary;(pro.guarantees??=[]).push({year:y,club,amount:old.salary});}
-  pro.movements.push({date:s.date,from:club,to:null,kind:"방출",reason});pro.contract=null;pro.employment="freeAgent";p.teamId=-1;
+  pro.movements.push({date:s.date,from:club,to:null,kind:"방출",reason,squad:pro.lastSquad});pro.contract=null;pro.employment="freeAgent";p.teamId=-1;
   const stint=pro.service.at(-1);if(stint)stint.to=s.calendar.seasonYear;
   proNews(s,`${p.name} · ${clubName(s,club)} 계약 종료 · ${reason}`,`${year}:release:${p.id}`);
 }

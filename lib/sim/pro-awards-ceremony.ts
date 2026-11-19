@@ -1,8 +1,9 @@
+import {syncCareerHonorBonuses} from './pro-career-evaluation';
 import {goldGloveAwards,seasonMvpAward} from "./pro-evaluation";
-import {individualAwardRows,individualAwards} from "./pro-individual-awards";
+import {individualAwards} from "./pro-individual-awards";
 import {proNotice} from "./pro-world";
 import {syncAwardBonuses,awardBonusPoints} from './pro-award-bonuses';
-import {getPlayer,isPitcher,positions} from './engine';
+import {getPlayer,positions} from './engine';
 import {backfillSeasonHonors} from './pro-historical-awards';
 import type {GameState} from "./types";
 import {refreshSeasonEvaluations} from './pro-season-evaluation';
@@ -24,15 +25,9 @@ export function queuePersonalAwardNotices(s:GameState,year:number,beforeScore?:n
     return {id:code,date:s.date,kind:'pro' as const,code,title:`${year}년 ${title}${category==='rookie'?'을':'를'} 획득했다!!`,message:`시즌 평가 수상 보너스 +${bonus}`,award:{year,title,bonus,after:cursor??after,...(before!==undefined?{before,applied}:{})}};
   });
   ceremony.celebrationsQueued=true;
-  if(!ceremony.individualTitlesQueued){
-    ceremony.individualTitlesQueued=true;
-    const assessment=p.professional?.assessments?.find(row=>row.year===year);
-    const level=(assessment?.squad??(p.teamId>=0&&p.teamId<10?'first':'second'))==='first'?'first':'second';
-    const field=isPitcher(assessment?.role??p.primaryRole)?'pitching':'batting';
-    if(individualAwardRows(season.individualAwards,level,field).some(row=>row.winners.some(winner=>winner.playerId===p.id))){
-      notices.push({id:`individual-titles:${year}`,date:s.date,kind:'pro',code:`individual-titles:${year}`,title:'타이틀 획득!',message:'',individualTitles:{year,level,field}});
-    }
-  }
+  // The season summary already contains every title holder. Discard old queued copies.
+  ceremony.individualTitlesQueued=true;
+  if(s.noticeQueue)s.noticeQueue=s.noticeQueue.filter(notice=>!notice.individualTitles&&!notice.code?.startsWith('individual-titles:'));
   if(!notices.length)return;
   const queue=s.noticeQueue??=[];
   const lastAwardIndex=queue.reduce((last,notice,index)=>notice.code===`awards:${year}`||notice.code===`awards-summary:${year}`||notice.award?.year===year?index:last,-1);
@@ -62,6 +57,7 @@ export function presentAwardsCeremony(s:GameState){
   const beforeScore=getPlayer(s).professional?.assessments?.find(row=>row.year===season.year)?.score??undefined;
   ceremony.presentedAt=s.date;
   syncAwardBonuses(s);
+  syncCareerHonorBonuses(s);
   refreshSeasonEvaluations(s,season.year);
   proNotice(s,`awards:${season.year}`,`${season.year} 골든글러브 시상식`,"포지션별 골든글러브 수상자를 발표합니다.");
   queuePersonalAwardNotices(s,season.year,beforeScore);

@@ -23,7 +23,7 @@ export function lifetimeRecords(player:Player,year:number){
 export function careerContractSummary(state:GameState){
   const p=getPlayer(state),pro=p.professional,year=state.calendar.seasonYear;
   const rows=[...new Map((pro?.assessments??[]).filter(row=>row.year<=year).map(row=>[row.year,row])).values()];
-  const career=playerCareerEvaluation(p,year),cumulative=career.first.score,current=rows.find(row=>row.year===year);
+  const career=playerCareerEvaluation(p,year,state),cumulative=career.first.score,current=rows.find(row=>row.year===year);
   const evaluation=!current&&pro?.employment==="active"&&p.teamId>=0?currentSeasonAssessment(state,p):undefined;
   const estimate=evaluation?.score??null;
   const contract=pro?.contract,firstYear=Math.max(year+(state.proWorld?.seasonClosed?1:0),contract?.startYear??year);

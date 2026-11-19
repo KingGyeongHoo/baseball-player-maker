@@ -19,7 +19,7 @@ export function CareerNoticeDialog({ state, onChange }: { state: GameState; onCh
   const seasonYear=storedNotice.kind==='seasonComplete'&&/^season:\d{4}$/.test(storedNotice.code??'')?Number(storedNotice.code!.split(':')[1]):undefined;
   const notice=storedNotice.code?.startsWith('PRO10:postseason:')?{...storedNotice,...regularSeasonFinishNotice(state)}:seasonYear!==undefined?{...storedNotice,...professionalSeasonFinishNotice(state,seasonYear)}:storedNotice;
   const noticeTitle=farmNotice?notice.title.replace(/ 2군 2군 (?=포스트시즌 진출!$|정규시즌 종료$)/,' 2군 '):notice.title;
-  const trophy=notice.award,titles=notice.individualTitles,pendingTrophies=state.noticeQueue?.some(row=>row.award||row.individualTitles);
+  const trophy=notice.award,titles=notice.individualTitles,pendingTrophies=state.noticeQueue?.some(row=>row.award);
   const ceremony=notice.code?.match(/^awards(-summary)?:(\d{4})$/);
   const awards=ceremony?state.proWorld?.seasons.find(row=>row.year===Number(ceremony[2])):undefined;
   if(awards){

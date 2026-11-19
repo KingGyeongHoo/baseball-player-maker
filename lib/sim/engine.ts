@@ -189,11 +189,11 @@ export function trainingEffort(policy:Policy) {
   return {rawTickets,weightedTickets,maxWeightedTickets,equivalentTickets:weightedTickets/maxWeightedTickets*budget("normal")};
 }
 // Numeric input is the normalized 0-40 reference load; live plans pass Policy.
-export function trainingLoad(recoveryStat:number,allocation:number|Policy) {
+export function trainingLoad(recoveryStat:number,allocation:number|Policy,accumulationMultiplier=1) {
   const effort=typeof allocation==="number"?null:trainingEffort(allocation);
   const r=clamp(recoveryStat),maxTickets=budget("normal"),used=clamp(effort?effort.equivalentTickets:allocation as number,0,maxTickets);
   const maxRecovery=params["fatigue.plan_recovery_base"]+params["fatigue.plan_recovery_stat"]*r;
-  const maxAccumulation=params["fatigue.plan_accumulation_base"]-params["fatigue.plan_accumulation_stat"]*r;
+  const maxAccumulation=(params["fatigue.plan_accumulation_base"]-params["fatigue.plan_accumulation_stat"]*r)*accumulationMultiplier;
   const neutralRatio=params["fatigue.plan_neutral_base"]+params["fatigue.plan_neutral_stat"]*r,neutralTickets=neutralRatio*maxTickets;
   const delta=used<=neutralTickets?-maxRecovery*(1-used/neutralTickets)**params["fatigue.plan_recovery_curve"]:maxAccumulation*(used-neutralTickets)/(maxTickets-neutralTickets);
   const weeklyDelta=Math.abs(delta)<1e-9?0:delta;
@@ -201,12 +201,12 @@ export function trainingLoad(recoveryStat:number,allocation:number|Policy) {
   return {used,maxTickets,maxRecovery,maxAccumulation,neutralTickets,neutralRatio,weeklyDelta,marker,loadRatio:used/maxTickets,...(effort??{})};
 }
 export function trainingFatigueDay(fatigue:number,recoveryStat:number,allocation:number|Policy,accumulationMultiplier=1) {
-  const delta=trainingLoad(recoveryStat,allocation).weeklyDelta/7;
-  const end=clamp(fatigue+(delta>0?delta*accumulationMultiplier:delta)),applied=end-fatigue;
+  const delta=trainingLoad(recoveryStat,allocation,accumulationMultiplier).weeklyDelta/7;
+  const end=clamp(fatigue+delta),applied=end-fatigue;
   return {end,training:Math.max(0,applied),recovered:Math.max(0,-applied)};
 }
 export function fatigueForecast(player: Player, policy: Policy, date?:string) {
-  const load=trainingLoad(player.stats.recovery,policy);
+  const load=trainingLoad(player.stats.recovery,policy,conditioningMultiplier(player));
   let end=player.fatigue,peak=end,weeklyTraining=0,recovered=0,forcedRest=player.forcedRest;
   for(let day=0;day<7;day++){
     if(end>=params["fatigue.force_rest"])forcedRest=true;
