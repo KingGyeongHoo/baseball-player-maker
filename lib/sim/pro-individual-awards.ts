@@ -1,4 +1,4 @@
-import {leaderMetrics,proRankingMetricIds,requiredLeaderSample,type LeaderField,type LeaderMetric} from "../league-leaders";
+import {eligibleLeaderSample,leaderMetrics,proRankingMetricIds,requiredLeaderSample,type LeaderField,type LeaderMetric} from "../league-leaders";
 import type {GameState,ProLevel} from "./types";
 import type {ProIndividualAward,ProSeasonArchive} from "./pro-types";
 import {farmSeasonGames} from './pro-farm-schedule';
@@ -20,9 +20,8 @@ export function individualAwards(s:GameState):ProIndividualAward[]{
   for(const level of ["first","second"] as ProLevel[])for(const field of ["batting","pitching"] as LeaderField[])for(const metric of metrics[field]){
     const games=level==="first"?144:farmSeasonGames;
     const rows=s.players.flatMap(p=>{const r=p.seasonByLevel?.[level];if(!p.professional||!r)return [];
-      const sample=field==="batting"?r.batting.PA:r.pitching.outs;
-      const appeared=sample>0||field==='batting'&&metric.id==='R'&&r.batting.R>0||field==='pitching'&&(r.pitching.BF>0||(r.games?.pitching??0)>0);
-      if(!appeared||metric.qualified&&sample<requiredLeaderSample(p,field,games,true,level))return [];
+      const sample=eligibleLeaderSample(r,field,metric,metric.qualified?requiredLeaderSample(p,field,games,true,level):0);
+      if(sample===null)return [];
       const value=metric.value(r);return value===null||!Number.isFinite(value)||!metric.ascending&&value===0?[]:[{p,value,sample}];
     }).sort((a,b)=>(metric.ascending?a.value-b.value:b.value-a.value)||b.sample-a.sample||a.p.id.localeCompare(b.p.id));
     const best=rows[0];if(!best)continue;

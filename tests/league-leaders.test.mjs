@@ -5,6 +5,7 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js');
 const {leagueLeaders}=require('../.test-build/lib/league-leaders.js');
+const {individualAwards}=require('../.test-build/lib/sim/pro-individual-awards.js');
 const {discardRetiredPlayers}=require('../.test-build/lib/sim/retired-records.js');
 const {evaluationLeague}=require('../.test-build/lib/sim/player-evaluation.js');
 const {developmentCalendar}=require('../.test-build/lib/sim/pro-calendar.js');
@@ -34,6 +35,29 @@ test('rate leaders apply playing-time requirements and order ERA and WHIP upward
  // Season totals or postseason performance cannot leak into level rankings.
  short.seasonStats.batting.HR=999;short.seasonPostseason=e.emptyRecord();short.seasonPostseason.batting.HR=999;assert.equal(rows(s,'pro-second','batting','HR').length,0);
  const copy=structuredClone(s);leagueLeaders(s,'pro-first','batting');assert.deepEqual(s,copy);
+});
+
+test('only the three batting rates require plate appearances for standings and titles in both leagues',()=>{
+ const s=fixture(),qualified=player('qualified'),short=player('short'),runner=player('pinch-runner');
+ s.players=[qualified,short,runner];
+ for(const game of s.calendar.events){game.status='completed';game.score=[3,1];}
+ for(const [level,required] of [['first',446],['second',315]]){
+  Object.assign(qualified.seasonByLevel[level].batting,{PA:required,AB:required,H:100,HR:10,RBI:30,R:30,SB:3});
+  Object.assign(short.seasonByLevel[level].batting,{PA:required-1,AB:required-1,H:120,HR:20,RBI:50,R:50,SB:5});
+  Object.assign(runner.seasonByLevel[level].batting,{SB:6,R:8});
+ }
+ const awards=individualAwards(s);
+ for(const level of ['first','second']){
+  const titles=awards.filter(award=>award.level===level&&award.field==='batting');
+  const ranked=new Map(leagueLeaders(s,`pro-${level}`,'batting').map(board=>[board.metric.id,board.rows]));
+  const expected={avg:qualified,obp:qualified,slg:qualified,H:short,HR:short,RBI:short,R:short,SB:runner};
+  for(const [metric,leader] of Object.entries(expected)){
+   assert.equal(ranked.get(metric)[0].player.id,leader.id,`${level} ${metric} ranking`);
+   assert.deepEqual(titles.find(title=>title.metric===metric).winners.map(winner=>winner.playerId),[leader.id],`${level} ${metric} award`);
+  }
+  for(const metric of ['avg','obp','slg'])assert.deepEqual(ranked.get(metric).map(row=>row.player.id),[qualified.id]);
+  assert.ok(ranked.get('R').some(row=>row.player.id===runner.id));
+ }
 });
 
 test('qualified relievers rank the top ten holds and saves separately by level',()=>{

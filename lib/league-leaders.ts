@@ -12,7 +12,7 @@ const batting:LeaderMetric[]=[
   {id:"avg",label:"타율",value:r=>recordRates(r).average,format:"rate",qualified:true},
   {id:"obp",label:"출루율",value:r=>recordRates(r).obp,format:"rate",qualified:true},
   {id:"slg",label:"장타율",value:r=>recordRates(r).slugging,format:"rate",qualified:true},
-  {id:"ops",label:"OPS",value:r=>recordRates(r).ops,format:"rate",qualified:true},
+  {id:"ops",label:"OPS",value:r=>recordRates(r).ops,format:"rate"},
   {id:"SB",label:"도루",value:r=>r.batting.SB??0},
   ...([['HR','홈런'],['H','안타'],['RBI','타점'],['R','득점'],['2B','2루타'],['3B','3루타'],['BB','볼넷'],['AB','타수'],['SO','삼진']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>r.batting[id],ascending:id==="SO"})),
 ];
@@ -32,6 +32,15 @@ pitching.push({id:'losses',label:'패',value:r=>r.games?.losses??0});
 for(const field of ['batting','pitching'] as const)leaderMetrics[field].push({id:'WAR',label:'WAR',format:'decimal',value:()=>null});
 export const proRankingMetricIds={batting:['avg','H','HR','RBI','R','SB','obp','slg'],pitching:['wins','era','SO','winRate','holds','saves']} as const;
 export type LeaderRow={player:Player;value:number;sample:number};
+const battingCountingTitles=new Set(['H','HR','RBI','R','SB']);
+
+export function eligibleLeaderSample(records:RecordLine,field:LeaderField,metric:LeaderMetric,requiredSample:number){
+  const sample=field==='batting'?records.batting.PA:records.pitching.outs;
+  const appeared=sample>0||(field==='batting'
+    ?battingCountingTitles.has(metric.id)&&(metric.value(records)??0)>0
+    :records.pitching.BF>0||(records.games?.pitching??0)>0);
+  return appeared&&(!metric.qualified||sample>=requiredSample)?sample:null;
+}
 
 // Pitching samples are recorded as outs: one out per team game is G / 3 innings.
 export function requiredLeaderSample(player:Player,field:LeaderField,games:number,pro=true,level:ProLevel='first'){
@@ -63,9 +72,8 @@ export function leagueLeaders(state:GameState,competition:string,field:LeaderFie
   });
   return leaderMetrics[field].map(metric=>({metric,rows:candidates.flatMap(({player,records,requiredSample})=>{
     if(!records)return [];
-    const sample=field==="batting"?records.batting.PA:records.pitching.outs;
-    const appeared=sample>0||field==='batting'&&metric.id==='R'&&records.batting.R>0||field==="pitching"&&(records.pitching.BF>0||(records.games?.pitching??0)>0);
-    if(!appeared||metric.qualified&&sample<requiredSample)return [];
+    const sample=eligibleLeaderSample(records,field,metric,requiredSample);
+    if(sample===null)return [];
     const season=metric.id==='WAR'?playerSeasons(player,state.calendar.seasonYear).find(r=>r.year===state.calendar.seasonYear):undefined;
     const contribution=season&&pro?playerSeasonWar(player,season,level,'all',warContext):null;
     const value=metric.id==='WAR'?(contribution?.[field]??null):metric.value(records);
