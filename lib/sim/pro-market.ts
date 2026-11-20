@@ -416,6 +416,7 @@ export function applySeasonExitPolicies(s:GameState){
   if(!s.proWorld?.seasonClosed)return;
   let personal:{club:number;reason:string}|undefined;
   for(const p of s.players){
+    if(p.id===s.playerId&&s.proWorld.pendingRetirement)continue;
     if(p.professional?.contract?.source!=='fa'&&guaranteedProSquad(p,`${s.proWorld.year+1}-03-01`))continue;
     if(veteranRetirementReason(p,s.proWorld.year))continue;
     const decision=seasonExit(p,s.proWorld.year);if(!decision)continue;

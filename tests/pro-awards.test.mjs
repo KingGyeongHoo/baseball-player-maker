@@ -17,9 +17,51 @@ function fixture(){
   else Object.assign(p.seasonByLevel.first.batting,{PA:550,AB:500,H:170,'2B':30,'3B':3,HR:25,BB:50,RBI:85,R:75});
   p.seasonStats=structuredClone(p.seasonByLevel.first);s.players.push(p);
  }
+ const dh=s.players.find(p=>p.id==='award-DH');
+ s.calendar.events=Array.from({length:75},(_,i)=>({id:`dh-evidence-${i}`,date:e.addDays('2028-03-22',i),homeTeamId:dh.teamId,awayTeamId:(dh.teamId+1)%10,competitionId:'pro-first',status:'completed',score:[3,1],innings:[[],[]],lineup:[],boxScore:{},proAppearances:{[dh.id]:{teamId:dh.teamId,level:'first',position:'DH',startedField:true,startedPitching:false,dhPA:4}}}));
  s.playerId='award-SS';return s;
 }
 const relevant=s=>evaluation.regularAwards(s).filter(row=>row.category);
+const dhWinner=s=>evaluation.goldGloveAwards(s).find(row=>row.position==='DH');
+function dhGame(s,p,pa,extra={}){
+ return {id:`dh-${s.calendar.events.length}`,date:`${s.calendar.seasonYear}-09-01`,homeTeamId:p.teamId%10,awayTeamId:(p.teamId+1)%10,competitionId:'pro-first',status:'completed',score:[3,1],innings:[[],[]],lineup:[],boxScore:{[p.id]:{...e.emptyRecord(),batting:{...e.emptyRecord().batting,PA:pa}}},proAppearances:{[p.id]:{teamId:p.teamId%10,level:'first',position:'DH',startedField:true,startedPitching:false,dhPA:pa}},...extra};
+}
+
+test('DH gold glove requires 298 actual first-team regular-season DH plate appearances regardless of registered position',()=>{
+ const s=fixture(),p=e.getPlayer(s),strong=structuredClone(p);strong.id='strong-below-dh-minimum';strong.name='지명타자미달';
+ s.players=[p,strong];s.calendar.events=[];
+ Object.assign(strong.seasonByLevel.first.batting,{PA:700,AB:650,H:300,HR:100,BB:50});
+ s.calendar.events.push(dhGame(s,p,297),dhGame(s,strong,297));
+ assert.equal(evaluation.goldGloveDhMinimumPA,298);assert.equal(dhWinner(s),undefined);
+ s.calendar.events[0].proAppearances[p.id].dhPA=298;
+ // More defensive starts must not exclude a qualified DH who retains SS registration.
+ s.calendar.events.push(...[1,2].map(i=>dhGame(s,p,0,{id:`ss-start-${i}`,proAppearances:{[p.id]:{teamId:p.teamId,level:'first',position:'SS',startedField:true,startedPitching:false,dhPA:0}}})));
+ assert.equal(dhWinner(s).playerId,p.id);
+ s.calendar.events[1].proAppearances[strong.id].dhPA=298;
+ assert.equal(dhWinner(s).playerId,strong.id);
+});
+
+test('DH qualification excludes other years, spring, farm, postseason, tiebreakers and unfinished games',()=>{
+ const s=fixture(),p=e.getPlayer(s);s.players=[p];s.calendar.events=[dhGame(s,p,297)];
+ for(const extra of [{date:'2027-09-01'},{competitionId:'pro-second'},{competitionId:'pro-playoffs-final'},{exhibition:'spring'},{tiebreaker:true},{status:'inProgress'},{status:'forfeit'}])s.calendar.events.push(dhGame(s,p,500,extra));
+ assert.equal(dhWinner(s),undefined);
+ s.calendar.events.push(dhGame(s,p,1,{proAppearances:{[p.id]:{teamId:(p.teamId+1)%10,level:'first',position:'SP',startedField:true,startedPitching:true,dhPA:1}}}));
+ assert.equal(dhWinner(s).playerId,p.id);
+ const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+ assert.equal(dhWinner(restored).playerId,p.id);
+});
+
+test('legacy DH qualification uses recorded game box scores, never a fixed DH registration or season-total PA',()=>{
+ const s=fixture(),p=s.players.find(p=>p.position==='DH');s.players=[p];s.playerId=p.id;s.calendar.events=[];
+ assert.equal(dhWinner(s),undefined);
+ const game=dhGame(s,p,297);delete game.proAppearances[p.id].dhPA;s.calendar.events.push(game);
+ assert.equal(dhWinner(s),undefined);
+ game.boxScore[p.id].batting.PA=298;assert.equal(dhWinner(s).playerId,p.id);
+ game.proAppearances[p.id].dhPA=297;game.boxScore[p.id].batting.PA=550;
+ assert.equal(dhWinner(s),undefined,'explicit DH counters take precedence over a mixed-position box score');
+ delete game.proAppearances[p.id].dhPA;game.proAppearances[p.id].startedField=false;
+ assert.equal(dhWinner(s),undefined,'a legacy substitute registered as DH has no proof of the actual batting slot');
+});
 function closed(){const s=fixture();life.closeProfessionalSeason(s);return pc.acknowledgeCareer(s);}
 function dismissSeasonAwards(s){
  s=pc.acknowledgeCareer(pc.acknowledgeCareer(s));
@@ -76,7 +118,19 @@ test('camp shortcut pauses for the December ceremony and confirming resumes dire
  for(const label of labels)assert.ok(summary.includes(label));
  assert.doesNotMatch(summary,/골든글러브/);
  s=pc.acknowledgeCareer(s);if(s.careerNotice.code==='club-award:2028')s=pc.acknowledgeCareer(s);
- assert.equal(s.date,'2028-12-06');assert.ok(s.careerNotice.award);const celebrated=[];while(s.careerNotice?.award||s.careerNotice?.individualTitles){if(s.careerNotice.award)celebrated.push(s.careerNotice.award.title);s=pc.acknowledgeCareer(s);}assert.ok(celebrated.includes('유격수 골든글러브'));assert.ok(s.careerNotice.stoveReport);s=pc.acknowledgeCareer(s);assert.equal(s.date,'2029-02-01');assert.equal(s.proWorld.stage,'camp');assert.equal(s.proWorld.resumeCampAfterAwards,undefined);assert.equal(s.careerNotice.title,'2029 캠프 시작');assert.deepEqual(s.proWorld.seasons[0].awards,awards);assert.equal(s.proWorld.news.filter(row=>row.id==='2028:awards:2028').length,1);
+ while(s.careerNotice?.award||s.careerNotice?.individualTitles){assert.ok(!ceremonies.isGoldGloveCelebration(s.careerNotice));s=pc.acknowledgeCareer(s);}assert.ok(s.careerNotice.stoveReport);s=pc.acknowledgeCareer(s);assert.equal(s.date,'2029-02-01');assert.equal(s.proWorld.stage,'camp');assert.equal(s.proWorld.resumeCampAfterAwards,undefined);assert.equal(s.careerNotice.title,'2029 캠프 시작');assert.deepEqual(s.proWorld.seasons[0].awards,awards);assert.equal(s.proWorld.news.filter(row=>row.id==='2028:awards:2028').length,1);
+});
+
+test('loading removes an active or queued individual gold glove celebration without dropping other notices',()=>{
+ const s=closed();s.date='2028-12-06';ceremonies.presentAwardsCeremony(s);
+ const legacy={id:'old-glove',date:s.date,kind:'pro',code:'award-celebration:2028:goldGlove:SS',title:'2028년 유격수 골든글러브를 획득했다!!',message:'',award:{year:2028,title:'유격수 골든글러브',bonus:2,after:72}};
+ const other={id:'next-notice',date:s.date,kind:'pro',title:'다음 안내',message:''};
+ const load=state=>save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(state))).state;
+ s.noticeQueue=[legacy,other];
+ const queued=load(s);assert.equal(queued.careerNotice.code,'awards:2028');assert.deepEqual(queued.noticeQueue.map(n=>n.id),['next-notice']);
+ s.careerNotice=legacy;
+ const active=load(s);assert.equal(active.careerNotice.id,'next-notice');assert.equal(active.noticeQueue.length,0);
+ assert.ok(active.proWorld.seasons[0].awards.some(award=>award.category==='goldGlove'&&award.playerId===s.playerId));
 });
 
 test('winner presentation uses snapshotted season records even after an offseason position or club change',()=>{

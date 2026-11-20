@@ -7,6 +7,19 @@ const { teamStrength, teamRankings } = require('../.test-build/lib/team-strength
 const close = (a,b) => assert.ok(Math.abs(a-b) < 1e-8, `${a} != ${b}`);
 const game = e.createGame('team-power', '전력검증', 'SS');
 
+test('the school DH depth-chart role is awarded to a remaining hitter without fixed DH registration',()=>{
+ const roster=['C','SS','CF','2B','1B','3B','LF','RF','C','DH'].map((position,i)=>{
+  const p=e.previewPlayer(`school-dh-${i}`,`선수${i}`,position);p.id=`school-dh-${i}`;p.throws='R';p.eligiblePositions=[position];delete p.freshmanReserve;
+  for(const key of Object.keys(p.stats))p.stats[key]=50;
+  return p;
+ });
+ for(const key of Object.keys(roster[0].stats))roster[0].stats[key]=100;
+ Object.assign(roster[8].stats,{contact:90,power:90,bq:90,defense:1,speed:1});
+ const {startingAssignments}=require('../.test-build/lib/roster-status.js'),assigned=startingAssignments(roster);
+ assert.equal(assigned.get(roster[0].id),'C');assert.equal(assigned.get(roster[8].id),'DH');
+ assert.equal(assigned.has(roster[9].id),false);assert.equal(roster[8].position,'C');
+});
+
 test('school depth charts keep separate middle-relief and closer jobs',()=>{
  const roster=[['starter','SP',100],['relief-a','RP',90],['relief-b','RP',80],['old-closer','CP',10]].map(([id,position,ability])=>{
   const p=e.previewPlayer(id,id,position);p.id=id;p.teamId=0;delete p.freshmanReserve;for(const key of Object.keys(p.stats))p.stats[key]=ability;return p;

@@ -5,6 +5,8 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js');
 const a=require('../.test-build/lib/sim/pro-allstar.js'),c=require('../.test-build/lib/sim/pro-allstar-calendar.js'),calendar=require('../.test-build/lib/sim/pro-calendar.js');
+const {allstarMvps,selectAllstarMvps}=require('../.test-build/lib/sim/pro-allstar-result.js');
+const {createProWarContext,proWarRules}=require('../.test-build/lib/sim/pro-war.js');
 const save=require('../.test-build/lib/career-save.js'),League=require('../.test-build/app/components/pro-league.js').default;
 const Allstar=require('../.test-build/app/components/pro-allstar.js').default;
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('allstar-rules','올스타선수','SS'));
@@ -16,6 +18,30 @@ function fixture(){const s=structuredClone(template);s.date='2028-05-01';s.caree
  return s;
 }
 function selected(){const s=fixture();for(const date of a.allstarVotingDates(2028)){s.date=date;a.updateAllstarVotes(s,true);}a.finalizeAllstars(s);s.careerNotice=undefined;s.noticeQueue=[];return s;}
+
+test('Mr All-Star uses single-game WAR, then HR, SO, hits and RBI, and shares exact ties',()=>{
+ const entry={blue:{roster:[{playerId:'a',name:'A'}]},white:{roster:[{playerId:'b',name:'B'}]},game:{status:'completed',score:[1,2],boxScore:{}}};
+ const left=e.emptyRecord(),right=e.emptyRecord();entry.game.boxScore={a:left,b:right};
+ const context=createProWarContext({...fixture(),players:[]});
+ const pick=()=>selectAllstarMvps(entry,'first',context).map(row=>row.playerId);
+ const batting=(line,{pa,hit,hr=0,rbi=0})=>Object.assign(line.batting,{PA:pa,AB:pa,H:hit,HR:hr,RBI:rbi});
+ batting(left,{pa:4,hit:2,rbi:1});batting(right,{pa:4,hit:2,rbi:1});assert.deepEqual(pick(),['a','b']);
+ right.batting.RBI=3;assert.deepEqual(pick(),['b']);
+ right.batting.H=0;assert.deepEqual(pick(),['a'],'WAR takes precedence over RBI');
+
+ batting(left,{pa:5,hit:1,hr:1});batting(right,{pa:4,hit:2});
+ context.first.woba=2.1-2*.89+proWarRules.battingScale*proWarRules.replacementBattingRunsPerPA;
+ assert.deepEqual(pick(),['a'],'home runs precede hits at equal WAR');
+ batting(left,{pa:5,hit:3});batting(right,{pa:4,hit:2,rbi:5});
+ context.first.woba=.89+proWarRules.battingScale*proWarRules.replacementBattingRunsPerPA;
+ assert.deepEqual(pick(),['a'],'hits precede RBI at equal WAR');
+
+ left.batting=e.emptyRecord().batting;right.batting=e.emptyRecord().batting;
+ Object.assign(left.pitching,{BF:10,outs:6,SO:4,BB:2});
+ Object.assign(right.pitching,{BF:10,outs:6,SO:1,BB:0});
+ assert.deepEqual(pick(),['a'],'three extra strikeouts offset two walks in WAR and win the tie');
+ entry.game.status='forfeit';assert.deepEqual(pick(),[]);
+});
 
 test('alliances and yearly Friday/Saturday break dates are exact across calendar years',()=>{
  for(const club of [0,9,7,3,4])assert.equal(a.allstarSide(club),'blue');for(const club of [1,8,6,2,5])assert.equal(a.allstarSide(club),'white');
@@ -65,7 +91,7 @@ test('frozen selection honors June registration and injuries receive eligible re
 
 test('real exhibition records and MVP preserve regular stats, standings, registration, recent form and match RNG',()=>{
  const s=selected(),records=new Map(s.players.map(p=>[p.id,{season:structuredClone(p.seasonStats),levels:structuredClone(p.seasonByLevel),recent:structuredClone(p.recentAppearances),firsts:structuredClone(p.professional.firsts),fa:p.professional.faDays,team:p.teamId}])),rng={...s.rngStates},teams=structuredClone(s.teams);
- s.date=c.allstarDates(2028).second;a.playAllstarDay(s);const entry=s.proWorld.allstar.levels.second;assert.equal(entry.game.status,'completed');assert.ok(entry.game.innings[0].length<=9&&entry.game.innings[1].length<=9);assert.ok(Object.values(entry.game.boxScore).some(r=>r.batting.PA>0));assert.ok(entry.mvp);
+ s.date=c.allstarDates(2028).second;a.playAllstarDay(s);const entry=s.proWorld.allstar.levels.second;assert.equal(entry.game.status,'completed');assert.ok(entry.game.innings[0].length<=9&&entry.game.innings[1].length<=9);assert.ok(Object.values(entry.game.boxScore).some(r=>r.batting.PA>0));assert.ok(allstarMvps(entry).length);
  assert.ok([...entry.blue.roster,...entry.white.roster].some(row=>row.method==='manager'&&(entry.game.boxScore[row.playerId]?.batting.PA??0)>0));
  for(const p of s.players){const old=records.get(p.id);assert.deepEqual(p.seasonStats,old.season);assert.deepEqual(p.seasonByLevel,old.levels);assert.deepEqual(p.recentAppearances,old.recent);assert.deepEqual(p.professional.firsts,old.firsts);assert.equal(p.professional.faDays,old.fa);assert.equal(p.teamId,old.team);}
  assert.deepEqual(s.teams,teams);assert.deepEqual(s.rngStates,rng);const before=structuredClone(s);a.playAllstarDay(s);assert.deepEqual(s,before);
@@ -76,6 +102,7 @@ test('July preparation, result events and loaded exhibition results settle once 
  const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state,answered=e.answerCareerEvent(restored,'routine');assert.equal(a.prepareAllstarDay(answered),false);
  answered.date=c.allstarDates(2028).first;assert.equal(a.playAllstarDay(answered),true);assert.match(answered.careerEvent.definitionId,/AS-RESULT/);assert.ok(answered.proWorld.allstar.levels.first.game.boxScore[p.id].batting.PA>0);
  const loaded=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(answered))).state,done=e.answerCareerEvent(loaded,'remember'),rng={...done.rngStates};assert.equal(a.playAllstarDay(done),false);assert.deepEqual(done.rngStates,rng);assert.equal(done.proWorld.allstar.levels.first.game.status,'completed');
+ assert.deepEqual(allstarMvps(done.proWorld.allstar.levels.first),allstarMvps(answered.proWorld.allstar.levels.first));
 });
 
 test('calendar upgrade moves only future games, retains completed records and counts, and is idempotent',()=>{

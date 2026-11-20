@@ -4,7 +4,37 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js');
 const save=require('../.test-build/lib/career-save.js'),{careerSaveId}=require('../.test-build/lib/career-save-key.js');
 const {LatestSaveQueue,CareerSaveQueue}=require('../.test-build/lib/latest-save-queue.js');
+const {careerSaveCheckpoint,shouldAutoSaveCareer}=require('../.test-build/lib/career-autosave-policy.js');
 const template=e.createGame('save-slot-test','같은이름','SS');template.players=[e.getPlayer(template)];template.calendar.events=[];
+
+test('legacy school DH registration is repaired on load without changing abilities, records, training or RNG',()=>{
+ const {upgradeSchoolPositions}=require('../.test-build/lib/sim/school-position-upgrade.js');
+ const state=structuredClone(template),p=e.getPlayer(state);p.position='DH';p.primaryRole='코너 야수';p.preferredRole='코너 야수';p.eligiblePositions=['DH'];
+ const original=structuredClone(state),next=upgradeSchoolPositions(state),q=e.getPlayer(next);
+ assert.equal(q.position,'1B');assert.ok(q.eligiblePositions.includes('1B'));assert.deepEqual(state,original);
+ for(const key of ['stats','career','seasonStats','trainingPolicy','talent'])assert.deepEqual(q[key],p[key],key);
+ assert.deepEqual(next.rngStates,state.rngStates);assert.equal(upgradeSchoolPositions(next),next);
+ const loaded=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(state))).state;
+ assert.equal(e.getPlayer(loaded).position,'1B');assert.deepEqual(loaded.rngStates,state.rngStates);
+ assert.equal(upgradeSchoolPositions({...state,careerMode:'pro'}).players[0].position,'DH');
+ const playing={...state,weekProgress:{remainingDays:3}};assert.equal(upgradeSchoolPositions(playing),playing);
+});
+
+test('autosave runs on a new-season camp transition, never on choices, regular weeks, loads or repeated camp updates',()=>{
+ const state={...template,careerMode:'pro',calendar:{...template.calendar,seasonYear:2028},proWorld:{stage:'offseason'}};
+ const previous=careerSaveCheckpoint(state);
+ assert.equal(shouldAutoSaveCareer(null,state),false);
+ assert.equal(shouldAutoSaveCareer(previous,{...state,pendingEventOutcome:{message:'선택 결과'}}),false);
+ assert.equal(shouldAutoSaveCareer(previous,{...state,proWorld:{stage:'camp'}}),false);
+ const camp={...state,calendar:{...state.calendar,seasonYear:2029},proWorld:{stage:'camp'}};
+ assert.equal(shouldAutoSaveCareer(previous,camp),true);
+ assert.equal(shouldAutoSaveCareer(careerSaveCheckpoint(camp),{...camp,date:'2029-02-02'}),false);
+ assert.equal(shouldAutoSaveCareer(previous,{...camp,proWorld:{stage:'regular'}}),false);
+ assert.equal(shouldAutoSaveCareer(previous,{...camp,seed:'different-career'}),false);
+ assert.equal(shouldAutoSaveCareer(previous,{...state,proWorld:{stage:'retired'}}),false);
+ const school={...state,careerMode:undefined,proWorld:undefined};
+ assert.equal(shouldAutoSaveCareer(careerSaveCheckpoint(school),{...school,calendar:{...school.calendar,seasonYear:2029}}),true);
+});
 
 test('one career keeps the same slot across automatic, manual, renamed and later saves',()=>{
   const state=structuredClone(template),first=save.encodeCareerSave(state,false,'2026-11-10T01:00:00Z');

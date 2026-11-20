@@ -70,7 +70,7 @@ test('last-chance choices cannot reroll offers, wait or enter an unattached seas
 test('qualifying club WAR retirement registers the last jersey, persists it and renders the honor',()=>{
  const s=fixture(),p=e.getPlayer(s),club=p.professional.contract.club;jersey.choosePlayerJersey(s,77);scores(p,[84,82]);
  const history=structuredClone(p.career);life.retireProfessional(s);
- const honor=s.proWorld.retiredNumbers[0];assert.equal(honor.club,club);assert.equal(honor.number,77);assert.equal(honor.score,100);assert.equal(honor.playerId,p.id);assert.equal(s.careerNotice.title,`${s.teams[club].name.replace(' 1군','')} 77번 영구결번`);assert.deepEqual(p.career,history);
+ const honor=s.proWorld.retiredNumbers[0];assert.equal(honor.club,club);assert.equal(honor.number,77);assert.equal(honor.score,100);assert.equal(honor.playerId,p.id);assert.equal(s.careerNotice.title,`${p.name} 선수 은퇴`);assert.equal(s.noticeQueue.at(-1).title,`${s.teams[club].name.replace(' 1군','')} 77번 영구결번`);assert.deepEqual(p.career,history);
  life.retireProfessional(s);assert.equal(s.proWorld.retiredNumbers.length,1);
  const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;assert.deepEqual(restored.proWorld.retiredNumbers,s.proWorld.retiredNumbers);
  assert(careerHonors(restored).individual.some(row=>row.title==='영구결번'&&row.detail.includes('77번')));

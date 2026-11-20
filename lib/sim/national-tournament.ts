@@ -1,4 +1,4 @@
-import {addDays,available,clamp,defaultPolicy,emptyRecord,getPlayer,hash,injuryRisk,mergeRecord,params,pitchingRole,roleFor,simulateGame} from './engine';
+import {addDays,available,compareDesignatedHitters,clamp,defaultPolicy,emptyRecord,getPlayer,hash,injuryRisk,mergeRecord,params,pitchingRole,roleFor,simulateGame} from './engine';
 import {canPlayPosition} from './position-eligibility';
 import {randomPlayerHands} from './handedness';
 import {statKeys} from './types';
@@ -183,7 +183,7 @@ function playGame(s:GameState,entry:NationalSelection,game:Game){
     const starter=(rested.length?rested:ready.length?ready:pitchers).sort((a,b)=>a.fatigue-b.fatigue||b.stats.control-a.stats.control)[0];
     const used=new Set<string>(),field=(['C','SS','CF','2B','1B','3B','LF','RF','DH'] as Position[]).flatMap(pos=>{
       const eligible=rows.filter(p=>!used.has(p.id)&&(!['SP','RP','CP'].includes(p.position)||!!p.twoWay)&&available(p,s.date)&&canPlayPosition(p,pos)&&(!p.twoWay||pos==='DH'||p!==starter&&pitchingRole(p)==='선발'));
-      const p=pos==='DH'&&starter?.twoWay?starter:eligible.filter(p=>pos==='DH'||p.position===pos||p.twoWay?.battingPosition===pos).sort((a,b)=>b.stats.contact-a.stats.contact)[0]??eligible.sort((a,b)=>b.stats.defense-a.stats.defense)[0];if(p)used.add(p.id);return p?[p.id]:[];
+      const p=pos==='DH'?eligible.sort(compareDesignatedHitters)[0]:eligible.filter(p=>p.position===pos||p.twoWay?.battingPosition===pos).sort((a,b)=>b.stats.contact-a.stats.contact)[0]??eligible.sort((a,b)=>b.stats.defense-a.stats.defense)[0];if(p)used.add(p.id);return p?[p.id]:[];
     });
     return {field,order:[...field],pitchers:pitchers.map(p=>p.id),starter:starter?.id??''};
   });}

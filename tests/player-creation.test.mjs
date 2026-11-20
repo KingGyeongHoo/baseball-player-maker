@@ -27,11 +27,12 @@ test('initial creation asks only for name, type and position without revealing a
   assert.match(html, /type="submit"[^>]*disabled/);
 });
 
-test('batter field contains all eight fielders and a separate designated hitter, with no pitchers', () => {
+test('batter selection contains eight defensive positions and explains the open DH role', () => {
   const html = picker('batter', 'SS');
-  for (const position of ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH']) assert.ok(html.includes(`value="${position}"`), position);
+  for (const position of ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']) assert.ok(html.includes(`value="${position}"`), position);
+  assert.ok(!html.includes('value="DH"'));assert.ok(html.includes('경기마다 맡습니다.'));
   for (const position of ['SP', 'RP', 'CP']) assert.ok(!html.includes(`value="${position}"`));
-  assert.equal((html.match(/type="radio"/g) || []).length, 11);
+  assert.equal((html.match(/type="radio"/g) || []).length, 10);
   assert.ok(html.includes('selection-ballpark'));
   const p = Object.fromEntries(fieldPositions.map(p => [p.id, p]));
   assert.ok(p.C.y > p['1B'].y && p.C.x === 50);
@@ -105,7 +106,7 @@ test('random hands persist into pro careers and saves, with switch hitting suppo
 
 
 test('random player starts give all selectable positions equal weight',()=>{
- const positions=[...fieldPositions.map(({id})=>id),'DH',...pitchingPositions.map(({id})=>id)];
+ const positions=[...fieldPositions.map(({id})=>id),...pitchingPositions.map(({id})=>id)];
  const limit=Math.floor(2**32/positions.length)*positions.length;
  for(const start of [0,limit-positions.length]){
   const results=positions.map((_,index)=>randomPlayerPosition({getRandomValues(values){values[0]=start+index;return values;}}));
@@ -114,4 +115,5 @@ test('random player starts give all selectable positions equal weight',()=>{
  const rolls=[2**32-1,0];
  assert.equal(randomPlayerPosition({getRandomValues(values){values[0]=rolls.shift();return values;}}),positions[0]);
  assert.equal(rolls.length,0);
+ assert.throws(()=>createRandomCareer('지명타자','DH',entropy(0,'fixed-dh')),/수비 포지션/);
 });

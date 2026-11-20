@@ -9,6 +9,7 @@ import {createSeasonRankings} from './sim/pro-season-ranking';
 import {clubAwardLevel,clubAwardNames,evaluateCareer,playerCareerEvaluation,seasonPercentile} from './sim/pro-career-evaluation';
 import {proLevelPrefix,mainLeagueName} from './sim/club-names';
 import {regularSeasonDays} from './sim/retirement-honors';
+import {allstarMvps} from './sim/pro-allstar-result';
 
 export function lifetimeRecords(player:Player,year:number){
   const total=emptyRecord();
@@ -83,11 +84,12 @@ export function careerHonors(state:GameState):Record<CareerHonorCategory,CareerH
   const allstars=[...seasons.flatMap(season=>season.allstar?[season.allstar]:[]),...(state.proWorld?.allstar?[state.proWorld.allstar]:[])];
   for(const season of allstars)for(const level of ["first","second"] as const){
     const league=season.levels[level];
-    if(league.mvp?.playerId===player.id)add('individual',season.year,`${proLevelPrefix(level)}미스터 올스타`);
+    const mvp=allstarMvps(league).some(row=>row.playerId===player.id);
+    if(mvp)add('individual',season.year,`${proLevelPrefix(level)}미스터 올스타`);
     for(const side of ['blue','white'] as const){
       const team=league[side],selected=team.roster.some(row=>row.playerId===player.id),withdrawn=team.withdrawn.includes(player.id);
       if(!selected&&!withdrawn)continue;
-      const line=league.game?.boxScore[player.id];allstar(season.year,level,side,!!line&&(line.batting.PA>0||line.pitching.BF>0),withdrawn,league.mvp?.playerId===player.id);
+      const line=league.game?.boxScore[player.id];allstar(season.year,level,side,!!line&&(line.batting.PA>0||line.pitching.BF>0),withdrawn,mvp);
     }
   }
   for(const season of seasons){

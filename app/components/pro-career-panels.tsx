@@ -22,6 +22,7 @@ export function ProGoals({state,onAction,disabled}:{state:GameState;onAction:(a:
 export function ProContractPanel({state,onAction,onRetire,disabled}:{state:GameState;onAction:(a:ProAction)=>void;onRetire:()=>void;disabled:boolean}){
   const p=getPlayer(state),w=state.proWorld,pro=p.professional;if(!w||!pro)return null;
   const market=w.market,closed=w.seasonClosed,stove=w.stove,campReady=canEnterNextProCamp(state),national=pendingNationalOffseason(state),nationalAction=nationalOffseasonActionLabel(state);
+  if(w.pendingRetirement)return <Panel title="시즌 마무리"><p>수상과 시상을 모두 확인한 뒤 스토브리그로 이동하세요.</p><button className="primary" disabled={disabled} onClick={()=>onAction({type:"market"})}>스토브리그로 이동</button></Panel>;
   const myClub=p.teamId>=0?clubName(state,p.teamId%10):undefined;
   const stoveNews=stove?w.news.filter(row=>{
     if(row.date<stove.openedAt||/^\d+:stove(?::\d+|-open)$/.test(row.id))return false;

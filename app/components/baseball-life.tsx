@@ -1,5 +1,6 @@
 "use client";
 import {nationalAway,nationalRules} from "../../lib/sim/national-teams";
+import {upgradeSchoolPositions} from "../../lib/sim/school-position-upgrade";
 import {handednessLabel} from "../../lib/player-handedness";
 import PlayerEvaluationButton from "./player-evaluation";
 import { scoreText } from "../../lib/display";
@@ -264,7 +265,7 @@ function Modal({
   return <dialog ref={ref} onCancel={onClose} className={`modal ${className}`}><div className="modal-header"><h2>{title}</h2><button className="icon-button" aria-label="닫기" onClick={onClose}><Icon name="close" /></button></div>{children}</dialog>;
 }
 export default function BaseballLife({initialState=null}:{initialState?:GameState|null}={}) {
-  const [state, setState] = useState<GameState | null>(initialState);
+  const [state, setState] = useState<GameState | null>(()=>initialState?upgradeSchoolPositions(initialState):null);
   const [eventOutcome, setEventOutcome] = useState<CareerEventOutcome | null>(initialState?.pendingEventOutcome??null);
   const [recordPlayerId, setRecordPlayerId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>(initialState?.phase==="ended"?"draft":"home");
@@ -275,6 +276,11 @@ export default function BaseballLife({initialState=null}:{initialState?:GameStat
     pitching: "regular"
   });
   const [busy, setBusy] = useState(false);
+  useEffect(()=>{
+    if(!state||busy||state.careerMode||state.weekProgress||state.matchProgress||!state.players.some(p=>p.position==='DH'||p.twoWay?.battingPosition==='DH'))return;
+    const timer=setTimeout(()=>setState(upgradeSchoolPositions(state)),0);
+    return()=>clearTimeout(timer);
+  },[state,busy]);
   const [error, setError] = useState("");
   const [help, setHelp] = useState(false);
   const [reset, setReset] = useState(false);
@@ -303,6 +309,7 @@ export default function BaseballLife({initialState=null}:{initialState?:GameStat
     setBusy(false);setAuto(false);
   }, [autoProgress]);
   const start = (s: GameState, restored = false) => {
+    s=upgradeSchoolPositions(s);
     pauseAuto();
     cancelPendingSimulation({worker:workerRef,request:requestRef,locked,timer:timeoutRef});
     setBusy(false);setError("");

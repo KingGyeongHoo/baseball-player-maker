@@ -3,7 +3,7 @@ import {leftPitcherMultiplier} from './handedness';
 import {mergeRecentRecord,recentSample} from './recent-records';
 import type {Player,RecordLine,Role} from "./types";
 
-export const proSelectionRules={farmWeight:.65,battingPrior:100,pitchingPrior:120} as const;
+export const proSelectionRules={farmWeight:.65,battingPrior:100,pitchingPrior:120,seasonPitchingPriorOuts:90,seasonMax:24,recentMax:3} as const;
 type Records={first?:RecordLine;second?:RecordLine};
 
 // Legacy fields remain readable in old files, but no professional decision or
@@ -20,16 +20,20 @@ export function clearProfessionalReputation(p:Player){
 
 // A rate-based season assessment for today's selection, independent of WAR,
 // playing-time accumulation, reputation, fatigue and the other batting/pitching field.
-function form(record:RecordLine|undefined,pitching:boolean){
+function form(record:RecordLine|undefined,pitching:boolean,season=false){
   const sample=record?(pitching?record.pitching.BF:record.batting.PA):0;
-  if(!record||sample<=0)return {value:0,reliability:0,sample:0};
+  if(!record||sample<=0)return {value:0,quality:0,reliability:0,sample:0};
   let quality:number;
   if(pitching){
     const r=record.pitching,component=((r.SO-1.5*r.BB-2*r.HR)/sample-.13)*6;
     quality=r.outs>0?.7*component+.3*(4-r.ER*27/r.outs)/4:component;
   }else quality=((ops(record)??.72)-.72)*3.25;
-  const reliability=sample/(sample+(pitching?proSelectionRules.pitchingPrior:proSelectionRules.battingPrior));
-  return {value:clamp(quality,-1,1)*reliability,reliability,sample};
+  const useInnings=pitching&&season;
+  const workload=useInnings?record.pitching.outs:sample;
+  const prior=useInnings?proSelectionRules.seasonPitchingPriorOuts:pitching?proSelectionRules.pitchingPrior:proSelectionRules.battingPrior;
+  const reliability=workload/(workload+prior);
+  quality=clamp(quality,-1,1);
+  return {value:quality*reliability,quality,reliability,sample};
 }
 
 export function proSeasonForm(p:Player,role:Role=p.primaryRole,records:Records|undefined=p.seasonByLevel){
@@ -37,8 +41,18 @@ export function proSeasonForm(p:Player,role:Role=p.primaryRole,records:Records|u
   return {value:clamp(first.value+second.value*proSelectionRules.farmWeight*(1-first.reliability)+spring.value*.65*(1-first.reliability)*(1-second.reliability),-1,1),sample:first.sample+second.sample+spring.sample};
 }
 
+function regularSeasonForm(records:Records|undefined,pitching:boolean){
+  const first=form(records?.first,pitching,true),farm=form(records?.second,pitching,true);
+  const farmWeight=proSelectionRules.farmWeight*(1-first.reliability);
+  return {value:first.value+farm.value*farmWeight,reliability:first.reliability+farm.reliability*farmWeight};
+}
+
 export function proSelectionScore(p:Player,role:Role=p.primaryRole){
   const pitching=isPitcher(role),limit=params[pitching?"coach.recent_outs":"coach.recent_pa"];
+  const year=p.professional?.registration?.year;
+  const previous=year===undefined?undefined:p.career.findLast(row=>row.year===year-1&&row.careerMode==='pro');
+  const currentForm=regularSeasonForm(p.seasonByLevel,pitching),previousForm=regularSeasonForm(previous?.byLevel,pitching);
+  const seasonForm=currentForm.value+previousForm.value*(1-currentForm.reliability);
   const recent=emptyRecord();
   let sample=0;
   for(let index=p.recentAppearances.length-1;index>=0&&sample<limit;index--){
@@ -46,7 +60,9 @@ export function proSelectionScore(p:Player,role:Role=p.primaryRole){
     mergeRecentRecord(recent,appearance);
     sample+=recentSample(appearance,pitching);
   }
-  return clamp(roleScore(p,role)*leftPitcherMultiplier(p,role)+params["coach.pro_recent_max"]*form(recent,pitching).value
+  const recentWorkload=pitching?Math.max(sample,recent.pitching.BF/2):sample;
+  const recentAdjustment=limit>0?proSelectionRules.recentMax*form(recent,pitching).quality*Math.min(1,recentWorkload/limit):0;
+  return clamp(roleScore(p,role)*leftPitcherMultiplier(p,role)+proSelectionRules.seasonMax*seasonForm+recentAdjustment
     -(p.proContract?.status==="developmental"?6:0)-(p.professional?.managedUntil?12:0),0,100);
 }
 

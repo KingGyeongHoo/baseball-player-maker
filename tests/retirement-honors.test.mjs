@@ -25,6 +25,109 @@ test('ceremony accepts C and tour accepts B with thirteen total credited seasons
  eligible=honors.retirementEligibility(s,p);assert.equal(eligible.grade,'B');assert.equal(eligible.seasons,13);assert.equal(eligible.consecutive,5);assert.equal(eligible.tour,true);
  pro.assessments[3].honorRegistration.firstDaysByClub={};assert.equal(honors.retirementEligibility(s,p).tour,false);
 });
+test('debut-club tenure grants a farewell at twenty seasons and a tour at twenty-three without a career grade',()=>{
+ for(const [count,ceremony,tour] of [[19,false,false],[20,true,false],[22,true,false],[23,true,true]]){
+  const {s,p,pro,club}=fixture(count,71);
+  pro.firsts={debut:'2028-07-01',debutClub:club};
+  pro.assessments[0].honorRegistration.firstDaysByClub[club]=40;
+  for(const row of pro.assessments){delete row.seasonRank;row.firstWarByClub={[club]:0};}
+  const eligible=honors.retirementEligibility(s,p);
+  assert.equal(eligible.grade,'—');assert.equal(eligible.ceremony,ceremony);assert.equal(eligible.tour,tour);
+  assert.equal(eligible.retiredNumber,false);
+  if(tour){
+   retirement.retireProfessional(s);
+   const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+   assert.equal(restored.proWorld.retirementHonors[0].debutClubSeasons,23);
+   assert.equal(restored.proWorld.retirementHonors[0].score,null);
+   assert.equal(restored.proWorld.retirementHonors[0].tour,true);
+  }
+ }
+});
+test('only a club-initiated trade from the debut club bridges up to two seasons before returning',()=>{
+ for(const gap of [1,2,3]){
+  const {s,p,pro,club}=fixture(23,71),other=(club+1)%10;
+  pro.firsts={debut:'2028-03-25'};
+  pro.movements=[
+   {date:'2028-02-01',from:null,to:club,kind:'입단',reason:'지명'},
+   {date:'2035-12-01',from:club,to:other,kind:'트레이드',reason:'구단 주도'},
+   {date:`${2035+gap}-12-01`,from:other,to:club,kind:'FA 이적',reason:'복귀'}
+  ];
+  for(const row of pro.assessments)if(row.year>2035&&row.year<=2035+gap)row.honorRegistration.firstDaysByClub={[other]:90};
+  const hasTour=()=>honors.retirementEligibility(s,p).tour;
+  assert.equal(hasTour(),gap<=2);
+  pro.movements[1].requestedTrade=true;assert.equal(hasTour(),false);
+  delete pro.movements[1].requestedTrade;
+  pro.movements[1].kind='FA 이적';assert.equal(hasTour(),false);
+  pro.movements[1].kind='트레이드';pro.firsts.debutClub=other;assert.equal(hasTour(),false);
+ }
+});
+
+test('a 24-season debut-club veteran earns a farewell despite farm years, and a retired v3 save repairs it once',()=>{
+ const {s,p,pro,club}=fixture(24,0);
+ pro.firsts={debut:'2028-07-01',debutClub:club};
+ for(const row of pro.assessments){row.honorRegistration.firstDaysByClub={};delete row.seasonRank;row.firstWarByClub={[club]:0};}
+ const eligible=honors.retirementEligibility(s,p);
+ assert.equal(eligible.seasons,0);assert.equal(eligible.debutSeasons,24);
+ assert.equal(eligible.ceremony,true);assert.equal(eligible.tour,true);assert.equal(eligible.retiredNumber,false);
+ retirement.retireProfessional(s);
+ s.proWorld.careerHonorRulesVersion=3;s.proWorld.retirementHonors=[];
+ const original=structuredClone(p.career),rng=structuredClone(s.rngStates);
+ const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+ assert.equal(restored.proWorld.careerHonorRulesVersion,4);
+ assert.equal(restored.proWorld.retirementHonors.length,1);
+ assert.equal(restored.proWorld.retirementHonors[0].debutClubSeasons,24);
+ assert.equal(restored.proWorld.retirementHonors[0].ceremony,true);assert.equal(restored.proWorld.retirementHonors[0].tour,true);
+ assert.deepEqual(e.getPlayer(restored).career,original);assert.deepEqual(restored.rngStates,rng);
+ const again=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(restored))).state;
+ assert.deepEqual(again.proWorld.retirementHonors,restored.proWorld.retirementHonors);
+});
+
+test('season-end retirement waits for all awards and the stove button, then shows retirement before the highest honor',()=>{
+ const life=require('../.test-build/lib/sim/pro-season.js');
+ const {s,p,pro,club}=fixture(24,0);
+ p.age=44;pro.firsts={debut:'2028-07-01',debutClub:club};
+ for(const row of pro.assessments){row.honorRegistration.firstDaysByClub={};delete row.seasonRank;row.firstWarByClub={[club]:0};}
+ pro.assessments.pop();s.proWorld.seasonClosed=false;s.proWorld.stage='regular';s.phase='weekStart';
+ Object.assign(p.seasonByLevel.first.batting,{PA:550,AB:500,H:200,HR:40,BB:50,RBI:100});
+ p.seasonStats=structuredClone(p.seasonByLevel.first);
+ life.closeProfessionalSeason(s);
+ assert.ok(s.proWorld.pendingRetirement);assert.equal(s.proWorld.retired,undefined);
+ assert.equal(s.proWorld.stage,'summary');assert.equal(pro.employment,'active');assert.equal(p.teamId,club);
+ assert.equal(life.canEnterNextProCamp(s),false);
+ assert.throws(()=>life.actOnProCareer(s,{type:'market'}),/먼저/);
+ let next=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+ const seen=[];
+ for(let guard=0;next.careerNotice&&guard<20;guard++){
+  seen.push(next.careerNotice.code);next=pc.acknowledgeCareer(next);
+  assert.equal(next.proWorld.retired,undefined);
+ }
+ assert.ok(seen.includes(`awards:${s.calendar.seasonYear}`));
+ assert.ok(seen.includes(`awards-summary:${s.calendar.seasonYear}`));
+ assert.equal(next.careerNotice,undefined);assert.equal(next.careerEvent,null);
+ const records=structuredClone(e.getPlayer(next).career);
+ next=life.actOnProCareer(next,{type:'market'});
+ assert.equal(next.proWorld.stage,'retired');assert.equal(next.proWorld.pendingRetirement,undefined);
+ assert.equal(next.careerNotice.code,`retirement:${s.calendar.seasonYear}`);
+ assert.match(next.careerNotice.title,/선수 은퇴$/);
+ assert.equal(next.noticeQueue.filter(n=>n.code?.startsWith('retirement-honor:')).length,1);
+ next=pc.acknowledgeCareer(next);assert.match(next.careerNotice.title,/은퇴 투어$/);
+ next=pc.acknowledgeCareer(next);assert.equal(next.careerNotice,undefined);
+ assert.deepEqual(e.getPlayer(next).career,records);
+ const html=renderToStaticMarkup(createElement(Retirement,{state:next,onRecords(){},onNew(){},onSave(){}}));
+ assert.match(html,/은퇴 커리어 저장/);assert.match(html,/선수 재생성/);assert.match(html,/야구인생 통산 기록/);
+});
+
+test('farewell notices select exactly one tier: retired number, tour, ceremony, or no honor',()=>{
+ for(const [count,number,expected] of [[24,true,/영구결번$/],[24,false,/은퇴 투어$/],[20,false,/은퇴식$/],[4,false,null]]){
+  const {s,p,pro,club}=fixture(count,0);pro.firsts={debut:'2028-07-01',debutClub:club};
+  if(!number)for(const row of pro.assessments){row.honorRegistration.firstDaysByClub={};delete row.seasonRank;row.firstWarByClub={[club]:0};}
+  retirement.retireProfessional(s);
+  assert.match(s.careerNotice.title,/선수 은퇴$/);
+  const next=pc.acknowledgeCareer(s);
+  if(expected){assert.match(next.careerNotice.title,expected);assert.equal(next.noticeQueue.length,0);assert.equal(pc.acknowledgeCareer(next).careerNotice,undefined);}
+  else assert.equal(next.careerNotice,undefined);
+ }
+});
 test('old retired bullpen saves recalculate honors and retired numbers once without changing original WAR, records or RNG',()=>{
  const {s,p,pro,club}=fixture(16);
  for(const row of pro.assessments){row.role='불펜';row.seasonRank.role='bullpen';row.war.first.batting=0;row.war.first.pitching=1;row.firstWarByClub={[club]:row===pro.assessments[0]?40:0};}
@@ -43,7 +146,7 @@ test('a live legacy career upgrades cached grades once and preserves the input s
  const {s,p,pro}=fixture(13);delete s.proWorld.careerHonorRulesVersion;
  for(const row of pro.assessments){row.role='불펜';row.seasonRank.role='bullpen';row.war.first.batting=0;row.war.first.pitching=1;row.cumulativeGrade='F';}
  const original=structuredClone(s),life=require('../.test-build/lib/sim/pro-season.js'),next=life.upgradeProfessionalState(s);
- assert.deepEqual(s,original);assert.equal(e.getPlayer(next).professional.assessments.at(-1).cumulativeGrade,'C');assert.equal(next.proWorld.careerHonorRulesVersion,3);
+ assert.deepEqual(s,original);assert.equal(e.getPlayer(next).professional.assessments.at(-1).cumulativeGrade,'C');assert.equal(next.proWorld.careerHonorRulesVersion,4);
  assert.deepEqual(e.getPlayer(next).seasonByLevel,p.seasonByLevel);assert.equal(life.upgradeProfessionalState(next),next);
 });
 test('a legacy retired number with missing career evidence retains its recorded grade and reservation',()=>{
@@ -58,7 +161,7 @@ test('loading a doubled-WAR save restores raw grades and removes only a provably
  s.proWorld.retiredNumbers=[{club,number:77,playerId:p.id,playerName:p.name,date:s.date,grade:'S',score:90,criteria:{clubWar:40,awardBonus:12,seasons:13}}];
  const raw=structuredClone(pro.assessments.map(r=>r.war));
  const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
- assert.equal(e.getPlayer(restored).professional.assessments.at(-1).cumulativeGrade,'B');assert.equal(restored.proWorld.careerHonorRulesVersion,3);
+ assert.equal(e.getPlayer(restored).professional.assessments.at(-1).cumulativeGrade,'B');assert.equal(restored.proWorld.careerHonorRulesVersion,4);
  assert.deepEqual(restored.proWorld.retiredNumbers,[]);assert.equal(restored.proWorld.retirementHonors[0].tour,true);
  assert.deepEqual(e.getPlayer(restored).professional.assessments.map(r=>r.war),raw);
  const next=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(restored))).state;assert.deepEqual(next.proWorld.retiredNumbers,[]);

@@ -22,6 +22,13 @@ test('farm result modal and archived result modal use the matching league and ye
   s.proWorld.seasons.push({year:s.calendar.seasonYear,allstar:s.proWorld.allstar});delete s.proWorld.allstar;
   assert.match(render(s),/BLUE 1 대 3 WHITE/);
 });
+test('the result modal lists both joint winners and highlights the player individually',()=>{
+  const s=fixture(),entry=s.proWorld.allstar.levels.first;
+  entry.mvps=[entry.mvp,{playerId:s.playerId,name:'공동 수상 내 선수',side:'blue',merit:entry.mvp.merit}];
+  delete entry.mvp;
+  const html=render(s);
+  for(const text of ['공동 미스터 올스타','일군백1','공동 수상 내 선수','나의 선수'])assert.ok(html.includes(text),text);
+});
 test('a saved pending allstar outcome also shows results directly with one confirmation',()=>{
   const s=fixture(),outcome={definitionId:'AS-RESULT-first',date:s.date,title:'올스타의 하루',choice:'교류하며 복습',message:'기존 결과 설명'};
   const html=renderToStaticMarkup(createElement(Dialog,{state:s,event:null,outcome,disabled:false,onChoose(){return true;},onDone(){}}));

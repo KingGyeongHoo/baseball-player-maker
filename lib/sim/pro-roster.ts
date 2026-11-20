@@ -6,11 +6,11 @@ import {applySwitchContact} from './handedness';
 export const firstTeamCapacity=29;
 export const postseasonTeamCapacity=firstTeamCapacity+3;
 export const firstTeamRosterCapacity=(s:GameState,club:number)=>s.proWorld?.postseasonExpansion?.clubs.includes(club)?postseasonTeamCapacity:firstTeamCapacity;
-export const proRosterPositions:Position[]=['C','C','1B','2B','2B','3B','SS','SS','LF','LF','CF','CF','RF','RF','DH',...Array<Position>(6).fill('SP'),...Array<Position>(8).fill('RP'),'CP'];
+export const proRosterPositions:Position[]=['C','C','1B','2B','2B','3B','SS','SS','LF','LF','CF','CF','RF','RF','1B',...Array<Position>(6).fill('SP'),...Array<Position>(8).fill('RP'),'CP'];
 export const firstTeamSlotPosition=(position:Position):Position=>position==='CP'?'RP':position;
 export function firstTeamSlots(seed:string,club:number):Position[]{
   const pitchers=12+hash(`${seed}:${club}:pitcher-depth`)%4,starters=5+hash(`${seed}:${club}:starter-depth`)%2;
-  const hitters:Position[]=['C','SS','CF','2B','1B','3B','LF','RF','DH','C','SS','CF','2B','LF','RF','1B','3B'];
+  const hitters:Position[]=['C','SS','CF','2B','1B','3B','LF','RF','1B','C','SS','CF','2B','LF','RF','1B','3B'];
   return [...hitters.slice(0,firstTeamCapacity-pitchers),...Array<Position>(starters).fill('SP'),...Array<Position>(pitchers-starters-1).fill('RP'),'CP'];
 }
 export function organizationMinimum(seed:string,club:number,position:Position){

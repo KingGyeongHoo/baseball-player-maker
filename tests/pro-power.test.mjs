@@ -36,11 +36,12 @@ test('actual professional games reproduce both power targets across fixed health
  const source=createProfessionalDemo('power-calibration','검증','DH');
  source.players=source.players.filter(p=>p.teamId===0||p.teamId===1);
  for(const p of source.players){p.stats=stats(70);p.bats='R';p.throws='R';p.stance.batting='level';p.stance.pitching='command';p.stats.velocity/=e.params['stance.command_velocity'];p.stats.control/=e.params['stance.command_control'];p.injury=null;p.forcedRest=false;p.trainingPolicy.mode='train';delete p.twoWay;}
- const focus=source.players.find(p=>p.teamId===0&&p.position==='DH');focus.stats={...stats(target.bq),contact:target.contact};
+ const focus=source.players.filter(p=>p.teamId===0&&p.position==='1B').at(-1);focus.stats={...stats(target.bq),contact:target.contact};
  source.playerId=focus.id;source.calendar.events=[];source.proWorld.stage='regular';source.careerNotice=null;source.careerEvent=null;
- const positions=['C','SS','CF','2B','1B','3B','LF','RF','DH'];
+ const positions=['C','SS','CF','2B','1B','3B','LF','RF'];
  const prepared=[0,1].map(team=>{
-  const pool=source.players.filter(p=>p.teamId===team),field=positions.map(pos=>pool.find(p=>p.position===pos).id),pitchers=pool.filter(p=>['SP','RP','CP'].includes(p.position)).map(p=>p.id);
+  const pool=source.players.filter(p=>p.teamId===team),field=positions.map(pos=>pool.find(p=>p.position===pos&&p!==focus).id),pitchers=pool.filter(p=>['SP','RP','CP'].includes(p.position)).map(p=>p.id);
+  field.push(team===0?focus.id:pool.find(p=>!field.includes(p.id)&&!e.isPitcher(p.primaryRole)).id);
   return {field,order:[...field],pitchers,starter:pool.find(p=>p.position==='SP').id};
  });
  const oldEvents=e.params['pro_events.enabled'],oldFocus=e.params['events.focus_chance'];

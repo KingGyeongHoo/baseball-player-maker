@@ -16,11 +16,11 @@ test('fatigue-only forced rest keeps a high-grade hitter in the first team inste
 test('season form is reflected in the displayed score, and a higher farm score needs no additional sample or ability hurdle',()=>{
  const s=fixture(),p=e.getPlayer(s),farm=s.players.filter(q=>q.teamId===10&&q.position==='SS'),up=farm[0];
  for(const q of farm){for(const k of Object.keys(q.stats))q.stats[k]=30;q.recentZ=0;q.seasonByLevel.second=e.emptyRecord();}
- for(const k of Object.keys(p.stats))p.stats[k]=90;
- Object.assign(p.seasonByLevel.first.batting,{PA:600,AB:550,H:220,HR:100,RBI:200,BB:50});
- p.recentZ=0;const seasonScore=e.selectionScore(p);p.recentZ=-3;assert.ok(seasonScore-e.selectionScore(p)<=1.05+1e-9);
+ Object.assign(p.seasonByLevel.first.batting,{PA:600,AB:550,H:220,HR:50,RBI:250,BB:50,SB:70});
+ const seasonScore=e.selectionScore(p),slump=e.emptyRecord();Object.assign(slump.batting,{PA:50,AB:50});
+ p.recentAppearances=[slump];assert.ok(Math.abs(seasonScore-e.selectionScore(p)-3)<1e-9);
  for(const k of Object.keys(up.stats))up.stats[k]=80;
- Object.assign(up.seasonByLevel.second.batting,{PA:400,AB:350,H:145,HR:40,BB:50});up.recentZ=3;
+ Object.assign(up.seasonByLevel.second.batting,{PA:400,AB:350,H:100,HR:10,BB:50});
  assert.ok(e.selectionScore(p)>e.selectionScore(up));w.reviewLeagueRegistrations(s);assert.equal(p.teamId,0);
  // A higher displayed score is sufficient, even with only a few farm appearances.
  for(const k of Object.keys(p.stats))p.stats[k]=70;

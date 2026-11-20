@@ -4,7 +4,7 @@ import {springRoster,springLineup,springPriority,springSelectionScore} from './p
 import {nationalAway} from './national-teams';
 import {currentProPosition} from "./pro-positions";
 import {farmGameRoster,farmSelectionTier} from "./pro-farm-roster";
-import { accumulation, advanceRunners, available, clamp, effective, emptyRecord, hash, isPitcher, mergeRecord, params, pitchingRole, probabilities, random, roleFor, selectionScore } from "./engine";
+import { accumulation, advanceRunners, available, canBatAsDH, compareDesignatedHitters, clamp, effective, emptyRecord, hash, isPitcher, mergeRecord, params, pitchingRole, probabilities, random, roleFor, selectionScore } from "./engine";
 import {fieldingIndex,recordFieldingOuts,recordFieldingPlay} from "./fielding";
 import {professionalLineup,proNotice} from "./pro-world";
 import {playoffRosterFor} from "./pro-season";
@@ -65,7 +65,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     if(s.careerMode==="pro"){
       const starts:Record<string,ProAppearance>={},positions:Position[]=["C","SS","CF","2B","1B","3B","LF","RF","DH"];
       sides.forEach((side,index)=>{const teamId=index===0?game.homeTeamId:game.awayTeamId,level=game.competitionId.startsWith("pro-playoffs-")?"postseason":game.competitionId==="pro-first"?"first":"second";
-        side.field.forEach((p,i)=>starts[p.id]={teamId,level,position:positions[i],startedField:true,startedPitching:false});const p=side.starter!;starts[p.id]={teamId,level,position:p.twoWay?.pitchingPosition??p.position,startedField:!!starts[p.id]?.startedField,startedPitching:true};});
+        side.field.forEach((p,i)=>starts[p.id]={teamId,level,position:positions[i],startedField:true,startedPitching:false,dhPA:0});const p=side.starter!;starts[p.id]={teamId,level,position:p.twoWay?.pitchingPosition??p.position,startedField:!!starts[p.id]?.startedField,startedPitching:true,dhPA:0};});
       s.matchProgress.proStarts=starts;
     }
   }
@@ -174,8 +174,8 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     if (!available(batter, game.date)) {
       const fieldIndex = m.sides[side].field.indexOf(batter.id);
       const position = (["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH"] as Position[])[fieldIndex];
-      const substitute = rosters[side].filter(p => available(p, game.date) && !m.sides[side].field.includes(p.id) && (!m.usedPitchers[side].includes(p.id)||!!p.twoWay&&position==='DH') && (p.eligiblePositions.includes(position)||!!p.twoWay&&position==='DH'))
-        .sort((a, b) => (pro?tier(a)-tier(b):0)||Number(pro&&currentProPosition(b,position))-Number(pro&&currentProPosition(a,position))||selectionScore(b, roleFor(position)) - selectionScore(a, roleFor(position)) || a.id.localeCompare(b.id))[0];
+      const substitute = rosters[side].filter(p => available(p, game.date) && !m.sides[side].field.includes(p.id) && (!m.usedPitchers[side].includes(p.id)||!!p.twoWay&&position==='DH') && (position==='DH'?canBatAsDH(p):p.eligiblePositions.includes(position)))
+        .sort((a, b) => position==='DH'?compareDesignatedHitters(a,b):(pro?tier(a)-tier(b):0)||Number(pro&&currentProPosition(b,position))-Number(pro&&currentProPosition(a,position))||selectionScore(b, roleFor(position)) - selectionScore(a, roleFor(position)) || a.id.localeCompare(b.id))[0];
       if (!substitute) return forfeit(side);
       m.sides[side].field[fieldIndex] = substitute.id; m.sides[side].order[orderIndex] = substitute.id; game.lineup[side].push(substitute.id); batter = substitute;
     }
@@ -198,6 +198,10 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     if (s.matchEffect?.gameId === game.id) delete s.matchEffect;
     const batBefore = { ...bat }, pitBefore = { ...pit };
     bat.PA++; pit.BF++; pitcher.lastPitched = game.date;
+    if(pro&&m.proStarts&&m.sides[side].field[8]===batter.id){
+      const appearance=m.proStarts[batter.id]??={teamId:gameTeams[side],level:game.competitionId.startsWith('pro-playoffs-')?'postseason':game.competitionId==='pro-first'?'first':'second',position:'DH',startedField:false,startedPitching:false};
+      appearance.dhPA=(appearance.dhPA??(bat.PA-1))+1;
+    }
     let walkoff = false;
     const score = (runner: { playerId: string; pitcherId: string }, hr = false) => {
       if (walkoff && !hr) return;
@@ -261,7 +265,9 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
         p.professional.lastAppearance=game.date;
         if(game.evaluationPlayers?.includes(p.id)){p.professional.lastEvaluation=game.date;delete p.professional.requestedEvaluationUntil;}
         if(game.competitionId==="pro-first"){
-          const first=p.professional.firsts,debuts=!first.debut;first.debut??=game.date;if(game.lineup.some(side=>side.slice(0,10).includes(id)))first.start??=game.date;
+          const first=p.professional.firsts,debuts=!first.debut;
+          if(debuts){first.debut=game.date;first.debutClub=p.teamId%10;}
+          if(game.lineup.some(side=>side.slice(0,10).includes(id)))first.start??=game.date;
           if(debuts&&id===s.playerId)proNotice(s,"first-team-debut","첫 1군 경기의 기록을 남겼습니다",`${game.date} · 실제 1군 경기에서 ${record.batting.AB}타수·${record.pitching.BF}타자를 상대했습니다. 능력 보너스 없이 이 순간을 커리어에 보관합니다.`);
           if(record.batting.H)first.hit??=game.date;if(record.batting.HR)first.homeRun??=game.date;if(record.pitching.SO)first.strikeout??=game.date;
         }

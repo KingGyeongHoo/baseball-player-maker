@@ -39,7 +39,7 @@ export default function PositionPicker({ kind, value, onKindChange, onChange, di
             <span className="field-position-token"><b>{position.id}</b><span>{positions[position.id]}</span>{value === position.id && <i aria-hidden="true">✓</i>}</span>
           </label>)}
         </div>
-        <label className={`designated-hitter ${value === "DH" ? "selected" : ""}`}><input type="radio" name={`${id}-position`} value="DH" checked={value === "DH"} onChange={() => onChange("DH")} /><b>DH</b><span>지명타자</span><small>수비 대신 타격에 집중</small><i aria-hidden="true">{value === "DH" ? "✓" : "+"}</i></label>
+        <p className="micro muted">지명타자는 수비 주전을 제외한 야수 중 타격이 가장 좋은 선수가 경기마다 맡습니다.</p>
         <div className="selected-position-note" role="status"><b>{value ? positions[value] : "포지션을 골라주세요"}</b><span>{value === "DH" ? "수비 부담을 줄이고 타격에 집중하는 자리입니다." : selected?.description ?? "각 포지션의 위치를 눌러 역할을 확인할 수 있습니다."}</span></div>
       </> : <>
         <p className="position-instruction">나만의 마운드, 어떤 순간을 책임질까요?</p>

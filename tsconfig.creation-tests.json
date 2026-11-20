@@ -29,6 +29,7 @@
     "app/components/draft-round-badge.tsx",
     "app/components/draft-result-gate.tsx",
     "lib/career-save.ts",
+    "lib/career-autosave-policy.ts",
     "lib/sim/pro-registration-status.ts",
     "app/components/pro-career-panels.tsx",
     "app/components/offseason-shop.tsx",

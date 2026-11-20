@@ -8,7 +8,7 @@ import type { GameState, Player, Position } from "./types";
 
 // A real five-man rotation and a usable bullpen must exist in BOTH leagues.
 // A 29-man first team alone does not make the farm schedule playable.
-export const farmMinimum: Record<Position, number> = { C:2,SS:1,CF:1,"2B":1,"1B":1,"3B":1,LF:1,RF:1,DH:1,SP:5,RP:5,CP:1 };
+export const farmMinimum: Record<Position, number> = { C:2,SS:1,CF:1,"2B":1,"1B":1,"3B":1,LF:1,RF:1,DH:0,SP:5,RP:5,CP:1 };
 const slots = Object.entries(farmMinimum).flatMap(([pos, n]) => Array<Position>(n).fill(pos as Position));
 
 export function ensurePlayableFarmRosters(s: GameState, clubs = Array.from({length:10}, (_, i) => i)) {

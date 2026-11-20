@@ -88,6 +88,18 @@ test('each new round freezes its own roster and new players do not enter an exis
 });
 
 const skills=(p,n)=>{for(const key of Object.keys(p.stats))p.stats[key]=n;p.injury=null;p.forcedRest=false;p.recentZ=0;p.fatigue=0;};
+test('postseason selection recognizes an elite first-team season even after a demotion and late slump',()=>{
+ const s=structuredClone(template),p=e.getPlayer(s);
+ for(const q of s.players.filter(q=>q.teamId>=0&&q.teamId%10===3))skills(q,82);
+ p.teamId=13;p.proContract.status='regular';skills(p,70);
+ const slump=e.emptyRecord();Object.assign(slump.batting,{PA:50,AB:50});p.recentAppearances=[slump];
+ s.date=s.proWorld.regularEnd;s.proWorld.stage='regular';
+ const withoutSeason=structuredClone(s);life.finishProfessionalDay(withoutSeason);
+ assert.ok(!round(withoutSeason,'wildcard').rosters['3'].includes(p.id));
+ Object.assign(p.seasonByLevel.first.batting,{PA:600,AB:550,H:220,HR:50,RBI:250,BB:50,SB:70});
+ life.finishProfessionalDay(s);
+ assert.ok(round(s,'wildcard').rosters['3'].includes(p.id));
+});
 test('all five qualifiers expand to 32 and a strong farm player replaces a weak first-team player before the notice',()=>{
  const s=structuredClone(template),p=e.getPlayer(s);p.teamId=13;p.proContract.status='regular';skills(p,99);
  const weak=s.players.find(q=>q.teamId===3&&q.position===p.position);skills(weak,1);

@@ -37,6 +37,7 @@ test('both legacy assignments select the same pitcher/DH and one actual game rec
   const record=game.boxScore[p.id];assert.ok(record.batting.PA>0);assert.ok(record.pitching.BF>0);assert.equal(record.games.batting,1);assert.equal(record.games.pitching,1);
   assert.equal(game.lineup[0].slice(0,9).filter(id=>id===p.id).length,1);assert.equal(game.lineup[0][9],p.id);
   assert.equal(game.proAppearances[p.id].startedField,true);assert.equal(game.proAppearances[p.id].startedPitching,true);
+  assert.equal(game.proAppearances[p.id].dhPA,record.batting.PA);
   assert.ok((record.fielding?.outs.DH??0)>record.pitching.outs,'DH remains in the lineup after pitching relief enters');
   assert.equal(p.twoWay.nextAssignment,assignment);
   const restored=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;assert.deepEqual(e.getPlayer(restored).seasonStats,p.seasonStats);

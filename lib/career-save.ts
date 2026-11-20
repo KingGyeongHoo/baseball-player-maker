@@ -1,4 +1,5 @@
 import {upgradeCareerHonors} from './sim/career-honor-upgrade';
+import {upgradeSchoolPositions} from './sim/school-position-upgrade';
 import {validNationalTournament} from "./sim/national-tournament";
 import {upgradeNationalInvitation} from './sim/national-teams';
 import {hydrateAssessments} from "./sim/pro-assessment";
@@ -16,11 +17,13 @@ import {statKeys,type GameState} from "./sim/types";
 import {careerSaveId} from "./career-save-key";
 import {compactCareerState} from './career-compaction';
 import {backfillSeasonHonors} from './sim/pro-historical-awards';
+import {isGoldGloveCelebration} from './sim/pro-awards-ceremony';
+import {acknowledgeCareer} from './sim/pro-career';
 import {awardBonusKey,awardBonusPoints} from './sim/pro-award-bonuses';
 import {gzipText,gunzipBytes,saveBlobText} from './save-compression';
 import {packNpcRecordFields,unpackNpcRecordFields} from './career-record-codec';
 import {applyRetiredNumberClaims,retiredNumberClaims,type SavedRetiredNumber} from './retired-number-reservations';
-import {validHonorRegistration} from './sim/retirement-honors';
+import {retirementHonorRules,validHonorRegistration} from './sim/retirement-honors';
 import {removeBattedBallRecords} from './record-schema';
 import {refreshCareerEvaluation} from './sim/pro-career-evaluation';
 import {validOffseasonShop} from './sim/offseason-shop';
@@ -85,7 +88,15 @@ export function validateCareerState(value:unknown):asserts value is GameState {
   const retirementHonors=s.proWorld?.retirementHonors;
   if(retiredNumbers?.some(row=>row.grade!==undefined&&!['S','A','B','C','D','E','F'].includes(row.grade)))throw new Error('영구결번 누적 등급을 복원할 수 없습니다.');
   if(retiredNumbers?.some(({criteria})=>criteria!==undefined&&(!criteria||!Number.isFinite(criteria.clubWar)||!Number.isFinite(criteria.awardBonus)||criteria.awardBonus<0||!Number.isInteger(criteria.seasons)||criteria.seasons<0)))throw new Error('영구결번의 구단 WAR와 수상 가산점을 복원할 수 없습니다.');
-  if(retirementHonors&&(!Array.isArray(retirementHonors)||new Set(retirementHonors.map(row=>row.playerId)).size!==retirementHonors.length||retirementHonors.some(row=>!Number.isInteger(row.club)||row.club<0||row.club>=10||typeof row.playerId!=='string'||typeof row.playerName!=='string'||!Number.isFinite(row.score)||row.score<0||row.score>100||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||!['S','A','B','C','D','E','F'].includes(row.grade)||!Number.isInteger(row.seasons)||row.seasons<0||!Number.isInteger(row.consecutive)||row.consecutive<0||row.consecutive>row.seasons||typeof row.ceremony!=='boolean'||typeof row.tour!=='boolean')))throw new Error('은퇴 예우 기록을 복원할 수 없습니다.');
+  if(retirementHonors&&(!Array.isArray(retirementHonors)||new Set(retirementHonors.map(row=>row.playerId)).size!==retirementHonors.length||retirementHonors.some(row=>{
+    const debutTenure=row.debutClubSeasons!==undefined&&Number.isInteger(row.debutClubSeasons)&&row.debutClubSeasons>=retirementHonorRules.debutCeremony;
+    const validGrade=['S','A','B','C','D','E','F'].includes(row.grade)||debutTenure&&row.grade==='—';
+    const validScore=row.score===null?debutTenure:Number.isFinite(row.score)&&row.score>=0&&row.score<=100;
+    return !Number.isInteger(row.club)||row.club<0||row.club>=10||typeof row.playerId!=='string'||typeof row.playerName!=='string'||!validScore
+      ||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||!validGrade||row.debutClubSeasons!==undefined&&!debutTenure
+      ||!Number.isInteger(row.seasons)||row.seasons<0||!Number.isInteger(row.consecutive)||row.consecutive<0||row.consecutive>row.seasons
+      ||typeof row.ceremony!=='boolean'||typeof row.tour!=='boolean';
+  })))throw new Error('은퇴 예우 기록을 복원할 수 없습니다.');
   if(s.savedRetiredNumbers&&(!Array.isArray(s.savedRetiredNumbers)||s.savedRetiredNumbers.some(row=>typeof row.saveId!=='string'||typeof row.playerId!=='string'||typeof row.playerName!=='string'||!Number.isInteger(row.club)||row.club<0||row.club>=10||!Number.isInteger(row.number)||row.number<1||row.number>99)))throw new Error('저장된 영구결번 목록을 복원할 수 없습니다.');
   if(retiredNumbers!==undefined&&(!Array.isArray(retiredNumbers)||new Set(retiredNumbers.map(row=>row.playerId)).size!==retiredNumbers.length||new Set(retiredNumbers.map(row=>`${row.club}:${row.number}`)).size!==retiredNumbers.length||retiredNumbers.some(row=>!Number.isInteger(row.club)||row.club<0||row.club>=10||!Number.isInteger(row.number)||row.number<1||row.number>99||typeof row.playerId!=="string"||typeof row.playerName!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||!Number.isFinite(row.score)||row.score<0||row.score>100)))throw new Error("영구결번 기록을 복원할 수 없습니다.");
   if(!ids.has(s.playerId)||!s.rngStates||Object.values(s.rngStates).some(n=>!Number.isInteger(n)))throw new Error("선수 또는 난수 상태를 복원할 수 없습니다.");
@@ -133,6 +144,7 @@ export function serializeCareerSave(file:CareerSave){
 function validateCareerSave(file:CareerSave):CareerSave {
   if(file?.format!=="baseball-life"||file.version!==1)throw new Error("지원하지 않는 저장 형식입니다. 원본 파일은 유지됩니다.");
   validateCareerState(file.state);if(saveChecksum(JSON.stringify(file.state))!==file.checksum)throw new Error("저장 파일의 무결성 확인에 실패했습니다. 원본 파일은 유지됩니다.");
+  file.state=upgradeSchoolPositions(file.state);
   for(const p of file.state.players){hydrateAssessments(file.state,p);refreshCareerEvaluation(p);initializeAgingProfile(p);clearProfessionalReputation(p);}
   syncProClubNames(file.state);
   upgradeNationalInvitation(file.state);
@@ -141,6 +153,8 @@ function validateCareerSave(file:CareerSave):CareerSave {
   discardRetiredPlayers(file.state);
   const needsNumbers=file.state.players.some(p=>p.jerseyNumber===undefined);
   if(needsNumbers)syncJerseyNumbers(file.state);
+  if(isGoldGloveCelebration(file.state.careerNotice))file.state=acknowledgeCareer(file.state);
+  else if(file.state.noticeQueue?.some(isGoldGloveCelebration))file.state.noticeQueue=file.state.noticeQueue.filter(notice=>!isGoldGloveCelebration(notice));
   file.state=removeBattedBallRecords(compactCareerState(file.state));
   file.checksum=saveChecksum(JSON.stringify(file.state));
   return file;

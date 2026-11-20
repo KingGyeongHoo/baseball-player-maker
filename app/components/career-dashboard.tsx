@@ -4,6 +4,8 @@ import {useMemo, type ReactNode} from "react";
 import { competitionName } from "../../lib/sim/calendar";
 import { addDays, dateLabel, getPlayer, isPitcher, ovr, positionLabel } from "../../lib/sim/engine";
 import { teamStrength } from "../../lib/team-strength";
+import { careerLeagueTable } from "../../lib/sim/pro-calendar";
+import { proGameTeam } from "../../lib/sim/pro-farm-roster";
 import type { GameState } from "../../lib/sim/types";
 import PlayerEvaluationButton from "./player-evaluation";
 import {PlayerGrade} from "./player-roster";
@@ -19,7 +21,10 @@ export default function CareerDashboard({ state, onTab, onTraining, records, sch
 }) {
   const player = getPlayer(state);
   const team = state.teams[player.teamId];
-  const power = useMemo(() => team ? teamStrength(state.players, player.teamId) : undefined, [state.players, player.teamId, team]);
+  const isPro = state.careerMode === "pro";
+  const power = useMemo(() => !isPro && team ? teamStrength(state.players, player.teamId) : undefined, [state.players, player.teamId, team, isPro]);
+  const standings = useMemo(() => isPro ? careerLeagueTable(state.calendar, player.teamId < 10 ? "pro-first" : "pro-second") : [], [state.calendar, player.teamId, isPro]);
+  const teamStanding = standings.find(row => row.teamId === proGameTeam(player));
   const weekEnd = addDays(state.date, 6);
   const monthLabel = `${state.date.slice(0, 4)}년 ${Number(state.date.slice(5, 7))}월` + (weekEnd.slice(0, 7) === state.date.slice(0, 7) ? "" : `–${weekEnd.slice(0, 4) !== state.date.slice(0, 4) ? `${weekEnd.slice(0, 4)}년 ` : ""}${Number(weekEnd.slice(5, 7))}월`);
   const injured = player.injury && state.date < player.injury.unavailableUntil;
@@ -47,7 +52,7 @@ export default function CareerDashboard({ state, onTab, onTraining, records, sch
       </div>
       <div className="overview-team">
         <div className="overview-team-heading"><h2 className="overview-label">팀 정보</h2><button onClick={() => onTab("team")}>{teamActionLabel}</button></div><h3>{team?.name ?? "무소속"}</h3>
-        <div className="overview-team-power"><span>전력</span><strong>{power ? scoreText(power.overall) : "—"}</strong>{power && <small>/ 100</small>}</div>
+        {isPro ? <div className="overview-team-power"><span>팀 순위</span><strong>{teamStanding ? <>{teamStanding.rank}<small>/{standings.length}</small></> : "—"}</strong></div> : <div className="overview-team-power"><span>전력</span><strong>{power ? scoreText(power.overall) : "—"}</strong>{power && <small>/ 100</small>}</div>}
         <div className="overview-team-record"><span>시즌 성적</span>{team ? <b>{team.wins}<small>승</small> {team.losses}<small>패</small> {team.draws}<small>무</small></b> : <b>소속 팀 없음</b>}</div>
       </div>
     </section>

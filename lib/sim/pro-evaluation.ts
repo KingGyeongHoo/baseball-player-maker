@@ -50,16 +50,25 @@ export function rookieOfYearAward(s:GameState):ProAward|undefined{
   return best?{year,kind:'신인왕',category:'rookie',playerId:best.p.id,playerName:best.p.name,club:awardClub(best.p),value:best.score,field:best.field,records:structuredClone(best.p.seasonByLevel!.first)}:undefined;
 }
 export const goldGlovePositions=["P","C","1B","2B","3B","SS","LF","CF","RF","DH"] as const;
+// Full-season first-team qualification is 446 PA; two thirds requires 298 DH PA.
+export const goldGloveDhMinimumPA=Math.ceil(Math.floor(144*3.1)*2/3);
 const awardClub=(p:Player)=>p.teamId<0?p.professional!.contract?.club??p.professional!.firstClub:p.teamId%10;
 export function goldGloveAwards(s:GameState):ProAward[]{
   const players=s.players.filter(p=>p.professional&&p.seasonByLevel),league=emptyRecord();
   for(const p of players)mergeRecord(league,p.seasonByLevel!.first);
-  const starts=new Map<string,Map<Position,number>>();
-  for(const game of s.calendar.events){if(game.competitionId!=="pro-first"||game.tiebreaker||game.status!=="completed")continue;
-    for(const [id,row] of Object.entries(game.proAppearances??{}))if(row.level==="first"&&row.startedField){const counts=starts.get(id)??new Map<Position,number>();counts.set(row.position,(counts.get(row.position)??0)+1);starts.set(id,counts);}}
+  const starts=new Map<string,Map<Position,number>>(),dhPA=new Map<string,number>();
+  for(const game of s.calendar.events){if(game.competitionId!=="pro-first"||game.exhibition||game.tiebreaker||game.status!=="completed"||!game.date.startsWith(`${s.calendar.seasonYear}-`))continue;
+    for(const [id,row] of Object.entries(game.proAppearances??{})){
+      if(row.level!=="first")continue;
+      if(row.startedField){const counts=starts.get(id)??new Map<Position,number>();counts.set(row.position,(counts.get(row.position)??0)+1);starts.set(id,counts);}
+      // Legacy starts can be recovered from the actual game's box score.
+      const plateAppearances=row.dhPA??(row.startedField&&row.position==='DH'?game.boxScore?.[id]?.batting.PA??0:0);
+      dhPA.set(id,(dhPA.get(id)??0)+plateAppearances);
+    }
+  }
   const position=(p:Player)=>{const counts=starts.get(p.id);return counts?.size?[...counts].sort((a,b)=>b[1]-a[1]||goldGlovePositions.indexOf(a[0] as typeof goldGlovePositions[number])-goldGlovePositions.indexOf(b[0] as typeof goldGlovePositions[number]))[0][0]:p.position;};
   return goldGlovePositions.flatMap(slot=>{
-    const pitching=slot==="P",ranked=players.filter(p=>pitching?p.seasonByLevel!.first.pitching.outs>=90:p.seasonByLevel!.first.batting.PA>=200&&position(p)===slot)
+    const pitching=slot==="P",ranked=players.filter(p=>pitching?p.seasonByLevel!.first.pitching.outs>=90:slot==='DH'?p.seasonByLevel!.first.batting.PA>=goldGloveDhMinimumPA&&(dhPA.get(p.id)??0)>=goldGloveDhMinimumPA:p.seasonByLevel!.first.batting.PA>=200&&position(p)===slot)
       .map(p=>({p,...recordAwardMerit(p.seasonByLevel!.first,league,pitching)})).sort((a,b)=>b.raw-a.raw||b.n-a.n||a.p.id.localeCompare(b.p.id));
     const best=ranked[0];return best?[{year:s.calendar.seasonYear,kind:`골든글러브 · ${slot==="P"?"투수":positions[slot]}`,category:"goldGlove" as const,position:slot,field:pitching?"pitching" as const:"batting" as const,playerId:best.p.id,playerName:best.p.name,club:awardClub(best.p),value:best.raw,records:structuredClone(best.p.seasonByLevel!.first)}]:[];
   });

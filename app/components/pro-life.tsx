@@ -66,6 +66,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const [tab,setTab]=useState(state.proWorld?.stage==="retired"?"home":state.phase==="ended"?"career":"home"),[policy,setPolicy]=useState(()=>structuredClone(getPlayer(state).trainingPolicy)),[stance,setStance]=useState(()=>({...getPlayer(state).stance}));
   const [busy,setBusy]=useState(false),[auto,setAuto]=useState(false),[error,setError]=useState(""),[outcome,setOutcome]=useState<CareerEventOutcome|null>(state.pendingEventOutcome??null),[recordId,setRecordId]=useState(state.playerId);
   const [trainingMessage,setTrainingMessage]=useState(""),[draftPick,setDraftPick]=useState<DraftPick|null>(null),[reset,setReset]=useState(false);
+  const [retirementSaveMessage,setRetirementSaveMessage]=useState("");
   const worker=useRef<Worker|null>(null),locked=useRef(false),request=useRef(0),timer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const resetPending=useRef(false);
   const [autoProgress]=useState(()=>new AutoProgress());
@@ -88,7 +89,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   };
   useEffect(()=>()=>{autoProgress.pause();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);setAuto(false);},[autoProgress]);
   const p=getPlayer(state),pro=state.postSchool?.pro,ended=state.phase==="ended",editing=busy||auto||!!state.weekProgress||ended;
-  const nationalAction=ended?nationalOffseasonActionLabel(state):undefined;
+  const nationalAction=ended&&!state.proWorld?.pendingRetirement?nationalOffseasonActionLabel(state):undefined;
   const recordsPlayer=state.players.find(q=>q.id===recordId)??p;
   const [retireConfirm,setRetireConfirm]=useState(false);
   const careerDisabled=busy||auto||!!state.weekProgress||!!state.careerNotice||!!state.careerEvent||!!outcome;
@@ -129,13 +130,14 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const openRecords=useCallback((id=state.playerId)=>{setRecordId(id);setTab("records");},[state.playerId]);
   const openTraining=()=>setTab("training");
   const saveTraining=()=>{if(editing||!validPolicy(policy))return;const next=structuredClone(state);getPlayer(next).trainingPolicy=structuredClone(policy);getPlayer(next).stance={...stance};onChange(next);setTrainingMessage("훈련 설정을 저장했습니다.");};
+  const saveRetirement=async()=>{if(busy)return;setBusy(true);try{await saveCareerInBackground(state,true);setRetirementSaveMessage("은퇴 커리어를 저장했습니다.");}catch(error){setError(error instanceof Error?error.message:"은퇴 커리어를 저장하지 못했습니다.");}finally{setBusy(false);}};
 
   return <><div className="utility-bar"><div><span>나만의 야구선수 만들기</span><span>CAREER LIFE · v0.7.4</span></div></div>
     <header className="site-header"><div className="header-main pro-header"><button className="pro-brand" onClick={()=>setTab("home")}>BASEBALL <b>LIFE.</b></button><span className="live-badge">{state.calendar.seasonYear} · {state.careerMode==="pro"?"PRO CAREER":"COLLEGE DEVELOPMENT"}</span><HallOfFameButton onOpen={stop}/><button className="text-button" disabled={busy} onClick={()=>{stop();setReset(true);}}>선수 재생성</button></div>
       <nav className="main-nav" aria-label="프로 라이프 메뉴"><div>{[["home","주간 대시보드"],["training","훈련 센터"],["roster","선수·로스터"],["records","개인 기록"],["league","리그"],["international","국제대회"],...(state.careerMode==='pro'?[["awards","어워드"],...(state.proWorld?.stage!=="retired"?[["shop","상점"]]:[])]:[]),["career","커리어"]].map(([id,label])=><button className={tab===id?"active":""} key={id} onClick={()=>{if(id==="shop")stop();setTab(id);}}>{label}</button>)}</div></nav>
     </header><main className="app-main pro-main"><CareerStorage state={state} onLoad={load} disabled={busy||auto}/><div className="page-kicker"><span>{state.careerMode==="pro"?"PRO LIFE":"THE NEXT CHANCE"} · {careerLabel(p)}</span><span>{dateLabel(state.date)} · {p.teamId<0?(state.proWorld?.stage==="retired"?"은퇴":"무소속"):pro?squadLabel(p.teamId)+" 등록":"대학 육성 시즌"}</span></div>
       {error&&<div className="error-banner" role="alert">{error}<button onClick={()=>setError("")}>닫기</button></div>}
-      {tab==="home"&&state.proWorld?.stage==="retired"&&<ProRetirement state={state} onRecords={()=>openRecords()} onNew={()=>setReset(true)}/>}
+      {tab==="home"&&state.proWorld?.stage==="retired"&&<ProRetirement state={state} onRecords={()=>openRecords()} onNew={()=>setReset(true)} onSave={()=>void saveRetirement()} saving={busy} saveMessage={retirementSaveMessage}/>}
       {tab==="home"&&state.proWorld?.stage!=="retired"&&<ProDashboard state={state} onTab={tab=>tab==="records"?openRecords():setTab(tab)} onTraining={openTraining} trainingDisabled={editing} records={<ProSeasonStats player={p} state={state}/>} notice={<DevelopmentContract player={p} state={state}/>}/>}
       {tab==="training"&&<TrainingCenter state={state} policy={policy} setPolicy={next=>{setPolicy(next);setTrainingMessage("");}} stance={stance} setStance={next=>{setStance(next);setTrainingMessage("");}} onSave={saveTraining} disabled={editing} message={trainingMessage} onChange={onChange} onPositionRequest={state.careerMode==="pro"?position=>onAction({type:"request",kind:"position",position}):undefined} positionRequestDisabled={careerDisabled}/>}
       {tab==="international"&&<InternationalHub state={state} onRecords={openRecords}/>}
@@ -155,7 +157,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
         {!!state.draft.length&&<details className="panel pro-archive"><summary>{state.postSchool?.graduationYear} 고교 드래프트 기록</summary><DraftRoundTable players={state.players} picks={state.draft} playerId={p.id} year={state.postSchool?.graduationYear??state.calendar.seasonYear} onSelect={setDraftPick}/></details>}
       </>}
     </main><footer className="site-footer"><div><span className="footer-brand">BASEBALL LIFE.</span><span>고교에서 프로까지, 나의 야구 인생</span><span>가상 구단·게임용 일정</span></div></footer>
-    {<ProgressControls state={state} policy={policy} busy={busy} auto={auto} autoStartWeek={autoStartWeek} pendingOutcome={!!outcome} onContinue={()=>setTab(state.proWorld?.stage==="retired"?"home":"career")} nationalAction={nationalAction?{...nationalAction,onClick:()=>onAction({type:'national'})}:undefined} onNextCamp={canEnterNextProCamp(state)?()=>onAction({type:"nextSeason"}):undefined} onAdvance={advance} onToggleAuto={()=>{if(auto)stop();else{setAutoStartWeek(state.week);autoProgress.start();setAuto(true);}}}/>}
+    {<ProgressControls state={state} policy={policy} busy={busy} auto={auto} autoStartWeek={autoStartWeek} pendingOutcome={!!outcome} onContinue={()=>setTab(state.proWorld?.stage==="retired"?"home":"career")} onStove={state.proWorld?.pendingRetirement?()=>onAction({type:"market"}):undefined} nationalAction={nationalAction?{...nationalAction,onClick:()=>onAction({type:'national'})}:undefined} onNextCamp={canEnterNextProCamp(state)?()=>onAction({type:"nextSeason"}):undefined} onAdvance={advance} onToggleAuto={()=>{if(auto)stop();else{setAutoStartWeek(state.week);autoProgress.start();setAuto(true);}}}/>}
     {state.careerNotice&&!(tab==="career"&&state.careerMode==="college"&&ended)&&<CareerNoticeDialog state={state} onChange={onChange}/>}
     {(state.careerEvent||outcome)&&<CareerEventDialog state={state} event={state.careerEvent??null} outcome={outcome} disabled={busy} onRecover={()=>{autoProgress.cancelScheduled();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);}} onDone={finishEventOutcome} onChoose={id=>{if(locked.current||!state.careerEvent)return false;const next=answerCareerEvent(state,id);if(state.careerEvent.definitionId.startsWith('AS-RESULT-')){delete next.pendingEventOutcome;onChange(next);setOutcome(null);return true;}next.pendingEventOutcome=next.careerEventHistory!.at(-1)!;if(next.phase!=='ended'&&acceptedNationalInvitation(state,next)){setAutoStartWeek(next.week);autoProgress.start();setAuto(true);}onChange(next);setOutcome(next.pendingEventOutcome);return true;}}/>}
 

@@ -82,7 +82,12 @@ test('no game, off-date game, completed game and offseason never announce an eva
 });
 
 test('farm postseason entry includes all lower squads, excludes first team and preserves selection priority',()=>{
-  const s=fixture();endRegular(s);const post=s.proWorld.farmPostseason;assert.equal(post.seeds.length,4);assert.equal(post.series.length,2);
+  const s=fixture();
+  // Explicitly supply each lower tier; generated depth no longer reserves a DH job.
+  for(let club=0;club<10;club++)for(const tier of [20,30])if(!s.players.some(p=>p.teamId===club+tier)){
+    const p=structuredClone(s.players.find(p=>p.teamId===club+10));p.id=`farm-entry-${club}-${tier}`;p.teamId=club+tier;p.proContract.status=tier===30?'developmental':'regular';s.players.push(p);
+  }
+  endRegular(s);const post=s.proWorld.farmPostseason;assert.equal(post.seeds.length,4);assert.equal(post.series.length,2);
   const g=s.calendar.events.find(g=>isFarmPostseason(g.competitionId));const club=g.homeTeamId%10;
   for(const tier of [10,20,30])assert.ok(s.players.some(p=>p.teamId===club+tier&&post.series[0].rosters[String(g.homeTeamId)]?.includes(p.id)));
   assert.ok(farmPlayoffRoster(s,g).flat().every(p=>p.teamId>=10));

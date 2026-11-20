@@ -29,22 +29,42 @@ test('a tiny hot streak has less influence than a well-evidenced season',()=>{
   p.seasonStats=batting(400,200,80,40);r.updateEvaluationReputations(s);const large=r.reputationBreakdown(p);
   assert.ok(tiny.performanceWeight<.06);assert.ok(large.performanceWeight>.3&&large.performanceWeight<.4);assert.ok(large.total>tiny.total);
 });
-test('pro selection uses recent appearances and ability without season totals or awards',()=>{
+test('pro selection weighs the first-team season more than farm results and caps recent form',()=>{
   const s=fixture(true),p=e.getPlayer(s);p.seasonByLevel.first=e.emptyRecord();p.seasonByLevel.second=batting(400,240,100,40);world.reviewProfessionalReputation(s);
   const farm=e.proSelectionScore(p);assert.equal(p.reputation,null);assert.equal(p.reputationEvaluation,undefined);
   p.seasonByLevel.first=structuredClone(p.seasonByLevel.second);p.seasonByLevel.second=e.emptyRecord();world.reviewProfessionalReputation(s);
-  assert.equal(e.proSelectionScore(p),farm);assert.equal(p.reputation,null);
+  const first=e.proSelectionScore(p);assert.ok(first>farm);assert.equal(p.reputation,null);
   p.professional.awardBonuses=[{year:2028,category:'mvp',points:3}];
-  assert.equal(e.proSelectionScore(p),farm);
+  assert.equal(e.proSelectionScore(p),first);
   p.recentAppearances=[batting(5,4,1,1)];
-  const small=e.proSelectionScore(p);assert.ok(small>farm);
+  const small=e.proSelectionScore(p);assert.ok(small>first);
   p.recentAppearances=Array.from({length:5},()=>batting(5,4,1,1));
   assert.ok(e.proSelectionScore(p)>small);
+  p.recentAppearances=[batting(50,0,0,0)];
+  close(e.proSelectionScore(p),first-3);
+  p.recentAppearances=[batting(50,40,10,10)];
+  close(e.proSelectionScore(p),first+3);
+});
+test('only last season carries into spring, and its influence fades as current PA accumulate',()=>{
+  const s=fixture(true),p=e.getPlayer(s),year=p.professional.registration.year;
+  p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};
+  const base=e.proSelectionScore(p),lastYear={year:year-1,careerMode:'pro',byLevel:{first:batting(500,180,50,40),second:e.emptyRecord()}};
+  p.career.push({...lastYear,year:year-2});
+  close(e.proSelectionScore(p),base);
+  p.career.push(lastYear);
+  const opening=e.proSelectionScore(p);assert.ok(opening>base);
+  p.seasonByLevel.first=batting(40,10,1,5);
+  const early=e.proSelectionScore(p);
+  p.seasonByLevel.first=batting(400,100,10,50);
+  const late=e.proSelectionScore(p);
+  assert.ok(opening>early&&early>late);
+  p.career.pop();
+  assert.ok(e.proSelectionScore(p)<late);
 });
 test('first-team PA 100 and pitching 30 IP never discard farm evidence or cause a threshold jump',()=>{
   const s=fixture(true),p=e.getPlayer(s);p.seasonByLevel.first=batting(99,28,3,10);p.seasonByLevel.second=batting(200,80,15,20);r.updateEvaluationReputations(s);const before=e.proSelectionScore(p);
   p.seasonByLevel.first.batting.PA++;p.seasonByLevel.first.batting.AB++;r.updateEvaluationReputations(s);assert.ok(Math.abs(e.proSelectionScore(p)-before)<1);assert.equal(p.reputationEvaluation,undefined);
-  p.position='SP';p.primaryRole='선발';for(const n of [89,90,91]){Object.assign(p.seasonByLevel.first.pitching,{BF:120,outs:n,SO:35,BB:10,HR:2});Object.assign(p.seasonByLevel.second.pitching,{BF:100,outs:70,SO:30,BB:10,HR:1});r.updateEvaluationReputations(s);if(n===89)p.previousSelection=e.proSelectionScore(p);else close(e.proSelectionScore(p),p.previousSelection);}
+  p.position='SP';p.primaryRole='선발';for(const n of [89,90,91]){Object.assign(p.seasonByLevel.first.pitching,{BF:120,outs:n,SO:35,BB:10,HR:2});Object.assign(p.seasonByLevel.second.pitching,{BF:100,outs:70,SO:30,BB:10,HR:1});r.updateEvaluationReputations(s);if(n===89)p.previousSelection=e.proSelectionScore(p);else assert.ok(Math.abs(e.proSelectionScore(p)-p.previousSelection)<1);}
 });
 test('a pitcher with incidental batting appearances is assessed on pitching rather than their batting OPS',()=>{
   const s=fixture(true),p=e.getPlayer(s);p.position='SP';p.primaryRole='선발';p.seasonByLevel.first=batting(1,1,1);Object.assign(p.seasonByLevel.first.pitching,{BF:200,outs:150,SO:70,BB:10,HR:2});r.updateEvaluationReputations(s);const before=e.proSelectionScore(p);

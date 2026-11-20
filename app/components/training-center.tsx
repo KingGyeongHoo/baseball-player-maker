@@ -33,7 +33,7 @@ export default function TrainingCenter({state,policy,setPolicy,stance,setStance,
   const player=getPlayer(state),locked=disabled||state.phase==="ended"||!!state.weekProgress;
   const [position,setPosition]=useState<Position|"">("");
   const requestBlock=onPositionRequest?positionRequestBlock(state,player):undefined;
-  const targets=(Object.keys(positions) as Position[]).filter(target=>target!==player.position&&canPlayPosition(player,target));
+  const targets=(Object.keys(positions) as Position[]).filter(target=>target!=="DH"&&target!==player.position&&canPlayPosition(player,target));
   const target=position&&targets.includes(position)?position:"";
   return <div className="training-center"><div className="section-intro"><div><span className="eyebrow">TRAINING CENTER</span><h1>훈련 센터</h1></div><button className="primary" onClick={onSave} disabled={locked||!validPolicy(policy)}>훈련 설정 저장</button></div>
     {message&&<p className="training-save-message" role="status">{message}</p>}

@@ -3,22 +3,26 @@ import {goldGloveAwards,seasonMvpAward} from "./pro-evaluation";
 import {individualAwards} from "./pro-individual-awards";
 import {proNotice} from "./pro-world";
 import {syncAwardBonuses,awardBonusPoints} from './pro-award-bonuses';
-import {getPlayer,positions} from './engine';
+import {getPlayer} from './engine';
 import {backfillSeasonHonors} from './pro-historical-awards';
 import type {GameState} from "./types";
 import {refreshSeasonEvaluations} from './pro-season-evaluation';
 
 export const awardsDate=(year:number)=>`${year}-12-06`;
+export function isGoldGloveCelebration(notice:GameState['careerNotice']){
+  return !!notice?.award&&(/^award-celebration:\d{4}:goldGlove:/.test(notice.code??'')||notice.award.title.endsWith('골든글러브'));
+}
+
 export function queuePersonalAwardNotices(s:GameState,year:number,beforeScore?:number){
   const season=s.proWorld?.seasons.find(row=>row.year===year),ceremony=season?.awardsCeremony;
   if(!season||!ceremony?.presentedAt)return;
-  const p=getPlayer(s),order=['mvp','rookie','goldGlove'];
+  const p=getPlayer(s),order=['mvp','rookie'];
   const owned=season.awards.filter(award=>award.playerId===p.id&&order.includes(award.category??'')).sort((a,b)=>order.indexOf(a.category!)-order.indexOf(b.category!));
   let cursor=beforeScore;
   const after=p.professional?.assessments?.find(row=>row.year===year)?.score??0;
   const notices:NonNullable<GameState['careerNotice']>[]=ceremony.celebrationsQueued?[]:owned.map(award=>{
-    const category=award.category as 'mvp'|'rookie'|'goldGlove',bonus=awardBonusPoints[category]*(award.level==='second'?.5:1);
-    const title=category==='mvp'?(award.level==='second'?'2군 MVP':'MVP'):category==='rookie'?'신인왕':`${award.position==='P'?'투수':award.position?positions[award.position]:award.kind.replace('골든글러브 · ','')} 골든글러브`;
+    const category=award.category as 'mvp'|'rookie',bonus=awardBonusPoints[category]*(award.level==='second'?.5:1);
+    const title=category==='mvp'?(award.level==='second'?'2군 MVP':'MVP'):'신인왕';
     const applied=cursor===undefined?undefined:Math.min(bonus,Math.max(0,after-cursor)),before=cursor;
     if(cursor!==undefined)cursor+=applied??0;
     const code=`award-celebration:${year}:${category}:${award.position??(award.level==='second'?'second':'')}`;
@@ -27,7 +31,7 @@ export function queuePersonalAwardNotices(s:GameState,year:number,beforeScore?:n
   ceremony.celebrationsQueued=true;
   // The season summary already contains every title holder. Discard old queued copies.
   ceremony.individualTitlesQueued=true;
-  if(s.noticeQueue)s.noticeQueue=s.noticeQueue.filter(notice=>!notice.individualTitles&&!notice.code?.startsWith('individual-titles:'));
+  if(s.noticeQueue)s.noticeQueue=s.noticeQueue.filter(notice=>!notice.individualTitles&&!notice.code?.startsWith('individual-titles:')&&!isGoldGloveCelebration(notice));
   if(!notices.length)return;
   const queue=s.noticeQueue??=[];
   const lastAwardIndex=queue.reduce((last,notice,index)=>notice.code===`awards:${year}`||notice.code===`awards-summary:${year}`||notice.award?.year===year?index:last,-1);
@@ -51,9 +55,11 @@ export function ensureAwardsCeremony(s:GameState){
   }
   if(season.awards.some(row=>row.category))season.awardsCeremony={version:1,scheduledAt:awardsDate(season.year)};
 }
-export function presentAwardsCeremony(s:GameState){
+export function presentAwardsCeremony(s:GameState,seasonFarewell=false){
   ensureAwardsCeremony(s);const season=s.proWorld?.seasons.find(row=>row.year===s.proWorld!.year),ceremony=season?.awardsCeremony;
-  if(!season||!ceremony||ceremony.presentedAt||s.date<ceremony.scheduledAt)return false;
+  if(!season||!ceremony||ceremony.presentedAt)return false;
+  if(seasonFarewell&&s.date<ceremony.scheduledAt)s.date=ceremony.scheduledAt;
+  if(s.date<ceremony.scheduledAt)return false;
   const beforeScore=getPlayer(s).professional?.assessments?.find(row=>row.year===season.year)?.score??undefined;
   ceremony.presentedAt=s.date;
   syncAwardBonuses(s);

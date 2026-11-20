@@ -1,4 +1,4 @@
-import {addDays,available,isPitcher,roleFor,selectionScore} from './engine';
+import {addDays,available,canBatAsDH,compareDesignatedHitters,isPitcher,roleFor,selectionScore} from './engine';
 import {nationalAway} from './national-teams';
 import {canPlayPosition} from './position-eligibility';
 import type {Game,GameState,Player,Position} from './types';
@@ -34,7 +34,7 @@ export function springLineup(s:GameState,roster:Player[],date:string){
   const ranked=(rows:Player[],position:Position)=>rows.sort((a,b)=>priority.get(a.id)!-priority.get(b.id)!||springSelectionScore(b,position)-springSelectionScore(a,position)||a.id.localeCompare(b.id));
   const field:Player[]=[];
   const pitchingPool=ready.filter(p=>isPitcher(p.primaryRole)||!!p.twoWay),starter=ranked(pitchingPool.filter(p=>(p.twoWay?.pitchingPosition??p.position)==='SP'&&p.fatigue<65&&(!p.lastPitched||date>=addDays(p.lastPitched,5))),'SP')[0];
-  for(const position of ['C','SS','CF','2B','1B','3B','LF','RF','DH'] as Position[]){const player=position==='DH'&&starter?.twoWay?starter:ranked(ready.filter(p=>!used.has(p.id)&&(!isPitcher(p.primaryRole)||!!p.twoWay)&&(p.eligiblePositions.includes(position)||position==='DH'&&!!p.twoWay)&&canPlayPosition(p,position)&&(!p.twoWay||position==='DH'||p!==starter&&p.twoWay.pitchingPosition==='SP')),position)[0];if(player){field.push(player);used.add(player.id);}}
+  for(const position of ['C','SS','CF','2B','1B','3B','LF','RF','DH'] as Position[]){const candidates=ready.filter(p=>!used.has(p.id)&&canBatAsDH(p)&&canPlayPosition(p,position)&&(position==='DH'||p.eligiblePositions.includes(position)&&(!p.twoWay||p!==starter&&p.twoWay.pitchingPosition==='SP')));const player=position==='DH'?candidates.sort(compareDesignatedHitters)[0]:ranked(candidates,position)[0];if(player){field.push(player);used.add(player.id);}}
   const pitchers=pitchingPool.filter(p=>!used.has(p.id)||!!p.twoWay);
   return {field,order:[...field],pitchers:ranked(pitchers,'RP'),starter};
 }

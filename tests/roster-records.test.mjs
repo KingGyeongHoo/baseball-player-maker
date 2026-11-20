@@ -68,7 +68,7 @@ test('shared roster renders the requested columns and exact selected-league reco
   const bat=renderToStaticMarkup(createElement(RosterTable,{state:s,players:[p],field:'batting',onSelect(){}}));
   assert.match(bat,/<th>타수<\/th>/);assert.match(bat,/<th>OPS<\/th>/);assert.match(bat,/>\.400</);assert.doesNotMatch(bat,/<th>평균자책점<\/th>/);
 });
-test('pro grades and ordering use ability and recent form without fatigue, while school grades retain reputation',()=>{
+test('pro grades and ordering use season results and recent appearances, while school grades retain reputation',()=>{
   const rested=player('rested'),tired=player('tired');for(const p of [rested,tired]){for(const k of Object.keys(p.stats))p.stats[k]=70;p.recentZ=0;p.fatigue=0;}
   rested.reputation=10;tired.reputation=100;tired.fatigue=90;
   assert.equal(r.rosterGradeScore(rested,true),70);assert.equal(r.rosterGrade(r.rosterGradeScore(rested,true),true),'F');
@@ -77,8 +77,9 @@ test('pro grades and ordering use ability and recent form without fatigue, while
   Object.assign(tired.seasonByLevel.first.batting,{PA:300,AB:285,H:40,HR:2,BB:15});
   assert.ok(r.rosterGradeScore(tired,true)<r.rosterGradeScore(rested,true));
   const season=r.rosterGradeScore(rested,true);rested.recentZ=-1;assert.equal(r.rosterGradeScore(rested,true),season);
-  rested.recentZ=2;tired.recentZ=-2;
-  assert.ok(r.rosterGradeScore(rested,true)>season);assert.ok(r.rosterGradeScore(rested,true)-season<=1.05+1e-9);
+  const hot=e.emptyRecord();Object.assign(hot.batting,{PA:20,AB:20,H:10,HR:4});
+  rested.recentAppearances=[hot];
+  assert.ok(r.rosterGradeScore(rested,true)>season);assert.ok(r.rosterGradeScore(rested,true)-season<=3+1e-9);
   assert.ok(r.compareRosterPlayers(rested,tired,'batting','total','grade',true)<0);
   assert.ok(r.compareRosterPlayers(rested,tired,'batting','total','grade',false)>0);assert.equal(r.rosterGradeScore(tired,false),100);
   const before=r.rosterGradeScore(tired,true);tired.proContract={status:'developmental',joinedDate:'2028-01-01'};tired.fatigue=0;assert.equal(r.rosterGradeScore(tired,true),before-6);

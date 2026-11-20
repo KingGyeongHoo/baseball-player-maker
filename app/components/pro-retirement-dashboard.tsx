@@ -6,7 +6,7 @@ import {dashboardRecordValues} from "./dashboard-records";
 import {scoreText} from "../../lib/display";
 import {rosterGrade} from '../../lib/roster-grades';
 
-export default function ProRetirement({state,onRecords,onNew}:{state:GameState;onRecords:()=>void;onNew:()=>void}){
+export default function ProRetirement({state,onRecords,onNew,onSave,saving=false,saveMessage}:{state:GameState;onRecords:()=>void;onNew:()=>void;onSave?:()=>void;saving?:boolean;saveMessage?:string}){
   const p=getPlayer(state),w=state.proWorld!,retired=w.retired;if(!retired)return null;
   const {records,milestones,counts}=retirementSummary(state),primary=isPitcher(p.primaryRole);
   const fields=[primary,!primary].filter(pitching=>pitching===primary||p.twoWay||(pitching?records.pitching.BF>0:records.batting.PA>0));
@@ -29,6 +29,7 @@ export default function ProRetirement({state,onRecords,onNew}:{state:GameState;o
 
     <section className="panel retirement-farewell" aria-label="은퇴 예우"><div className="panel-heading"><h2>은퇴 예우</h2></div><div className="career-panel-body"><p><b>은퇴식</b> · {retirementHonor?.ceremony?'해당':'해당 없음'}</p><p><b>은퇴 투어</b> · {retirementHonor?.tour?'해당':'해당 없음'}</p><p><b>영구결번</b> · {honor?honor.number+'번':'해당 없음'}</p></div></section>
     {honor&&<section className="panel retired-number-honor" aria-label="영구결번"><strong>{honor.number}</strong><div><span className="eyebrow">RETIRED NUMBER</span><h2>{clubName(state,honor.club)} 영구결번</h2><p>{honor.playerName} · {honor.criteria?`구단 WAR ${honor.criteria.clubWar.toFixed(1)} · 수상 가산점 ${honor.criteria.awardBonus.toFixed(1)} · 인정 ${honor.criteria.seasons}시즌`:`누적 평가 ${scoreText(honor.score)}점 · ${honor.grade??rosterGrade(honor.score,true)}등급`}</p><p>이 선수의 저장을 보관하는 동안 해당 구단에서 이 번호를 다시 사용할 수 없습니다.</p></div></section>}
-    <div className="retirement-actions"><button className="primary" onClick={onRecords}>연도별·리그별 기록 보기 ↗</button><button className="secondary" onClick={onNew}>선수 재생성</button></div>
+    <div className="retirement-actions"><button className="primary" onClick={onRecords}>연도별·리그별 기록 보기 ↗</button>{onSave&&<button className="secondary" disabled={saving} onClick={onSave}>{saving?"저장 중…":"은퇴 커리어 저장"}</button>}<button className="secondary" disabled={saving} onClick={onNew}>선수 재생성</button></div>
+    {saveMessage&&<p role="status">{saveMessage}</p>}
   </div>;
 }

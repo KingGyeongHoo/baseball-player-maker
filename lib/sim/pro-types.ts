@@ -29,7 +29,7 @@ export type ProfessionalPlayer = {
   twoWayReview?:{positions:{pitchingPosition:Position;battingPosition:Position};qualifiedDays:number;belowDays:number;lastDate?:string;nextProposalDate?:string};
   twoWayHistory?:{date:string;action:string;positions:{pitchingPosition:Position;battingPosition:Position};reason:string}[];
   entryReputation:number; proBonus:number; earnings:number; highestSalary:number; peak:Stats;
-  firsts:{debut?:string;start?:string;hit?:string;homeRun?:string;strikeout?:string};
+  firsts:{debut?:string;debutClub?:number;start?:string;hit?:string;homeRun?:string;strikeout?:string};
   movements:{date:string;from:number|null;to:number|null;kind:string;reason:string;registration?:'developmental'|'regular';squad?:ProSquad;requestedTrade?:true;exchange?:{id:string;name:string;position:Position}}[];
   salaries:{year:number;club:number;amount:number;salary:number}[];
   guarantees?:{year:number;club:number;amount:number}[];
@@ -44,10 +44,10 @@ export type ProSeries = {id:string;stage:"wildcard"|"semi"|"playoff"|"final";clu
 export type ContractOffer = {id:string;club:number;year:number;years:number;salary:number;salaryBeforeMinimum?:number;role:string;kind:"renewal"|"fa"|"released";faRetention?:boolean;faTerms?:FaTerms;startingLevel?:ProSquad;lastChance?:true;negotiated:boolean;final:boolean;competition:string[];registration?:"developmental";assessment?:{current:number|null;cumulative:number|null;score:number}};
 export type RetiredNumberCriteria={clubWar:number;awardBonus:number;seasons:number};
 export type RetiredNumber={club:number;number:number;playerId:string;playerName:string;date:string;score:number;grade?:string;criteria?:RetiredNumberCriteria};
-export type RetirementHonor={club:number;playerId:string;playerName:string;date:string;score:number;grade:string;seasons:number;consecutive:number;ceremony:boolean;tour:boolean};
+export type RetirementHonor={club:number;playerId:string;playerName:string;date:string;score:number|null;grade:string;seasons:number;consecutive:number;debutClubSeasons?:number;ceremony:boolean;tour:boolean};
 export type ProPostseason={format?:"kbo-v1";rosterVersion?:1;seeds:number[];series:ProSeries[];champion?:number};
 export type ProWorld = {
-  careerHonorRulesVersion?:1|2|3;
+  careerHonorRulesVersion?:1|2|3|4;
   offseasonContinuation?:'national'|'market'|'wait'|'nextSeason';
   departedStoveMoves?:import('./stove-report').StoveMove[];
   resumeCampAfterAwards?:true;
@@ -67,6 +67,7 @@ export type ProWorld = {
   retirementHonors?:RetirementHonor[];
   goal:string; longGoal:string; customGoal?:string; campShown?:number; midseasonShown?:number;
   retired?:{date:string;reason:string;forfeited:number;summary:string};
+  pendingRetirement?:{year:number;reason:string};
   monthly?:{month:string;text:string}; lastMonthly?:string; draftedYears:number[];
   squadsVersion?:1|2;
   rookieCandidates?:Player[];

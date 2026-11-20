@@ -1,6 +1,6 @@
 import {reservedJerseyNumbers} from '../permanent-retired-numbers';
 import {getPlayer,emptyRecord} from "./engine";
-import {retirementEligibility} from './retirement-honors';
+import {retirementEligibility,retirementHonorRules} from './retirement-honors';
 import {meetsCareerRegistration} from './pro-career-evaluation';
 import {clubName,proNews,proNotice} from "./pro-world";
 import type {GameState,Player} from "./types";
@@ -48,9 +48,9 @@ export function registerRetiredNumber(s:GameState,p:Player,eligibility=retiremen
 
 export function registerRetirementFarewell(s:GameState,p:Player){
   const w=s.proWorld!,eligibility=retirementEligibility(s,p),tour=eligibility.tour;
-  if(eligibility.club!==undefined&&eligibility.score!==null&&(eligibility.ceremony||tour)){
+  if(eligibility.club!==undefined&&(eligibility.ceremony||tour)){
     const honors=w.retirementHonors??=[];
-    if(!honors.some(row=>row.playerId===p.id))honors.push({club:eligibility.club,playerId:p.id,playerName:p.name,date:s.date,score:eligibility.score,grade:eligibility.grade,seasons:eligibility.seasons,consecutive:eligibility.consecutive,ceremony:eligibility.ceremony,tour:!!tour});
+    if(!honors.some(row=>row.playerId===p.id))honors.push({club:eligibility.club,playerId:p.id,playerName:p.name,date:s.date,score:eligibility.score,grade:eligibility.grade,seasons:eligibility.seasons,consecutive:eligibility.consecutive,...(eligibility.debutSeasons>=retirementHonorRules.debutCeremony?{debutClubSeasons:eligibility.debutSeasons}:{}),ceremony:eligibility.ceremony,tour:!!tour});
     if(eligibility.ceremony)proNews(s,`${clubName(s,eligibility.club)} · ${p.name}의 은퇴식을 열었습니다.`,`retirement-ceremony:${p.id}`);
     if(tour)proNews(s,`${clubName(s,eligibility.club)} · ${p.name}의 은퇴 투어 예우를 확정했습니다.`,`retirement-tour:${p.id}`);
   }
@@ -64,7 +64,14 @@ export function retireProfessional(s:GameState,reason="시즌 결산에서 은�
   pro.employment="retired";pro.contract=null;p.teamId=-1;w.stage="retired";s.phase="ended";
   if(w.market){w.market.offers=[];w.market.settled=true;}
   delete w.resumeCampAfterAwards;
+  delete w.pendingRetirement;
+  delete w.offseasonContinuation;
   const proYears=p.career.filter(row=>row.careerMode==="pro").length,clubs=new Set(pro.service.map(v=>v.club)).size;
   w.retired={date:s.date,reason,forfeited,summary:`${pro.entry==="developmental"?"신고선수":"지명 선수"}로 시작해 프로 ${proYears}시즌, ${clubs}개 구단의 기록을 남겼습니다.${p.proContract?.convertedDate?` ${p.proContract.convertedDate} 정식 전환을 이뤘습니다.`:""}${pro.firsts.debut?` 첫 1군 출전은 ${pro.firsts.debut}입니다.`:" 1군 정착을 향한 도전도 커리어에 남습니다."}`};
-  proNotice(s,`retirement:${w.year}`,honor?`${clubName(s,honor.club)} ${honor.number}번 영구결번`:eligibility.ceremony?`${p.name}의 은퇴식`:"나의 야구 커리어를 보관했습니다",reason+(honor?` ${clubName(s,honor.club)}에서 남긴 활약을 기려 ${p.name}의 ${honor.number}번을 영구결번으로 지정했습니다.`:eligibility.ceremony?` ${clubName(s,eligibility.club!)}에서 함께한 시간을 기리는 은퇴식을 열었습니다.`:"")+" 기록과 주요 사건을 확인한 뒤 새 선수를 만들 수 있습니다.");
+  proNotice(s,`retirement:${w.year}`,`${p.name} 선수 은퇴`,`${reason}\n\n${w.retired.summary}`);
+  // Announce only the highest farewell after the retirement notice is confirmed.
+  const farewell=honor?{title:`${clubName(s,honor.club)} ${honor.number}번 영구결번`,message:`${clubName(s,honor.club)}에서 남긴 활약을 기려 ${p.name}의 ${honor.number}번을 영구결번으로 지정했습니다.`}
+    :eligibility.tour?{title:`${p.name}의 은퇴 투어`,message:`${p.name}의 오랜 활약을 기리며 은퇴 투어 예우를 확정했습니다.`}
+    :eligibility.ceremony?{title:`${p.name}의 은퇴식`,message:`${clubName(s,eligibility.club!)}에서 함께한 시간을 기리는 은퇴식을 열었습니다.`}:undefined;
+  if(farewell)proNotice(s,`retirement-honor:${w.year}`,farewell.title,`${farewell.message}\n\n통산 기록을 확인한 뒤 커리어를 저장하거나 새 선수를 만들 수 있습니다.`);
 }

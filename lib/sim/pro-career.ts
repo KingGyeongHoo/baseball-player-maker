@@ -15,18 +15,18 @@ import {tryProNationalInvitation} from "./pro-national-events";
 import {syncProClubNames,proTeamName} from "./club-names";
 import {createCareerNPC,proRosterPositions} from './pro-roster';
 import {rookieDevelopmentalIds,setProSquad} from "./pro-squads";
-import {queuePersonalAwardNotices} from './pro-awards-ceremony';
+import {isGoldGloveCelebration,queuePersonalAwardNotices} from './pro-awards-ceremony';
 import {clubAwardLevel,clubAwardNames} from './pro-career-evaluation';
 import {pendingNationalOffseason} from './national-tournament';
 
 export type CareerChoice = "join" | "tryout" | "college" | "developmental" | "direct";
-const slots: Position[] = ["C","C","C","1B","1B","2B","2B","3B","3B","SS","SS","LF","LF","CF","CF","RF","RF","DH","SP","SP","SP","SP","SP","SP","RP","RP","RP","RP","CP","CP"];
+const slots: Position[] = ["C","C","C","1B","1B","2B","2B","3B","3B","SS","SS","LF","LF","CF","CF","RF","RF","1B","SP","SP","SP","SP","SP","SP","RP","RP","RP","RP","CP","CP"];
 const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind"], title: string, message: string) => {
   s.careerNotice = { id: `${s.date}:${s.week}:${kind}`, date: s.date, kind, title, message };
 };
 export const acknowledgeCareer = (input: GameState): GameState => {
   const s=structuredClone(input),notice=s.careerNotice;
-  if(s.noticeQueue)s.noticeQueue=s.noticeQueue.filter(row=>!row.individualTitles&&!row.code?.startsWith('individual-titles:'));
+  if(s.noticeQueue)s.noticeQueue=s.noticeQueue.filter(row=>!row.individualTitles&&!row.code?.startsWith('individual-titles:')&&!isGoldGloveCelebration(row));
   const ceremony=notice?.code?.match(/^awards(-summary)?:(\d{4})$/);
   const awardYear=ceremony?Number(ceremony[2]):notice?.award?.year;
   const season=ceremony?s.proWorld?.seasons.find(row=>row.year===awardYear):undefined;

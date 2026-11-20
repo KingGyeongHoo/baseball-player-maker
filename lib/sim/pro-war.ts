@@ -126,6 +126,10 @@ export function levelWarValue(line:ProWarLine,relief:boolean){
   return line.batting+line.pitching*(relief?rules.relieverWinScale:1)+line.fielding+line.positional;
 }
 
+export function singleGameWar(record:RecordLine,context:ProWarContext,level:ProLevel){
+  return levelWarValue(warLine(record,context[level]),false);
+}
+
 export function firstTeamClubWar(p:Player,context:ProWarContext){
   const position=p.twoWay?.pitchingPosition??p.position;
   const relief=position==='RP'||position==='CP';

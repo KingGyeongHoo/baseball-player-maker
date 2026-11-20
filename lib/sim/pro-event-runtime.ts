@@ -58,14 +58,14 @@ export function proGeneralCandidates(s:GameState,date=s.date){
     const regular=p.proContract?.status!=="developmental",stage=s.proWorld?.stage;
     let veteranRole=false;
     if((p.age??19)>=33&&regular&&["camp","regular"].includes(stage??"")){
-      const target:Position|undefined=p.position==="SP"?"RP":!pitching&&p.position!=="DH"?"DH":undefined;
+      const target:Position|undefined=p.position==="SP"?"RP":undefined;
       const sparse=stage==="regular"?evidence.tracked&&evidence.teamGames>=5&&(pitching?stats.pitching.BF<=10:stats.batting.PA<=8):s.players.some(q=>q.id!==p.id&&active(q)&&q.teamId%10===p.teamId%10&&q.primaryRole===p.primaryRole&&roleScore(q)>roleScore(p));
       if(target&&sparse&&ovr(p,pitching)>=45&&roleScore(p,roleFor(target))>=45){veteranRole=true;add("PE29",{target});}
     }
     if(!veteranRole){
       if(stage==="camp"&&!pitching&&ovr(p,false)>=45){const target=proFieldTarget(s,p);if(target)add("PE09",{target});}
       if(regular&&p.position==="SP"&&["camp","regular"].includes(stage??"")&&evidence.tracked&&evidence.startsKnown&&evidence.starts===0&&ovr(p,true)>=45&&roleScore(p,roleFor("RP"))>=45)add("PE10",{target:"RP"});
-      if(regular&&p.teamId<10&&!pitching&&p.position!=="DH"&&evidence.tracked&&stats.batting.PA<=8&&evidence.teamGames>=5&&ovr(p,false)>=45&&roleScore(p,roleFor("DH"))>=45)add("PE11",{target:"DH"});
+      if(regular&&p.teamId<10&&!pitching&&evidence.tracked&&stats.batting.PA<=8&&evidence.teamGames>=5&&ovr(p,false)>=45)add("PE11",{field:"batting"});
     }
   }
   if(s.proWorld?.stage==='regular'&&ownGames.some(g=>g.competitionId==='pro-second'&&g.status==='scheduled')&&healthy&&p.teamId>=10&&(!pro.requestAfter||date>=pro.requestAfter)&&(!pro.requestedEvaluationUntil||date>pro.requestedEvaluationUntil)&&evidence.tracked&&!stats.batting.PA&&!stats.pitching.BF&&ledger.history.filter(row=>row.season===s.calendar.seasonYear&&equivalentProId(row,"PE12")).length<2)add("PE12");

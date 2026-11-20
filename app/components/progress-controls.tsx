@@ -2,9 +2,10 @@ import {dateLabel,getPlayer,ticketsUsed,validPolicy} from "../../lib/sim/engine"
 import type {GameState,Policy} from "../../lib/sim/types";
 import {trainingLabel} from "./training-editor";
 
-export default function ProgressControls({state,policy,busy,auto,autoStartWeek,onAdvance,onToggleAuto,pendingOutcome=false,onContinue,onNextCamp,nationalAction}:{
+export default function ProgressControls({state,policy,busy,auto,autoStartWeek,onAdvance,onToggleAuto,pendingOutcome=false,onContinue,onNextCamp,onStove,nationalAction}:{
   state:GameState;policy:Policy;busy:boolean;auto:boolean;autoStartWeek:number;
   onAdvance:()=>void;onToggleAuto:()=>void;pendingOutcome?:boolean;onContinue?:()=>void;onNextCamp?:()=>void;
+  onStove?:()=>void;
   nationalAction?:{name:string;label:string;onClick:()=>void};
 }) {
   const player=getPlayer(state);
@@ -13,6 +14,7 @@ export default function ProgressControls({state,policy,busy,auto,autoStartWeek,o
   const pauseEvents=pro?"시즌 종료":"드래프트 종료";
   if(state.phase==="ended"){
     const retired=state.proWorld?.stage==="retired";
+    if(onStove&&!retired)return <div className="week-control"><div><div className="week-control-info"><span className="week-label">SEASON END</span><div><b>{dateLabel(state.date)}</b><span>시즌 수상·시상을 확인한 뒤 다음 단계로 이동하세요.</span></div></div><div className="progress-actions"><button className="primary" disabled={busy||pendingDecision} onClick={onStove}>스토브리그로 이동</button></div></div></div>;
     return <div className="week-control"><div><div className="week-control-info"><span className="week-label">{retired?"CAREER END":nationalAction?"INTERNATIONAL":"SEASON END"}</span><div><b>{dateLabel(state.date)}</b><span>{retired?"커리어 기록을 보관했습니다.":nationalAction?`${nationalAction.name} 종료 후 스토브리그를 시작합니다.`:onNextCamp?"계약 확정 · 남은 스토브리그를 자동으로 진행합니다.":state.careerMode==="pro"?"시즌 결산과 다음 계약을 확인하세요.":"시즌 결과와 다음 진로를 확인하세요."}</span></div></div><div className="progress-actions"><button className="primary" disabled={nationalAction||onNextCamp?busy||pendingDecision:!onContinue} onClick={nationalAction?.onClick??onNextCamp??onContinue}>{retired?"은퇴 기록 보기":nationalAction?nationalAction.label:onNextCamp?"다음 캠프로 바로 가기":state.careerMode==="pro"?"계약·다음 시즌":state.careerMode?"시즌 결과·진로 선택":"드래프트·진로 선택"}</button></div></div></div>;
   }
   return <div className="week-control"><div>

@@ -5,6 +5,8 @@ import {clearProfessionalReputation} from "./pro-selection";
 import {performanceValue} from "./pro-evaluation";
 import {proNews,proNotice} from "./pro-world";
 import {allstarDates} from "./pro-allstar-calendar";
+import {allstarMvps,selectAllstarMvps} from './pro-allstar-result';
+import {createProWarContext} from './pro-war';
 import type {CareerEvent,Game,GameState,Player,Position} from "./types";
 import type {AllstarCandidate,AllstarLeague,AllstarLevel,AllstarMember,AllstarSide,AllstarTeam,ProAllstarSeason} from "./pro-allstar-types";
 
@@ -166,19 +168,19 @@ function simulateAllstar(s:GameState,level:AllstarLevel){
   const game:Game={id:`${season.year}:allstar:${level}`,date:s.date,homeTeamId:0,awayTeamId:1,competitionId:`allstar-${level}`,exhibition:"allstar",round:1,rulesetId:"pro-allstar-v1",status:"scheduled",score:[0,0],innings:[[],[]],lineup:[],boxScore:{},proPreparedLineup:prepared as NonNullable<Game["proPreparedLineup"]>};
   const sandbox:GameState={...s,careerMode:undefined,proWorld:undefined,proEvents:undefined,players:rosters.flat(),playerId:"allstar-observer",careerEvent:null,careerNotice:undefined,weekProgress:undefined,matchProgress:undefined,matchEffect:undefined,rngStates:{...s.rngStates,match:hash(`${s.seed}:allstar:${season.year}:${level}`)}};
   simulateGame(sandbox,game,rosters);entry.game=game;
-  const winners=game.score[0]===game.score[1]?null:game.score[0]>game.score[1]?"blue":"white";
-  const ranked=Object.entries(game.boxScore).filter(([,r])=>r.batting.PA>0||r.pitching.BF>0).map(([id,r])=>{
-    const side:AllstarSide=entry.blue.roster.some(row=>row.playerId===id)?"blue":"white";
-    return {id,side,score:r.batting.H+2*r.batting.HR+.8*r.batting.RBI+.4*r.batting.R+.3*r.batting.BB+.25*r.pitching.outs+.7*r.pitching.SO-r.pitching.ER*2-.5*r.pitching.H-.4*r.pitching.BB+(winners===side ? .5 : 0)};
-  }).sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
+  entry.mvps=selectAllstarMvps(entry,level,createProWarContext(s));
+  const mvpIds=new Set(entry.mvps.map(row=>row.playerId));
   for(const clone of sandbox.players){const r=game.boxScore[clone.id];if(!r||!r.batting.PA&&!r.pitching.BF)continue;
     const p=s.players.find(p=>p.id===clone.id)!;p.fatigue=clamp(clone.fatigue+2);if(r.pitching.BF)p.lastPitched=s.date;
-    const history=p.professional?.allstarHistory?.find(row=>row.year===season.year);if(history)history.participated=true;
+    const history=p.professional?.allstarHistory?.find(row=>row.year===season.year&&row.level===level);if(history)history.participated=true;
+    if(p.professional&&mvpIds.has(p.id)){
+      p.stats.bq=clamp(p.stats.bq+eventTrainingReward(p,"bq",allstarRules.mvpGrowthWeeks),1);
+      if(history)history.mvp=true;
+      clearProfessionalReputation(p);
+    }
   }
-  if(ranked[0]){const best=ranked[0],p=s.players.find(p=>p.id===best.id)!;entry.mvp={playerId:p.id,name:p.name,side:best.side,merit:best.score};
-    if(p.professional){p.stats.bq=clamp(p.stats.bq+eventTrainingReward(p,"bq",allstarRules.mvpGrowthWeeks),1);const history=p.professional.allstarHistory?.find(row=>row.year===season.year);if(history)history.mvp=true;clearProfessionalReputation(p);}
-  }
-  proNews(s,`${level==="first"?"":"2군 "}올스타 · BLUE ${game.score[0]} : ${game.score[1]} WHITE${entry.mvp?` · 미스터 올스타 ${entry.mvp.name}`:""}`,`${season.year}:allstar-result:${level}`);
+  const names=entry.mvps.map(row=>row.name).join(', ');
+  proNews(s,`${level==="first"?"":"2군 "}올스타 · BLUE ${game.score[0]} : ${game.score[1]} WHITE${names?` · ${entry.mvps.length>1?'공동 ':''}미스터 올스타 ${names}`:""}`,`${season.year}:allstar-result:${level}`);
 }
 export function allstarGameOn(s:GameState,date=s.date){const season=s.proWorld?.allstar;if(!season)return undefined;return allstarLevels.map(level=>season.levels[level].game).find(game=>game?.date===date);}
 export function playAllstarDay(s:GameState){
@@ -187,7 +189,7 @@ export function playAllstarDay(s:GameState){
   const entry=season.levels[level];simulateAllstar(s,level);
   const mine=getPlayer(s),line=entry.game?.boxScore[mine.id];
   if(entry.resultShown||!line||!line.batting.PA&&!line.pitching.BF)return false;
-  entry.resultShown=true;const mvp=entry.mvp?.playerId===mine.id;
+  entry.resultShown=true;const mvp=allstarMvps(entry).some(row=>row.playerId===mine.id);
   if(params["pro_events.enabled"]===0)return false;
   userEvent(s,`AS-RESULT-${level}`,mvp?"미스터 올스타에 선정됐다":"올스타의 하루를 마쳤다","", [
     {id:"remember",label:"확인",outcomes:[{weight:100,message:""}]},

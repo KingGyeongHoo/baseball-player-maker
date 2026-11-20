@@ -1,10 +1,10 @@
 import {refreshCareerEvaluation,syncCareerHonorBonuses} from './pro-career-evaluation';
-import {retirementEligibility} from './retirement-honors';
+import {retirementEligibility,retirementHonorRules} from './retirement-honors';
 import {reservedJerseyNumbers} from '../permanent-retired-numbers';
 import type {GameState,Player} from './types';
 
 export function needsCareerHonorUpgrade(s:GameState){
-  return s.careerMode==='pro'&&!!s.proWorld&&s.proWorld.careerHonorRulesVersion!==3;
+  return s.careerMode==='pro'&&!!s.proWorld&&s.proWorld.careerHonorRulesVersion!==4;
 }
 // Rebuild derived honors from original season WAR, never from the old adjusted total.
 export function upgradeCareerHonors(s:GameState){
@@ -22,8 +22,8 @@ export function upgradeCareerHonors(s:GameState){
       const historical={...p,teamId:club,professional:{...pro,employment:'active',contract:null}} as Player;
       const view={...s,date,calendar:{...s.calendar,seasonYear:year},proWorld:{...w,seasonClosed:true}};
       const result=retirementEligibility(view,historical);
-      if(result.score!==null&&(result.ceremony||result.tour)){
-        const row={club,playerId:p.id,playerName:p.name,date,score:result.score,grade:result.grade,seasons:result.seasons,consecutive:result.consecutive,ceremony:result.ceremony,tour:result.tour};
+      if(result.ceremony||result.tour){
+        const row={club,playerId:p.id,playerName:p.name,date,score:result.score,grade:result.grade,seasons:result.seasons,consecutive:result.consecutive,...(result.debutSeasons>=retirementHonorRules.debutCeremony?{debutClubSeasons:result.debutSeasons}:{}),ceremony:result.ceremony,tour:result.tour};
         if(previous)Object.assign(previous,row);else(w.retirementHonors??=[]).push(row);
       }
       else if(wasDoubled&&previous&&result.score!==null){
@@ -40,6 +40,6 @@ export function upgradeCareerHonors(s:GameState){
       }
     }
   }
-  w.careerHonorRulesVersion=3;
+  w.careerHonorRulesVersion=4;
   return true;
 }

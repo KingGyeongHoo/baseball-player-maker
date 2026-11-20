@@ -4,7 +4,7 @@ import {levelWarValue} from './pro-war';
 import type {ProfessionalPlayer,ProSeasonAssessment} from './pro-types';
 import type {GameState,Player} from './types';
 
-export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:13,tourConsecutive:10,numberConsecutive:10,numberAfterTrade:13,numberWar:40,numberScore:50} as const;
+export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:13,tourConsecutive:10,debutCeremony:20,debutTour:23,debutTradeGrace:2,numberConsecutive:10,numberAfterTrade:13,numberWar:40,numberScore:50} as const;
 export function validHonorDays(value:Record<string,number>,maximum:number){
   return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([club,days])=>/^[0-9]$/.test(club)&&Number.isInteger(days)&&days>=0&&days<=maximum)&&Object.values(value).reduce((sum,n)=>sum+n,0)<=maximum;
 }
@@ -66,6 +66,42 @@ function retiredNumberCriteria(s:GameState,p:Player,rows:ProSeasonAssessment[],c
   return {clubWar,awardBonus,seasons};
 }
 
+function debutClubSeasons(s:GameState,p:Player,pro:ProfessionalPlayer,club:number){
+  const debut=pro.firsts.debut;
+  if(!debut)return 0;
+  const firstYear=Number(debut.slice(0,4)),lastYear=s.calendar.seasonYear-Number(!s.proWorld?.seasonClosed);
+  if(!Number.isInteger(firstYear)||lastYear-firstYear+1<retirementHonorRules.debutCeremony)return 0;
+
+  const debutAppearance=s.calendar.events.find(game=>game.date===debut&&game.competitionId==='pro-first'&&game.proAppearances?.[p.id])?.proAppearances?.[p.id];
+  const debutMove=pro.movements.findLast(move=>move.date<=debut&&move.from!==move.to);
+  const debutStints=new Set(pro.service.filter(stint=>stint.from<=firstYear&&stint.to>=firstYear).map(stint=>stint.club));
+  const debutClub=pro.firsts.debutClub??debutAppearance?.teamId??(debutMove?debutMove.to:debutStints.size===1?[...debutStints][0]:undefined);
+  if(debutClub!==club)return 0;
+
+  let departed:string|undefined;
+  const absences:{from:string;until:string}[]=[];
+  for(const move of pro.movements){
+    if(move.date<debut||move.date>s.date||move.from===move.to||move.kind==='은퇴')continue;
+    if(move.from===club){
+      if(move.kind!=='트레이드'||move.to===null||move.requestedTrade)return 0;
+      departed=move.date;
+    }else if(move.to===club&&departed){
+      absences.push({from:departed,until:move.date});
+      departed=undefined;
+    }
+  }
+  if(departed)return 0;
+  const competition=s.calendar.competitions.find(row=>row.id==='pro-first');
+  const seasonStart=competition?.startDate.slice(4)??'-03-01',seasonEnd=competition?.endDate.slice(4)??'-10-31';
+  let grace=0;
+  for(let year=firstYear+1;year<=lastYear;year++){
+    const away=absences.some(({from,until})=>from<=`${year}${seasonEnd}`&&until>`${year}${seasonStart}`);
+    if(away){if(++grace>retirementHonorRules.debutTradeGrace)return 0;}
+    else if(!pro.service.some(stint=>stint.club===club&&stint.from<=year&&stint.to>=year))return 0;
+  }
+  return lastYear-firstYear+1;
+}
+
 export function retirementEligibility(s:GameState,p:Player){
   const pro=p.professional,club=pro?.employment==='active'&&p.teamId>=0?(pro.contract?.club??p.teamId%10):undefined;
   const rows=(pro?.assessments??[]).filter(row=>row.year<=s.calendar.seasonYear);
@@ -80,8 +116,9 @@ export function retirementEligibility(s:GameState,p:Player){
   if(!s.proWorld?.seasonClosed&&years.at(-1)===s.calendar.seasonYear-1){consecutive=0;for(let i=years.length-1,expected=s.calendar.seasonYear-1;i>=0&&years[i]===expected&&years[i]>=stintStart;i--,expected--)consecutive++;}
   const atLeastC=['S','A','B','C'].includes(grade),atLeastB=['S','A','B'].includes(grade),seasons=years.length,oneClub=club!==undefined&&clubs.size===1&&clubs.has(club);
   const criteria=club===undefined||!pro||!meetsRetiredNumberService(pro,club,years)?undefined:retiredNumberCriteria(s,p,rows,club,seasons);
-  return {club,score,grade,seasons,consecutive,oneClub,criteria,
-    ceremony:club!==undefined&&atLeastC&&(seasons>=retirementHonorRules.ceremonyTotal||consecutive>=retirementHonorRules.ceremonyConsecutive),
-    tour:club!==undefined&&atLeastB&&(seasons>=retirementHonorRules.tourTotal||consecutive>=retirementHonorRules.tourConsecutive),
+  const debutSeasons=club===undefined||!pro?0:debutClubSeasons(s,p,pro,club);
+  return {club,score,grade,seasons,consecutive,oneClub,criteria,debutSeasons,
+    ceremony:debutSeasons>=retirementHonorRules.debutCeremony||club!==undefined&&atLeastC&&(seasons>=retirementHonorRules.ceremonyTotal||consecutive>=retirementHonorRules.ceremonyConsecutive),
+    tour:debutSeasons>=retirementHonorRules.debutTour||club!==undefined&&atLeastB&&(seasons>=retirementHonorRules.tourTotal||consecutive>=retirementHonorRules.tourConsecutive),
     retiredNumber:!!criteria&&criteria.clubWar+1e-9>=retirementHonorRules.numberWar&&criteria.clubWar+criteria.awardBonus+1e-9>=retirementHonorRules.numberScore};
 }

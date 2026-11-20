@@ -22,7 +22,7 @@ export const pitchingPositions: { id: Position; image: string; description: stri
   { id: "CP", image: "/images/pitcher-closer-left.png", description: "Closer" },
 ];
 export const kindForPosition = (position: Position): PlayerKind => ["SP", "RP", "CP"].includes(position) ? "pitcher" : "batter";
-const playablePositions=Object.keys(positions) as Position[];
+const playablePositions=(Object.keys(positions) as Position[]).filter(position=>position!=="DH");
 
 function randomIndex(count:number,entropy:Pick<Crypto,'getRandomValues'>){
   const limit=Math.floor(2**32/count)*count;
@@ -39,7 +39,7 @@ export function randomPlayerPosition(entropy:Pick<Crypto,'getRandomValues'>=glob
 // inputs remain available to automated tests and diagnostics.
 export function createRandomCareer(name: string, position: Position, entropy: Pick<Crypto, "randomUUID" | "getRandomValues"> = globalThis.crypto, jerseyNumber?:number,hands?:PlayerHands) {
   if (!name.trim()) throw new Error("선수 이름을 입력해 주세요.");
-  if (!Object.hasOwn(positions, position)) throw new Error("희망 포지션을 선택해 주세요.");
+  if (position==="DH"||!Object.hasOwn(positions,position)) throw new Error("희망 수비 포지션이나 투수 보직을 선택해 주세요.");
   const teamId=randomIndex(params["world.teams"],entropy);
   const s=choosePlayerJersey(createGame(entropy.randomUUID(), name, position, teamId),jerseyNumber);choosePlayerHands(getPlayer(s),hands);return s;
 }

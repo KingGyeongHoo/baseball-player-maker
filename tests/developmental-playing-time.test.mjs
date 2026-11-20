@@ -28,6 +28,8 @@ test('ordinary selection remains second, then third, then developmental with eve
 });
 test('idle evaluation opportunities rotate second, third and developmental hitters even with healthy higher squads',()=>{
   const {s,third,dev}=fixture(),second=s.players.find(p=>p.teamId===10&&p.position==='3B');
+  // Keep these three idle: a stronger spare catcher wins the new open DH role.
+  const dh=player(s,'batting-bench','C',10,100);dh.stats.defense=1;dh.stats.arm=1;dh.stats.speed=1;s.players.push(dh);
   delete second.professional.lastAppearance;delete third.professional.lastAppearance;delete dev.professional.lastAppearance;
   const ids=[],before=e.proSelectionScore(dev);
   for(let day=0;day<3;day++){

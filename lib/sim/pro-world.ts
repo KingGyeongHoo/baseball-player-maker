@@ -7,7 +7,7 @@ import {farmAssignmentPosition,farmGameRoster,farmSelectionTier} from "./pro-far
 import {canPromoteToFirst} from "./pro-squads";
 import {firstTeamDemotionMargin,hydrateAssessments,recordAssessmentDay} from "./pro-assessment";
 import {clearProfessionalReputation} from "./pro-selection";
-import {addDays,available,emptyRecord,getPlayer,hash,isPitcher,lineup,ovr,pitchingRole,roleFor,roleScore,selectionScore} from "./engine";
+import {addDays,available,canBatAsDH,compareDesignatedHitters,emptyRecord,getPlayer,hash,isPitcher,lineup,ovr,pitchingRole,roleFor,roleScore,selectionScore} from "./engine";
 import {updateEvaluationReputations} from "./evaluation-reputation";
 import {initializeProTwoWay} from "./pro-two-way";
 import {initializeAgingProfile} from "./pro-growth";
@@ -55,7 +55,7 @@ export function ensureProWorld(s:GameState) {
   if(s.careerMode!=="pro")return;
   discardRetiredPlayers(s);
   const year=s.calendar.seasonYear,p=getPlayer(s),info=s.postSchool?.pro;
-  s.proWorld??={version:1,careerHonorRulesVersion:3,contractRulesVersion:5,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
+  s.proWorld??={version:1,careerHonorRulesVersion:4,contractRulesVersion:5,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
     clubs:Array.from({length:10},(_,id)=>({id,direction:"balanced",budget:(220+hash(`${s.seed}:club-budget:${id}`)%81)*BASE_SALARY,deadMoney:{},nextReview:`${year}-03-15`})),
     seasons:[],archive:[],news:[],squadsVersion:s.teams.length>=40?2:undefined,goal:p.proContract?.status==="developmental"?"정식 선수 전환":"1군 정착",longGoal:"1군 데뷔와 꾸준한 출전",draftedYears:[year]};
   repairConversionRegistrations(s);
@@ -184,7 +184,7 @@ export function balanceSquadDepth(s:GameState){
   if(!s.proWorld)return;
   const previousTeam=getPlayer(s).teamId;
   const minimum=(pos:Position)=>pos==="C"?2:pos==="SP"?3:pos==="RP"?2:1;
-  for(let club=0;club<10;club++)for(const pos of ["C","SS","2B","CF","1B","3B","LF","RF","DH","SP","RP"] as Position[]){
+  for(let club=0;club<10;club++)for(const pos of ["C","SS","2B","CF","1B","3B","LF","RF","SP","RP"] as Position[]){
     // Keep the registered first-team staff intact. Lower squads are supplied
     // by reserve registration, rather than raiding a five-man rotation.
     for(const target of [club]){
@@ -232,13 +232,22 @@ export function professionalLineup(s:GameState,roster:Player[],date:string,ids:s
     const starters=new Set(result.field.map(p=>p.id));
     // Rest days give bench hitters real plate appearances, including at DH.
     for(let i=0;i<slots.length;i++){
-      const current=result.field[i];if(current.twoWay&&slots[i]==='DH'||guaranteedProStarter(current,slots[i],date))continue;
+      const current=result.field[i];if(slots[i]==='DH'||guaranteedProStarter(current,slots[i],date))continue;
       const restChance=Math.max(15,Math.min(60,53-((current.stats.contact+current.stats.power)/2-65)*2.5));
-      if(hash(`${s.seed}:${date}:${current.id}:rest`)%100>=restChance)continue;
+      const restRoll=hash(`${s.seed}:${date}:${current.id}:rest`)%100;
+      if(restRoll>=restChance)continue;
       const replacement=roster.filter(p=>available(p,date)&&(!isPitcher(p.primaryRole)||!!p.twoWay)&&!starters.has(p.id)&&!result.field.includes(p)&&currentProPosition(p,slots[i])&&(!p.twoWay||slots[i]==='DH'||pitchingRole(p)==='선발'&&p!==result.starter))
         .sort((a,b)=>farmSelectionTier(a)-farmSelectionTier(b)||(selectionScore(b,roleFor(slots[i]))+hash(`${s.seed}:${date}:${b.id}:bench`)%24)-(selectionScore(a,roleFor(slots[i]))+hash(`${s.seed}:${date}:${a.id}:bench`)%24)||a.id.localeCompare(b.id))[0];
-      if(replacement){result.field[i]=replacement;result.order=result.order.map(p=>p===current?replacement:p);}
+      if(!replacement)continue;
+      const role=roleFor(slots[i]),lead=Math.max(0,selectionScore(current,role)-selectionScore(replacement,role));
+      // Rotate comparable players. A clear starter still comes out when unavailable.
+      if(restRoll>=restChance*Math.max(0,1-lead/10))continue;
+      result.field[i]=replacement;result.order=result.order.map(p=>p===current?replacement:p);
     }
+    // Rest-day changes can free a better hitter after defensive starters are set.
+    const defenders=new Set(result.field.slice(0,8).map(p=>p.id));
+    const dh=roster.filter(p=>available(p,date)&&canBatAsDH(p)&&!defenders.has(p.id)).sort(compareDesignatedHitters)[0];
+    if(dh)result.field[8]=dh;
     const middle=[...result.field].sort((a,b)=>b.stats.power-a.stats.power||a.id.localeCompare(b.id)).slice(0,3);
     const top=result.field.filter(p=>!middle.includes(p)).sort((a,b)=>b.stats.contact+b.stats.bq-a.stats.contact-a.stats.bq||a.id.localeCompare(b.id)).slice(0,2);
     result.order=[...top,...middle,...result.field.filter(p=>!top.includes(p)&&!middle.includes(p)).sort((a,b)=>b.stats.contact-a.stats.contact||a.id.localeCompare(b.id))];
@@ -251,7 +260,7 @@ export function professionalLineup(s:GameState,roster:Player[],date:string,ids:s
     if(isPitcher(roleFor(position))){if(position==="SP"&&result.pitchers.includes(p)&&(!result.starter||result.starter.id===p.id||!guaranteedProStarter(result.starter,result.starter.position,date))&&proStarterReady(s,p,date)){if(p.twoWay)result=lineup(roster,date,p);else result.starter=p;}continue;}
     const slot=positions.indexOf(position);if(slot<0||!p.eligiblePositions.includes(positions[slot])||result.starter?.id===p.id)continue;
     if(result.field[slot]?.id!==p.id&&guaranteedProStarter(result.field[slot],positions[slot],date))continue;
-    const previous=result.field.indexOf(p);if(previous>=0){if(previous===slot)continue;const displaced=result.field[slot];if(!displaced?.eligiblePositions.includes(positions[previous]))continue;result.field[previous]=displaced;}
+    const previous=result.field.indexOf(p);if(previous>=0){if(previous===slot)continue;const displaced=result.field[slot];if(!displaced||(previous===8?!canBatAsDH(displaced):!displaced.eligiblePositions.includes(positions[previous])))continue;result.field[previous]=displaced;}
     result.field[slot]=p;
   }
   result.order=[...result.field];return result;
