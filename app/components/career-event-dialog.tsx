@@ -11,7 +11,7 @@ const awakeningPhrases: Record<Stat, string> = {
   stamina: "오래 버티는 몸의 사용법에 눈을 떴다!", recovery: "자신의 몸을 회복시키는 요령에 눈을 떴다!", arm: "힘 있는 송구에 눈을 떴다!", bq: "경기를 읽는 눈을 떴다!",
 };
 function Scene({ scene }: { scene: EventScene }) {
-  return <section className="event-scene" aria-label="현재 경기 상황"><b>{scene.inning}회{scene.battingSide === 1 ? "초" : "말"} · {scene.batting ? "나의 타석" : "나의 등판"}</b>
+  return <section className="event-scene" aria-label="현재 경기 상황"><b>{scene.inning}회{scene.battingSide === 1 ? "초" : "말"} · {scene.running ? "나의 주루" : scene.batting ? "나의 타석" : "나의 등판"}</b>
     <span>{scene.outs}아웃 · 홈 {scene.score[0]} : 원정 {scene.score[1]}</span>
     <span>타자 {scene.batterName} · 투수 {scene.pitcherName}</span>
     <span>{scene.bases.map((name, index) => `${index + 1}루 ${name ?? "없음"}`).join(" · ")}</span></section>;
@@ -47,7 +47,9 @@ export default function CareerEventDialog({ event, outcome, disabled, onChoose, 
       {outcome&&allstarResult?<>{allstarEntry?<AllstarResult state={state!} entry={allstarEntry}/>:<p>올스타 경기 기록이 없습니다.</p>}<div className="modal-actions"><button className="primary" onClick={onDone}>확인</button></div></>:outcome ? <><p><b>{outcome.title}</b></p><p>{outcome.choice}</p><p className="event-result-message">{outcome.message}</p>
         {outcome.awakened.length > 0 && <div className="event-awakening" role="status"><b>{outcome.awakened.length === 11 ? "야구 전반의 새로운 감각에 눈을 떴다!" : outcome.awakened.length === 1 ? awakeningPhrases[outcome.awakened[0]] : `${outcome.awakened.map(key => labels[key]).join("·")}의 새로운 감각에 눈을 떴다!`}</b></div>}
         <div className="event-changes">{(Object.entries(outcome.stats) as [Stat, number][]).filter(([,amount])=>!outcome.proEvent||Math.abs(amount)>1e-9).map(([key, amount]) => <span key={key}>{labels[key]} <b>{changeText(amount)}</b></span>)}{outcome.reputation !== 0 && <span>평판 <b>{changeText(outcome.reputation)}</b></span>}{outcome.fatigue !== 0 && <span>피로 <b>{changeText(outcome.fatigue,10)}</b></span>}</div>
-        {!Object.keys(outcome.stats).length && !outcome.reputation && !outcome.fatigue && !outcome.injury && !outcome.positionChange && !outcome.match && !outcome.twoWay && !outcome.transfer && !outcome.proEvent?.action && <p>능력치·피로 변화가 없습니다.</p>}
+        {outcome.selectionBonus!==undefined&&<div className="event-changes"><span>출전평가 보정 <b>{changeText(outcome.selectionBonus)}</b></span></div>}
+        {outcome.steal!==undefined&&<div className="event-match-effect">이번 도루 성공 확률 <b>{changeText(outcome.steal*100)}%p</b></div>}
+        {!Object.keys(outcome.stats).length && !outcome.reputation && !outcome.selectionBonus && !outcome.fatigue && !outcome.injury && !outcome.positionChange && !outcome.match && outcome.steal===undefined && !outcome.twoWay && !outcome.transfer && !outcome.proEvent?.action && <p>능력치·피로 변화가 없습니다.</p>}
         {outcome.proEvent?.action&&<div className="info-box">{outcome.proEvent.action.kind==="trial"?<>{positions[outcome.proEvent.action.target!]} 평가 · {dateLabel(outcome.proEvent.action.until!)} 종료 예정<br/>현재 역할과 훈련 배분을 유지하며 정상 훈련과 적성을 확인한 뒤 전환 여부를 직접 선택합니다.</>:outcome.proEvent.action.kind==="request"?<>평가 출전 검토 · {dateLabel(outcome.proEvent.action.until!)}까지<br/>실제 자격·경쟁·몸 상태에 따라 기회를 검토합니다. 출전·승격·정식 전환은 보장되지 않습니다.</>:<>보직 평가 결정 완료 · {outcome.proEvent.action.kind==="accepted"?positions[outcome.proEvent.action.target!]+"로 전환":"기존 역할 유지"}<br/>실제 기록과 훈련 배분을 이어갑니다.</>}</div>}
         {outcome.twoWay && <div className="info-box">투타 겸업 시작 · {positions[outcome.twoWay.pitchingPosition]} / {positions[outcome.twoWay.battingPosition]}<br />양쪽 출전 기록을 모두 보관합니다. 한 주에 타격·투구 모두 출전하면 추가 피로가 쌓입니다.</div>}
         {outcome.transfer && <div className="info-box">{outcome.transfer.from} → {outcome.transfer.to}<br />{outcome.transfer.status === "scheduled" ? `${dateLabel(outcome.transfer.effectiveDate)} 합류 예정 · 현재 학교에서 이번 시즌을 마무리합니다.` : "합류 완료 · 적응 기간은 실제 훈련에 참여한 첫 2주입니다."}</div>}

@@ -51,8 +51,8 @@ function fullWeek(s){
 }
 function withParams(changes,fn){const before={};for(const key of Object.keys(changes)){before[key]=e.params[key];e.params[key]=changes[key];}try{return fn();}finally{Object.assign(e.params,before);}}
 
-test('document catalog contains exactly 60 events, 2-3 actions each, and branch sums of 100%',()=>{
-  assert.equal(eventIds.length,60);assert.equal(new Set(eventIds).size,60);
+test('document catalog contains exactly 70 events, 2-3 actions each, and branch sums of 100%',()=>{
+  assert.equal(eventIds.length,70);assert.equal(new Set(eventIds).size,70);
   for(const role of ['SS','SP'])for(const id of eventIds){
     const s=fixture(role),event=createCareerEvent(id,e.getPlayer(s),s.date,s.week,{targetRole:'선발'});
     assert.ok([2,3].includes(event.choices.length));
@@ -67,7 +67,7 @@ test('country and center preserve the exact user-specified conditional branches'
   const rest=country.choices[0].outcomes.slice(1).map(o=>o.weight);close(rest.reduce((a,b)=>a+b,0),95);close(rest[0],rest[1]);close(rest[2],2*rest[0]);
   assert.deepEqual(center.choices.map(c=>c.outcomes.map(o=>o.weight)),[[5,95],[50,50]]);
   assert.equal(system.weightedOutcome(center.choices[0].outcomes,.049999).weeks.contact,8);
-  assert.equal(system.weightedOutcome(center.choices[0].outcomes,.05).fatigue,10);
+  assert.equal(system.weightedOutcome(center.choices[0].outcomes,.05).fatigue,undefined);
   assert.match(system.weightedOutcome(country.choices[0].outcomes,.049999).message,/MVP/);
   assert.equal(system.weightedOutcome(country.choices[0].outcomes,.05).reputation,8);
   assert.equal(system.weightedOutcome(country.choices[0].outcomes,.2875).injury.days,14);
@@ -102,7 +102,7 @@ test('multiple stat rewards use the same pre-choice basis and only modify declar
   const before=structuredClone(s),expected=Object.fromEntries(['contact','power','speed','defense'].map(k=>[k,system.eventTrainingReward(p,k,4)]));
   const n=answer(s,'T10',0,[.05,1]),after=e.getPlayer(n),out=n.careerEventHistory.at(-1);
   for(const [key,amount] of Object.entries(expected))close(after.stats[key]-p.stats[key],amount);
-  assert.deepEqual(after.talent,p.talent);assert.deepEqual(after.talentExposure,p.talentExposure);assert.equal(n.date,s.date);assert.equal(n.week,s.week);close(out.fatigue,10);
+  assert.deepEqual(after.talent,p.talent);assert.deepEqual(after.talentExposure,p.talentExposure);assert.equal(n.date,s.date);assert.equal(n.week,s.week);close(out.fatigue,0);
   for(const key of ['stamina','recovery','arm','bq','velocity','control','movement'])assert.equal(after.stats[key],p.stats[key]);
   assert.deepEqual(before.players,s.players);
 });
@@ -112,7 +112,7 @@ test('awakening is one result-level draw that replaces every positive effect and
   assert.equal(out.awakened.length,11);for(const key of Object.keys(p.stats)){const gain=system.eventAwakeningReward(p,key,8);close(after.stats[key],40+gain);close(out.stats[key],gain);assert.ok(gain>=4.5&&gain<=100-p.stats[key]);}
   assert.deepEqual(after.talent,p.talent);
   const ordinary=answer(fixture(),'T10',0,[.05,1],true).careerEventHistory.at(-1);
-  assert.equal(ordinary.awakened.length,4);for(const key of Object.keys(ordinary.stats))close(ordinary.stats[key],system.eventAwakeningReward(e.getPlayer(fixture()),key,4));close(ordinary.fatigue,10);
+  assert.equal(ordinary.awakened.length,4);for(const key of Object.keys(ordinary.stats))close(ordinary.stats[key],system.eventAwakeningReward(e.getPlayer(fixture()),key,4));close(ordinary.fatigue,0);
 });
 
 test('awakening gives all abilities at least three points at 60 and tapers smoothly toward the cap',()=>{
@@ -136,7 +136,7 @@ test('awakening gives all abilities at least three points at 60 and tapers smoot
 });
 test('declines, injuries and fatigue-only outcomes never draw awakening; actual limits and one-time application are preserved',()=>{
   const s=fixture();e.getPlayer(s).stats.contact=1;
-  s.careerEvent=createCareerEvent('T01',e.getPlayer(s),s.date,s.week);forceRolls(s,[0,.5],true);
+  s.careerEvent=createCareerEvent('T01',e.getPlayer(s),s.date,s.week);forceRolls(s,[.35,1],true);
   const expected={rngStates:{...s.rngStates}};e.random(expected,'events');
   const n=e.answerCareerEvent(s,s.careerEvent.choices[0].id),out=n.careerEventHistory.at(-1);
   assert.equal(n.rngStates.events,expected.rngStates.events);assert.equal(out.awakened.length,0);close(out.stats.contact,0);
@@ -157,7 +157,7 @@ test('youth selection ranks fifteen per field across all grades in September and
   const others=s.players.filter(other=>other.id!==p.id&&!e.isPitcher(other.primaryRole));for(const other of others.slice(0,14))other.reputation=80.2;
   assert.ok(system.tryNationalEvent(s));assert.equal(s.careerEvent.definitionId,'P08');assert.equal(s.nationalTeams[0].roster.length,30);
   const excluded=fixture(),me=e.getPlayer(excluded);excluded.date='2027-09-01';for(const other of excluded.players)other.reputation=1;me.reputation=80.1;
-  for(const other of excluded.players.filter(o=>o.id!==me.id&&!e.isPitcher(o.primaryRole)).slice(0,15))other.reputation=80.2;
+  for(const other of excluded.players.filter(o=>o.id!==me.id&&!e.isPitcher(o.primaryRole)))other.reputation=80.2;
   assert.equal(system.tryNationalEvent(excluded),false);me.reputation=100;assert.equal(system.tryNationalEvent(excluded),false);
 });
 

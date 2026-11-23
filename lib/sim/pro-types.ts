@@ -8,6 +8,7 @@ export type FaTerms={plan:"starter"|"money"|"contender"|"security"|"rebuild"|"co
 export type SalaryContract = { id:string; club:number; startYear:number; endYear:number; salary:number; segments:{from:string;salary:number}[]; source:"rookie"|"renewal"|"fa"|"released";faTerms?:FaTerms };
 export type AgingProfile={version:1;physical:number;peakStart:number;declineStart:number;loss:Partial<Stats>};
 export type ProfessionalPlayer = {
+  eventSelectionBonus?: number;
   careerHonorBonuses?:{year:number;points:number}[];
   awardBonuses?:{year:number;category:"mvp"|"goldGlove"|"rookie"|"wildcardMvp"|"semiMvp"|"playoffMvp"|"finalMvp";points:number;level?:"second";seriesId?:string}[];
   nationalBonus?:number;

@@ -34,6 +34,7 @@ export function proGeneralCandidates(s:GameState,date=s.date){
   if(p.forcedRest)return pool;
   for(const definition of proEventCatalog){
     if(!definition.rule)continue;
+    if(definition.rule.activity==='free'&&ownGames.length)continue;
     const story=eligibleStory(s,definition.id,definition.rule,date);
     if(story)add(definition.id,{story,...(definition.rule.field?{field:definition.rule.field}:{})});
   }
@@ -123,7 +124,22 @@ export function openProMatchEvent(s:GameState,scene:EventScene,batter:Player,pit
   if(ledger.attemptedGames.includes(scene.gameId)||!proChannelFree(s,"game"))return false;
   const loaded=scene.bases.every(Boolean),lead=scene.score[scene.batting?scene.battingSide:1-scene.battingSide]-scene.score[scene.batting?1-scene.battingSide:scene.battingSide];
   const ids=scene.batting?[...(scene.inning>=7&&lead<=-1&&lead>=-3&&scene.bases.some(Boolean)?["PE21"]:[]),...(pitcher.stats.velocity>=batter.stats.contact+5?["PE20"]:[])]:[...(loaded&&[1,2].includes(scene.outs)?["PE22"]:[]),...(scene.inning>=6&&p.fatigue>=60&&p.fatigue<80?["PE24"]:[]),...(scene.inning>=7&&lead===1&&!loaded?["PE23"]:[])];
-  const id=ids.find(id=>proIdFree(s,id,"game"));if(!id)return false;ledger.attemptedGames.push(scene.gameId);
+  if(scene.batting&&pitcher.stats.velocity>=batter.stats.contact+5)ids.push('PE79');
+  if(!scene.batting&&loaded)ids.push('PE80');
+  const eligible=ids.filter(id=>proIdFree(s,id,"game"));if(!eligible.length)return false;ledger.attemptedGames.push(scene.gameId);
   if(random(s,"events")>=params["pro_events.game_chance"])return false;
+  const first=eligible[0],variants=first==='PE20'?eligible.filter(id=>['PE20','PE79'].includes(id)):first==='PE22'?eligible.filter(id=>['PE22','PE80'].includes(id)):[first];
+  const id=variants[Math.floor(random(s,'events')*variants.length)];
   s.careerEvent=createProEvent(s,id,context(s,id,s.date,{channel:"game",gameId:scene.gameId,field:scene.batting?"batting":"pitching"}));s.careerEvent.scene=scene;recordProChoice(s,s.careerEvent);return true;
+}
+
+export function openProStealEvent(s:GameState,scene:EventScene,runnerId:string){
+  if(!proEventsEnabled(s)||!s.weekProgress||s.careerEvent||s.careerNotice||runnerId!==s.playerId)return false;
+  const p=getPlayer(s),m=s.matchProgress,ledger=ensureProEvents(s);
+  if(!m?.ready||m.gameId!==scene.gameId||m.bases[0]?.playerId!==p.id||m.bases[1]||!active(p)||!available(p,s.date))return false;
+  if(Math.abs(scene.score[0]-scene.score[1])!==1||ledger.attemptedGames.includes(scene.gameId)||!proChannelFree(s,'game')||!proIdFree(s,'PE81','game'))return false;
+  ledger.attemptedGames.push(scene.gameId);
+  if(random(s,'events')>=params['pro_events.game_chance'])return false;
+  s.careerEvent=createProEvent(s,'PE81',context(s,'PE81',s.date,{channel:'game',gameId:scene.gameId,field:'batting'}));
+  s.careerEvent.scene={...scene,batting:true,running:true};recordProChoice(s,s.careerEvent);return true;
 }

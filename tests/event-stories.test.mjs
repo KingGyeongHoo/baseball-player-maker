@@ -43,10 +43,10 @@ function seedFor(s,low,high){
 }
 
 test('catalogs keep the original events and replace all additions with independent scenes near 90 percent baseball',()=>{
- for(const [mode,rows,total,baseball,added] of [['school',school.schoolEventCatalog,60,54,30],['pro',pro.proEventCatalog,75,68,45]]){
+ for(const [mode,rows,total,baseball,added] of [['school',school.schoolEventCatalog,70,58,38],['pro',pro.proEventCatalog,87,74,54]]){
   assert.equal(rows.length,total);assert.equal(rows.filter(r=>r.category==='baseball').length,baseball);assert.equal(definitions(mode).length,added);
   for(const d of definitions(mode)){
-   assert.equal(d.rule.after,undefined);assert.equal(d.rule.revision,4);assert.equal(d.choices.length,2);
+   assert.equal(d.rule.after,undefined);assert([4,5].includes(d.rule.revision));assert.equal(d.choices.length,2);
    assert.doesNotMatch(JSON.stringify(d),/리포트|분석실|영상 분석|질문 노트|후속|아무런 변화|변화 없음|큰 변화 없이/);
   }
   for(const d of rows)for(const choice of d.choices)assert.equal(choice.outcomes.reduce((n,b)=>n+b.weight,0),100);
@@ -92,7 +92,7 @@ test('whole catalogs leave three school and two pro BQ themes and add one scene 
  const core=['velocity','control','movement','contact','power','speed','defense'];
  for(const[rows,expected,bqIds]of [[school.schoolEventCatalog,[6,5,6,6,5,5,5],['P06','P08','L18']],[pro.proEventCatalog,[7,10,9,8,7,6,7],['PE58','PE71']]]){
   assert.deepEqual(rows.filter(d=>d.focus==='bq').map(d=>d.id).sort(),bqIds.sort());
-  core.forEach((key,i)=>assert.equal(rows.filter(d=>d.focus===key).length,expected[i],key));
+  core.forEach((key,i)=>assert.equal(rows.filter(d=>d.rule?.revision!==5&&!['G07','G08','PE79','PE80','PE81'].includes(d.id)&&d.focus===key).length,expected[i],key));
  }
 });
 
@@ -115,7 +115,7 @@ test('redistributed pro offers retain their actions and adapt concrete training 
 
 test('added technical catalogs contain equal counts for every core ability within each role',()=>{
  for(const[mode,pitchCount,batCount]of [['school',3,3],['pro',6,4]]){
-  const counts={};for(const d of definitions(mode).filter(d=>d.category==='baseball')){
+  const counts={};for(const d of definitions(mode).filter(d=>d.category==='baseball'&&d.rule.revision===4)){
    counts[d.focus]=(counts[d.focus]??0)+1;
    if(['velocity','control','movement'].includes(d.focus))assert.equal(d.rule.field,'pitching',d.id);
    if(['contact','power','speed','defense'].includes(d.focus))assert.equal(d.rule.field,'batting',d.id);
@@ -163,7 +163,7 @@ test('every new outcome makes a real change and preserves game records, training
    for(const branch of choice.outcomes){
     const s=structuredClone(base),p=e.getPlayer(s),high=low+branch.weight/100;seedFor(s,low,high);
     const next=e.answerCareerEvent(s,choice.id),q=e.getPlayer(next),out=next.careerEventHistory.at(-1);
-    assert.equal(out.message,branch.message,d.id);assert(Object.values(out.stats).some(n=>n!==0)||out.fatigue!==0||out.reputation!==0,`${mode} ${d.id} ${choice.id}: no effect`);
+    assert.equal(out.message,branch.message,d.id);assert(Object.values(out.stats).some(n=>n!==0)||out.fatigue!==0||out.reputation!==0||out.injury,`${mode} ${d.id} ${choice.id}: no effect`);
     assert.deepEqual(q.seasonStats,p.seasonStats);assert.deepEqual(q.trainingPolicy,p.trainingPolicy);assert.equal(next.date,s.date);
     for(const k of ['generation','match','training','injury','draft'])assert.equal(next.rngStates[k],s.rngStates[k]);
     assert.throws(()=>e.answerCareerEvent(next,choice.id),/선택할/);low=high;
@@ -178,7 +178,7 @@ test('leg kicks, double kicks and new pitch grips affect their actual technical 
   const next=e.answerCareerEvent(s,'choice-1');assert(next.careerEventHistory.at(-1).stats[key]>0,id);
  }
  const d=definitions('school').find(d=>d.id==='T11'),s=situation('school',d);s.careerEvent=rawEvent(s,d.id);seedFor(s,.7,1);
- const failed=e.answerCareerEvent(s,'choice-1');assert(failed.careerEventHistory.at(-1).stats.contact<0);assert(failed.careerEventHistory.at(-1).fatigue>0);
+ const failed=e.answerCareerEvent(s,'choice-1');assert(failed.careerEventHistory.at(-1).stats.power<0);assert.equal(failed.careerEventHistory.at(-1).fatigue,0);
 });
 
 test('training, travel, fatigue and defensive position requirements remain real constraints',()=>{

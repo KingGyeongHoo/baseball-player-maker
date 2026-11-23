@@ -26,10 +26,10 @@ function completed(s,{PA=0,BF=0,days=1,started=false,level,known=true}={}){const
  const g={id:'observed-'+s.calendar.events.length,date:e.addDays(s.date,-days),homeTeamId:p.teamId,awayTeamId:(p.teamId+1)%10,competitionId:level??(p.teamId<10?'pro-first':'pro-second'),rulesetId:'test',status:'completed',score:[0,0],innings:[[],[]],lineup:[[p.id],[]],boxScore:{[p.id]:record},proAppearanceComplete:known};if(known)g.proAppearances={[p.id]:{teamId:p.teamId,level:p.teamId<10?'first':'second',position:p.position,startedField:!e.isPitcher(p.primaryRole),startedPitching:started}};s.calendar.events.push(g);return g;}
 function ids(s){return runtime.proGeneralCandidates(s).map(c=>c.id);}
 
-test('the catalog contains exactly PE01-PE75, two or three choices, and 100 percent per choice',()=>{
- assert.deepEqual(catalog.proEventCatalog.map(c=>c.id),Array.from({length:75},(_,i)=>'PE'+String(i+1).padStart(2,'0')));
+test('the catalog contains exactly PE01-PE87, two or three choices, and 100 percent per choice',()=>{
+ assert.deepEqual(catalog.proEventCatalog.map(c=>c.id),Array.from({length:87},(_,i)=>'PE'+String(i+1).padStart(2,'0')));
  for(const definition of catalog.proEventCatalog){assert.ok(definition.choices.length>=2&&definition.choices.length<=3);for(const choice of definition.choices)assert.equal(choice.outcomes.reduce((n,o)=>n+o.weight,0),100);}
- assert.equal(catalog.proEventCatalog.reduce((n,c)=>n+c.choices.length,0),163);
+ assert.equal(catalog.proEventCatalog.reduce((n,c)=>n+c.choices.length,0),183);
 });
 test('opening freezes stat aliases and shows only actions before a choice',()=>{
  const s=fixture(),p=e.getPlayer(s);p.stats.contact=10;p.stats.power=20;const event=open(s,'PE03');assert.equal(event.choices[0].outcomes[0].weeks.contact,4);p.stats.contact=90;p.stats.power=5;assert.equal(event.choices[0].outcomes[0].weeks.contact,4);
@@ -61,14 +61,14 @@ test('BQ awakening keeps its three-point floor for older developmental players',
 test('pro outcomes use the same qualitative changes as school outcomes without altering fractional results',()=>{
  const s=fixture();open(s,'PE01');force(s,.1,.5);const next=e.answerCareerEvent(s,'choice-1'),out=next.careerEventHistory.at(-1),before=structuredClone(out);
  const render=outcome=>renderToStaticMarkup(createElement(Dialog,{event:null,outcome,disabled:false,onChoose(){return true;},onDone(){}}));
- const html=render(out);assert.ok(html.includes('실제 변화'));assert.ok(!html.includes('1 미만'));
+ const html=render(out);assert.ok(html.includes('선택의 결과'));assert.ok(!html.includes('1 미만'));
  for(const [key,amount] of Object.entries(out.stats))if(Math.abs(amount)>1e-9)assert.ok(html.includes(`${e.labels[key]} <b>${changeText(amount)}</b>`));
  const sample={...out,stats:{contact:.03,power:.2,speed:-.2},reputation:.3,fatigue:-4,awakened:[]};
  const changes=text=>text.match(/<div class="event-changes">(.*?)<\/div>/)[1];
  const pro=render(sample);assert.equal(changes(pro),changes(render({...sample,proEvent:undefined})));
  assert.ok(pro.includes('아주 조금 상승'));assert.ok(pro.includes('조금 상승'));assert.ok(pro.includes('하락'));
  const m=render({...out,stats:{},awakened:[],match:{hr:.04},scene:{gameId:'g',inning:7,battingSide:0,outs:1,bases:[null,null,null],score:[0,1],batting:true,batterName:'나',pitcherName:'상대'}});
- assert.ok(m.includes('홈런 종류 판정 <b>매우 크게 상승</b>'));assert.ok(!m.includes('%p'));assert.deepEqual(out,before);
+ assert.ok(m.includes('홈런 <b>매우 크게 상승</b>'));assert.ok(!m.includes('%p'));assert.deepEqual(out,before);
 });
 test('training eligibility respects field, fatigue, current-level samples and once-per-season camp',()=>{
  const s=fixture(),p=e.getPlayer(s);assert.ok(ids(s).includes('PE01'));assert.ok(!ids(s).includes('PE02'));assert.ok(!ids(s).includes('PE03'));p.seasonByLevel.second.batting.PA=20;assert.ok(ids(s).includes('PE03'));p.fatigue=50;assert.ok(!ids(s).includes('PE04'));p.fatigue=60;assert.ok(!ids(s).includes('PE07'));
@@ -160,14 +160,14 @@ function matchFixture(pitching=false){
 }
 test('game scenes use actual cursor, correct priority and exactly one attempt per game even on failure',()=>{
  withParams({'pro_events.game_chance':1},()=>{
-  const {s,p,batter,pitcher,scene}=matchFixture(true);p.fatigue=65;scene.bases=['一','二','三'];assert.equal(runtime.openProMatchEvent(s,scene,batter,pitcher),true);assert.equal(s.careerEvent.definitionId,'PE22');assert.equal(s.proEvents.attemptedGames.length,1);s.careerEvent=null;assert.equal(runtime.openProMatchEvent(s,scene,batter,pitcher),false);
+  const {s,p,batter,pitcher,scene}=matchFixture(true);p.fatigue=65;scene.bases=['一','二','三'];assert.equal(runtime.openProMatchEvent(s,scene,batter,pitcher),true);assert(['PE22','PE80'].includes(s.careerEvent.definitionId));assert.equal(s.proEvents.attemptedGames.length,1);s.careerEvent=null;assert.equal(runtime.openProMatchEvent(s,scene,batter,pitcher),false);
   const b=matchFixture();b.scene.score=[3,1];b.scene.bases=['一',null,null];assert.equal(runtime.openProMatchEvent(b.s,b.scene,b.batter,b.pitcher),true);assert.equal(b.s.careerEvent.definitionId,'PE21');
  });
  withParams({'pro_events.game_chance':0},()=>{const {s,batter,pitcher,scene}=matchFixture();const before={...s.rngStates};assert.equal(runtime.openProMatchEvent(s,scene,batter,pitcher),false);assert.equal(s.proEvents.attemptedGames.length,1);const after={...s.rngStates};assert.equal(runtime.openProMatchEvent(s,scene,batter,pitcher),false);assert.deepEqual(s.rngStates,after);for(const key of ['match','training','injury','generation','draft'])assert.equal(s.rngStates[key],before[key]);});
  const fake=matchFixture();delete fake.s.matchProgress;assert.equal(runtime.openProMatchEvent(fake.s,fake.scene,fake.batter,fake.pitcher),false);
 });
 test('all five match catalog events can be selected without fabricating stats',()=>{
- for(const [id,pitching,setup]of [['PE20',false,()=>{}],['PE21',false,x=>{x.scene.score=[3,1];x.scene.bases=['runner',null,null];}],['PE22',true,x=>{x.scene.bases=['a','b','c'];}],['PE23',true,x=>{x.scene.score=[2,1];}],['PE24',true,x=>{x.p.fatigue=65;}]])withParams({'pro_events.game_chance':1},()=>{const x=matchFixture(pitching);setup(x);const stats=structuredClone(x.p.seasonStats);assert.ok(runtime.openProMatchEvent(x.s,x.scene,x.batter,x.pitcher));assert.equal(x.s.careerEvent.definitionId,id);assert.deepEqual(x.p.seasonStats,stats);});
+ for(const [id,pitching,setup]of [['PE20',false,()=>{}],['PE21',false,x=>{x.scene.score=[3,1];x.scene.bases=['runner',null,null];}],['PE22',true,x=>{x.scene.bases=['a','b','c'];}],['PE23',true,x=>{x.scene.score=[2,1];}],['PE24',true,x=>{x.p.fatigue=65;}]])withParams({'pro_events.game_chance':1},()=>{const x=matchFixture(pitching);setup(x);const stats=structuredClone(x.p.seasonStats);assert.ok(runtime.openProMatchEvent(x.s,x.scene,x.batter,x.pitcher));assert((id==='PE20'?['PE20','PE79']:id==='PE22'?['PE22','PE80']:[id]).includes(x.s.careerEvent.definitionId));assert.deepEqual(x.p.seasonStats,stats);});
 });
 test('first-team preparation requires an actual selected lineup and is not replayed for an established player',()=>{
  const s=fixture(),p=e.getPlayer(s);cursor(s);p.teamId%=10;delete p.professional.firsts.debut;
@@ -222,10 +222,25 @@ function realGame(first=false){const s=structuredClone(template),p=e.getPlayer(s
  for(const q of s.players.filter(q=>q.teamId===(game.homeTeamId===p.teamId?game.awayTeamId:game.homeTeamId)))q.stats.velocity=100;
  for(const key of Object.keys(p.trainingPolicy.tickets))p.trainingPolicy.tickets[key]=0;return s;
 }
+test('runner checkpoint saves and resumes without repeating the steal or plate appearance',()=>withParams({...noRandom,'pro_events.game_chance':1},()=>{
+ const input=realGame(),p=e.getPlayer(input);let ready=e.advanceWeek(input,p.trainingPolicy,p.stance);
+ while(ready.careerNotice){ready=pc.acknowledgeCareer(ready);ready=e.advanceWeek(ready,p.trainingPolicy,p.stance);}
+ assert(ready.careerEvent);ready.careerEvent=null;ready.proEvents.history=[];ready.proEvents.attemptedGames=[];
+ const m=ready.matchProgress,game=ready.calendar.events.find(g=>g.id===m.gameId),side=m.battingSide;
+ // Start the fixture immediately after the player reached first, before the next batter.
+ m.bases=[{playerId:p.id,pitcherId:m.pitchers[1-side]},null,null];m.battingIndex[side]++;m.stealPending=true;
+ game.score=[1,0];const record=game.boxScore[p.id]??=e.emptyRecord();record.batting.PA++;record.batting.AB++;record.batting.H++;
+ const paused=e.advanceWeek(ready,p.trainingPolicy,p.stance);assert.equal(paused.careerEvent.definitionId,'PE81');assert.equal(paused.matchProgress.pa,m.pa);assert.equal(paused.matchProgress.battingIndex[side],m.battingIndex[side]);
+ force(paused,.1,.5);const saved=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(paused,false))).state;
+ const answered=e.answerCareerEvent(paused,'choice-1'),restored=e.answerCareerEvent(saved,'choice-1');assert.equal(restored.stealEffect.adjustment,.18);
+ const resumed=finishWeek(storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(restored,false))).state),direct=finishWeek(answered);
+ assert.deepEqual(resumed.calendar.events[0].boxScore,direct.calendar.events[0].boxScore);assert.deepEqual(resumed.calendar.events[0].score,direct.calendar.events[0].score);assert.equal(resumed.rngStates.match,direct.rngStates.match);assert.equal(resumed.stealEffect,undefined);assert.equal(resumed.careerEventHistory.filter(row=>row.definitionId==='PE81').length,1);
+}));
+
 test('real match checkpoint consumes a neutral choice once and matches uninterrupted records and RNG',()=>withParams({...noRandom,'pro_events.game_chance':1},()=>{
  const input=realGame(),p=e.getPlayer(input),baseline=withParams({'pro_events.enabled':0},()=>finishWeek(structuredClone(input)));
- let paused=e.advanceWeek(input,p.trainingPolicy,p.stance);while(paused.careerNotice){paused=pc.acknowledgeCareer(paused);paused=e.advanceWeek(paused,p.trainingPolicy,p.stance);}assert.equal(paused.careerEvent.definitionId,'PE20');assert.equal(paused.calendar.events[0].boxScore[p.id]?.batting.PA??0,0);assert.equal(paused.matchProgress.ready,true);
- paused.careerEvent.choices[0].outcomes=[{weight:100,message:'중립 준비',match:{},proResultId:'neutral-check'}];const saved=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(paused,false))).state,answered=e.answerCareerEvent(saved,'choice-1');assert.ok(answered.matchEffect);const resumed=finishWeek(answered);assert.deepEqual(resumed.calendar.events[0].boxScore,baseline.calendar.events[0].boxScore);assert.deepEqual(resumed.calendar.events[0].score,baseline.calendar.events[0].score);assert.equal(resumed.rngStates.match,baseline.rngStates.match);assert.equal(resumed.matchEffect,undefined);assert.equal(resumed.careerEventHistory.filter(row=>row.definitionId==='PE20').length,1);assert.equal(resumed.calendar.events[0].proAppearanceComplete,true);
+ let paused=e.advanceWeek(input,p.trainingPolicy,p.stance);while(paused.careerNotice){paused=pc.acknowledgeCareer(paused);paused=e.advanceWeek(paused,p.trainingPolicy,p.stance);}assert(['PE20','PE79'].includes(paused.careerEvent.definitionId));assert.equal(paused.calendar.events[0].boxScore[p.id]?.batting.PA??0,0);assert.equal(paused.matchProgress.ready,true);
+ paused.careerEvent.choices[0].outcomes=[{weight:100,message:'중립 준비',match:{},proResultId:'neutral-check'}];const saved=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(paused,false))).state,answered=e.answerCareerEvent(saved,'choice-1');assert.ok(answered.matchEffect);const resumed=finishWeek(answered);assert.deepEqual(resumed.calendar.events[0].boxScore,baseline.calendar.events[0].boxScore);assert.deepEqual(resumed.calendar.events[0].score,baseline.calendar.events[0].score);assert.equal(resumed.rngStates.match,baseline.rngStates.match);assert.equal(resumed.matchEffect,undefined);assert.equal(resumed.careerEventHistory.filter(row=>['PE20','PE79'].includes(row.definitionId)).length,1);assert.equal(resumed.calendar.events[0].proAppearanceComplete,true);
 }));
 test('first-game preparation saves a fixed lineup before any pitch and records debut only after actual play',()=>withParams(noRandom,()=>{
  const input=realGame(true),p=e.getPlayer(input);let paused=e.advanceWeek(input,p.trainingPolicy,p.stance);while(paused.careerNotice){paused=pc.acknowledgeCareer(paused);paused=e.advanceWeek(paused,p.trainingPolicy,p.stance);}assert.equal(paused.careerEvent.definitionId,'PE13');assert.equal(paused.calendar.events[0].status,'scheduled');assert.ok(paused.calendar.events[0].proPreparedLineup);assert.equal(paused.matchProgress,undefined);assert.deepEqual(paused.calendar.events[0].boxScore,{});assert.equal(e.getPlayer(paused).professional.firsts.debut,undefined);

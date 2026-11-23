@@ -7,36 +7,36 @@
       "description": "사용 중이던 배트가 망가졌다. 이참에 다른 브랜드의 배트를 사볼까?",
       "choices": [
         {
-          "id": "choice-1",
           "label": "새로운 브랜드로 바꿔본다",
           "outcomes": [
             {
-              "weight": 50,
-              "message": "새 배트가 잘 맞지 않는다. 적응하는 데 시간이 좀 걸릴 것 같다.",
-              "effect": "컨택 -0.3"
+              "weight": 35,
+              "message": "새 배트가 손에 잘 맞는다.",
+              "effect": "컨택 +8주분"
             },
             {
-              "weight": 50,
-              "message": "새 배트가 손에 잘 맞는다.",
-              "effect": "컨택 +4주분"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "컨택 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "원래 쓰던 브랜드를 쓴다",
           "outcomes": [
             {
-              "weight": 50,
+              "weight": 85,
               "message": "역시 쓰던 배트가 잘 맞는다.",
               "effect": "컨택 +3주분"
             },
             {
-              "weight": 50,
-              "message": "새 배트를 사고 싶었는데… 미련이 남아 스윙에 집중하지 못했다.",
-              "effect": "컨택 -0.1"
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "컨택 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -48,31 +48,36 @@
       "description": "글러브 수리점에서 포구 주머니의 모양을 바꿔보라는 제안을 받았다.",
       "choices": [
         {
-          "id": "choice-1",
           "label": "포구 주머니를 새롭게 잡는다",
           "outcomes": [
             {
-              "weight": 50,
+              "weight": 35,
               "message": "공이 글러브 안으로 안정적으로 들어온다.",
-              "effect": "수비 +4주분"
+              "effect": "수비 +8주분"
             },
             {
-              "weight": 50,
-              "message": "공을 빼는 동작이 아직 어색하다.",
-              "effect": "수비 -0.2"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "수비 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "익숙한 모양을 유지한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "익숙한 글러브로 기본 포구를 반복했다.",
-              "effect": "수비 +3주분, 피로 +1"
+              "effect": "수비 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "수비 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -84,31 +89,36 @@
       "description": "공을 조금 다르게 쥐었더니 움직임이 달라졌다. 이 그립을 더 연습해볼까?",
       "choices": [
         {
-          "id": "choice-1",
           "label": "새 그립으로 던져본다",
           "outcomes": [
             {
-              "weight": 50,
+              "weight": 35,
               "message": "손끝에서 공이 날카롭게 꺾였다.",
-              "effect": "변화구 +4주분, 피로 +2"
+              "effect": "변화구 +8주분"
             },
             {
-              "weight": 50,
-              "message": "공이 자꾸 손에서 빠진다.",
-              "effect": "제구 -0.2, 피로 +2"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "변화구 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "기존 구종을 더 다듬는다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "익숙한 그립의 릴리스 포인트를 찾았다.",
-              "effect": "제구 +3주분, 피로 +1"
+              "effect": "제구 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "제구 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -120,31 +130,36 @@
       "description": "코치가 동작을 영상으로 보여주며 작은 습관을 고쳐보자고 한다.",
       "choices": [
         {
-          "id": "choice-1",
           "label": "조언대로 동작을 바꾼다",
           "outcomes": [
             {
-              "weight": 50,
+              "weight": 35,
               "message": "힘이 새던 부분을 잡아냈다.",
-              "effect": "정교함 +4주분, 피로 +2"
+              "effect": "정교함 +8주분"
             },
             {
-              "weight": 50,
-              "message": "새 동작과 옛 습관이 뒤섞였다.",
-              "effect": "정교함 -0.2"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "정교함 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "영상을 더 살펴본다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "동작이 흔들리는 이유를 이해했다.",
               "effect": "야구 지능 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "야구 지능 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -156,31 +171,36 @@
       "description": "예정된 훈련을 마쳤다. 트레이너가 오늘 움직임이 좋다며 한 세트를 더 제안한다.",
       "choices": [
         {
-          "id": "choice-1",
           "label": "한 세트 더 도전한다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "끝까지 자세를 유지하며 훈련을 마쳤다.",
-              "effect": "힘 +4주분, 스태미나 +3주분, 피로 +4"
+              "effect": "스태미나 +8주분"
             },
             {
-              "weight": 25,
-              "message": "무게에 욕심을 내다 동작만 흐트러졌다.",
-              "effect": "피로 +5"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "스태미나 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "정리 운동으로 마무리한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "몸을 풀고 다음 훈련을 준비했다.",
-              "effect": "회복력 +3주분, 피로 -3"
+              "effect": "회복력 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "회복력 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -198,12 +218,12 @@
             {
               "weight": 50,
               "message": "하체에서 올라오는 힘이 공에 실렸다.",
-              "effect": "구속 +4주분, 피로 +3"
+              "effect": "구속 +4주분"
             },
             {
               "weight": 50,
               "message": "힘이 들어가 제구가 흔들렸다.",
-              "effect": "제구 -0.15, 피로 +3"
+              "effect": "제구 -0.15"
             }
           ]
         },
@@ -214,7 +234,7 @@
             {
               "weight": 100,
               "message": "일정한 릴리스 포인트를 반복했다.",
-              "effect": "제구 +3주분, 피로 +1"
+              "effect": "제구 +3주분"
             }
           ]
         },
@@ -239,31 +259,36 @@
       "description": "주루 코치가 첫발과 코너링 중 무엇을 더 연습할지 물었다.",
       "choices": [
         {
-          "id": "choice-1",
           "label": "첫발을 빠르게 내딛는다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "출발 동작이 간결해졌다.",
-              "effect": "스피드 +4주분, 피로 +2"
+              "effect": "스피드 +8주분"
             },
             {
-              "weight": 25,
-              "message": "출발 타이밍을 맞추지 못했다.",
-              "effect": "피로 +2"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "스피드 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "베이스를 도는 경로를 익힌다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "다음 베이스를 읽는 감각을 익혔다.",
-              "effect": "야구 지능 +3주분, 스피드 +3주분, 피로 +1"
+              "effect": "스피드 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "스피드 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -275,31 +300,36 @@
       "description": "훈련 영상을 보니 매번 비슷한 장면에서 동작이 흔들린다.",
       "choices": [
         {
-          "id": "choice-1",
           "label": "약한 부분을 집중적으로 연습한다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "반복 훈련 끝에 작은 실마리를 잡았다.",
-              "effect": "약점 +4주분, 피로 +2"
+              "effect": "약점 +8주분"
             },
             {
-              "weight": 25,
-              "message": "해결책을 찾지 못한 채 훈련만 길어졌다.",
-              "effect": "피로 +3"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "약점 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "코치와 원인부터 분석한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "어디서부터 고쳐야 할지 알게 됐다.",
               "effect": "야구 지능 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "야구 지능 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -328,12 +358,12 @@
             {
               "weight": 50,
               "message": "힘든 와중에도 좋은 동작을 찾아냈다.",
-              "effect": "힘 +4주분, 피로 +4"
+              "effect": "힘 +4주분"
             },
             {
               "weight": 50,
               "message": "오늘은 집중력이 따라주지 않았다.",
-              "effect": "피로 +5"
+              "effect": "야구 지능 -0.3"
             }
           ]
         }
@@ -358,7 +388,7 @@
             {
               "weight": 95,
               "message": "하드 트레이닝으로 피로가 쌓였다.",
-              "effect": "역할 핵심 능력 각각 +4주분, 피로 +10"
+              "effect": "역할 핵심 능력 각각 +4주분"
             }
           ]
         },
@@ -394,7 +424,7 @@
             {
               "weight": 75,
               "message": "동료의 조언으로 송구 감각을 다듬었다.",
-              "effect": "어깨 +3주분, 야구 지능 +3주분, 피로 +1"
+              "effect": "어깨 +3주분, 야구 지능 +3주분"
             },
             {
               "weight": 25,
@@ -471,31 +501,36 @@
       "description": "공을 받아 주던 포수가 미트를 한 칸씩 옮겨 댄다. 팔로 공을 밀어 넣지 않고 같은 릴리스에서 코스를 바꿔 본다.",
       "choices": [
         {
-          "id": "choice-1",
           "label": "미트 네 모서리를 번갈아 노린다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "미트 위치가 바뀌어도 팔 동작이 흔들리지 않았다. 원하는 코스로 공이 모였다.",
-              "effect": "제구 +4주분, 피로 +4"
+              "effect": "제구 +8주분"
             },
             {
-              "weight": 25,
-              "message": "코스를 의식하다 손끝으로 공을 조절했다. 릴리스가 흔들려 공이 높게 빠졌다.",
-              "effect": "제구 -0.5, 피로 +5"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "제구 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "한 코스에 반복해서 던진다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "같은 위치를 겨냥하며 놓는 순간을 맞췄다. 일정한 동작에서 코스를 잡았다.",
-              "effect": "제구 +3주분, 피로 +2"
+              "effect": "제구 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "제구 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -543,31 +578,36 @@
       "description": "팀 포수가 뒤에서 지켜본 투구 습관에 대해 이야기한다.",
       "choices": [
         {
-          "id": "choice-1",
           "label": "포수의 조언을 받아들인다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "보이지 않던 습관을 고칠 단서를 찾았다.",
-              "effect": "제구 +3주분, 야구 지능 +3주분"
+              "effect": "제구 +8주분"
             },
             {
-              "weight": 25,
-              "message": "동작을 의식하다 투구 리듬이 흔들렸다.",
-              "effect": "제구 -0.1"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "제구 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "직접 공을 주고받으며 확인한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "실전처럼 맞춰보니 차이가 느껴졌다.",
-              "effect": "변화구 +3주분, 피로 +2"
+              "effect": "변화구 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "변화구 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -585,12 +625,12 @@
             {
               "weight": 70,
               "message": "새 위치에서 자신의 장점을 살릴 방법을 찾았다.",
-              "effect": "제안한 주 역할·희망 포지션으로 변경, 평판 +1, 피로 +3"
+              "effect": "제안한 주 역할·희망 포지션으로 변경, 평판 +1"
             },
             {
               "weight": 30,
               "message": "아직은 새 역할이 어색하다. 이번에는 기존 위치로 돌아가기로 했다.",
-              "effect": "포지션 유지, 야구 지능 +3주분, 피로 +3"
+              "effect": "포지션 유지, 야구 지능 +3주분"
             }
           ]
         },
@@ -707,31 +747,36 @@
       "description": "강한 상대와의 대진이 잡혔다. 경기 전 타격 준비에서 하체 회전을 끝까지 이어 타구에 힘을 싣는 연습을 한다.",
       "choices": [
         {
-          "id": "choice-1",
           "label": "앞다리로 버티며 힘껏 회전한다",
           "outcomes": [
             {
-              "weight": 70,
+              "weight": 35,
               "message": "앞발이 버텨 주자 몸통의 힘이 배트로 이어졌다. 타구가 외야 깊숙이 뻗었다.",
-              "effect": "파워 +4주분, 피로 +4"
+              "effect": "파워 +8주분"
             },
             {
-              "weight": 30,
-              "message": "상체가 먼저 열려 배트가 공 밑으로 지나갔다. 타격 타이밍이 흐트러졌다.",
-              "effect": "컨택 -0.5, 피로 +5"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "파워 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "스윙 크기를 유지하고 회전 순서를 맞춘다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "발을 딛고 몸통을 돌리는 순서를 반복했다. 무리하지 않고 타구에 힘을 실었다.",
-              "effect": "파워 +3주분, 피로 +2"
+              "effect": "파워 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "파워 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -749,12 +794,12 @@
             {
               "weight": 75,
               "message": "발밑의 감각에 적응했다.",
-              "effect": "타자는 수비 +4주분, 투수는 제구 +4주분. 피로 +2"
+              "effect": "타자는 수비 +4주분, 투수는 제구 +4주분."
             },
             {
               "weight": 25,
               "message": "끝까지 낯선 느낌이 남았다.",
-              "effect": "피로 +2"
+              "effect": "야구 지능 -0.3"
             }
           ]
         },
@@ -779,31 +824,36 @@
       "description": "경기를 앞두고 베이스를 도는 짧은 주루 훈련을 한다. 코치는 1루를 밟은 뒤에도 속도를 잃지 않도록 주로를 잡아 준다.",
       "choices": [
         {
-          "id": "choice-1",
           "label": "베이스를 밟고 곧바로 가속한다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "밟을 위치에 맞춰 보폭을 조절했다. 코너를 돌아 나가는 첫발에 빠르게 힘이 붙었다.",
-              "effect": "스피드 +4주분, 피로 +4"
+              "effect": "스피드 +8주분"
             },
             {
-              "weight": 25,
-              "message": "베이스를 크게 돌아 급하게 방향을 틀었다. 발이 꼬이며 주루 균형이 무너졌다.",
-              "effect": "스피드 -0.5, 피로 +5"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "스피드 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "속도를 낮춰 같은 주로를 반복한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "발 디딜 위치를 정하고 반복했다. 다음 베이스로 이어지는 발놀림이 자연스러워졌다.",
-              "effect": "스피드 +3주분, 피로 +2"
+              "effect": "스피드 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "스피드 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -821,12 +871,12 @@
             {
               "weight": 70,
               "message": "바운드가 크게 튀기 전에 공 밑으로 글러브를 넣었다. 포구와 다음 발이 자연스럽게 이어졌다.",
-              "effect": "수비 +4주분, 피로 +3"
+              "effect": "수비 +4주분"
             },
             {
               "weight": 30,
               "message": "첫발을 서두르다 바운드를 잘못 읽었다. 공을 몸 뒤로 흘리며 포구 자세가 흔들렸다.",
-              "effect": "수비 -0.5, 피로 +4"
+              "effect": "수비 -0.5"
             }
           ]
         },
@@ -837,7 +887,7 @@
             {
               "weight": 100,
               "message": "공을 끝까지 보고 몸 앞에 두었다. 불규칙한 타구에도 자세를 유지했다.",
-              "effect": "수비 +3주분, 피로 +2"
+              "effect": "수비 +3주분"
             }
           ]
         },
@@ -848,7 +898,7 @@
             {
               "weight": 100,
               "message": "무릎을 낮추고 글러브를 공 아래로 넣었다. 기본 포구 동작을 차분히 다졌다.",
-              "effect": "수비 +3주분, 피로 +1"
+              "effect": "수비 +3주분"
             }
           ]
         }
@@ -862,31 +912,36 @@
       "description": "경기 준비 투구에서 변화구가 평소보다 일찍 빠진다. 포수와 짧게 던지며 그립과 손끝에 걸리는 감각을 조절한다.",
       "choices": [
         {
-          "id": "choice-1",
           "label": "손가락 압력을 바꿔 꺾이는 지점을 늦춘다",
           "outcomes": [
             {
-              "weight": 60,
+              "weight": 35,
               "message": "직구와 비슷하게 출발한 공이 늦게 꺾였다. 손끝에 걸리는 감각이 선명해졌다.",
-              "effect": "변화구 +4주분, 피로 +4"
+              "effect": "변화구 +8주분"
             },
             {
-              "weight": 40,
-              "message": "공을 억지로 꺾으려다 릴리스가 흔들렸다. 변화구가 존 밖으로 빠졌다.",
-              "effect": "제구 -0.5, 피로 +5"
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "변화구 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "익숙한 그립으로 회전부터 맞춘다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "손에 익은 그립으로 짧게 던졌다. 공에 같은 회전을 싣는 동작을 반복했다.",
-              "effect": "변화구 +3주분, 피로 +2"
+              "effect": "변화구 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "변화구 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -904,12 +959,12 @@
             {
               "weight": 75,
               "message": "낯선 환경에서도 감각을 유지했다.",
-              "effect": "정교함 +3주분, 피로 +1"
+              "effect": "정교함 +3주분"
             },
             {
               "weight": 25,
               "message": "이동의 여파로 몸이 생각만큼 움직이지 않았다.",
-              "effect": "피로 +2"
+              "effect": "야구 지능 -0.3"
             }
           ]
         },
@@ -934,26 +989,36 @@
       "description": "타석에 들어섰다. 상대 투수의 공을 어떤 마음으로 기다릴까?",
       "choices": [
         {
-          "id": "choice-1",
           "label": "강하게 당겨 칠 준비를 한다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "힘을 모아 큰 스윙을 준비했다.",
-              "effect": "파워 +3주분, 피로 +1. 이번 타석 홈런 판정 +4%p, 안타 -1.5%p, 삼진 +3%p"
+              "weight": 35,
+              "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
+              "effect": "평판 +0.6, 이번 타석 홈런 판정 +12%p, 안타 +5%p"
+            },
+            {
+              "weight": 65,
+              "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
+              "effect": "평판 -0.6, 이번 타석 안타 -10%p, 삼진 +12%p"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "짧은 스윙으로 공을 맞힌다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "배트를 짧게 잡고 공에 집중했다.",
-              "effect": "컨택 +3주분. 이번 타석 안타 +2%p, 홈런 판정 -2.5%p, 삼진 -2%p"
+              "weight": 85,
+              "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
+              "effect": "평판 +0.15, 이번 타석 안타 +2.5%p"
+            },
+            {
+              "weight": 15,
+              "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
+              "effect": "평판 -0.1, 이번 타석 안타 -2%p"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -965,26 +1030,36 @@
       "description": "투수가 빠른 공과 변화구를 섞는다. 두 스트라이크에서 배트가 늦지 않도록 스윙 폭을 조절할 수 있다.",
       "choices": [
         {
-          "id": "choice-1",
-          "label": "짧게 잡고 공을 끝까지 본다",
+          "label": "불리한 카운트에서도 장타를 노린다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "스윙 폭을 줄여 빠른 공에도 배트 중심을 가져갔다.",
-              "effect": "컨택 +3주분. 이번 타석 볼넷 +3.5%p, 안타 -1%p, 삼진 +1.5%p"
+              "weight": 35,
+              "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
+              "effect": "평판 +0.6, 이번 타석 홈런 판정 +12%p, 안타 +5%p"
+            },
+            {
+              "weight": 65,
+              "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
+              "effect": "평판 -0.6, 이번 타석 안타 -10%p, 삼진 +12%p"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
-          "label": "좋은 공에 짧고 빠르게 반응한다",
+          "label": "배트를 짧게 잡고 반응한다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "공을 오래 기다리기보다 맞는 지점을 앞에 두고 짧게 스윙했다.",
-              "effect": "컨택 +3주분. 이번 타석 안타 +2%p, 볼넷 -2.5%p"
+              "weight": 85,
+              "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
+              "effect": "평판 +0.15, 이번 타석 안타 +2.5%p"
+            },
+            {
+              "weight": 15,
+              "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
+              "effect": "평판 -0.1, 이번 타석 안타 -2%p"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -996,26 +1071,36 @@
       "description": "수비 위치를 살펴봤다. 자신의 스윙을 믿을까, 반대 방향을 의식할까?",
       "choices": [
         {
-          "id": "choice-1",
           "label": "반대 방향으로 밀어 친다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "공을 몸 가까이까지 기다리기로 했다.",
-              "effect": "컨택 +3주분. 이번 타석 안타 +2%p, 홈런 판정 -3%p"
+              "weight": 35,
+              "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
+              "effect": "평판 +0.6, 이번 타석 홈런 판정 +12%p, 안타 +5%p"
+            },
+            {
+              "weight": 65,
+              "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
+              "effect": "평판 -0.6, 이번 타석 안타 -10%p, 삼진 +12%p"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "자신 있는 스윙을 한다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "익숙한 타격 궤적에 집중했다.",
-              "effect": "파워 +3주분. 이번 타석 홈런 판정 +2.5%p, 삼진 +1.5%p"
+              "weight": 85,
+              "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
+              "effect": "평판 +0.15, 이번 타석 안타 +2.5%p"
+            },
+            {
+              "weight": 15,
+              "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
+              "effect": "평판 -0.1, 이번 타석 안타 -2%p"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -1027,26 +1112,36 @@
       "description": "포수가 미트를 내밀었다. 눈앞의 타자에게 어떻게 승부할까?",
       "choices": [
         {
-          "id": "choice-1",
           "label": "힘 있는 공으로 정면 승부한다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "힘을 실어 미트를 향해 던질 준비를 했다.",
-              "effect": "구속 +3주분, 피로 +1. 이번 타자 삼진 +4.5%p, 홈런 판정 +1.5%p, 볼넷 -1%p"
+              "weight": 35,
+              "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
+              "effect": "평판 +0.6, 이번 타석 삼진 +15%p, 안타 -8%p"
+            },
+            {
+              "weight": 65,
+              "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
+              "effect": "평판 -0.6, 이번 타석 홈런 판정 +10%p, 안타 +8%p"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
-          "label": "구석을 공략한다",
+          "label": "낮은 코스로 승부한다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "스트라이크 존의 끝을 바라봤다.",
-              "effect": "제구 +3주분. 이번 타자 안타 -2.5%p, 볼넷 +2.5%p"
+              "weight": 85,
+              "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
+              "effect": "평판 +0.15, 이번 타석 안타 -2.5%p"
+            },
+            {
+              "weight": 15,
+              "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
+              "effect": "평판 -0.1, 이번 타석 볼넷 +2%p"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -1058,26 +1153,36 @@
       "description": "포수가 변화구 사인을 냈다. 이 타자에게 어떤 공을 보여줄까?",
       "choices": [
         {
-          "id": "choice-1",
           "label": "포수의 사인대로 던진다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "손끝의 감각에 집중했다.",
-              "effect": "변화구 +3주분. 이번 타자 삼진 +3.5%p, 안타 -1.5%p, 볼넷 +1.5%p"
+              "weight": 35,
+              "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
+              "effect": "평판 +0.6, 이번 타석 삼진 +15%p, 안타 -8%p"
+            },
+            {
+              "weight": 65,
+              "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
+              "effect": "평판 -0.6, 이번 타석 홈런 판정 +10%p, 안타 +8%p"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "직구로 타이밍을 빼앗는다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "자신 있는 직구를 선택했다.",
-              "effect": "구속 +3주분, 피로 +1. 이번 타자 볼넷 -2%p, 홈런 판정 +1.5%p"
+              "weight": 85,
+              "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
+              "effect": "평판 +0.15, 이번 타석 안타 -2.5%p"
+            },
+            {
+              "weight": 15,
+              "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
+              "effect": "평판 -0.1, 이번 타석 볼넷 +2%p"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -1089,26 +1194,36 @@
       "description": "타자가 다음 공을 기다린다. 발을 딛는 순간 앞다리가 무너지는 느낌이 있어, 다음 직구에서 하체를 쓰는 방법을 조절한다.",
       "choices": [
         {
-          "id": "choice-1",
           "label": "앞다리로 버티며 직구를 힘껏 보낸다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "착지한 다리가 버텨 주자 하체 힘이 손끝까지 이어졌다.",
-              "effect": "구속 +3주분, 피로 +1. 이번 타자 삼진 +3%p, 홈런 판정 +1%p"
+              "weight": 35,
+              "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
+              "effect": "평판 +0.6, 이번 타석 삼진 +15%p, 안타 -8%p"
+            },
+            {
+              "weight": 65,
+              "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
+              "effect": "평판 -0.6, 이번 타석 홈런 판정 +10%p, 안타 +8%p"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "보폭을 줄여 체중 이동을 맞춘다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "몸이 뒤에 남지 않게 디딘 뒤 팔을 보냈다. 무리 없이 직구에 힘이 실렸다.",
-              "effect": "구속 +3주분. 이번 타자 안타 -1.5%p, 삼진 +1.5%p"
+              "weight": 85,
+              "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
+              "effect": "평판 +0.15, 이번 타석 안타 -2.5%p"
+            },
+            {
+              "weight": 15,
+              "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
+              "effect": "평판 -0.1, 이번 타석 볼넷 +2%p"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "category": "baseball",
@@ -1127,43 +1242,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "앞다리를 높여 장타 스윙을 해본다",
           "outcomes": [
             {
-              "weight": 70,
+              "weight": 35,
               "message": "들어 올린 앞발을 딛는 순간 회전이 붙었다. 펜스 쪽으로 향하는 타구가 늘었다.",
-              "effect": "파워 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "파워 +8주분"
             },
             {
-              "weight": 30,
-              "message": "앞발이 내려오는 시점이 늦어 배트가 공 밑으로 지나갔다. 타이밍이 흐트러졌다.",
-              "effect": "컨택 -0.8",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "파워 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "토탭을 작게 유지하고 배트 중심에 맞힌다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "발을 짧게 디디자 머리가 덜 흔들렸다. 빠른 공을 끝까지 보고 맞혔다.",
-              "effect": "컨택 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "컨택 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "컨택 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "power"
@@ -1181,43 +1289,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "이중 키킹으로 중심을 잡고 던진다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "두 번째로 다리를 드는 순간 축발에 체중이 남았다. 목표한 미트 근처로 공이 모였다.",
-              "effect": "제구 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "제구 +8주분"
             },
             {
-              "weight": 25,
-              "message": "멈추는 동작에 힘이 끊겨 팔이 늦게 나왔다. 직구에 힘을 싣지 못했다.",
-              "effect": "구속 -0.5",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "제구 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "한 번만 다리를 들고 디딤발 방향을 맞춘다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "동작을 늘리지 않고 디딤발을 미트 쪽에 놓았다. 공이 옆으로 빠지는 폭이 줄었다.",
-              "effect": "제구 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "제구 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "제구 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "control"
@@ -1235,43 +1336,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "배트를 짧게 잡고 끝까지 커트한다",
           "outcomes": [
             {
-              "weight": 80,
+              "weight": 35,
               "message": "손과 배트 끝의 거리가 줄었다. 불리한 카운트에서도 공을 맞혀 타석을 이어갔다.",
-              "effect": "컨택 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "컨택 +8주분"
             },
             {
-              "weight": 20,
-              "message": "짧게 잡는 데만 신경 쓰다 손목에 힘이 들어갔다. 제대로 맞은 타구도 뻗지 않았다.",
-              "effect": "파워 -0.5",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "컨택 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "배트 길이는 유지하고 스윙 궤적을 줄인다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "크게 돌던 배트를 몸 가까이 통과시켰다. 간결하게 휘둘러도 타구에 힘이 실렸다.",
-              "effect": "파워 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "파워 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "파워 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "contact"
@@ -1289,43 +1383,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "다리 들기를 줄여 빠르게 홈으로 던진다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "하체가 뜨는 시간이 줄었다. 주자를 보면서도 낮은 코스에 공을 넣었다.",
-              "effect": "제구 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "제구 +8주분"
             },
             {
-              "weight": 25,
-              "message": "동작을 줄이자 변화구를 놓는 손이 따라오지 못했다. 공이 일찍 꺾였다.",
-              "effect": "변화구 -0.5",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "제구 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "평소 동작으로 던지되 멈춘 뒤 박자를 바꾼다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "서로 다른 정지 시간을 섞어 주자의 출발을 늦췄다. 주자를 보며 던지는 여유가 생겼다.",
-              "effect": "야구 지능 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "야구 지능 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "야구 지능 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "control"
@@ -1343,43 +1430,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "손가락 간격을 좁혀 강하게 채본다",
           "outcomes": [
             {
-              "weight": 60,
+              "weight": 35,
               "message": "중지 끝으로 공을 밀어내는 감각을 잡았다. 직구처럼 가던 공이 옆으로 빠졌다.",
-              "effect": "변화구 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "변화구 +8주분"
             },
             {
-              "weight": 40,
-              "message": "공을 너무 강하게 비틀어 손에서 일찍 빠졌다. 슬라이더가 바깥으로 크게 벗어났다.",
-              "effect": "제구 -0.6",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "변화구 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "기존 그립으로 낮은 미트만 노린다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "회전을 억지로 만들지 않고 낮게 던졌다. 변화구를 스트라이크 근처에 모았다.",
-              "effect": "제구 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "제구 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "제구 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "movement"
@@ -1397,43 +1477,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "앞발을 닫고 몸통 회전을 늦춘다",
           "outcomes": [
             {
-              "weight": 70,
+              "weight": 35,
               "message": "허리가 먼저 열리지 않았다. 참았다가 돌린 배트에 공이 강하게 붙었다.",
-              "effect": "파워 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "파워 +8주분"
             },
             {
-              "weight": 30,
-              "message": "몸을 닫은 채 억지로 돌려 안쪽 공에 배트가 늦었다. 스윙 타이밍이 꼬였다.",
-              "effect": "컨택 -0.8",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "파워 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "발 위치는 두고 타구를 가운데로 보낸다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "몸을 일찍 열지 않는 데 집중했다. 가운데 방향으로 배트 중심에 맞는 공이 늘었다.",
-              "effect": "컨택 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "컨택 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "컨택 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "power"
@@ -1451,43 +1524,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "서클 그립으로 직구처럼 팔을 휘두른다",
           "outcomes": [
             {
-              "weight": 60,
+              "weight": 35,
               "message": "팔 속도를 유지한 채 손바닥에서 공이 빠졌다. 타자 앞에서 공이 가라앉았다.",
-              "effect": "변화구 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "변화구 +8주분"
             },
             {
-              "weight": 40,
-              "message": "손가락에 걸리는 느낌이 낯설어 체인지업이 바운드됐다. 릴리스가 일정하지 않았다.",
-              "effect": "제구 -0.6",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "변화구 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "직구와 같은 높이의 미트를 반복해 맞힌다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "속도 차이보다 같은 출발점을 만드는 데 집중했다. 공을 놓는 위치가 안정됐다.",
-              "effect": "제구 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "제구 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "제구 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "movement"
@@ -1505,43 +1571,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "높은 티를 치며 배트 궤도를 올린다",
           "outcomes": [
             {
-              "weight": 70,
+              "weight": 35,
               "message": "배트가 공 뒤에 오래 머물렀다. 밀려 나가던 타구에 높이와 힘이 붙었다.",
-              "effect": "파워 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "파워 +8주분"
             },
             {
-              "weight": 30,
-              "message": "각도를 만들려다 어깨가 먼저 들렸다. 배트 중심에 맞는 횟수가 줄었다.",
-              "effect": "컨택 -0.8",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "파워 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "티 높이를 낮추고 강한 라인드라이브를 친다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "몸의 높이를 유지하며 공을 맞혔다. 타구를 낮고 일정하게 보낼 수 있게 됐다.",
-              "effect": "컨택 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "컨택 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "컨택 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "power"
@@ -1558,43 +1617,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "스텝을 붙여 긴 거리를 던진다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "발에서 시작한 힘이 손끝까지 이어졌다. 먼 거리에도 공이 힘 있게 도착했다.",
-              "effect": "어깨 +4주분",
-              "fatigueRange": {
-                "min": 4,
-                "max": 7
-              }
+              "effect": "어깨 +8주분"
             },
             {
-              "weight": 25,
-              "message": "팔 힘만으로 거리를 늘리려다 공이 짧게 떨어졌다. 어깨가 무거워졌다.",
-              "effect": "어깨 -0.5",
-              "fatigueRange": {
-                "min": 6,
-                "max": 9
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "어깨 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "거리를 유지하며 전신 송구를 반복한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "몸통 회전에 맞춰 팔을 보냈다. 무리 없이 공에 힘을 싣는 감각을 다졌다.",
-              "effect": "어깨 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "어깨 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "어깨 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "physical"
@@ -1612,43 +1664,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "뒷다리를 강하게 밀며 직구를 던진다",
           "outcomes": [
             {
-              "weight": 65,
+              "weight": 35,
               "message": "축발에 남긴 힘이 앞으로 이어졌다. 같은 팔 스윙에서도 직구가 미트에 더 강하게 꽂혔다.",
-              "effect": "구속 +4주분",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "effect": "구속 +8주분"
             },
             {
-              "weight": 35,
-              "message": "밀어내는 힘이 커지자 디딤발이 옆으로 빠졌다. 직구가 높게 날렸다.",
-              "effect": "제구 -0.5",
-              "fatigueRange": {
-                "min": 7,
-                "max": 10
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "구속 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "축발을 오래 딛고 낮은 코스를 반복한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "힘을 더하기 전에 발이 놓이는 위치를 맞췄다. 직구가 낮은 쪽으로 모였다.",
-              "effect": "제구 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "제구 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "제구 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "velocity"
@@ -1666,43 +1711,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "공을 늦게까지 보고 스퀴즈를 댄다",
           "outcomes": [
             {
-              "weight": 80,
+              "weight": 35,
               "message": "배트를 일찍 내밀지 않고 공을 죽였다. 빠른 공에도 번트 방향을 조절했다.",
-              "effect": "컨택 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "컨택 +8주분"
             },
             {
-              "weight": 20,
-              "message": "공을 보는 데 몰두해 출발이 늦었다. 타격 뒤 첫발이 굳었다.",
-              "effect": "스피드 -0.5",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "컨택 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "번트 방향보다 타격 뒤 첫발을 반복한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "배트에 맞는 순간 몸이 1루 쪽으로 나갔다. 홈에서 출발하는 동작이 빨라졌다.",
-              "effect": "스피드 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "스피드 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "스피드 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "contact"
@@ -1720,43 +1758,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "속도를 유지하며 베이스 안쪽을 밟는다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "베이스를 밟고도 상체가 바깥으로 흐르지 않았다. 코너를 돌아 다시 가속하는 발이 빨라졌다.",
-              "effect": "스피드 +4주분",
-              "fatigueRange": {
-                "min": 4,
-                "max": 7
-              }
+              "effect": "스피드 +8주분"
             },
             {
-              "weight": 25,
-              "message": "발을 너무 안쪽으로 넣어 몸이 꺾였다. 다음 걸음이 꼬이며 균형을 잃었다.",
-              "effect": "스피드 -0.5",
-              "fatigueRange": {
-                "min": 6,
-                "max": 9
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "스피드 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "보폭을 줄이고 같은 주로를 반복한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "일정한 보폭으로 진입과 가속을 반복했다. 베이스를 돌아 나가는 발놀림이 익숙해졌다.",
-              "effect": "스피드 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "스피드 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "스피드 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "speed"
@@ -1774,30 +1805,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
-          "label": "천천히 식사하고 일찍 돌아가 쉰다",
+          "label": "가족과 식사 습관을 바꿔본다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "따뜻한 식사를 마치고 몸의 긴장을 풀었다.",
-              "effect": "피로 -7"
+              "weight": 35,
+              "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
+              "effect": "회복력 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "예상보다 일정이 길어져 피곤해졌다.",
+              "effect": "피로 +10"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
-          "label": "짧게 안부를 전하고 먼저 잠자리에 든다",
+          "label": "일정을 줄이고 충분히 쉰다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "전화로 안부를 전한 뒤 충분히 누워 쉬었다.",
-              "effect": "",
-              "recoveryPercent": {
-                "min": 12,
-                "max": 18
-              }
+              "weight": 85,
+              "message": "편안히 쉬며 피로를 풀었다.",
+              "effect": "피로 -12"
+            },
+            {
+              "weight": 15,
+              "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
+              "effect": "피로 +2"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ]
     },
@@ -1814,30 +1851,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
-          "label": "방을 정리하고 함께 불을 끈다",
+          "label": "동료와 수면 루틴을 새로 맞춘다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "분주하던 방이 조용해져 깊게 쉴 수 있었다.",
-              "effect": "피로 -8"
+              "weight": 35,
+              "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
+              "effect": "회복력 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "예상보다 일정이 길어져 피곤해졌다.",
+              "effect": "피로 +10"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
-          "label": "조용한 공간에서 먼저 눈을 붙인다",
+          "label": "일정을 줄이고 충분히 쉰다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "소음을 피해 짧고 깊은 잠을 잤다.",
-              "effect": "",
-              "recoveryPercent": {
-                "min": 10,
-                "max": 16
-              }
+              "weight": 85,
+              "message": "편안히 쉬며 피로를 풀었다.",
+              "effect": "피로 -12"
+            },
+            {
+              "weight": 15,
+              "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
+              "effect": "피로 +2"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ]
     },
@@ -1854,43 +1897,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "손가락을 벌린 그립으로 스플리터를 던진다",
           "outcomes": [
             {
-              "weight": 60,
+              "weight": 35,
               "message": "직구처럼 날아가던 공이 미트 앞에서 떨어졌다. 새로운 변화 방향의 감각을 익혔다.",
-              "effect": "변화구 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "변화구 +8주분"
             },
             {
-              "weight": 40,
-              "message": "공이 손에서 미끄러져 낮은 곳으로 빠졌다. 스트라이크를 넣기 어려웠다.",
-              "effect": "제구 -0.6",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "변화구 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "벌리는 폭을 줄여 낮은 코스부터 맞힌다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "손에 맞는 간격에서 공을 놓았다. 크게 벗어나던 공을 미트 근처로 보냈다.",
-              "effect": "제구 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "제구 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "제구 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "movement"
@@ -1908,30 +1944,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
-          "label": "잠깐 통화하며 마음을 풀고 쉰다",
+          "label": "가족에게 경기 고민을 털어놓는다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "익숙한 목소리를 듣고 어깨에 남은 긴장을 풀었다.",
-              "effect": "피로 -6"
+              "weight": 35,
+              "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
+              "effect": "야구 지능 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "예상보다 일정이 길어져 피곤해졌다.",
+              "effect": "피로 +10"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
-          "label": "안부 메시지를 남기고 일찍 잠든다",
+          "label": "일정을 줄이고 충분히 쉰다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "걱정을 정리하고 충분한 수면 시간을 확보했다.",
-              "effect": "",
-              "recoveryPercent": {
-                "min": 12,
-                "max": 20
-              }
+              "weight": 85,
+              "message": "편안히 쉬며 피로를 풀었다.",
+              "effect": "피로 -12"
+            },
+            {
+              "weight": 15,
+              "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
+              "effect": "피로 +2"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ]
     },
@@ -1948,43 +1990,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "공을 깊게 끌어들여 반대쪽으로 친다",
           "outcomes": [
             {
-              "weight": 80,
+              "weight": 35,
               "message": "허리가 일찍 열리지 않았다. 바깥쪽 공을 배트 중심으로 밀어냈다.",
-              "effect": "컨택 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "컨택 +8주분"
             },
             {
-              "weight": 20,
-              "message": "공을 기다리는 동안 하체가 멈췄다. 맞은 타구에 힘이 실리지 않았다.",
-              "effect": "파워 -0.5",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "컨택 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "짧게 휘둘러 반대쪽으로 강한 타구를 보낸다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "손만 내미는 대신 몸통을 함께 돌렸다. 밀어 친 타구가 더 멀리 나갔다.",
-              "effect": "파워 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "파워 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "파워 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "contact"
@@ -2002,43 +2037,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "수건 끝이 같은 표식을 때리도록 반복한다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "고개와 가슴이 먼저 떨어지지 않았다. 공을 놓는 위치를 일정하게 만들었다.",
-              "effect": "제구 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "제구 +8주분"
             },
             {
-              "weight": 25,
-              "message": "표식만 맞히려다 팔 스윙이 작아졌다. 앞으로 뻗는 힘을 쓰지 못했다.",
-              "effect": "구속 -0.5",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "제구 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "디딤발을 고정하고 팔을 길게 뻗는다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "몸통과 팔이 끊기지 않고 앞으로 나갔다. 공에 힘을 전달하는 감각을 다듬었다.",
-              "effect": "구속 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "구속 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "구속 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "control"
@@ -2061,43 +2089,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "발을 바꿔 딛는 피벗을 빠르게 반복한다",
           "outcomes": [
             {
-              "weight": 80,
+              "weight": 35,
               "message": "공을 받는 순간 몸이 1루 쪽으로 돌아갔다. 발과 손의 움직임이 맞아들었다.",
-              "effect": "수비 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "수비 +8주분"
             },
             {
-              "weight": 20,
-              "message": "발을 서두르다 상체가 뒤에 남았다. 송구에 힘을 전달하지 못했다.",
-              "effect": "어깨 -0.5",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "수비 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "발을 천천히 옮기고 강한 송구를 만든다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "몸이 돌아선 뒤 공을 던졌다. 짧은 거리에서도 송구가 단단해졌다.",
-              "effect": "어깨 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "어깨 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "어깨 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "defense"
@@ -2115,30 +2136,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
-          "label": "천천히 걸으며 쉬었다 돌아간다",
+          "label": "친구와 먼 길을 걸으며 기분을 전환한다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "빠르게 움직이지 않고 가볍게 걸어 굳은 몸을 풀었다.",
-              "effect": "피로 -5"
+              "weight": 35,
+              "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
+              "effect": "스태미나 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "예상보다 일정이 길어져 피곤해졌다.",
+              "effect": "피로 +10"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
-          "label": "짧게 인사하고 집에서 충분히 쉰다",
+          "label": "일정을 줄이고 충분히 쉰다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "일찍 귀가해 다리를 뻗고 쉬었다.",
-              "effect": "",
-              "recoveryPercent": {
-                "min": 10,
-                "max": 18
-              }
+              "weight": 85,
+              "message": "편안히 쉬며 피로를 풀었다.",
+              "effect": "피로 -12"
+            },
+            {
+              "weight": 15,
+              "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
+              "effect": "피로 +2"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ]
     },
@@ -2155,43 +2182,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "골반 회전을 먼저 열고 팔을 따라 보낸다",
           "outcomes": [
             {
-              "weight": 65,
+              "weight": 35,
               "message": "골반이 돌고 난 뒤 팔이 빠르게 따라왔다. 같은 힘으로 던져도 공이 더 강하게 뻗었다.",
-              "effect": "구속 +4주분",
-              "fatigueRange": {
-                "min": 4,
-                "max": 7
-              }
+              "effect": "구속 +8주분"
             },
             {
-              "weight": 35,
-              "message": "상체까지 한꺼번에 열려 팔이 뒤에 남았다. 공이 높은 쪽으로 빠졌다.",
-              "effect": "제구 -0.5",
-              "fatigueRange": {
-                "min": 6,
-                "max": 9
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "구속 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "낮은 강도로 회전 순서부터 맞춘다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "공을 세게 던지기보다 하체부터 움직였다. 팔이 따라 나오는 속도를 일정하게 만들었다.",
-              "effect": "구속 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "구속 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "구속 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "velocity"
@@ -2209,30 +2229,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
-          "label": "짧게 낮잠을 자고 몸을 푼다",
+          "label": "짧게 자고 스트레칭 방법을 바꿔본다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "눈을 붙인 뒤 굳은 부위를 가볍게 풀었다.",
-              "effect": "피로 -9"
+              "weight": 35,
+              "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
+              "effect": "회복력 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "예상보다 일정이 길어져 피곤해졌다.",
+              "effect": "피로 +10"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
-          "label": "전자기기를 끄고 긴 휴식을 취한다",
+          "label": "일정을 줄이고 충분히 쉰다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "방해받지 않고 누워 몸을 쉬게 했다.",
-              "effect": "",
-              "recoveryPercent": {
-                "min": 14,
-                "max": 22
-              }
+              "weight": 85,
+              "message": "편안히 쉬며 피로를 풀었다.",
+              "effect": "피로 -12"
+            },
+            {
+              "weight": 15,
+              "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
+              "effect": "피로 +2"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ]
     },
@@ -2248,43 +2274,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "마지막 구간까지 같은 속도로 달린다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "숨이 차도 자세를 유지했다. 다리에 힘이 빠지는 시점이 조금 늦어졌다.",
-              "effect": "스태미나 +4주분",
-              "fatigueRange": {
-                "min": 4,
-                "max": 7
-              }
+              "effect": "스태미나 +8주분"
             },
             {
-              "weight": 25,
-              "message": "처음부터 속도를 올려 끝 구간에서 다리가 굳었다. 몸을 돌릴 때 균형까지 흔들렸다.",
-              "effect": "스태미나 -0.5",
-              "fatigueRange": {
-                "min": 6,
-                "max": 9
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "스태미나 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "구간을 짧게 나눠 일정한 속도로 달린다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "속도를 나눠 달리며 호흡을 맞췄다. 마지막 반복까지 하체가 버텨 줬다.",
-              "effect": "스태미나 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "스태미나 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "스태미나 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "physical"
@@ -2302,43 +2321,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "끝까지 달린 뒤 다리를 접어 슬라이딩한다",
           "outcomes": [
             {
-              "weight": 80,
+              "weight": 35,
               "message": "베이스 앞에서 상체가 들리지 않았다. 속도를 유지한 채 매트로 들어갔다.",
-              "effect": "스피드 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "스피드 +8주분"
             },
             {
-              "weight": 20,
-              "message": "다리를 늦게 접어 착지 때 몸에 충격이 왔다. 하체가 무거워졌다.",
-              "effect": "스태미나 -0.5",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "스피드 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "낮은 속도에서 착지와 다시 일어나기를 반복한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "무릎과 몸통에 힘을 나눠 실었다. 반복 동작을 버티는 하체를 단련했다.",
-              "effect": "스태미나 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "스태미나 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "스태미나 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "speed"
@@ -2362,43 +2374,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "타구가 뜨면 몸을 돌려 전력으로 쫓는다",
           "outcomes": [
             {
-              "weight": 80,
+              "weight": 35,
               "message": "첫발부터 타구 방향으로 달렸다. 머리 위 타구와 거리를 맞추는 감각이 좋아졌다.",
-              "effect": "수비 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "수비 +8주분"
             },
             {
-              "weight": 20,
-              "message": "방향을 급히 바꾸다 발이 엉켰다. 출발할 때 힘을 쓰지 못했다.",
-              "effect": "스피드 -0.5",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "수비 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "착구 지점을 향해 짧은 가속을 반복한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "멀리 뛰기 전에 발을 빠르게 움직였다. 돌아서는 순간의 가속이 좋아졌다.",
-              "effect": "스피드 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "스피드 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "스피드 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "defense"
@@ -2417,43 +2422,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "낮게 버티며 백핸드 포구를 반복한다",
           "outcomes": [
             {
-              "weight": 80,
+              "weight": 35,
               "message": "글러브 면을 먼저 공 쪽으로 내밀었다. 옆으로 빠지던 공을 끊어 잡았다.",
-              "effect": "수비 +4주분",
-              "fatigueRange": {
-                "min": 3,
-                "max": 6
-              }
+              "effect": "수비 +8주분"
             },
             {
-              "weight": 20,
-              "message": "포구 뒤 몸을 세우는 데 늦어 송구가 약해졌다. 던지는 동작이 짧아졌다.",
-              "effect": "어깨 -0.5",
-              "fatigueRange": {
-                "min": 5,
-                "max": 8
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "수비 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "쉬운 타구를 잡고 발을 모아 정확히 던진다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "잡는 자세를 정돈하고 몸을 세워 던졌다. 흔들리던 송구에 힘이 붙었다.",
-              "effect": "어깨 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "어깨 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "어깨 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "defense"
@@ -2471,30 +2469,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
-          "label": "간식을 먹고 조용히 쉬었다 온다",
+          "label": "새로운 식단을 직접 준비한다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "짧게 기분을 풀고 방으로 돌아와 쉬었다.",
-              "effect": "피로 -6"
+              "weight": 35,
+              "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
+              "effect": "회복력 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "예상보다 일정이 길어져 피곤해졌다.",
+              "effect": "피로 +10"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
-          "label": "먼저 방으로 돌아가 잠을 보충한다",
+          "label": "일정을 줄이고 충분히 쉰다",
           "outcomes": [
             {
-              "weight": 100,
-              "message": "할 일을 끝낸 뒤 남은 시간을 수면에 썼다.",
-              "effect": "",
-              "recoveryPercent": {
-                "min": 12,
-                "max": 18
-              }
+              "weight": 85,
+              "message": "편안히 쉬며 피로를 풀었다.",
+              "effect": "피로 -12"
+            },
+            {
+              "weight": 15,
+              "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
+              "effect": "피로 +2"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ]
     },
@@ -2511,43 +2515,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "하체로 밀어낸 힘을 직구에 끝까지 싣는다",
           "outcomes": [
             {
-              "weight": 65,
+              "weight": 35,
               "message": "착지 순간 몸의 힘이 손끝으로 이어졌다. 직구가 포수 미트까지 힘 있게 들어갔다.",
-              "effect": "구속 +4주분",
-              "fatigueRange": {
-                "min": 4,
-                "max": 7
-              }
+              "effect": "구속 +8주분"
             },
             {
-              "weight": 35,
-              "message": "보폭만 길어져 상체가 뒤에 남았다. 릴리스가 늦어 공이 위로 떴다.",
-              "effect": "제구 -0.5",
-              "fatigueRange": {
-                "min": 6,
-                "max": 9
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "구속 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "보폭을 줄여 체중 이동을 반복한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "짧은 거리에서 밀고 딛는 순서를 맞췄다. 몸 전체를 실어 던지는 감각이 생겼다.",
-              "effect": "구속 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "구속 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "구속 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "velocity"
@@ -2565,43 +2562,36 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "상체를 낮추고 첫 세 걸음을 전력으로 뗀다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "몸이 먼저 들리지 않아 첫발부터 속도가 붙었다. 두 번째와 세 번째 걸음도 빠르게 이어졌다.",
-              "effect": "스피드 +4주분",
-              "fatigueRange": {
-                "min": 4,
-                "max": 7
-              }
+              "effect": "스피드 +8주분"
             },
             {
-              "weight": 25,
-              "message": "상체를 너무 숙여 첫발이 바닥에 걸렸다. 급히 몸을 세우느라 가속이 끊겼다.",
-              "effect": "스피드 -0.5",
-              "fatigueRange": {
-                "min": 6,
-                "max": 9
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "스피드 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "작은 리드에서 출발 동작을 반복한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "견제 때 멈췄다가 투구 때 짧게 출발했다. 흔들림 없이 첫걸음을 이어 붙였다.",
-              "effect": "스피드 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "스피드 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "스피드 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "speed"
@@ -2618,46 +2608,493 @@
       },
       "choices": [
         {
-          "id": "choice-1",
           "label": "주자 움직임까지 보며 직접 콜을 낸다",
           "outcomes": [
             {
-              "weight": 75,
+              "weight": 35,
               "message": "타구와 주자를 함께 보고 던질 곳을 바로 외쳤다. 동료와 겹치지 않고 아웃을 잡았다.",
-              "effect": "야구 지능 +4주분",
-              "fatigueRange": {
-                "min": 4,
-                "max": 7
-              }
+              "effect": "야구 지능 +8주분"
             },
             {
-              "weight": 25,
-              "message": "공만 보느라 주자 출발을 놓쳤다. 늦은 콜에 두 선수가 같은 공으로 몰렸다.",
-              "effect": "야구 지능 -0.5",
-              "fatigueRange": {
-                "min": 6,
-                "max": 9
-              }
+              "weight": 65,
+              "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+              "effect": "야구 지능 -2"
             }
-          ]
+          ],
+          "id": "choice-1"
         },
         {
-          "id": "choice-2",
           "label": "정해진 주자 상황부터 콜을 반복한다",
           "outcomes": [
             {
-              "weight": 100,
+              "weight": 85,
               "message": "같은 상황을 반복하며 누가 잡고 어디로 던질지 익혔다. 공이 오기 전에 다음 동작을 떠올렸다.",
-              "effect": "야구 지능 +3주분",
-              "fatigueRange": {
-                "min": 1,
-                "max": 3
-              }
+              "effect": "야구 지능 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정에 타이밍이 조금 흔들렸다.",
+              "effect": "야구 지능 -0.3"
             }
-          ]
+          ],
+          "id": "choice-2"
         }
       ],
       "focus": "bq"
+    },
+    {
+      "title": "타격폼 대개조",
+      "description": "코치가 하체를 쓰는 방식을 바꿔보자고 한다. 큰 변화와 작은 교정 중 무엇을 택할까?",
+      "category": "baseball",
+      "focus": "power",
+      "choices": [
+        {
+          "label": "레그킥을 크게 바꾼다",
+          "outcomes": [
+            {
+              "weight": 35,
+              "message": "레그킥을 크게 바꾼다에 집중한 끝에 새로운 동작을 몸에 익혔다.",
+              "effect": "파워 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "큰 변화를 시도했지만 동작이 흔들렸다. 익숙한 감각을 되찾는 데 시간이 필요하다.",
+              "effect": "컨택 -2"
+            }
+          ],
+          "id": "choice-1"
+        },
+        {
+          "label": "스윙 궤도만 다듬는다",
+          "outcomes": [
+            {
+              "weight": 85,
+              "message": "스윙 궤도만 다듬는다에 집중하며 기본 동작을 조금 더 안정시켰다.",
+              "effect": "컨택 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정도 아직 어색하다. 동작을 다시 맞춰야 한다.",
+              "effect": "컨택 -0.3"
+            }
+          ],
+          "id": "choice-2"
+        }
+      ],
+      "id": "T21",
+      "kind": "training",
+      "rule": {
+        "activity": "training",
+        "revision": 5,
+        "field": "batting"
+      }
+    },
+    {
+      "title": "새로운 결정구",
+      "description": "불펜에서 익숙하지 않은 그립을 시험할 기회가 생겼다.",
+      "category": "baseball",
+      "focus": "movement",
+      "choices": [
+        {
+          "label": "낯선 그립으로 승부구를 던진다",
+          "outcomes": [
+            {
+              "weight": 35,
+              "message": "낯선 그립으로 승부구를 던진다에 집중한 끝에 새로운 동작을 몸에 익혔다.",
+              "effect": "변화구 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "큰 변화를 시도했지만 동작이 흔들렸다. 익숙한 감각을 되찾는 데 시간이 필요하다.",
+              "effect": "제구 -2"
+            }
+          ],
+          "id": "choice-1"
+        },
+        {
+          "label": "익숙한 구종의 코스를 다듬는다",
+          "outcomes": [
+            {
+              "weight": 85,
+              "message": "익숙한 구종의 코스를 다듬는다에 집중하며 기본 동작을 조금 더 안정시켰다.",
+              "effect": "제구 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "작은 조정도 아직 어색하다. 동작을 다시 맞춰야 한다.",
+              "effect": "제구 -0.3"
+            }
+          ],
+          "id": "choice-2"
+        }
+      ],
+      "id": "T22",
+      "kind": "training",
+      "rule": {
+        "activity": "training",
+        "revision": 5,
+        "field": "pitching"
+      }
+    },
+    {
+      "title": "득점권 승부",
+      "description": "주자가 득점권에 나가 있다. 이번 타석을 어떻게 준비할까?",
+      "category": "baseball",
+      "kind": "game",
+      "focus": "contact",
+      "choices": [
+        {
+          "label": "장타를 노려 크게 돌린다",
+          "outcomes": [
+            {
+              "weight": 35,
+              "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
+              "effect": "평판 +0.6, 이번 타석 홈런 판정 +12%p, 안타 +5%p"
+            },
+            {
+              "weight": 65,
+              "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
+              "effect": "평판 -0.6, 이번 타석 안타 -10%p, 삼진 +12%p"
+            }
+          ],
+          "id": "choice-1"
+        },
+        {
+          "label": "짧게 끊어 친다",
+          "outcomes": [
+            {
+              "weight": 85,
+              "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
+              "effect": "평판 +0.15, 이번 타석 안타 +2.5%p"
+            },
+            {
+              "weight": 15,
+              "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
+              "effect": "평판 -0.1, 이번 타석 안타 -2%p"
+            }
+          ],
+          "id": "choice-2"
+        }
+      ],
+      "id": "G07"
+    },
+    {
+      "title": "중심타선과 정면승부",
+      "description": "상대 중심타자와 마주했다. 이번 타자를 어떻게 상대할까?",
+      "category": "baseball",
+      "kind": "game",
+      "focus": "control",
+      "choices": [
+        {
+          "label": "결정구로 삼진을 노린다",
+          "outcomes": [
+            {
+              "weight": 35,
+              "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
+              "effect": "평판 +0.6, 이번 타석 삼진 +15%p, 안타 -8%p"
+            },
+            {
+              "weight": 65,
+              "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
+              "effect": "평판 -0.6, 이번 타석 홈런 판정 +10%p, 안타 +8%p"
+            }
+          ],
+          "id": "choice-1"
+        },
+        {
+          "label": "낮은 코스로 승부한다",
+          "outcomes": [
+            {
+              "weight": 85,
+              "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
+              "effect": "평판 +0.15, 이번 타석 안타 -2.5%p"
+            },
+            {
+              "weight": 15,
+              "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
+              "effect": "평판 -0.1, 이번 타석 볼넷 +2%p"
+            }
+          ],
+          "id": "choice-2"
+        }
+      ],
+      "id": "G08"
+    },
+    {
+      "title": "축구부와 친선경기",
+      "description": "축구부가 훈련이 없는 시간에 친선경기를 제안했다.",
+      "category": "daily",
+      "focus": "physical",
+      "kind": "person",
+      "rule": {
+        "activity": "free",
+        "revision": 5
+      },
+      "choices": [
+        {
+          "label": "친선경기에 참가한다",
+          "outcomes": [
+            {
+              "weight": 35,
+              "message": "끝까지 그라운드를 뛰며 지구력을 길렀다.",
+              "effect": "스태미나 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "경합 중 발목을 접질렀다.",
+              "effect": "경미한 부상, 3일 결장"
+            }
+          ],
+          "id": "choice-1"
+        },
+        {
+          "label": "참가하지 않고 쉰다",
+          "outcomes": [
+            {
+              "weight": 85,
+              "message": "숙소에서 쉬며 피로를 풀었다.",
+              "effect": "피로 -12"
+            },
+            {
+              "weight": 15,
+              "message": "너무 오래 누워 있어 몸의 지구력이 조금 떨어졌다.",
+              "effect": "스태미나 -0.3"
+            }
+          ],
+          "id": "choice-2"
+        }
+      ],
+      "id": "X01"
+    },
+    {
+      "title": "육상부 합동훈련",
+      "description": "육상부가 짧은 합동훈련에 초대했다.",
+      "category": "daily",
+      "focus": "physical",
+      "kind": "person",
+      "rule": {
+        "activity": "free",
+        "revision": 5
+      },
+      "choices": [
+        {
+          "label": "전력 질주 대결에 나선다",
+          "outcomes": [
+            {
+              "weight": 35,
+              "message": "강한 페이스를 견디며 지구력을 길렀다.",
+              "effect": "스태미나 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "페이스를 따라가다 무리했다.",
+              "effect": "피로 +14"
+            }
+          ],
+          "id": "choice-1"
+        },
+        {
+          "label": "가벼운 러닝에만 참여한다",
+          "outcomes": [
+            {
+              "weight": 85,
+              "message": "편안한 러닝으로 몸 관리 요령을 익혔다.",
+              "effect": "회복력 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "호흡이 조금 가빠졌다.",
+              "effect": "피로 +2"
+            }
+          ],
+          "id": "choice-2"
+        }
+      ],
+      "id": "X02"
+    },
+    {
+      "title": "체육대회 계주",
+      "description": "체육대회 계주 팀에서 마지막 주자를 맡아달라고 한다.",
+      "category": "daily",
+      "focus": "physical",
+      "kind": "person",
+      "rule": {
+        "activity": "free",
+        "revision": 5
+      },
+      "choices": [
+        {
+          "label": "마지막 주자로 나선다",
+          "outcomes": [
+            {
+              "weight": 35,
+              "message": "마지막까지 달리며 지구력을 길렀다.",
+              "effect": "스태미나 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "급하게 출발하다 발목을 다쳤다.",
+              "effect": "경미한 부상, 3일 결장"
+            }
+          ],
+          "id": "choice-1"
+        },
+        {
+          "label": "응원과 준비를 맡는다",
+          "outcomes": [
+            {
+              "weight": 85,
+              "message": "가벼운 활동으로 몸을 풀었다.",
+              "effect": "피로 -8"
+            },
+            {
+              "weight": 15,
+              "message": "준비가 늦게 끝나 조금 지쳤다.",
+              "effect": "피로 +2"
+            }
+          ],
+          "id": "choice-2"
+        }
+      ],
+      "id": "X03"
+    },
+    {
+      "title": "선배의 개인 레슨",
+      "description": "졸업한 선배가 훈련 뒤 자신의 몸 관리 경험을 나누겠다고 한다.",
+      "category": "daily",
+      "focus": "physical",
+      "kind": "person",
+      "rule": {
+        "activity": "free",
+        "revision": 5
+      },
+      "choices": [
+        {
+          "label": "새로운 체력 루틴에 도전한다",
+          "outcomes": [
+            {
+              "weight": 35,
+              "message": "선배의 체력 루틴이 잘 맞았다.",
+              "effect": "스태미나 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "낯선 루틴에 무리해 지쳤다.",
+              "effect": "피로 +14"
+            }
+          ],
+          "id": "choice-1"
+        },
+        {
+          "label": "기본 회복 동작을 점검한다",
+          "outcomes": [
+            {
+              "weight": 85,
+              "message": "몸을 풀고 회복하는 요령을 배웠다.",
+              "effect": "회복력 +3주분"
+            },
+            {
+              "weight": 15,
+              "message": "몸을 푸는 데 시간이 더 걸렸다.",
+              "effect": "피로 +2"
+            }
+          ],
+          "id": "choice-2"
+        }
+      ],
+      "id": "X04"
+    },
+    {
+      "title": "친구들과 주말 나들이",
+      "description": "친구들이 경기가 없는 날 함께 나가자고 한다.",
+      "category": "daily",
+      "focus": "physical",
+      "kind": "person",
+      "rule": {
+        "activity": "free",
+        "revision": 5
+      },
+      "choices": [
+        {
+          "label": "먼 곳까지 함께 간다",
+          "outcomes": [
+            {
+              "weight": 35,
+              "message": "긴 산책을 즐기며 지구력을 길렀다.",
+              "effect": "스태미나 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "귀가가 늦어져 피로가 쌓였다.",
+              "effect": "피로 +14"
+            }
+          ],
+          "id": "choice-1"
+        },
+        {
+          "label": "가까운 곳에서 짧게 만난다",
+          "outcomes": [
+            {
+              "weight": 85,
+              "message": "짧은 만남으로 기분을 전환하고 쉬었다.",
+              "effect": "피로 -8"
+            },
+            {
+              "weight": 15,
+              "message": "약속이 조금 길어져 피곤해졌다.",
+              "effect": "피로 +2"
+            }
+          ],
+          "id": "choice-2"
+        }
+      ],
+      "id": "X05"
+    },
+    {
+      "title": "가족과의 고민 상담",
+      "description": "가족이 최근 야구 생활은 어떤지 묻는다.",
+      "category": "daily",
+      "focus": "physical",
+      "kind": "person",
+      "rule": {
+        "activity": "free",
+        "revision": 5
+      },
+      "choices": [
+        {
+          "label": "경기 고민을 솔직하게 털어놓는다",
+          "outcomes": [
+            {
+              "weight": 35,
+              "message": "이야기를 나누며 경기 상황을 새롭게 이해했다.",
+              "effect": "야구 지능 +8주분"
+            },
+            {
+              "weight": 65,
+              "message": "의견이 엇갈려 대화가 길어졌다.",
+              "effect": "피로 +12"
+            }
+          ],
+          "id": "choice-1"
+        },
+        {
+          "label": "상담을 미루고 일찍 잔다",
+          "outcomes": [
+            {
+              "weight": 85,
+              "message": "충분히 자고 피로를 풀었다.",
+              "effect": "피로 -12"
+            },
+            {
+              "weight": 15,
+              "message": "생각이 많아 잠을 설쳤다.",
+              "effect": "피로 +2"
+            }
+          ],
+          "id": "choice-2"
+        }
+      ],
+      "id": "X06"
     }
   ]
 }

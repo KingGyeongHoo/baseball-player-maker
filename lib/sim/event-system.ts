@@ -81,9 +81,9 @@ export function eventCandidates(s: GameState, date: string): EventOpportunity[] 
   }
   if (canAct && game?.status === "scheduled" && !ledger.games.includes(game.id)) {
     const projected = lineup(s.players.filter(other => other.teamId === p.teamId), date);
-    const ids = projected.order.some(other => other.id === p.id) ? ["G01", "G02", "G03"]
-      : projected.pitchers.some(other => other.id === p.id) ? ["G04", "G05", "G06"] : [];
-    for (const id of ids) add(id, { gameId: game.id,field:Number(id.slice(1))<=3?'batting':'pitching' });
+    const ids = projected.order.some(other => other.id === p.id) ? ["G01", "G02", "G03", "G07"]
+      : projected.pitchers.some(other => other.id === p.id) ? ["G04", "G05", "G06", "G08"] : [];
+    for (const id of ids) add(id, { gameId: game.id,field:Number(id.slice(1))<=3||id==='G07'?'batting':'pitching' });
   }
   return pool;
 }
@@ -139,8 +139,9 @@ export function openScheduledEvent(s: GameState, phase: "beforeGames" | "trainin
   const kind = eventKind(planned.definitionId);
   if (phase === "game") {
     if (kind !== "game" || !scene || planned.gameId !== scene.gameId || eventLedger(s).games.includes(scene.gameId)) return false;
-    const hitterEvent = Number(planned.definitionId.slice(1)) <= 3;
+    const hitterEvent = planned.field ? planned.field === 'batting' : Number(planned.definitionId.slice(1)) <= 3 || planned.definitionId === 'G07';
     if (hitterEvent !== scene.batting) return false;
+    if(planned.definitionId==='G07'&&!scene.bases.slice(1).some(Boolean))return false;
     return open(s, planned, scene);
   }
   if (phase === "training" ? kind !== "training" : kind === "training" || kind === "game") return false;
@@ -200,6 +201,12 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   const changes: typeof deltas = {}, oldReputation = p.professional?0:p.reputation ?? reputationScore(p) ?? 0, oldFatigue = p.fatigue;
   for (const [key, delta] of Object.entries(deltas) as [Stat, number][]) { const before = p.stats[key]; p.stats[key] = clamp(limitPhysicalGrowth(p,key,before + delta), 1); changes[key] = p.stats[key] - before; }
   const oldPosition = p.position;
+  let selectionBonus: number | undefined;
+  if(event.scene&&event.kind==='game'&&p.professional&&outcome.selectionBonus){
+    const before=p.professional.eventSelectionBonus??0;
+    p.professional.eventSelectionBonus=clamp(before+outcome.selectionBonus,-5,5);
+    selectionBonus=p.professional.eventSelectionBonus-before;
+  }
   const opportunityChanges = applyOpportunityChoice(s, outcome);
   Object.assign(opportunityChanges,applyProTwoWayChoice(s,outcome));
   if (outcome.role) assignRole(p, outcome.role);
@@ -228,6 +235,9 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
     const match = s.matchProgress;
     s.matchEffect = { ...outcome.match, gameId: match.gameId, batterId: match.sides[match.battingSide].order[match.battingIndex[match.battingSide] % 9], pitcherId: match.pitchers[1 - match.battingSide] };
   }
+  if(outcome.steal!==undefined&&event.scene?.running&&s.matchProgress){
+    s.stealEffect={gameId:event.scene.gameId,runnerId:p.id,adjustment:outcome.steal};
+  }
   const fatigue = p.fatigue - oldFatigue;
   if (s.matchProgress) s.matchProgress.eventFatigue += fatigue;
   if (s.weekProgress?.day) { s.weekProgress.day.fatigue.events = (s.weekProgress.day.fatigue.events ?? 0) + fatigue; s.weekProgress.day.fatigue.peak = Math.max(s.weekProgress.day.fatigue.peak, p.fatigue); }
@@ -235,6 +245,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   recordProChoice(s,event,Object.values(changes).some(n=>(n??0)>0));
   s.careerEventHistory.push({ id: event.id, definitionId: event.definitionId, kind: event.kind, title: event.title, date: event.date,
     choice: selected.label, choiceId:selected.id, ...(event.story?{story:{...event.story}}:{}), message: outcome.message, awakened:awakened.filter(key=>(changes[key]??0)>0), stats: changes, reputation: (p.reputation??0) - oldReputation, fatigue,
+    ...(selectionBonus!==undefined?{selectionBonus}:{}),...(outcome.steal!==undefined?{steal:outcome.steal}:{}),
     ...(event.proEvent?{proEvent:{version:1 as const,catalogId:event.proEvent.catalogId,channel:event.proEvent.channel,year:event.proEvent.year,branchId:outcome.proResultId??selected.id,...(event.proEvent.chainId!==undefined?{chainId:event.proEvent.chainId}:{}),...(event.proEvent.nationalKind?{nationalKind:event.proEvent.nationalKind}:{}),...(proAction?{action:proAction}:{})}}:{}),
     ...(outcome.injury ? { injury: structuredClone(p.injury!) } : {}), ...(p.position !== oldPosition ? { positionChange: { from: oldPosition, to: p.position } } : {}),
     ...(outcome.match ? { match: { ...outcome.match } } : {}), ...(event.scene ? { scene: event.scene } : {}) });

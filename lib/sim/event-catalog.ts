@@ -37,8 +37,8 @@ export function decodeEffects(effect: string, player: Player, targetRole?: Role,
     const match = permanent.match(new RegExp(`${label}\\s*([+-]\\d+(?:\\.\\d+)?)`));
     if (match) output[key] = Number(match[1]);
   }
-  const injury = permanent.match(/보통 부상,\s*(\d+)일 결장/);
-  if (injury) output.injury = { severity: "moderate", days: Number(injury[1]) };
+  const injury = permanent.match(/(보통|경미한) 부상,\s*(\d+)일 결장/);
+  if (injury) output.injury = { severity: injury[1] === '보통' ? 'moderate' : 'mild', days: Number(injury[2]) };
   if (permanent.includes("제안한 주 역할")) output.role = targetRole;
   const sceneText = effect.match(/이번 (?:타석|타자)(.*)/)?.[1];
   if (sceneText) for (const [label, key] of [["안타", "hit"], ["홈런 판정", "hr"], ["볼넷", "bb"], ["삼진", "k"]] as const) {

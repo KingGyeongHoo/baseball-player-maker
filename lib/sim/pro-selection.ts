@@ -62,7 +62,7 @@ export function proSelectionScore(p:Player,role:Role=p.primaryRole){
   }
   const recentWorkload=pitching?Math.max(sample,recent.pitching.BF/2):sample;
   const recentAdjustment=limit>0?proSelectionRules.recentMax*form(recent,pitching).quality*Math.min(1,recentWorkload/limit):0;
-  return clamp(roleScore(p,role)*leftPitcherMultiplier(p,role)+proSelectionRules.seasonMax*seasonForm+recentAdjustment
+  return clamp(roleScore(p,role)*leftPitcherMultiplier(p,role)+proSelectionRules.seasonMax*seasonForm+recentAdjustment+clamp(p.professional?.eventSelectionBonus??0,-5,5)
     -(p.proContract?.status==="developmental"?6:0)-(p.professional?.managedUntil?12:0),0,100);
 }
 

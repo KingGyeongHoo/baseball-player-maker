@@ -264,6 +264,8 @@ export type Report = {
 export type MatchEffect = { hit?: number; hr?: number; bb?: number; k?: number };
 export type EventRewardWeeks = 1 | 3 | 4 | 6 | 8 | 12;
 export type CareerEventBranch = {
+  selectionBonus?: number;
+  steal?: number;
   weight: number; message: string; stats?: Partial<Stats>; weeks?: Partial<Record<Stat, EventRewardWeeks>>;
   reputation?: number; fatigue?: number; injury?: { severity: Injury["severity"]; days: number };
   role?: Role; match?: MatchEffect;
@@ -287,6 +289,7 @@ export type CareerOpportunityState = {
 };
 export type EventOpportunity = { definitionId: string; date: string; field?:'pitching'|'batting'; competitionId?: string; gameId?: string; targetRole?: Role; story?:import("./event-stories").EventStory };
 export type EventScene = {
+  running?: boolean;
   gameId: string; inning: number; battingSide: number; outs: number; bases: (string | null)[];
   score: number[]; batting: boolean; batterName: string; pitcherName: string;
   batterId?:string;pitcherId?:string;
@@ -310,6 +313,8 @@ export type CareerEvent = {
   transferOffers?: TransferOffer[];
 };
 export type CareerEventOutcome = {
+  selectionBonus?: number;
+  steal?: number;
   choiceId?:string;
   story?:import("./event-stories").EventStory;
   proEvent?:ProEventResult;
@@ -343,6 +348,7 @@ export type MatchProgress = {
   recentEvents: { playerId: string; record: import("./recent-records").RecentRecord }[]; defense: number[]; arm: number[];
   inning: number; battingSide: number; outs: number; pa: number; runs: number;
   bases: ({ playerId: string; pitcherId: string } | null)[]; ready: boolean; eventFatigue: number;
+  stealPending?: boolean;
 };
 export type GameState = {
   savedRetiredNumbers?:{saveId:string;club:number;number:number;playerId:string;playerName:string}[];
@@ -383,6 +389,7 @@ export type GameState = {
   eventLedger?: { recent: string[]; centerGrades: number[]; nationalGrades: number[]; competitions: string[]; games: string[] };
   weekProgress?: WeekProgress; matchProgress?: MatchProgress;
   matchEffect?: MatchEffect & { gameId: string; batterId: string; pitcherId: string };
+  stealEffect?: { gameId: string; runnerId: string; adjustment: number };
   careerOpportunities?: CareerOpportunityState;
   trainingFocus?: { rng: number; rolledWeek: number };
   careerMode?: CareerMode;

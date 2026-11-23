@@ -11,7 +11,7 @@ import {playoffRosterFor} from "./pro-season";
 import { applyMatchEffect, openScheduledEvent } from "./event-system";
 import type { Game, GameState, Player, Position } from "./types";
 import {recordEvaluationEnvironment} from "./evaluation-lifecycle";
-import {openProMatchEvent,openProPreparation} from "./pro-event-runtime";
+import {openProMatchEvent,openProPreparation,openProStealEvent} from "./pro-event-runtime";
 import type {ProAppearance} from "./pro-event-types";
 import {packRecentRecord,recentSample} from "./recent-records";
 import {finishGameRecords,pitcherEntered,recordLeadChange} from "./game-records";
@@ -86,7 +86,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     game.boxScore = {}; game.lineup = []; game.innings = [[], []]; game.score = [0, 0];
     delete game.proAppearances;delete game.proPreparedLineup;
     for (const original of m.original) { const p = player(original.id); p.fatigue = clamp(original.fatigue + (p.id === s.playerId ? m.eventFatigue : 0)); p.lastPitched = original.lastPitched; }
-    delete s.matchProgress; delete s.matchEffect;
+    delete s.matchProgress; delete s.matchEffect; delete s.stealEffect;
     return true;
   };
   let ended = false;
@@ -141,10 +141,19 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
           if(!canContinue)return forfeit(pitchingSide);
         }
       }
+      m.ready=true;
+      m.stealPending=true;
+    }
+    if(m.stealPending){
       const runner=m.bases[0];
       if(pro&&runner&&!m.bases[1]){
         const current=player(m.pitchers[pitchingSide]),source={rngStates:{...s.rngStates,match:hash(`${s.seed}:${game.id}:${m.inning}:${side}:${m.pa}:${runner.playerId}:steal`)}};
-        const result=stolenBaseAttempt(effective(player(runner.playerId)),effective(current),effective(player(m.sides[pitchingSide].field[0])),random(source,'match'),random(source,'match'));
+        const batter=player(m.sides[side].order[m.battingIndex[side]%9]);
+        if(openProStealEvent(s,{gameId:game.id,inning:m.inning,battingSide:side,outs:m.outs,score:[...game.score],batting:true,running:true,bases:m.bases.map(r=>r?player(r.playerId).name:null),batterName:batter.name,pitcherName:current.name,batterId:batter.id,pitcherId:current.id},runner.playerId))return false;
+        const effect=s.stealEffect?.gameId===game.id&&s.stealEffect.runnerId===runner.playerId?s.stealEffect.adjustment:undefined;
+        const result=stolenBaseAttempt(effective(player(runner.playerId)),effective(current),effective(player(m.sides[pitchingSide].field[0])),random(source,'match'),random(source,'match'),effect);
+        delete s.stealEffect;
+        m.stealPending=false;
         if(result!=='none'){
           const runnerLine=line(player(runner.playerId)).batting;
           if(result==='safe'){runnerLine.SB=(runnerLine.SB??0)+1;m.bases[1]=runner;}
@@ -157,7 +166,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
           if(m.outs>=3){m.ready=false;continue;}
         }
       }
-      m.ready = true;
+      m.stealPending=false;
     }
     const orderIndex = m.battingIndex[side] % 9;
     let batter = player(m.sides[side].order[orderIndex]);
@@ -285,6 +294,6 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     }
     p.recentAppearances = p.recentAppearances.slice(keepFrom);
   }
-  delete s.matchProgress; delete s.matchEffect;
+  delete s.matchProgress; delete s.matchEffect; delete s.stealEffect;
   return true;
 }
