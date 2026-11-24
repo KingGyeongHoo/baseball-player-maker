@@ -40,7 +40,8 @@
     "app/components/dashboard-records.tsx",
     "app/components/player-roster.tsx",
     "app/components/postseason-bracket.tsx",
-    "app/components/pro-dashboard.tsx"
+    "app/components/pro-dashboard.tsx",
+    "app/components/retirement-honors-panel.tsx"
   ],
   "exclude": [
     "node_modules",

@@ -7,10 +7,11 @@ export type ProStage = "camp" | "regular" | "postseason" | "summary" | "offseaso
 export type FaTerms={plan:"starter"|"money"|"contender"|"security"|"rebuild"|"continuity";title:string;description:string;position:Position;startingLevel:ProSquad;starterGuaranteed?:boolean;recentRecord?:{seasons:number;rank:number;winPercentage:number}};
 export type SalaryContract = { id:string; club:number; startYear:number; endYear:number; salary:number; segments:{from:string;salary:number}[]; source:"rookie"|"renewal"|"fa"|"released";faTerms?:FaTerms };
 export type AgingProfile={version:1;physical:number;peakStart:number;declineStart:number;loss:Partial<Stats>};
+export type RetirementHonorProgress={club?:number;cumulative:number|null;clubScore:number;clubWar:number;seasons:number;consecutive:number;longest:number;tradeException:boolean;debutClubSeasons:number};
 export type ProfessionalPlayer = {
   farmVacancyPosition?:Position;
   eventSelectionBonus?: number;
-  retirementHonorStatus?:{rulesVersion?:2;year:number;debutSeasons:number;ceremony:boolean;tour:boolean;retiredNumber:boolean};
+  retirementHonorStatus?:{rulesVersion?:2;year:number;debutSeasons:number;ceremony:boolean;tour:boolean;retiredNumber:boolean;progress?:RetirementHonorProgress};
   careerHonorBonuses?:{year:number;points:number}[];
   awardBonuses?:{year:number;category:"mvp"|"goldGlove"|"rookie"|"wildcardMvp"|"semiMvp"|"playoffMvp"|"finalMvp";points:number;level?:"second";seriesId?:string}[];
   nationalBonus?:number;

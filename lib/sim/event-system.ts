@@ -1,4 +1,5 @@
 import {resolveNationalContext} from "./national-tournament";
+import {abilityAdjustedEventOutcomes} from './event-ability-probability';
 import {eventRewardVersion,revisedRiskAndCampEvents} from './event-reward-policy';
 import {resolveFinalGameChoice} from './final-game-event';
 import {chooseNationalField,nationalParticipationChoices,nationalRoster,rememberNational,nationalRole} from "./national-teams";
@@ -206,7 +207,12 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   const selected = choices.find(choice => choice.id === choiceId);
   if (!selected) throw new Error("유효하지 않은 이벤트 선택입니다.");
   const s = structuredClone(input), p = getPlayer(s), event = s.careerEvent!;
-  const outcome = weightedOutcome(selected.outcomes, random(s, "events"));
+  const pitching=event.proEvent?.field?event.proEvent.field==='pitching':event.scene?!event.scene.batting:isPitcher(p.primaryRole);
+  const proDefinition=event.proEvent?proEventCatalog.find(row=>row.id===event.definitionId):undefined;
+  const schoolDefinition=event.proEvent?undefined:schoolEventCatalog.find(row=>row.id===event.definitionId);
+  const focus=resolveEventFocus((pitching?proDefinition?.pitchingFocus:proDefinition?.battingFocus)??proDefinition?.focus??schoolDefinition?.focus,pitching,p.stats);
+  const outcomes=proDefinition||schoolDefinition?abilityAdjustedEventOutcomes(event,selected,p,focus):selected.outcomes;
+  const outcome = weightedOutcome(outcomes, random(s, "events"));
   const deltas = { ...outcome.stats };
   for (const key of statKeys) if ((deltas[key] ?? 0) > 0) deltas[key]! *= professionalGrowth(p,key)*growthMultiplier(p);
   for (const [key, weeks] of Object.entries(outcome.weeks ?? {}) as [Stat, number][]) deltas[key] = eventTrainingReward(p, key, weeks);

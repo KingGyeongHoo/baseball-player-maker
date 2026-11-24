@@ -37,7 +37,7 @@ import TrainingCenter from "./training-center";
 import TwoWayRelease from "./two-way-release";
 import PlayerTalents from "./player-talents";
 import ProgressControls from "./progress-controls";
-import { answerCareerEvent, answerOffer, overall, draftRoleLabel, dateLabel, defaultPolicy, getPlayer, ops, positionLabel, validPolicy, calendar } from "@/lib/sim/engine";
+import { answerCareerEvent, answerOffer, overall, draftRoleLabel, dateLabel, defaultPolicy, getPlayer, isPitcher, ops, positionLabel, validPolicy, calendar } from "@/lib/sim/engine";
 import { type CareerEventOutcome, type DraftPick, type GameState, type Game, type Player, type Policy, type RecordLine, type Stance } from "@/lib/sim/types";
 type Tab = "home" | "training" | "team" | "roster" | "records" | "games" | "international" | "draft";
 const tabs: {
@@ -171,7 +171,7 @@ function WeekSchedule({
     })}</div>;
 }
 function Dashboard({ state, onTab, onTraining }: { state: GameState; onTab: (t: Tab) => void; onTraining: () => void }) {
-  return <CareerDashboard state={state} onTab={onTab} onTraining={onTraining} records={<DashboardRecords records={getPlayer(state).seasonStats} />} schedule={<WeekSchedule state={state} />} abilities={<PlayerAbilities player={getPlayer(state)} detailsOnly />} />;
+  return <CareerDashboard state={state} onTab={onTab} onTraining={onTraining} records={<DashboardRecords field={getPlayer(state).twoWay?undefined:isPitcher(getPlayer(state).primaryRole)?"pitching":"batting"} records={getPlayer(state).seasonStats} />} schedule={<WeekSchedule state={state} />} abilities={<PlayerAbilities player={getPlayer(state)} detailsOnly />} />;
 }
 function GameScore({
   game,

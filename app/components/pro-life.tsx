@@ -6,7 +6,7 @@ import {leaderQualification} from "../../lib/league-leaders";
 import PlayerEvaluationButton from "./player-evaluation";
 import { scoreText } from "../../lib/display";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { answerCareerEvent, dateLabel, getPlayer, validPolicy,draftRoleLabel } from "../../lib/sim/engine";
+import { answerCareerEvent, dateLabel, getPlayer, isPitcher, validPolicy,draftRoleLabel } from "../../lib/sim/engine";
 import { acknowledgeCareer,careerLabel, developmentProgress } from "../../lib/sim/pro-career";
 import {createProWarContext} from '../../lib/sim/pro-war';
 import { AutoProgress, acceptedNationalInvitation, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } from "../../lib/auto-progress";
@@ -63,7 +63,7 @@ function Dialog({ title, children, onClose }: { title:string;children:ReactNode;
 }
 export function ProSeasonStats({ player,state }: {player:Player;state:GameState}) {
   const id=player.teamId<10?"pro-first":"pro-second",label=id==="pro-first"?"1군":"2군";
-  return <DashboardRecords qualification={state.careerMode==="pro"&&player.teamId>=0?[{label,batting:leaderQualification(state,player,id,"batting"),pitching:leaderQualification(state,player,id,"pitching")}]:undefined} records={player.seasonStats} levels={player.seasonByLevel?[{label:"1군",records:player.seasonByLevel.first},{label:"2군",records:player.seasonByLevel.second}]:undefined}/>;
+  return <DashboardRecords field={player.twoWay?undefined:isPitcher(player.primaryRole)?"pitching":"batting"} qualification={state.careerMode==="pro"&&player.teamId>=0?[{label,batting:leaderQualification(state,player,id,"batting"),pitching:leaderQualification(state,player,id,"pitching")}]:undefined} records={player.seasonStats} levels={player.seasonByLevel?[{label:"1군",records:player.seasonByLevel.first},{label:"2군",records:player.seasonByLevel.second}]:undefined}/>;
 }
 export default function ProLife({state,onChange,onReset}:{state:GameState;onChange:(s:GameState)=>void;onReset:()=>void}) {
   const [tab,setTab]=useState(state.proWorld?.stage==="retired"?"home":state.phase==="ended"?"career":"home"),[policy,setPolicy]=useState(()=>structuredClone(getPlayer(state).trainingPolicy)),[stance,setStance]=useState(()=>({...getPlayer(state).stance}));

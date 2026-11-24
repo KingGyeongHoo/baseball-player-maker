@@ -10,9 +10,9 @@ export function dashboardRecordValues(record:RecordLine,pitching:boolean):[strin
 }
 
 type Qualification={games:number;current:number;required:number;qualified:boolean};
-export default function DashboardRecords({records,levels,qualification}:{records:RecordLine;levels?:{label:string;records:RecordLine}[];qualification?:{label:string;batting:Qualification;pitching:Qualification}[]}){
+export default function DashboardRecords({records,levels,qualification,field}:{field?:"batting"|"pitching";records:RecordLine;levels?:{label:string;records:RecordLine}[];qualification?:{label:string;batting:Qualification;pitching:Qualification}[]}){
   const legacy=!!records.batting.PA&&records.games?.batting===undefined||!!records.pitching.BF&&(["pitching","wins","losses","holds","saves"] as const).some(key=>records.games?.[key]===undefined);
-  return <div className="both-records dashboard-records-display">{[true,false].map(pitching=>{
+  return <div className="both-records dashboard-records-display">{(field?[field==="pitching"]:[true,false]).map(pitching=>{
     const values=dashboardRecordValues(records,pitching);
     return <section className="record-group" key={String(pitching)}><h3>{pitching?"투수 기록":"타자 기록"}</h3>
       {levels?<div className="table-scroll"><table className="pro-stats-table"><thead><tr><th>구분</th>{values.map(([label])=><th key={label}>{label}</th>)}</tr></thead><tbody>{[...levels,{label:"시즌 합계",records}].map(row=><tr key={row.label}><th scope="row">{row.label}</th>{dashboardRecordValues(row.records,pitching).map(([label,value])=><td key={label}>{value}</td>)}</tr>)}</tbody></table></div>

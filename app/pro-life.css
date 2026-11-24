@@ -205,6 +205,14 @@
 .retirement-honor-badge.honor-qualified { --medal-face:linear-gradient(135deg,#fff0b2,#eac354 58%,#d6a539); --medal-edge:#c49a37; --medal-ink:#624713; }
 .retirement-honor-badge.honor-pending { --medal-face:linear-gradient(135deg,#f2f3f5,#dcdfe4 58%,#c9ced6); --medal-edge:#b5bdc8; --medal-ink:#737d8d; }
 .retirement-eligibility-grid small { display:block; margin-top:12px; font-size:11px; color:var(--muted); line-height:1.8; overflow-wrap:anywhere; }
+.retirement-honor-progress { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:14px 0 0; padding-top:16px; border-top:1px solid var(--line); }
+.retirement-honor-progress>div { min-width:0; }
+.retirement-honor-progress dt { font-size:11px; color:var(--muted); line-height:1.6; }
+.retirement-honor-progress dt>span { font-size:10px; }
+.retirement-honor-progress dd { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:center; gap:5px; margin:8px 0 0; font-variant-numeric:tabular-nums; }
+.retirement-honor-progress dd>b { font-size:12px; font-weight:400; color:var(--navy); }
+.retirement-honor-progress dd>span { font-size:12px; color:var(--muted); white-space:nowrap; }
+.retirement-honor-progress dd>.honor-no-score { font-size:14px; }
 @media(max-width:900px){.retirement-eligibility-grid{grid-template-columns:1fr}.retirement-eligibility-grid article+article{border-left:0;border-top:1px solid var(--line)}}
 .career-honor-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
 .career-honor-category { min-width:0; padding:18px; }

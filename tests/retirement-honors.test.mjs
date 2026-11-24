@@ -383,3 +383,41 @@ test('legacy honor badges rebuild at the last season boundary and remain frozen 
  assert.deepEqual(q.professional.assessments.map(row=>row.honorRegistration),seasons.map(row=>row.honorRegistration));
  q.professional.assessments=[];assert.deepEqual(honorStatus.displayedHonorStatus(restored,q),status);
 });
+
+test('honor progress exposes club points before service qualification and renders the required score and seasons',()=>{
+ const {s,p,pro}=fixture(12);pro.firsts.debut='2028-03-29';
+ assert.equal(honors.retirementEligibility(s,p).criteria,undefined);
+ const status=honorStatus.seasonEndHonorStatus(s,p);pro.retirementHonorStatus=status;
+ assert.equal(status.progress.clubScore,50);assert.equal(status.progress.clubWar,50);
+ assert.equal(status.progress.seasons,9);assert.equal(status.progress.consecutive,9);
+ const Panel=require('../.test-build/app/components/retirement-honors-panel.js').RetirementHonorsPanel;
+ const html=renderToStaticMarkup(createElement(Panel,{state:s}));
+ const card=title=>html.match(new RegExp(`<article aria-label="${title} 진행 현황">(.*?)</article>`))[1];
+ assert.ok(card('은퇴식').includes('<span>/ 30</span>'));assert.ok(card('은퇴식').includes('<b>9</b><span>/ 7</span>'));
+ assert.ok(card('은퇴 투어').includes('<span>/ 40</span>'));assert.ok(card('은퇴 투어').includes('<b>9</b><span>/ 10</span>'));
+ assert.ok(card('영구결번').includes('<b>50</b><span>/ 50</span>'));assert.ok(card('영구결번').includes('<b>9</b><span>/ 10</span>'));
+ const Assessments=require('../.test-build/app/components/pro-assessments.js').default;
+ assert.ok(!/인정 \d+시즌 \/ 전체/.test(renderToStaticMarkup(createElement(Assessments,{state:s}))));
+ status.progress.seasons=-1;assert.throws(()=>save.encodeCareerSave(s),/은퇴 예우 진행/);
+});
+test('honor progress selects a valid combined-service path after a club-initiated trade',()=>{
+ const {s,p,pro,club}=fixture(17),other=(club+1)%10;pro.firsts.debut='2028-03-29';
+ pro.service=[{club,from:2028,to:2036},{club:other,from:2037,to:2037},{club,from:2038,to:s.calendar.seasonYear}];
+ pro.assessments.find(row=>row.year===2037).honorRegistration.firstDaysByClub={[other]:90};
+ pro.movements=[{date:'2036-12-01',from:club,to:other,kind:'트레이드',reason:'구단 간 교환'},{date:'2037-12-01',from:other,to:club,kind:'FA 이적',reason:'복귀'}];
+ const status=honorStatus.seasonEndHonorStatus(s,p);pro.retirementHonorStatus=status;
+ assert.equal(status.retiredNumber,true);assert.equal(status.progress.longest,7);assert.equal(status.progress.seasons,13);assert.equal(status.progress.tradeException,true);
+ const Panel=require('../.test-build/app/components/retirement-honors-panel.js').RetirementHonorsPanel;
+ const html=renderToStaticMarkup(createElement(Panel,{state:s})),number=html.match(/<article aria-label="영구결번 진행 현황">(.*?)<\/article>/)[1];
+ assert.ok(number.includes('honor-qualified'));assert.ok(number.includes('· 합산'));assert.ok(number.includes('<b>13</b><span>/ 13</span>'));
+});
+test('version-six saves without numeric honor progress restore the last season snapshot exactly once',()=>{
+ const {s,pro}=fixture(16);pro.firsts.debut='2028-03-29';const year=s.calendar.seasonYear;
+ pro.retirementHonorStatus={rulesVersion:2,year,debutSeasons:16,ceremony:true,tour:true,retiredNumber:true};
+ s.proWorld.careerHonorRulesVersion=6;s.calendar.seasonYear++;s.proWorld.year++;s.proWorld.seasonClosed=false;s.proWorld.stage='camp';s.date=`${year+1}-02-01`;
+ const upgrade=require('../.test-build/lib/sim/career-honor-upgrade.js');assert.equal(upgrade.needsCareerHonorUpgrade(s),true);
+ const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state,q=e.getPlayer(restored);
+ const status=q.professional.retirementHonorStatus;assert.equal(status.year,year);assert.equal(status.progress.clubScore,50);assert.equal(upgrade.needsCareerHonorUpgrade(restored),false);
+ q.seasonByLevel.first.batting.HR=99;q.professional.assessments=[];
+ assert.deepEqual(honorStatus.displayedHonorStatus(restored,q),status);
+});

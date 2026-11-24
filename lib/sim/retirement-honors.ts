@@ -1,10 +1,10 @@
 import {careerRegistrationRatio,meetsCareerRegistration,playerCareerEvaluation} from './pro-career-evaluation';
 import {buildCareerHonorBonusIndex,careerHonorBonusYears} from './career-honor-bonus';
 import {levelWarValue} from './pro-war';
-import type {ProfessionalPlayer,ProSeasonAssessment} from './pro-types';
+import type {ProfessionalPlayer,ProSeasonAssessment,RetirementHonorProgress} from './pro-types';
 import type {GameState,Player} from './types';
 
-export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:13,tourConsecutive:10,debutCeremony:20,debutTour:23,debutTradeGrace:2,numberConsecutive:10,numberAfterTrade:13,numberWar:40,numberScore:50} as const;
+export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyScore:30,tourScore:40,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:13,tourConsecutive:10,debutCeremony:20,debutTour:23,debutTradeGrace:2,numberConsecutive:10,numberAfterTrade:13,numberWar:40,numberScore:50} as const;
 export function validHonorDays(value:Record<string,number>,maximum:number){
   return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([club,days])=>/^[0-9]$/.test(club)&&Number.isInteger(days)&&days>=0&&days<=maximum)&&Object.values(value).reduce((sum,n)=>sum+n,0)<=maximum;
 }
@@ -50,6 +50,9 @@ function meetsRetiredNumberService(pro:ProfessionalPlayer,club:number,years:numb
   if(consecutive)return true;
   if(years.length<numberAfterTrade)return false;
 
+  return clubTradeException(pro,club,years);
+}
+function clubTradeException(pro:ProfessionalPlayer,club:number,years:number[]){
   const departures=pro.movements.filter(move=>{
     const year=Number(move.date.slice(0,4));
     return move.from===club&&move.to!==club&&year>=years[0]&&year<years.at(-1)!;
@@ -100,7 +103,7 @@ function debutClubSeasons(s:GameState,p:Player,pro:ProfessionalPlayer,club:numbe
   return lastYear-firstYear+1;
 }
 
-export function retirementEligibility(s:GameState,p:Player){
+export function retirementEligibility(s:GameState,p:Player,withProgress=false){
   const pro=p.professional,club=pro?.employment==='active'&&p.teamId>=0?(pro.contract?.club??p.teamId%10):undefined;
   const rows=(pro?.assessments??[]).filter(row=>row.year<=s.calendar.seasonYear);
   const evaluation=playerCareerEvaluation(p,s.calendar.seasonYear,s,true).first,score=evaluation.score,grade=evaluation.grade;
@@ -111,10 +114,17 @@ export function retirementEligibility(s:GameState,p:Player){
   const stint=pro?.service.findLast(row=>row.club===club&&row.from<=s.calendar.seasonYear);
   // Continuity belongs to the club stint. Uncredited seasons add nothing and never reset it.
   const consecutive=stint?years.filter(year=>year>=stint.from&&year<=stint.to).length:0;
-  const atLeastC=['S','A','B','C'].includes(grade),atLeastB=['S','A','B'].includes(grade),seasons=years.length,oneClub=club!==undefined&&clubs.size===1&&clubs.has(club);
-  const criteria=club===undefined||!pro||!meetsRetiredNumberService(pro,club,years)?undefined:retiredNumberCriteria(s,p,rows,club,seasons);
+  const cumulative=evaluation.cumulativeWar;
+  const atLeastC=cumulative!==null&&cumulative+1e-9>=retirementHonorRules.ceremonyScore,atLeastB=cumulative!==null&&cumulative+1e-9>=retirementHonorRules.tourScore,seasons=years.length,oneClub=club!==undefined&&clubs.size===1&&clubs.has(club);
+  const serviceQualified=club!==undefined&&!!pro&&meetsRetiredNumberService(pro,club,years);
+  const clubCriteria=club!==undefined&&pro&&(withProgress||serviceQualified)?retiredNumberCriteria(s,p,rows,club,seasons):undefined;
+  const criteria=serviceQualified?clubCriteria:undefined;
   const debutSeasons=club===undefined||!pro?0:debutClubSeasons(s,p,pro,club);
+  const progress:RetirementHonorProgress|undefined=withProgress?{club,cumulative,clubScore:(clubCriteria?.clubWar??0)+(clubCriteria?.awardBonus??0),clubWar:clubCriteria?.clubWar??0,seasons,consecutive,
+    longest:Math.max(0,...(pro?.service??[]).filter(row=>row.club===club).map(row=>years.filter(year=>year>=row.from&&year<=row.to).length)),
+    tradeException:club!==undefined&&!!pro&&clubTradeException(pro,club,years),debutClubSeasons:debutSeasons}:undefined;
   return {club,score,grade,seasons,consecutive,oneClub,criteria,debutSeasons,
+    ...(progress?{progress}:{}),
     ceremony:debutSeasons>=retirementHonorRules.debutCeremony||club!==undefined&&atLeastC&&(seasons>=retirementHonorRules.ceremonyTotal||consecutive>=retirementHonorRules.ceremonyConsecutive),
     tour:debutSeasons>=retirementHonorRules.debutTour||club!==undefined&&atLeastB&&(seasons>=retirementHonorRules.tourTotal||consecutive>=retirementHonorRules.tourConsecutive),
     retiredNumber:!!criteria&&criteria.clubWar+1e-9>=retirementHonorRules.numberWar&&criteria.clubWar+criteria.awardBonus+1e-9>=retirementHonorRules.numberScore};
