@@ -1,15 +1,17 @@
+import {seasonAwardsPublished} from './season-awards-publication';
 import {individualTitleFromKind,individualTitleName} from './pro-individual-titles';
 import {proTeamName} from './club-names';
 import type {GameState} from './types';
 
 type BonusIndex=Map<string,Map<number,Map<number,Map<string,number>>>>;
-export function buildCareerHonorBonusIndex(s:GameState):BonusIndex{
+export function buildCareerHonorBonusIndex(s:GameState,includeUnannounced=false):BonusIndex{
   const index:BonusIndex=new Map();
   const add=(id:string,year:number,club:number,key:string,tenths:number)=>{
     const years=index.get(id)??new Map(),clubs=years.get(year)??new Map(),awards=clubs.get(club)??new Map();
     awards.set(key,tenths);clubs.set(club,awards);years.set(year,clubs);index.set(id,years);
   };
   for(const season of s.proWorld?.seasons??[]){
+    if(!includeUnannounced&&!seasonAwardsPublished(s,season))continue;
     for(const award of season.awards){
       if(award.level==='second')continue;
       if(award.category==='mvp'||!award.category&&award.kind==='시즌 MVP')add(award.playerId,season.year,award.club,'mvp',10);

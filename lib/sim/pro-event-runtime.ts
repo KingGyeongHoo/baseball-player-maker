@@ -11,7 +11,7 @@ import {proFieldTarget,recentProEvidence} from "./pro-event-evidence";
 import type {ProEventContext} from "./pro-event-types";
 import type {EventScene,Game,GameState,Player,Position} from "./types";
 
-const onceIds=new Set(["PE08","PE09","PE10","PE11","PE28","PE29","PE30"]);
+const onceIds=new Set(["PE08","PE09","PE10","PE11","PE28","PE29","PE30","PE84"]);
 // Event factories and the engine share a module graph; defer catalog reads
 // until simulation starts so ESM prerendering cannot observe an uninitialized export.
 let categoryCache:Map<string,EventCategory>|undefined,focusCache:Map<string,(typeof proEventCatalog)[number]>|undefined;

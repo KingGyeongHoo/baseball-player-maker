@@ -7,6 +7,7 @@ export const proSelectionRules={farmWeight:.65,battingPrior:100,pitchingPrior:12
 
 // Temporary rest affects game usage, not the player's displayed evaluation.
 export const proManagementPenalty=(p:Player,date?:string)=>p.professional?.managedUntil&&(!date||date<=p.professional.managedUntil)?12:0;
+export const wildcardDeclineSelectionBonus=2;
 type Records={first?:RecordLine;second?:RecordLine};
 
 // Legacy fields remain readable in old files, but no professional decision or
@@ -66,7 +67,7 @@ export function proSelectionScore(p:Player,role:Role=p.primaryRole){
   const recentWorkload=pitching?Math.max(sample,recent.pitching.BF/2):sample;
   const recentAdjustment=limit>0?proSelectionRules.recentMax*form(recent,pitching).quality*Math.min(1,recentWorkload/limit):0;
   return clamp(roleScore(p,role)*leftPitcherMultiplier(p,role)+proSelectionRules.seasonMax*seasonForm+recentAdjustment+clamp(p.professional?.eventSelectionBonus??0,-5,5)
-    -(p.proContract?.status==="developmental"?6:0),0,100);
+    -(p.proContract?.status==="developmental"?6:0)+(p.professional?.wildcardDeclines?.length??0)*wildcardDeclineSelectionBonus,0,100);
 }
 
 export function nationalSelectionScore(p:Player,role:Role,records?:RecordLine){

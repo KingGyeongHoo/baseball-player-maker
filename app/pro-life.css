@@ -194,6 +194,18 @@
 .career-lifetime thead tr:first-child th[colspan] { text-align:left; padding-left:14px; }
 .career-lifetime tfoot { background:#edf2f8; color:#172344; font-weight:700; }
 .career-summary-note { margin:0; padding:10px 20px; font-size:11px; color:#7b8ba2; }
+.career-retirement-honors { margin-bottom:22px; }
+.retirement-eligibility-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+.retirement-eligibility-grid article { min-width:0; padding:24px 20px 20px; text-align:center; }
+.retirement-eligibility-grid article+article { border-left:1px solid var(--line); }
+.retirement-honor-badge { position:relative; isolation:isolate; display:inline-grid; place-items:center; width:88px; height:88px; margin-bottom:18px; color:var(--medal-ink); font-size:13px; font-weight:700; }
+.retirement-honor-badge::before { content:""; position:absolute; z-index:0; width:68px; height:37px; top:68px; background:var(--medal-edge); clip-path:polygon(9% 0,44% 10%,50% 48%,56% 10%,91% 0,100% 100%,73% 83%,56% 100%,50% 58%,44% 100%,27% 83%,0 100%); }
+.retirement-medal-face { position:relative; z-index:1; display:grid; place-items:center; width:100%; height:100%; border:4px solid var(--medal-edge); border-radius:50%; background:var(--medal-face); box-shadow:0 3px 7px #17234412,inset 0 0 0 2px #ffffff70; }
+.retirement-medal-face::after { content:""; position:absolute; inset:6px; border:1px solid var(--medal-edge); border-radius:50%; opacity:.65; pointer-events:none; }
+.retirement-honor-badge.honor-qualified { --medal-face:linear-gradient(135deg,#fff0b2,#eac354 58%,#d6a539); --medal-edge:#c49a37; --medal-ink:#624713; }
+.retirement-honor-badge.honor-pending { --medal-face:linear-gradient(135deg,#f2f3f5,#dcdfe4 58%,#c9ced6); --medal-edge:#b5bdc8; --medal-ink:#737d8d; }
+.retirement-eligibility-grid small { display:block; margin-top:12px; font-size:11px; color:var(--muted); line-height:1.8; overflow-wrap:anywhere; }
+@media(max-width:900px){.retirement-eligibility-grid{grid-template-columns:1fr}.retirement-eligibility-grid article+article{border-left:0;border-top:1px solid var(--line)}}
 .career-honor-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
 .career-honor-category { min-width:0; padding:18px; }
 .career-honor-category+.career-honor-category { border-left:1px solid var(--line); }
@@ -278,7 +290,8 @@
 .title-awards-table tbody th>small { display:block; margin-top:5px; font-size:10px; font-weight:400; color:var(--muted); }
 .title-award-winner { padding:6px 0; }
 .title-award-winner>small { display:block; margin-top:6px; font-size:10px; color:var(--muted); }
-.title-award-mine { color:#245a9b; }
+.title-awards-table tr.my-player-row { background:transparent; }
+.title-awards-table tr.my-player-row>td { background:#eaf1fb; }
 .postseason-rounds.series-awards-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:22px; padding:0; }
 .postseason-rounds.series-awards-grid.legacy-bracket { grid-template-columns:repeat(3,minmax(0,1fr)); }
 .series-award-card .series-award-record { font-size:12px; line-height:2; color:#485d79; overflow-wrap:anywhere; }

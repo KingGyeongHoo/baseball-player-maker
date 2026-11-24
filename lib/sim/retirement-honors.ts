@@ -46,9 +46,7 @@ function recordedClubWar(p:Player,row:ProSeasonAssessment,club:number){
 function meetsRetiredNumberService(pro:ProfessionalPlayer,club:number,years:number[]){
   const {numberConsecutive,numberAfterTrade}=retirementHonorRules;
   if(years.length<numberConsecutive)return false;
-  const consecutive=pro.service.some(stint=>stint.club===club&&years.some((year,index)=>
-    year>=stint.from&&year+numberConsecutive-1<=stint.to&&years[index+numberConsecutive-1]===year+numberConsecutive-1
-  ));
+  const consecutive=pro.service.some(stint=>stint.club===club&&years.filter(year=>year>=stint.from&&year<=stint.to).length>=numberConsecutive);
   if(consecutive)return true;
   if(years.length<numberAfterTrade)return false;
 
@@ -62,7 +60,7 @@ function meetsRetiredNumberService(pro:ProfessionalPlayer,club:number,years:numb
 
 function retiredNumberCriteria(s:GameState,p:Player,rows:ProSeasonAssessment[],club:number,seasons:number){
   const clubWar=rows.reduce((sum,row)=>sum+recordedClubWar(p,row,club),0);
-  const awardBonus=[...careerHonorBonusYears(buildCareerHonorBonusIndex(s),p.id,club,s.calendar.seasonYear).values()].reduce((sum,n)=>sum+n,0);
+  const awardBonus=[...careerHonorBonusYears(buildCareerHonorBonusIndex(s,true),p.id,club,s.calendar.seasonYear).values()].reduce((sum,n)=>sum+n,0);
   return {clubWar,awardBonus,seasons};
 }
 
@@ -105,15 +103,14 @@ function debutClubSeasons(s:GameState,p:Player,pro:ProfessionalPlayer,club:numbe
 export function retirementEligibility(s:GameState,p:Player){
   const pro=p.professional,club=pro?.employment==='active'&&p.teamId>=0?(pro.contract?.club??p.teamId%10):undefined;
   const rows=(pro?.assessments??[]).filter(row=>row.year<=s.calendar.seasonYear);
-  const evaluation=playerCareerEvaluation(p,s.calendar.seasonYear,s).first,score=evaluation.score,grade=evaluation.grade;
+  const evaluation=playerCareerEvaluation(p,s.calendar.seasonYear,s,true).first,score=evaluation.score,grade=evaluation.grade;
   const clubs=new Set<number>();if(pro){if(pro.firstClub>=0)clubs.add(pro.firstClub);for(const row of pro.service)clubs.add(row.club);if(pro.contract)clubs.add(pro.contract.club);for(const row of pro.movements){if(row.from!==null)clubs.add(row.from);if(row.to!==null)clubs.add(row.to);}}
   const years=club===undefined?[]:[...new Set(rows.filter(row=>
     row.year>=(pro?.rookieYear??Infinity)+retirementHonorRules.rookieSeasons&&meetsCareerRegistration(row.honorRegistration,club)
   ).map(row=>row.year))].sort((a,b)=>a-b);
-  const stintStart=pro?.service.at(-1)?.from??-Infinity;
-  let consecutive=0;for(let i=years.length-1,expected=s.calendar.seasonYear;i>=0&&years[i]===expected&&years[i]>=stintStart;i--,expected--)consecutive++;
-  // During a final-season declaration, the most recent completed season ends the streak.
-  if(!s.proWorld?.seasonClosed&&years.at(-1)===s.calendar.seasonYear-1){consecutive=0;for(let i=years.length-1,expected=s.calendar.seasonYear-1;i>=0&&years[i]===expected&&years[i]>=stintStart;i--,expected--)consecutive++;}
+  const stint=pro?.service.findLast(row=>row.club===club&&row.from<=s.calendar.seasonYear);
+  // Continuity belongs to the club stint. Uncredited seasons add nothing and never reset it.
+  const consecutive=stint?years.filter(year=>year>=stint.from&&year<=stint.to).length:0;
   const atLeastC=['S','A','B','C'].includes(grade),atLeastB=['S','A','B'].includes(grade),seasons=years.length,oneClub=club!==undefined&&clubs.size===1&&clubs.has(club);
   const criteria=club===undefined||!pro||!meetsRetiredNumberService(pro,club,years)?undefined:retiredNumberCriteria(s,p,rows,club,seasons);
   const debutSeasons=club===undefined||!pro?0:debutClubSeasons(s,p,pro,club);

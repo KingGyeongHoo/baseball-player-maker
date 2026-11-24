@@ -346,3 +346,76 @@ for(const [kind,year,name] of [['premier12',2031,'프리미어12'],['apbc',2033,
  entry.participated=true;assert.ok(panel().includes(`${name} 참가 →`));entry.participated=false;assert.ok(panel().includes(`${name} 결과 확인 →`));
  entry.tournament={finished:`${year}-11-18`};assert.equal(life.canEnterNextProCamp(s),true);html=panel();assert.match(html,/<button[^>]*>스토브리그 →/);assert.ok(!html.includes(`${name} 참가 →`));
 });
+
+test('initial veteran NPC FA service varies with ability and never exceeds their past career',()=>{
+ const world=require('../.test-build/lib/sim/pro-world.js');
+ const s=fixture(),year=s.calendar.seasonYear;
+ const make=(id,ability,age=33,entry='veteran')=>{
+  const p=e.previewPlayer('npc-fa-test',id,'SS');p.id=id;p.age=age;p.teamId=0;
+  for(const key of Object.keys(p.stats))p.stats[key]=ability;
+  world.initializeProfessional(s,p,0,entry);return p;
+ };
+ let strong=0,weak=0;const spread=new Set();
+ for(let i=0;i<100;i++){
+  const good=make(`fa-veteran-${i}`,90),poor=make(`fa-veteran-${i}`,45);
+  const years=good.professional.faSeasons??[];
+  strong+=years.length;weak+=(poor.professional.faSeasons??[]).length;spread.add(years.length);
+  assert.ok(years.every(y=>y>=year-14&&y<year));assert.equal(new Set(years).size,years.length);
+  assert.equal(good.professional.faEligible,years.length>=8);
+ }
+ assert.ok(strong>weak*3);assert.ok(spread.size>1);
+ assert.equal(make('fa-new-draft',90,19,'draft').professional.faEligible,false);
+ assert.equal(make('fa-old-draft',90,33,'draft').professional.faSeasons,undefined);
+ const mine=e.getPlayer(s),before=structuredClone(mine.professional);
+ world.initializeProfessional(s,mine,mine.teamId%10);assert.deepEqual(mine.professional.faSeasons,before.faSeasons);
+});
+test('legacy NPC FA history fills only pre-world years once and preserves current progress and FA terms',()=>{
+ const {seedNpcFaHistory,needsNpcFaHistoryUpgrade}=require('../.test-build/lib/sim/npc-fa-history.js');
+ const s=fixture(),p=s.players.find(p=>p.id!==s.playerId&&p.professional?.entry==='veteran'),pro=p.professional,year=s.calendar.seasonYear;
+ for(const key of Object.keys(p.stats))p.stats[key]=95;
+ delete pro.faHistorySeeded;pro.rookieYear=year-15;
+ pro.movements=[{date:`${year-2}-03-01`,from:null,to:0,kind:'입단',reason:'veteran'}];
+ pro.service=[{club:0,from:year-2,to:year}];pro.assessments=[];
+ pro.faSeasons=[year-2];pro.registration={year,days:91};
+ pro.lastFaTerm={start:year-2,end:year+1};
+ const rng=structuredClone(s.rngStates),term=structuredClone(pro.lastFaTerm);
+ assert.equal(needsNpcFaHistoryUpgrade(s),true);
+ const upgraded=life.upgradeProfessionalState(s),upgradedPro=upgraded.players.find(row=>row.id===p.id).professional;
+ assert.equal(upgradedPro.faHistorySeeded,true);assert.equal(pro.faHistorySeeded,undefined);
+ seedNpcFaHistory(s,p);assert.deepEqual(upgradedPro.faSeasons,pro.faSeasons);
+ assert.ok(pro.faSeasons.includes(year-2));assert.ok(!pro.faSeasons.includes(year-1));assert.ok(!pro.faSeasons.includes(year));
+ assert.equal(pro.registration.days,91);assert.deepEqual(pro.lastFaTerm,term);assert.equal(pro.faEligible,false);assert.deepEqual(s.rngStates,rng);
+ const seeded=structuredClone(pro);seedNpcFaHistory(s,p);assert.deepEqual(pro,seeded);
+ const restored=storage.decodeCareerSave(storage.serializeCareerSave(storage.encodeCareerSave(s))).state;
+ const q=restored.players.find(row=>row.id===p.id);assert.equal(q.professional.faHistorySeeded,true);
+ assert.deepEqual(q.professional.faSeasons,pro.faSeasons);
+});
+
+test('stove trade requests have a saved seven-day cooldown independent of other requests',()=>{
+ const s=fixture(),p=e.getPlayer(s),pro=p.professional,year=s.proWorld.year;
+ s.date=`${year}-12-06`;s.proWorld.stage='offseason';s.proWorld.seasonClosed=true;
+ s.proWorld.stove={version:1,year:year+1,openedAt:s.date,closesAt:`${year+1}-01-01`,nextUpdate:e.addDays(s.date,7),round:0,closed:false,movedIds:[]};
+ // Expired contracts cannot be exchanged, so both rejected requests still consume the week.
+ pro.contract.endYear=year;pro.requestAfter=e.addDays(s.date,28);delete pro.tradeRequestAfter;
+ const generalCooldown=pro.requestAfter;
+ market.careerRequest(s,'trade');assert.equal(pro.tradeRequestAfter,`${year}-12-13`);assert.equal(pro.requestAfter,generalCooldown);
+ assert.equal(s.careerNotice?.title==='트레이드 요청 결과'||s.noticeQueue.some(row=>row.title==='트레이드 요청 결과'),true);
+ assert.throws(()=>market.careerRequest(s,'trade'),/이후/);
+ s.date=`${year}-12-12`;assert.throws(()=>market.careerRequest(s,'trade'),/이후/);
+ const restored=storage.decodeCareerSave(storage.serializeCareerSave(storage.encodeCareerSave(s))).state;
+ assert.equal(e.getPlayer(restored).professional.tradeRequestAfter,`${year}-12-13`);
+ assert.throws(()=>market.careerRequest(restored,'trade'),/이후/);
+ restored.date=`${year}-12-13`;market.careerRequest(restored,'trade');
+ assert.equal(e.getPlayer(restored).professional.tradeRequestAfter,`${year}-12-20`);
+});
+test('stove trade button stays available after signing and disables only until its next eligible date',()=>{
+ const s=fixture(),p=e.getPlayer(s),year=s.proWorld.year;
+ s.date=`${year}-12-06`;s.proWorld.stage='offseason';s.proWorld.seasonClosed=true;
+ s.proWorld.stove={version:1,year:year+1,openedAt:s.date,closesAt:`${year+1}-01-01`,nextUpdate:e.addDays(s.date,7),round:0,closed:false,movedIds:[]};
+ s.proWorld.market={kind:'renewal',year:year+1,round:0,offers:[],settled:true};
+ p.professional.contract.endYear=year+2;p.professional.requestAfter=e.addDays(s.date,28);delete p.professional.tradeRequestAfter;
+ const render=()=>renderToStaticMarkup(createElement(ProContractPanel,{state:s,onAction(){},onRetire(){},disabled:false}));
+ let html=render();assert.match(html,/<button class="secondary">트레이드 요청<\/button>/);assert.ok(!html.includes('이적 검토 요청'));
+ p.professional.tradeRequestAfter=e.addDays(s.date,7);html=render();assert.match(html,/<button class="secondary" disabled=""[^>]*>트레이드 요청<\/button>/);
+ s.date=p.professional.tradeRequestAfter;html=render();assert.match(html,/<button class="secondary">트레이드 요청<\/button>/);
+});

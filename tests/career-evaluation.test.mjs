@@ -24,7 +24,7 @@ test('career totals include the same deduplicated MVP, gold glove, title and nat
  const s=structuredClone(template),p=e.getPlayer(s),club=p.teamId%10;s.calendar.seasonYear=2030;s.date='2030-10-31';
  p.professional.assessments=[row(2030)];p.professional.assessments[0].war.first.batting=29.5;
  const award=(kind,category)=>({year:2030,playerId:p.id,playerName:p.name,club,kind,category,value:1});
- const mvp=award('시즌 MVP','mvp');s.proWorld.seasons=[{year:2030,standings:[],farmStandings:[],champion:null,draft:[],rookieRulesVersion:2,awards:[mvp,{...mvp},award('골든글러브','goldGlove'),award('홈런왕')],individualAwards:[{level:'first',field:'batting',metric:'HR',label:'홈런왕',value:30,winners:[{playerId:p.id,playerName:p.name,club}]}]}];
+ const mvp=award('시즌 MVP','mvp');s.proWorld.seasons=[{year:2030,awardsCeremony:{version:1,scheduledAt:'2030-12-06',presentedAt:'2030-12-06'},standings:[],farmStandings:[],champion:null,draft:[],rookieRulesVersion:2,awards:[mvp,{...mvp},award('골든글러브','goldGlove'),award('홈런왕')],individualAwards:[{level:'first',field:'batting',metric:'HR',label:'홈런왕',value:30,winners:[{playerId:p.id,playerName:p.name,club}]}]}];
  s.nationalTeams=[{year:2030,kind:'wbc',roster:[{id:p.id,club,team:s.teams[club].name}]},{year:2030,kind:'wbc',roster:[{id:p.id,club,team:s.teams[club].name}]},{year:2030,kind:'youth',roster:[{id:p.id,club,team:s.teams[club].name}]}];
  assert.equal(c.syncCareerHonorBonuses(s),true);assert.equal(c.syncCareerHonorBonuses(s),false);
  const evaluation=c.playerCareerEvaluation(p,2030).first;assert.equal(evaluation.awardBonus,2.2);assert.equal(evaluation.cumulativeWar,31.7);assert.equal(evaluation.grade,'C');
@@ -67,8 +67,9 @@ test('club awards add once per club and year to the matching career level across
  s.calendar.seasonYear=2031;s.date='2031-10-31';
  const award=(year,kind,club=0)=>({year,kind,playerId:p.id,playerName:p.name,club,value:1});
  const firstAward=award(2030,'1군 최우수 선수');
- const archive={standings:[],farmStandings:[],champion:null,draft:[],rookieRulesVersion:1};
+ const archive={standings:[],farmStandings:[],champion:null,draft:[],rookieRulesVersion:1,awardsCeremony:{version:1,scheduledAt:'2031-12-06',presentedAt:'2031-12-06'}};
  s.proWorld.seasons=[{...archive,year:2030,awards:[firstAward,{...firstAward}]},{...archive,year:2031,awards:[award(2031,'구단 육성 우수 선수')]}];
+ for(const season of s.proWorld.seasons)season.awardsCeremony={version:1,scheduledAt:`${season.year}-12-06`,presentedAt:`${season.year}-12-06`};
  assert.equal(c.syncClubAwardCounts(s),true);
  assert.equal(c.syncClubAwardCounts(s),false);
  const career=c.playerCareerEvaluation(p);

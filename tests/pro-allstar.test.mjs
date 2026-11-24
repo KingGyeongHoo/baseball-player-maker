@@ -19,7 +19,7 @@ function fixture(){const s=structuredClone(template);s.date='2028-05-01';s.caree
 }
 function selected(){const s=fixture();for(const date of a.allstarVotingDates(2028)){s.date=date;a.updateAllstarVotes(s,true);}a.finalizeAllstars(s);s.careerNotice=undefined;s.noticeQueue=[];return s;}
 
-test('Mr All-Star uses single-game WAR, then HR, SO, hits and RBI, and shares exact ties',()=>{
+test('Mr All-Star uses single-game WAR, then HR, SO, RBI and hits, and shares exact ties',()=>{
  const entry={blue:{roster:[{playerId:'a',name:'A'}]},white:{roster:[{playerId:'b',name:'B'}]},game:{status:'completed',score:[1,2],boxScore:{}}};
  const left=e.emptyRecord(),right=e.emptyRecord();entry.game.boxScore={a:left,b:right};
  const context=createProWarContext({...fixture(),players:[]});
@@ -34,7 +34,8 @@ test('Mr All-Star uses single-game WAR, then HR, SO, hits and RBI, and shares ex
  assert.deepEqual(pick(),['a'],'home runs precede hits at equal WAR');
  batting(left,{pa:5,hit:3});batting(right,{pa:4,hit:2,rbi:5});
  context.first.woba=.89+proWarRules.battingScale*proWarRules.replacementBattingRunsPerPA;
- assert.deepEqual(pick(),['a'],'hits precede RBI at equal WAR');
+ assert.deepEqual(pick(),['b'],'RBI precede hits at equal WAR');
+ right.batting.RBI=0;assert.deepEqual(pick(),['a'],'hits break a tie after equal RBI');
 
  left.batting=e.emptyRecord().batting;right.batting=e.emptyRecord().batting;
  Object.assign(left.pitching,{BF:10,outs:6,SO:4,BB:2});

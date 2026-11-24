@@ -10,9 +10,11 @@ export type AgingProfile={version:1;physical:number;peakStart:number;declineStar
 export type ProfessionalPlayer = {
   farmVacancyPosition?:Position;
   eventSelectionBonus?: number;
+  retirementHonorStatus?:{rulesVersion?:2;year:number;debutSeasons:number;ceremony:boolean;tour:boolean;retiredNumber:boolean};
   careerHonorBonuses?:{year:number;points:number}[];
   awardBonuses?:{year:number;category:"mvp"|"goldGlove"|"rookie"|"wildcardMvp"|"semiMvp"|"playoffMvp"|"finalMvp";points:number;level?:"second";seriesId?:string}[];
   nationalBonus?:number;
+  wildcardDeclines?:{year:number;kind:'apbc'|'olympics'}[];
   allstarBonus?:number;allstarHistory?:AllstarSelection[];
   assessments?:ProSeasonAssessment[];
   lastSquad?:ProSquad;
@@ -24,8 +26,8 @@ export type ProfessionalPlayer = {
   rookieYear:number; firstClub:number; entry:string; employment:"active"|"freeAgent"|"retired";
   contract:SalaryContract|null; agingOffset:number; agingProfile?:AgingProfile; agedYear:number; ageChanges?:Partial<Stats>;
   faDays:number; faEligible:boolean; registration:{year:number;days:number;lastDate?:string};
-  faSeasons?:number[];lastFaTerm?:{start:number;end:number};
-  lastAppearance?:string; lastRegistration?:string; lastEvaluation?:string; requestAfter?:string; positionRequestYear?:number;
+  faSeasons?:number[];faHistorySeeded?:true;lastFaTerm?:{start:number;end:number};
+  lastAppearance?:string; lastRegistration?:string; lastEvaluation?:string; requestAfter?:string; tradeRequestAfter?:string; positionRequestYear?:number;
   managedUntil?:string; roleTrial?:ProRoleTrial; unattachedYears:number;
   requestedEvaluationUntil?:string;
   twoWayReview?:{positions:{pitchingPosition:Position;battingPosition:Position};qualifiedDays:number;belowDays:number;lastDate?:string;nextProposalDate?:string};
@@ -49,7 +51,7 @@ export type RetiredNumber={club:number;number:number;playerId:string;playerName:
 export type RetirementHonor={club:number;playerId:string;playerName:string;date:string;score:number|null;grade:string;seasons:number;consecutive:number;debutClubSeasons?:number;ceremony:boolean;tour:boolean};
 export type ProPostseason={format?:"kbo-v1";rosterVersion?:1;seeds:number[];series:ProSeries[];champion?:number};
 export type ProWorld = {
-  careerHonorRulesVersion?:1|2|3|4;
+  careerHonorRulesVersion?:1|2|3|4|5|6;
   offseasonContinuation?:'national'|'market'|'wait'|'nextSeason';
   departedStoveMoves?:import('./stove-report').StoveMove[];
   resumeCampAfterAwards?:true;

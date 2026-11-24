@@ -1,3 +1,4 @@
+import {seasonAwardsPublished} from './season-awards-publication';
 import {buildCareerHonorBonusIndex,careerHonorBonusYears} from './career-honor-bonus';
 import type {GameState,Player,ProLevel} from './types';
 import type {ProSeasonAssessment,ProSeasonRank} from './pro-types';
@@ -55,9 +56,9 @@ export function evaluateCareer(rows:CareerSeason[],level:ProLevel,year=Infinity,
   const cumulativeWar=creditedWar===null?(awardBonus>0?awardBonus:null):creditedWar+awardBonus;
   return {level,score,creditedWar,awardBonus,grade:careerWarGrade(cumulativeWar),average,peak,seasons:ranked.length,war:totalWar(seasons),cumulativeWar,unranked:valid.filter(row=>!row.seasonRank).length,reconstructed:ranked.filter(row=>row.seasonRank?.basis==='retained-records').length};
 }
-export function playerCareerEvaluation(p:Player,year=Infinity,state?:GameState){
+export function playerCareerEvaluation(p:Player,year=Infinity,state?:GameState,includeUnannounced=false){
   const rows=p.professional?.assessments??[];
-  const bonus=state?[...careerHonorBonusYears(buildCareerHonorBonusIndex(state),p.id,undefined,year).values()].reduce((sum,n)=>sum+n,0):(p.professional?.careerHonorBonuses??[]).filter(row=>row.year<=year).reduce((sum,row)=>sum+row.points,0);
+  const bonus=state?[...careerHonorBonusYears(buildCareerHonorBonusIndex(state,includeUnannounced),p.id,undefined,year).values()].reduce((sum,n)=>sum+n,0):(p.professional?.careerHonorBonuses??[]).filter(row=>row.year<=year).reduce((sum,row)=>sum+row.points,0);
   return {first:evaluateCareer(rows,'first',year,bonus),second:evaluateCareer(rows,'second',year)};
 }
 export function refreshCareerEvaluation(p:Player){
@@ -72,7 +73,7 @@ export function refreshCareerEvaluation(p:Player){
 
 export function syncClubAwardCounts(s:GameState){
   const byPlayer=new Map<string,Map<number,Set<string>>>();
-  for(const season of s.proWorld?.seasons??[])for(const award of season.awards){
+  for(const season of s.proWorld?.seasons??[])for(const award of seasonAwardsPublished(s,season)?season.awards:[]){
     const level=clubAwardLevel(award.kind);
     if(!level)continue;
     const years=byPlayer.get(award.playerId)??new Map<number,Set<string>>();

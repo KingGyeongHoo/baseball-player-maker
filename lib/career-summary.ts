@@ -1,3 +1,4 @@
+import {seasonAwardsPublished} from './sim/season-awards-publication';
 import {emptyRecord,getPlayer,mergeRecord} from "./sim/engine";
 import {currentSeasonAssessment,hasSeasonAppearance} from "./sim/pro-assessment";
 import {emptyProWarAssessment} from './sim/pro-war';
@@ -95,7 +96,8 @@ export function careerHonors(state:GameState):Record<CareerHonorCategory,CareerH
     }
   }
   for(const season of seasons){
-    const announced=!season.awardsCeremony||!!season.awardsCeremony.presentedAt;
+    const announced=seasonAwardsPublished(state,season);
+    if(!announced)continue;
     for(const row of season.individualAwards??[]){const title=individualTitleName(row);if(title&&row.winners.some(winner=>winner.playerId===player.id))add("individual",season.year,`${proLevelPrefix(row.level)}${title}`,row.winners.length>1?"공동 1위":undefined);}
     for(const award of season.awards){
       if(award.playerId!==player.id)continue;
@@ -108,7 +110,8 @@ export function careerHonors(state:GameState):Record<CareerHonorCategory,CareerH
       else if(!isRecordOnlyAward(award.kind))add("individual",season.year,mainLeagueName(award.kind));
     }
   }
-  for(const series of [...(state.proWorld?.postseason?.series??[]),...(state.proWorld?.farmPostseason?.series??[])])if(series.winner!==undefined&&series.mvp?.playerId===player.id)add('individual',state.proWorld!.year,series.mvp.kind);
+  const currentSeason=seasons.find(row=>row.year===state.proWorld?.year);
+  if(currentSeason&&seasonAwardsPublished(state,currentSeason))for(const series of [...(state.proWorld?.postseason?.series??[]),...(state.proWorld?.farmPostseason?.series??[])])if(series.winner!==undefined&&series.mvp?.playerId===player.id)add('individual',state.proWorld!.year,series.mvp.kind);
   for(const rows of Object.values(result))rows.sort((a,b)=>b.year-a.year||a.title.localeCompare(b.title,"ko"));
   return result;
 }

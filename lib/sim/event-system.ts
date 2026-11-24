@@ -1,4 +1,5 @@
 import {resolveNationalContext} from "./national-tournament";
+import {eventRewardVersion,revisedRiskAndCampEvents} from './event-reward-policy';
 import {resolveFinalGameChoice} from './final-game-event';
 import {chooseNationalField,nationalParticipationChoices,nationalRoster,rememberNational,nationalRole} from "./national-teams";
 import { addDays, assignRole, available, clamp, overall, focusGrowth, getPlayer, growthMultiplier, isPitcher, lineup, params, random, refreshWeekReport, reputationScore, roleScore, roles, slowdown } from "./engine";
@@ -7,7 +8,7 @@ import {clearProfessionalReputation} from "./pro-selection";
 import {beginProRoleTrial,decideProRoleTrial} from "./pro-role-evaluation";
 import {recordProChoice} from "./pro-event-ledger";
 import {eligibleStory} from "./event-stories";
-import {schoolEventCatalog} from "./event-catalog";
+import {schoolEventCatalog,schoolEventAvailable} from "./event-catalog";
 import {createProEvent,proEventCatalog} from './pro-event-catalog';
 import {eventCategoryPool,eventFieldsFor,eventFocusPool,resolveEventFocus} from './event-selection';
 import type {ProEventResult} from "./pro-event-types";
@@ -43,6 +44,7 @@ export function eventCandidates(s: GameState, date: string): EventOpportunity[] 
   const game = s.calendar.events.find(g => g.date === date && [g.homeTeamId, g.awayTeamId].includes(p.teamId));
   const pool: EventOpportunity[] = [];
   const add = (id: string, context: Partial<EventOpportunity> = {}) => {
+    if(!schoolEventAvailable(id,date))return;
     const focus=schoolFocuses.get(id);
     if(!p.twoWay&&(pitching?['contact','power','speed','defense']:['velocity','control','movement']).includes(focus??''))return;
     if (!ledger.recent.slice(-5).includes(id))for(const field of eventFieldsFor(p,focus,context.field??schoolFields.get(id)))pool.push({definitionId:id,date,...context,field});
@@ -137,6 +139,7 @@ export function tryNationalEvent(s: GameState) {
 export function openScheduledEvent(s: GameState, phase: "beforeGames" | "training" | "game", scene?: EventScene) {
   const planned = s.weekProgress?.opportunity;
   if (!planned || planned.date !== s.date || s.careerEvent || getPlayer(s).roleOffer) return false;
+  if(!schoolEventAvailable(planned.definitionId,s.date)){s.weekProgress!.opportunity=null;return false;}
   const kind = eventKind(planned.definitionId);
   if (phase === "game") {
     if (kind !== "game" || !scene || planned.gameId !== scene.gameId || eventLedger(s).games.includes(scene.gameId)) return false;
@@ -181,7 +184,8 @@ export function applyMatchEffect<T extends { bb: number; hit: number; hr: number
 }
 export function needsPendingEventUpgrade(s:GameState){
   const event=s.careerEvent;
-  if(!event||(event.rewardVersion??0)>=4||event.nationalContext||event.proEvent?.nationalKind||event.proEvent?.channel==='followup')return false;
+  if(!event||(event.rewardVersion??0)>=eventRewardVersion||event.nationalContext||event.proEvent?.nationalKind||event.proEvent?.channel==='followup')return false;
+  if((event.rewardVersion??0)>=4&&!revisedRiskAndCampEvents.has(event.definitionId))return false;
   if(['P08','PE25','PE26','PE27'].includes(event.definitionId))return false;
   return event.proEvent?proEventCatalog.some(d=>d.id===event.definitionId):schoolEventCatalog.some(d=>d.id===event.definitionId);
 }
@@ -189,7 +193,7 @@ export function upgradePendingCareerEvent(s:GameState){
   if(!needsPendingEventUpgrade(s))return false;
   const event=s.careerEvent!,p=getPlayer(s);
   const updated=event.proEvent?createProEvent(s,event.definitionId,event.proEvent):createCareerEvent(event.definitionId,p,event.date,s.week,event);
-  event.choices=updated.choices;event.rewardVersion=4;return true;
+  event.choices=updated.choices;event.description=updated.description;event.rewardVersion=eventRewardVersion;return true;
 }
 export function resolveCareerEvent(input: GameState, choiceId: string): GameState {
   const national=input.careerEvent?.proEvent?.catalogId==="PE27"?input.proEvents?.national[String(input.careerEvent.proEvent.year)]:undefined;
@@ -198,7 +202,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   // old +8/+12/+24 rewards after upgrading. Settled history is never rerolled.
   if(needsPendingEventUpgrade(input)){input=structuredClone(input);upgradePendingCareerEvent(input);}
   const pending = input.careerEvent!;
-  const choices = [2,3,4].includes(pending.rewardVersion??0) ? pending.choices : createCareerEvent(pending.definitionId, getPlayer(input), pending.date, input.week, pending).choices;
+  const choices = [2,3,4,eventRewardVersion].includes(pending.rewardVersion??0) ? pending.choices : createCareerEvent(pending.definitionId, getPlayer(input), pending.date, input.week, pending).choices;
   const selected = choices.find(choice => choice.id === choiceId);
   if (!selected) throw new Error("유효하지 않은 이벤트 선택입니다.");
   const s = structuredClone(input), p = getPlayer(s), event = s.careerEvent!;
@@ -264,7 +268,12 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
     ...(outcome.injury ? { injury: structuredClone(p.injury!) } : {}), ...(p.position !== oldPosition ? { positionChange: { from: oldPosition, to: p.position } } : {}),
     ...(outcome.match ? { match: { ...outcome.match } } : {}), ...(event.scene ? { scene: event.scene } : {}) });
   Object.assign(s.careerEventHistory.at(-1)!, opportunityChanges);
-  const nationalKind=event.proEvent?.nationalKind??(event.definitionId==="P08"?"youth":undefined);if(nationalKind){const row=s.nationalTeams?.find(row=>row.kind===nationalKind&&row.year===Number(event.date.slice(0,4)));if(row){row.simulationVersion=1;row.settled=true;row.participated=!!outcome.nationalField||selected.id===event.choices[0].id;row.result=outcome.proResultId??selected.id;if(outcome.nationalField)chooseNationalField(s,row,outcome.nationalField);}}
+  const nationalKind=event.proEvent?.nationalKind??(event.definitionId==="P08"?"youth":undefined);if(nationalKind){const row=s.nationalTeams?.find(row=>row.kind===nationalKind&&row.year===Number(event.date.slice(0,4)));if(row){row.simulationVersion=1;row.settled=true;row.participated=!!outcome.nationalField||selected.id===event.choices[0].id;row.result=outcome.proResultId??selected.id;if(outcome.nationalField)chooseNationalField(s,row,outcome.nationalField);
+    if(!row.participated&&p.professional&&(row.kind==='apbc'||row.kind==='olympics')&&row.roster.some(member=>member.id===p.id&&member.wildcard)){
+      const declines=p.professional.wildcardDeclines??=[];
+      if(!declines.some(record=>record.year===row.year&&record.kind===row.kind))declines.push({year:row.year,kind:row.kind});
+    }
+  }}
   if(event.proEvent?.catalogId==="PE27"){const invitation=s.proEvents?.national[String(event.proEvent.year)];if(invitation)invitation.settled=true;}
   if(event.proEvent?.wbcYear){const entry=s.proEvents?.wbc?.[event.proEvent.wbcYear];if(entry){entry.settled=true;entry.participated=!!outcome.nationalField||selected.id==="participate";entry.result=outcome.proResultId;}}
   resolveNationalContext(s,event,outcome,selected.id);

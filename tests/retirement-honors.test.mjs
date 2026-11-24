@@ -7,6 +7,7 @@ const honors=require('../.test-build/lib/sim/retirement-honors.js'),retirement=r
 const jersey=require('../.test-build/lib/jersey-numbers.js'),save=require('../.test-build/lib/career-save.js'),locks=require('../.test-build/lib/retired-number-reservations.js');
 const {createElement}=require('react'),{renderToStaticMarkup}=require('react-dom/server'),Retirement=require('../.test-build/app/components/pro-retirement-dashboard.js').default;
 const squads=require('../.test-build/lib/sim/pro-squads.js');
+const honorStatus=require('../.test-build/lib/sim/retirement-honor-status.js');
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('retirement-honors','구단의전설','SP'));
 function fixture(count=21,score=80){
  const s=structuredClone(template),p=e.getPlayer(s),pro=p.professional,club=pro.contract.club,rookie=2028,year=rookie+count-1;
@@ -15,6 +16,28 @@ function fixture(count=21,score=80){
  pro.assessments=Array.from({length:count},(_,i)=>({year:rookie+i,date:`${rookie+i}-10-31`,score,grade:'A',cumulative:score,cumulativeGrade:'A',ability:80,role:p.primaryRole,squad:'first',developmental:false,reserveSeason:false,firstTeam:true,secondOnly:false,firstGames:0,source:'season-end',firstWarByClub:{[club]:i===0?50:0},honorRegistration:{seasonDays:100,firstDaysByClub:{[club]:90}}}));
  attachTestRanks(p);return {s,p,pro,club};
 }
+test('honor badges keep the completed season snapshot through training and a new season',()=>{
+ const {s,p,pro}=fixture(16);
+ pro.firsts.debut='2028-06-01';
+ const snapshot=honorStatus.seasonEndHonorStatus(s,p);
+ assert.equal(snapshot.debutSeasons,16);
+ pro.retirementHonorStatus=snapshot;
+ s.calendar.seasonYear++;s.proWorld.seasonClosed=false;
+ pro.assessments=[];pro.service=[];
+ assert.deepEqual(honorStatus.displayedHonorStatus(s,p),snapshot);
+ const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+ assert.deepEqual(e.getPlayer(restored).professional.retirementHonorStatus,snapshot);
+});
+test('legacy honor badges exclude an unfinished season and count ten completed debut seasons',()=>{
+ const {s,p,pro}=fixture(10);
+ pro.firsts.debut='2028-06-01';
+ const closed=honorStatus.displayedHonorStatus(s,p);
+ assert.equal(closed.debutSeasons,10);
+ s.proWorld.seasonClosed=false;
+ const open=honorStatus.displayedHonorStatus(s,p);
+ assert.equal(open.debutSeasons,9);
+ assert.equal(open.year,s.calendar.seasonYear-1);
+});
 test('ceremony accepts C and tour accepts B with thirteen total credited seasons',()=>{
  const {s,p,pro}=fixture(16);
  for(const row of pro.assessments){row.war.first.batting=30/16;row.war.first.pitching=0;}
@@ -73,7 +96,7 @@ test('a 24-season debut-club veteran earns a farewell despite farm years, and a 
  s.proWorld.careerHonorRulesVersion=3;s.proWorld.retirementHonors=[];
  const original=structuredClone(p.career),rng=structuredClone(s.rngStates);
  const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
- assert.equal(restored.proWorld.careerHonorRulesVersion,4);
+ assert.equal(restored.proWorld.careerHonorRulesVersion,6);
  assert.equal(restored.proWorld.retirementHonors.length,1);
  assert.equal(restored.proWorld.retirementHonors[0].debutClubSeasons,24);
  assert.equal(restored.proWorld.retirementHonors[0].ceremony,true);assert.equal(restored.proWorld.retirementHonors[0].tour,true);
@@ -84,18 +107,22 @@ test('a 24-season debut-club veteran earns a farewell despite farm years, and a 
 
 test('season-end retirement waits for all awards and the stove button, then shows retirement before the highest honor',()=>{
  const life=require('../.test-build/lib/sim/pro-season.js');
- const {s,p,pro,club}=fixture(24,0);
+ // Use a year without a November national tournament to isolate the awards/retirement flow.
+ const {s,p,pro,club}=fixture(25,0);
  p.age=44;pro.firsts={debut:'2028-07-01',debutClub:club};
  for(const row of pro.assessments){row.honorRegistration.firstDaysByClub={};delete row.seasonRank;row.firstWarByClub={[club]:0};}
  pro.assessments.pop();s.proWorld.seasonClosed=false;s.proWorld.stage='regular';s.phase='weekStart';
  Object.assign(p.seasonByLevel.first.batting,{PA:550,AB:500,H:200,HR:40,BB:50,RBI:100});
  p.seasonStats=structuredClone(p.seasonByLevel.first);
  life.closeProfessionalSeason(s);
- assert.ok(s.proWorld.pendingRetirement);assert.equal(s.proWorld.retired,undefined);
+ assert.equal(s.proWorld.pendingRetirement,undefined);assert.equal(s.proWorld.retired,undefined);
  assert.equal(s.proWorld.stage,'summary');assert.equal(pro.employment,'active');assert.equal(p.teamId,club);
  assert.equal(life.canEnterNextProCamp(s),false);
  assert.throws(()=>life.actOnProCareer(s,{type:'market'}),/먼저/);
  let next=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+ while(next.careerNotice)next=pc.acknowledgeCareer(next);
+ next=life.actOnProCareer(next,{type:'awards'});
+ assert.equal(next.proWorld.pendingRetirement,undefined);
  const seen=[];
  for(let guard=0;next.careerNotice&&guard<20;guard++){
   seen.push(next.careerNotice.code);next=pc.acknowledgeCareer(next);
@@ -146,7 +173,7 @@ test('a live legacy career upgrades cached grades once and preserves the input s
  const {s,p,pro}=fixture(13);delete s.proWorld.careerHonorRulesVersion;
  for(const row of pro.assessments){row.role='불펜';row.seasonRank.role='bullpen';row.war.first.batting=0;row.war.first.pitching=1;row.cumulativeGrade='F';}
  const original=structuredClone(s),life=require('../.test-build/lib/sim/pro-season.js'),next=life.upgradeProfessionalState(s);
- assert.deepEqual(s,original);assert.equal(e.getPlayer(next).professional.assessments.at(-1).cumulativeGrade,'C');assert.equal(next.proWorld.careerHonorRulesVersion,4);
+ assert.deepEqual(s,original);assert.equal(e.getPlayer(next).professional.assessments.at(-1).cumulativeGrade,'C');assert.equal(next.proWorld.careerHonorRulesVersion,6);
  assert.deepEqual(e.getPlayer(next).seasonByLevel,p.seasonByLevel);assert.equal(life.upgradeProfessionalState(next),next);
 });
 test('a legacy retired number with missing career evidence retains its recorded grade and reservation',()=>{
@@ -161,7 +188,7 @@ test('loading a doubled-WAR save restores raw grades and removes only a provably
  s.proWorld.retiredNumbers=[{club,number:77,playerId:p.id,playerName:p.name,date:s.date,grade:'S',score:90,criteria:{clubWar:40,awardBonus:12,seasons:13}}];
  const raw=structuredClone(pro.assessments.map(r=>r.war));
  const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
- assert.equal(e.getPlayer(restored).professional.assessments.at(-1).cumulativeGrade,'B');assert.equal(restored.proWorld.careerHonorRulesVersion,4);
+ assert.equal(e.getPlayer(restored).professional.assessments.at(-1).cumulativeGrade,'B');assert.equal(restored.proWorld.careerHonorRulesVersion,6);
  assert.deepEqual(restored.proWorld.retiredNumbers,[]);assert.equal(restored.proWorld.retirementHonors[0].tour,true);
  assert.deepEqual(e.getPlayer(restored).professional.assessments.map(r=>r.war),raw);
  const next=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(restored))).state;assert.deepEqual(next.proWorld.retiredNumbers,[]);
@@ -244,10 +271,10 @@ test('90 percent registration applies equally to pitchers, uses exact days and n
  for(const row of pro.assessments)row.honorRegistration={seasonDays:100,firstDaysByClub:{}};
  assert.equal(honors.retirementEligibility(s,p).seasons,0);
 });
-test('a ceremony can use ten nonconsecutive C seasons, while seven consecutive seasons also qualify',()=>{
+test('ceremony and tour service skip uncredited seasons within the same club stint',()=>{
  const {s,p,pro}=fixture(18,79),selected=new Set([3,4,5,7,8,9,11,12,14,17]);
  pro.assessments.forEach((row,i)=>{if(!selected.has(i))row.honorRegistration.firstDaysByClub={};});
- let result=honors.retirementEligibility(s,p);assert.equal(result.seasons,10);assert.equal(result.consecutive,1);assert.equal(result.ceremony,true);assert.equal(result.tour,false);
+ let result=honors.retirementEligibility(s,p);assert.equal(result.seasons,10);assert.equal(result.consecutive,10);assert.equal(result.ceremony,true);assert.equal(result.tour,true);
  const consecutive=fixture(10,79);assert.equal(honors.retirementEligibility(consecutive.s,consecutive.p).ceremony,true);
  consecutive.pro.assessments[5].honorRegistration.firstDaysByClub={};assert.equal(honors.retirementEligibility(consecutive.s,consecutive.p).ceremony,false);
 });
@@ -323,4 +350,36 @@ test('retirement criteria render, and saved careers reserve a number across game
 test('invalid registration and farewell evidence is rejected before saving',()=>{
  const {s,pro}=fixture();pro.assessments[3].honorRegistration.firstDaysByClub={'0':101};assert.throws(()=>save.encodeCareerSave(s),/은퇴 예우/);
  pro.assessments[3].honorRegistration.firstDaysByClub={};s.proWorld.retirementHonors=[{club:0,playerId:s.playerId,playerName:'검증',date:s.date,score:80,grade:'A',seasons:10,consecutive:11,ceremony:true,tour:true}];assert.throws(()=>save.encodeCareerSave(s),/은퇴 예우/);
+});
+
+
+test('same-club registration shortfalls and fully injured seasons add zero without resetting honor service',()=>{
+ const {s,p,pro,club}=fixture(15);
+ pro.assessments[6].honorRegistration={seasonDays:100,firstDaysByClub:{[club]:84}};
+ pro.assessments[9].honorRegistration={seasonDays:100,firstDaysByClub:{},injuryDaysByClub:{[club]:100}};
+ let result=honors.retirementEligibility(s,p);
+ assert.equal(result.seasons,10);assert.equal(result.consecutive,10);assert.equal(result.retiredNumber,true);assert.equal(result.tour,true);
+ pro.assessments.at(-1).honorRegistration.firstDaysByClub={[club]:89};
+ result=honors.retirementEligibility(s,p);assert.equal(result.seasons,9);assert.equal(result.consecutive,9);assert.equal(result.retiredNumber,false);
+});
+test('actually leaving the club still separates credited stints even when twelve seasons were earned in total',()=>{
+ const {s,p,pro,club}=fixture(16),other=(club+1)%10;
+ pro.service=[{club,from:2028,to:2037},{club:other,from:2038,to:2038},{club,from:2039,to:2043}];
+ pro.assessments.find(row=>row.year===2038).honorRegistration.firstDaysByClub={[other]:90};
+ pro.movements=[{date:'2038-01-01',from:club,to:other,kind:'FA 이적',reason:'이적'},{date:'2039-01-01',from:other,to:club,kind:'FA 이적',reason:'복귀'}];
+ const result=honors.retirementEligibility(s,p);
+ assert.equal(result.seasons,12);assert.equal(result.consecutive,5);assert.equal(result.retiredNumber,false);
+});
+test('legacy honor badges rebuild at the last season boundary and remain frozen through the current season',()=>{
+ const {s,pro}=fixture(16);pro.assessments[12].honorRegistration.firstDaysByClub={};
+ pro.firsts.debut='2028-03-29';const year=s.calendar.seasonYear;
+ pro.retirementHonorStatus={year,debutSeasons:16,ceremony:true,tour:false,retiredNumber:false};
+ s.proWorld.careerHonorRulesVersion=5;
+ s.calendar.seasonYear++;s.proWorld.year++;s.proWorld.seasonClosed=false;s.proWorld.stage='camp';s.date=`${year+1}-02-01`;
+ const seasons=structuredClone(pro.assessments),restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state,q=e.getPlayer(restored);
+ assert.equal(restored.proWorld.careerHonorRulesVersion,6);
+ const status=q.professional.retirementHonorStatus;
+ assert.equal(status.year,year);assert.equal(status.rulesVersion,2);assert.equal(status.tour,true);assert.equal(status.retiredNumber,true);
+ assert.deepEqual(q.professional.assessments.map(row=>row.honorRegistration),seasons.map(row=>row.honorRegistration));
+ q.professional.assessments=[];assert.deepEqual(honorStatus.displayedHonorStatus(restored,q),status);
 });

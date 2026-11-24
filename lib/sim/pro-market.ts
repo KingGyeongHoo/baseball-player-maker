@@ -404,10 +404,15 @@ export function careerRequest(s:GameState,kind:"chance"|"position"|"manage"|"tra
     pro.positionRequestYear=s.calendar.seasonYear;
     return;
   }
-  if(pro.requestAfter&&s.date<pro.requestAfter)throw new Error(`${pro.requestAfter} 이후 다시 요청할 수 있습니다.`);
+  const winterTrade=kind==='trade'&&s.proWorld?.seasonClosed&&s.proWorld.stove&&!s.proWorld.stove.closed;
+  const requestAfter=winterTrade?pro.tradeRequestAfter:kind==='trade'?[pro.requestAfter,pro.tradeRequestAfter].filter((date):date is string=>!!date).sort().at(-1):pro.requestAfter;
+  if(requestAfter&&s.date<requestAfter)throw new Error(`${requestAfter} 이후 다시 요청할 수 있습니다.`);
   if(pro.employment!=="active")throw new Error("구단 소속 상태에서 요청할 수 있습니다.");
-  pro.requestAfter=addDays(s.date,28);
-  if(kind==="trade"){if(!tradePlayer(s,p,true))proNotice(s,`request:${s.date}`,"이적 요청 검토 결과","현재 조건에 맞는 교환 상대와 구단 합의를 찾지 못했습니다. 계약과 소속은 유지됩니다.");return;}
+  if(!winterTrade)pro.requestAfter=addDays(s.date,28);
+  if(kind==="trade"){
+    pro.tradeRequestAfter=addDays(s.date,winterTrade?7:28);
+    if(!tradePlayer(s,p,true))proNotice(s,`request:${s.date}`,"트레이드 요청 결과","현재 조건에 맞는 교환 상대와 구단 합의를 찾지 못했습니다.");return;
+  }
   if(kind==="release"){
     if(canRemove(s,p)&&contractValue(p,s.proWorld!.year)<55){releasePlayer(s,p,"선수 요청과 구단 동의에 따른 계약 해제",s.proWorld!.year+1);s.proWorld!.market=undefined;}
     proNotice(s,`request:${s.date}`,"계약 해제 요청 결과",p.teamId<0?"구단이 요청에 동의했습니다. 다음 계약 시장에서 새 기회를 찾을 수 있습니다.":"구단이 현재 전력과 계약을 고려해 동의하지 않았습니다. 최종안 또는 은퇴를 검토할 수 있습니다.");return;

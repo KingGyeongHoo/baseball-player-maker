@@ -26,7 +26,7 @@ function fixture(mode){
 }
 function situation(mode,d){
  const s=fixture(mode),p=e.getPlayer(s),rule=d.rule;
- s.date=`${s.calendar.seasonYear}-${String(rule.months?.[0]??7).padStart(2,'0')}-20`;
+ s.date=`${s.calendar.seasonYear}-${String(rule.months?.[0]??(d.schoolPeriod==='term'?5:7)).padStart(2,'0')}-20`;
  p.position=rule.positions?.[0]??(rule.field==='pitching'?'SP':'SS');p.primaryRole=e.roleFor(p.position);p.eligiblePositions=[p.position];p.trainingPolicy=e.defaultPolicy(p.primaryRole);
  for(const key of Object.keys(p.stats))p.stats[key]=60;
  s.calendar.trainingDays=[s.date];
@@ -196,4 +196,34 @@ test('old histories do not cause chains and already open saved choices retain th
  s.careerEvent=rawEvent(s,d.id);s.careerEvent.choices=[{id:'saved',label:'저장된 선택',outcomes:[{weight:100,message:'저장된 결과',fatigue:-3}]}];
  const loaded=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(s))).state;assert.deepEqual(loaded.careerEvent,s.careerEvent);
  const done=e.answerCareerEvent(loaded,'saved');assert.equal(done.careerEventHistory.at(-1).message,'저장된 결과');assert.equal(done.careerEvent,null);
+});
+
+test('school catalog explicitly marks term, vacation or shared periods and calendar boundaries are stable',()=>{
+ for(const definition of school.schoolEventCatalog)assert.ok(['term','vacation','any'].includes(definition.schoolPeriod),definition.id);
+ for(const [date,expected] of [['2028-01-01','vacation'],['2028-02-29','vacation'],['2028-03-01','term'],['2028-06-30','term'],['2028-07-01','vacation'],['2028-08-31','vacation'],['2028-09-01','term'],['2028-12-31','term']])assert.equal(school.schoolCalendarPeriod(date),expected,date);
+});
+test('school candidate pools keep school activities in term and intensive lessons in vacation for each field',()=>{
+ for(const position of ['SS','SP'])for(const month of [1,2,3,5,7,8,9,12]){
+  const s=fixture('school'),p=e.getPlayer(s);p.position=position;p.primaryRole=e.roleFor(position);p.eligiblePositions=[position];p.trainingPolicy=e.defaultPolicy(p.primaryRole);
+  s.date=`${s.calendar.seasonYear}-${String(month).padStart(2,'0')}-20`;s.calendar.trainingDays=[s.date];
+  const ids=new Set(system.eventCandidates(s,s.date).map(row=>row.definitionId)),vacation=[1,2,7,8].includes(month);
+  for(const id of ['X01','X02','X03','L08'])assert.equal(ids.has(id),!vacation,`${position}:${month}:${id}`);
+  for(const id of ['T10','X04',position==='SP'?'T22':'T21'])assert.equal(ids.has(id),vacation,`${position}:${month}:${id}`);
+  assert.ok(ids.has('T04'));assert.ok(ids.has('X06'));
+ }
+});
+test('an old planned school event is discarded if its date belongs to the wrong school period',()=>{
+ const s=fixture('school');s.date=`${s.calendar.seasonYear}-08-20`;
+ s.weekProgress={opportunity:{definitionId:'X03',date:s.date}};
+ const rng=structuredClone(s.rngStates);
+ assert.equal(system.openScheduledEvent(s,'beforeGames'),false);assert.equal(s.weekProgress.opportunity,null);assert.equal(s.careerEvent,null);assert.deepEqual(s.rngStates,rng);
+});
+
+test('cross-boundary school planning uses the event date rather than the current date',()=>{
+ const s=fixture('school');
+ for(const [today,date,vacation] of [['06-29','07-01',true],['08-30','09-01',false]]){
+  s.date=`${s.calendar.seasonYear}-${today}`;const scheduled=`${s.calendar.seasonYear}-${date}`;s.calendar.trainingDays=[scheduled];
+  const ids=new Set(system.eventCandidates(s,scheduled).map(row=>row.definitionId));
+  assert.equal(ids.has('X03'),!vacation);assert.equal(ids.has('T21'),vacation);
+ }
 });

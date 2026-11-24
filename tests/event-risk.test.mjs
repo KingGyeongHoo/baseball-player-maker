@@ -58,6 +58,7 @@ test('training directly changes abilities and never adds fatigue or explicit sel
 test('every external branch affects only body management or BQ and remains off game days',()=>{
  for(const mode of ['school','pro'])for(let i=0;i<6;i++){
   const id=mode==='school'?`X0${i+1}`:`PE${i+82}`,s=fixture(mode),p=e.getPlayer(s);
+  if(mode==='school'&&school.schoolEventCatalog.find(row=>row.id===id).schoolPeriod==='term'){s.date=`${s.calendar.seasonYear}-05-20`;s.calendar.trainingDays=[s.date];}
   if(id==='PE84')s.date=`${s.calendar.seasonYear}-11-20`;
   const event=open(s,id);s.careerEvent=null;
   const candidates=()=>mode==='school'?system.eventCandidates(s,s.date).map(d=>d.definitionId):runtime.proGeneralCandidates(s).map(d=>d.id);

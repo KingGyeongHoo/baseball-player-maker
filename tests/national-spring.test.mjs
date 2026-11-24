@@ -29,7 +29,7 @@ test('adult national teams have 30 unique members with fifteen per field and pos
   const count=positions=>roster.filter(row=>positions.includes(row.position)).length;
   assert.equal(roster.length,30);assert.equal(new Set(roster.map(row=>row.id)).size,30);assert.equal(count(['SP']),5);assert.equal(count(['RP']),8);assert.equal(count(['CP']),2);assert.equal(count(['C']),2);assert.equal(count(['1B','2B','3B','SS']),7);assert.equal(count(['LF','CF','RF']),5);assert.equal(count(['DH']),1);assert.deepEqual(s.rngStates,rng);
   const byId=new Map(s.players.map(p=>[p.id,p]));for(const row of roster.filter(row=>['SP','RP','CP'].includes(row.position)))byId.get(row.id).age=26;
-  const young=n.nationalRoster(s,p=>p.seasonByLevel.first,'olympics');assert.ok(young.every(row=>byId.get(row.id).age<=25));assert.ok(n.nationalRoster(s,p=>p.seasonByLevel.first,'premier12').some(row=>byId.get(row.id).age===26));
+  const young=n.nationalRoster(s,p=>p.seasonByLevel.first,'olympics');assert.equal(young.filter(row=>byId.get(row.id).age>25).length,1);assert.ok(young.filter(row=>byId.get(row.id).age>25).every(row=>row.wildcard));assert.ok(n.nationalRoster(s,p=>p.seasonByLevel.first,'premier12').some(row=>byId.get(row.id).age===26));
 });
 test('two-way players compete only in their stronger field, for both professional and youth teams',()=>{
   for(const pitching of [false,true]){
@@ -121,3 +121,56 @@ test('youth roster freezes fifteen pitchers and fifteen hitters in September, ne
   const entry=s.nationalTeams[0];assert.equal(entry.roster.length,30);assert.equal(entry.roster.filter(row=>row.field==='pitching').length,15);assert.equal(entry.roster.filter(row=>row.field==='batting').length,15);assert.equal(s.careerEvent.definitionId,'P08');
   const roster=structuredClone(entry.roster);s.careerEvent=null;assert.equal(tryNationalEvent(s),false);assert.deepEqual(entry.roster,roster);
 });
+
+function wildcardFixture(kind){
+ const year=kind==='apbc'?2029:2028,s=fixture(year),mine=e.getPlayer(s);
+ s.date=`${year}-${n.nationalRules[kind].month}-01`;s.proWorld.stage=kind==='apbc'?'summary':'regular';s.proWorld.seasonClosed=kind==='apbc';s.phase=kind==='apbc'?'ended':'weekStart';
+ const hitters=[mine,...s.players.filter(p=>p.id!==mine.id&&p.position===mine.position).slice(0,2)];
+ const pitchers=s.players.filter(p=>p.position==='CP').slice(0,2);
+ assert.equal(hitters.length,3);assert.equal(pitchers.length,2);
+ for(const [index,p] of hitters.entries()){
+  p.age=31;for(const key of Object.keys(p.stats))p.stats[key]=index<2?65:95;
+  Object.assign(p.seasonByLevel.first.batting,{PA:300,AB:270,H:index<2?110:10,HR:index<2?30:0,BB:30,RBI:index<2?90:0});
+ }
+ for(const [index,p] of pitchers.entries()){
+  p.age=32;for(const key of Object.keys(p.stats))p.stats[key]=index===0?65:95;
+  Object.assign(p.seasonByLevel.first.pitching,{outs:180,BF:240,SO:index===0?100:5,BB:index===0?5:70,ER:index===0?0:80});
+ }
+ return {s,mine,hitters,pitchers};
+}
+for(const kind of ['apbc','olympics']){
+ test(`${kind} replaces three young members with one pitcher and two hitters ranked by current first-team performance`,()=>{
+  const {s,hitters,pitchers}=wildcardFixture(kind),rng=structuredClone(s.rngStates);
+  const roster=n.nationalRoster(s,p=>p.seasonByLevel.first,kind),wildcards=roster.filter(row=>row.wildcard),byId=new Map(s.players.map(p=>[p.id,p]));
+  assert.equal(roster.length,30);assert.equal(new Set(roster.map(row=>row.id)).size,30);
+  assert.equal(wildcards.length,3);assert.deepEqual(new Set(wildcards.map(row=>row.id)),new Set([pitchers[0].id,hitters[0].id,hitters[1].id]));
+  assert.equal(wildcards.filter(row=>['SP','RP','CP'].includes(row.position)).length,1);
+  assert.equal(roster.filter(row=>['SP','RP','CP'].includes(row.position)).length,15);
+  assert.ok(roster.filter(row=>!row.wildcard).every(row=>byId.get(row.id).age<=25));
+  for(const position of ['C','1B','2B','3B','SS','LF','CF','RF'])assert.ok(roster.some(row=>row.position===position),position);
+  assert.deepEqual(s.rngStates,rng);
+  const entry=n.rememberNational(s,kind,roster),restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+  assert.equal(restored.nationalTeams[0].roster.filter(row=>row.wildcard).length,3);
+  const tournament=require('../.test-build/lib/sim/national-tournament.js').ensureNationalTournament(s,entry);
+  for(const row of wildcards)assert.ok(tournament.countries[0].players.some(p=>p.id===row.id));
+  const html=renderToStaticMarkup(createElement(NationalRosters,{state:s,onRecords(){},initialView:'roster',initialField:'batting'}));
+  assert.equal((html.match(/class="national-wildcard-badge"/g)??[]).length,2);
+ });
+ test(`${kind} wildcard refusal adds two club selection points once, while attendance and ordinary refusal do not`,()=>{
+  const {s,mine}=wildcardFixture(kind),roster=n.nationalRoster(s,p=>p.seasonByLevel.first,kind),entry=n.rememberNational(s,kind,roster);
+  s.careerEvent=n.nationalInvitation(s,entry);assert.match(s.careerEvent.title,/와일드카드/);
+  const before=e.proSelectionScore(mine),stats=structuredClone(mine.stats);
+  const accepted=e.answerCareerEvent(s,s.careerEvent.choices[0].id);assert.equal(e.proSelectionScore(e.getPlayer(accepted)),before);
+  const declined=e.answerCareerEvent(s,'choice-2'),p=e.getPlayer(declined);
+  assert.equal(declined.nationalTeams[0].participated,false);assert.deepEqual(p.stats,stats);assert.equal(e.proSelectionScore(p),before+2);
+  assert.equal(p.professional.wildcardDeclines.length,1);assert.equal(n.tryScheduledNational(declined),false);
+  const replacement=require('../.test-build/lib/sim/national-tournament.js').ensureNationalTournament(declined,declined.nationalTeams[0]);
+  assert.equal(replacement.countries[0].players.length,30);assert.ok(!replacement.countries[0].players.some(row=>row.id===p.id));
+  const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(declined))).state;
+  assert.equal(e.proSelectionScore(e.getPlayer(restored)),before+2);
+  const repeated=structuredClone(declined);repeated.careerEvent=n.nationalInvitation(repeated,repeated.nationalTeams[0]);
+  assert.equal(e.answerCareerEvent(repeated,'choice-2').players.find(row=>row.id===p.id).professional.wildcardDeclines.length,1);
+  delete entry.roster.find(row=>row.id===mine.id).wildcard;s.careerEvent=n.nationalInvitation(s,entry);
+  const ordinary=e.answerCareerEvent(s,'choice-2');assert.equal(e.getPlayer(ordinary).professional.wildcardDeclines,undefined);
+ });
+}

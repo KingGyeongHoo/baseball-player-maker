@@ -34,7 +34,8 @@ import {ProGoals,ProContractPanel,ProRetirement,salaryText} from "./pro-career-p
 import OffseasonShop from "./offseason-shop";
 import ProAwardsHub from "./pro-awards-hub";
 import {CareerHonors,CareerLifetimeRecords} from "./pro-career-summary";
-import {actOnProCareer,canEnterNextProCamp,needsContractUpgrade,needsPostseasonUpgrade,resumeOffseasonProgress,upgradeProfessionalState,type ProAction} from "../../lib/sim/pro-season";
+import {RetirementHonorsPanel} from './retirement-honors-panel';
+import {actOnProCareer,canEnterNextProCamp,needsContractUpgrade,needsPostseasonUpgrade,resumeOffseasonProgress,tradeRequestProgressBlock,upgradeProfessionalState,type ProAction} from "../../lib/sim/pro-season";
 import {needsProScheduleUpgrade} from "../../lib/sim/pro-schedule";
 import {needsAllstarScheduleUpgrade} from "../../lib/sim/pro-allstar-calendar";
 import {needsProSquadUpgrade,squadLabel} from "../../lib/sim/pro-squads";
@@ -97,7 +98,9 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const recordsPlayer=state.players.find(q=>q.id===recordId)??p;
   const [retireConfirm,setRetireConfirm]=useState(false);
   const careerDisabled=busy||auto||!!state.weekProgress||!!state.careerNotice||!!state.careerEvent||!!outcome;
-  const onAction=(action:ProAction)=>{if(locked.current||careerDisabled)return;stop();try{const next=actOnProCareer(state,action);onChange(next);if(action.type!=="buyOffseasonItems"&&!(action.type==="request"&&action.kind==="position")&&(next.phase!=="ended"||next.proWorld?.stage==="retired"))setTab("home");}catch(error){setError(error instanceof Error?error.message:"커리어 선택에 실패했습니다.");}};
+  const tradeDisabledReason=busy?'진행 완료 후 요청 가능':auto?'일시정지 후 요청 가능':outcome?'선택 결과 확인 후 요청 가능':tradeRequestProgressBlock(state);
+  const tradeDisabled=!!tradeDisabledReason;
+  const onAction=(action:ProAction)=>{if(locked.current||(action.type==='request'&&action.kind==='trade'?tradeDisabled:careerDisabled))return;stop();try{const next=actOnProCareer(state,action);onChange(next);if(action.type!=="buyOffseasonItems"&&!(action.type==="request"&&action.kind==="position")&&(next.phase!=="ended"||next.proWorld?.stage==="retired"))setTab("home");}catch(error){setError(error instanceof Error?error.message:"커리어 선택에 실패했습니다.");}};
   const load=(next:GameState)=>{if(locked.current)return;stop();worker.current?.terminate();worker.current=null;request.current++;onChange(next);setOutcome(next.pendingEventOutcome??null);setPolicy(structuredClone(getPlayer(next).trainingPolicy));setStance({...getPlayer(next).stance});setTab(next.proWorld?.stage==="retired"?"home":next.phase==="ended"?"career":"home");};
   const finishEventOutcome=()=>{
     setOutcome(null);
@@ -154,10 +157,11 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
         <ProGoals state={state} onAction={onAction} disabled={careerDisabled}/>
         <CareerLifetimeRecords state={state}/>
         <CareerHonors state={state}/>
-        {state.proWorld&&<ProContractPanel state={state} onAction={onAction} onRetire={()=>setRetireConfirm(true)} disabled={careerDisabled}/>}
+        {state.proWorld&&<ProContractPanel state={state} onAction={onAction} onRetire={()=>setRetireConfirm(true)} disabled={careerDisabled} tradeDisabled={tradeDisabled} tradeDisabledReason={tradeDisabledReason}/>}
         <DevelopmentContract player={p} state={state}/>
         {ended&&state.careerMode==="college"&&<CareerContinuation state={state} onChange={onChange}/>}
         {!!state.postSchool?.collegeDraft?.length&&<details className="panel pro-archive"><summary>최근 대학 재도전 드래프트</summary><DraftRoundTable players={state.players} picks={state.postSchool.collegeDraft} playerId={p.id} year={state.careerMode==="college"?state.calendar.seasonYear:state.calendar.seasonYear-1} onSelect={setDraftPick}/></details>}
+        <RetirementHonorsPanel state={state}/>
         {!!state.draft.length&&<details className="panel pro-archive"><summary>{state.postSchool?.graduationYear} 고교 드래프트 기록</summary><DraftRoundTable players={state.players} picks={state.draft} playerId={p.id} year={state.postSchool?.graduationYear??state.calendar.seasonYear} onSelect={setDraftPick}/></details>}
       </>}
     </main><footer className="site-footer"><div><span className="footer-brand">BASEBALL LIFE.</span><span>고교에서 프로까지, 나의 야구 인생</span><span>가상 구단·게임용 일정</span></div></footer>

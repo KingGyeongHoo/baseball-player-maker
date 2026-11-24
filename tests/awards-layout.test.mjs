@@ -72,8 +72,7 @@ test('second-team season MVP uses farm records and is announced and saved separa
   s.date=season.awardsCeremony.scheduledAt;s.proWorld.seasonClosed=true;
   assert.equal(presentAwardsCeremony(s),true);
   const celebrations=s.noticeQueue.filter(row=>row.award?.title.endsWith('MVP'));
-  assert.deepEqual(celebrations.map(row=>row.award.bonus),[3,1.5]);
-  assert.equal(new Set(celebrations.map(row=>row.id)).size,2);
+  assert.deepEqual(celebrations,[]);
   const html=renderToStaticMarkup(createElement(SeasonAwards,{state:s,season}));
   assert.ok(html.includes('1군 MVP')&&html.includes('2군 MVP')&&html.includes('62탈삼진'));
   const restored=decodeCareerSave(JSON.stringify(encodeCareerSave(s))).state;

@@ -15,7 +15,7 @@ import {tryProNationalInvitation} from "./pro-national-events";
 import {syncProClubNames,proTeamName} from "./club-names";
 import {createCareerNPC,proRosterPositions} from './pro-roster';
 import {rookieDevelopmentalIds,setProSquad} from "./pro-squads";
-import {isSuppressedAwardCelebration,queuePersonalAwardNotices} from './pro-awards-ceremony';
+import {isRemovedAwardCelebration,queuePersonalAwardNotices} from './pro-awards-ceremony';
 import {clubAwardLevel,clubAwardNames} from './pro-career-evaluation';
 import {pendingNationalOffseason} from './national-tournament';
 
@@ -26,7 +26,7 @@ const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind
 };
 export const acknowledgeCareer = (input: GameState): GameState => {
   const s=structuredClone(input),notice=s.careerNotice;
-  if(s.noticeQueue)s.noticeQueue=s.noticeQueue.filter(row=>!row.individualTitles&&!row.code?.startsWith('individual-titles:')&&!isSuppressedAwardCelebration(row));
+  if(s.noticeQueue)s.noticeQueue=s.noticeQueue.filter(row=>!row.individualTitles&&!row.code?.startsWith('individual-titles:')&&!isRemovedAwardCelebration(row));
   const ceremony=notice?.code?.match(/^awards(-summary)?:(\d{4})$/);
   const awardYear=ceremony?Number(ceremony[2]):notice?.award?.year;
   const season=ceremony?s.proWorld?.seasons.find(row=>row.year===awardYear):undefined;

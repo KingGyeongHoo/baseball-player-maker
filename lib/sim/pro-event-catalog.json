@@ -1608,7 +1608,7 @@
   {
     "id": "PE33",
     "title": "이중 키킹으로 만드는 균형",
-    "description": "불펜에서 축발 위에 몸을 오래 남기는 연습을 한다. 투수 코치가 다리를 나눠 들며 상체가 먼저 나가지 않게 잡아준다.",
+    "description": "투수 코치가 이중 키킹으로 투구폼을 바꾸자고 제안했다. 새로운 동작을 몸에 익히거나 기존 폼의 반복성을 다듬을 수 있다.",
     "category": "baseball",
     "rule": {
       "activity": "training",
@@ -1621,10 +1621,10 @@
         "label": "이중 키킹으로 투구 균형을 바꾼다",
         "outcomes": [
           {
-            "weight": 50,
+            "weight": 35,
             "message": "두 번째로 다리를 들 때 허리가 뒤에 남았다. 디딤발과 릴리스의 방향이 맞아들었다.",
             "weeks": {
-              "control": 4
+              "control": 8
             },
             "fatigueRange": {
               "min": 3,
@@ -1632,7 +1632,7 @@
             }
           },
           {
-            "weight": 50,
+            "weight": 65,
             "message": "동작을 끊어 가는 동안 팔이 늦었다. 직구에 실리던 힘이 줄었다.",
             "stats": {
               "velocity": -0.5
@@ -1649,7 +1649,7 @@
         "label": "한 번만 들고 축발을 길게 누른다",
         "outcomes": [
           {
-            "weight": 50,
+            "weight": 85,
             "message": "투구 리듬을 끊지 않고 마운드를 밀었다. 몸통의 힘이 직구에 이어졌다.",
             "weeks": {
               "velocity": 3
@@ -1660,13 +1660,14 @@
             }
           },
           {
-            "weight": 50,
+            "weight": 15,
             "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
         ]
       }
     ],
-    "focus": "control"
+    "focus": "control",
+    "riskChoice": true
   },
   {
     "id": "PE34",
@@ -1747,7 +1748,7 @@
   {
     "id": "PE36",
     "title": "슬라이더를 스위퍼처럼",
-    "description": "슬라이더가 타자 배트에 자꾸 걸린다. 불펜에서 그립과 손목 각도를 바꿔 옆으로 더 빠지는 공을 연습한다.",
+    "description": "기존 슬라이더를 옆으로 크게 휘는 스위퍼로 바꾸는 훈련을 제안받았다. 구종을 전환하거나 익숙한 슬라이더를 더 다듬을 수 있다.",
     "category": "baseball",
     "rule": {
       "activity": "training",
@@ -1760,10 +1761,10 @@
         "label": "옆 회전을 늘려 스위퍼 궤적을 만든다",
         "outcomes": [
           {
-            "weight": 50,
+            "weight": 35,
             "message": "공이 직구 궤적에서 더 길게 옆으로 벗어났다. 타자의 스윙을 비키는 감각을 찾았다.",
             "weeks": {
-              "movement": 4
+              "movement": 8
             },
             "fatigueRange": {
               "min": 3,
@@ -1771,7 +1772,7 @@
             }
           },
           {
-            "weight": 50,
+            "weight": 65,
             "message": "회전을 의식하느라 손목이 먼저 열렸다. 변화구가 스트라이크 존에 들어오지 않았다.",
             "stats": {
               "control": -0.6
@@ -1788,7 +1789,7 @@
         "label": "기존 슬라이더를 타자 무릎 높이에 꽂는다",
         "outcomes": [
           {
-            "weight": 50,
+            "weight": 85,
             "message": "궤적을 키우기 전에 시작점을 고정했다. 슬라이더의 높낮이가 안정됐다.",
             "weeks": {
               "control": 3
@@ -1799,13 +1800,14 @@
             }
           },
           {
-            "weight": 50,
+            "weight": 15,
             "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
         ]
       }
     ],
-    "focus": "movement"
+    "focus": "movement",
+    "riskChoice": true
   },
   {
     "id": "PE37",
@@ -2788,7 +2790,7 @@
   {
     "id": "PE54",
     "title": "큰 레그킥을 토탭으로 줄이기",
-    "description": "빠른 공에 스윙이 계속 늦는다. 케이지에서 앞다리를 크게 드는 대신 앞꿈치만 찍고 타격해본다.",
+    "description": "큰 레그킥을 토탭으로 바꾸는 훈련을 제안받았다. 타격폼을 전환하거나 익숙한 레그킥의 높이만 조정할 수 있다.",
     "category": "baseball",
     "rule": {
       "activity": "training",
@@ -2801,10 +2803,10 @@
         "label": "토탭으로 바꿔 준비 동작을 줄인다",
         "outcomes": [
           {
-            "weight": 50,
+            "weight": 35,
             "message": "발이 빨리 제자리로 돌아왔다. 강한 공에도 배트가 늦지 않았다.",
             "weeks": {
-              "contact": 4
+              "contact": 8
             },
             "fatigueRange": {
               "min": 3,
@@ -2812,7 +2814,7 @@
             }
           },
           {
-            "weight": 50,
+            "weight": 65,
             "message": "하체에 체중을 모으기 전에 배트가 나갔다. 정타에도 힘이 덜 붙었다.",
             "stats": {
               "power": -0.5
@@ -2829,7 +2831,7 @@
         "label": "레그킥은 유지하고 다리 높이만 낮춘다",
         "outcomes": [
           {
-            "weight": 50,
+            "weight": 85,
             "message": "힘을 모으는 동작을 남기면서 시간을 줄였다. 하체를 써서 강하게 때렸다.",
             "weeks": {
               "power": 3
@@ -2840,13 +2842,14 @@
             }
           },
           {
-            "weight": 50,
+            "weight": 15,
             "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
         ]
       }
     ],
-    "focus": "contact"
+    "focus": "contact",
+    "riskChoice": true
   },
   {
     "id": "PE55",
@@ -4183,14 +4186,14 @@
         "label": "투구 동작을 크게 바꾼다",
         "outcomes": [
           {
-            "weight": 50,
+            "weight": 35,
             "message": "투구 동작을 크게 바꾼다에 집중한 끝에 새로운 동작을 몸에 익혔다.",
             "weeks": {
               "velocity": 8
             }
           },
           {
-            "weight": 50,
+            "weight": 65,
             "message": "큰 변화를 시도했지만 동작이 흔들렸다. 익숙한 감각을 되찾는 데 시간이 필요하다.",
             "stats": {
               "control": -0.3
@@ -4203,14 +4206,14 @@
         "label": "릴리스 반복성을 다듬는다",
         "outcomes": [
           {
-            "weight": 50,
+            "weight": 85,
             "message": "릴리스 반복성을 다듬는다에 집중하며 기본 동작을 조금 더 안정시켰다.",
             "weeks": {
               "control": 3
             }
           },
           {
-            "weight": 50,
+            "weight": 15,
             "message": "작은 조정도 아직 어색하다. 동작을 다시 맞춰야 한다.",
             "stats": {
               "control": -0.3
@@ -4226,7 +4229,8 @@
       "activity": "training",
       "revision": 5,
       "field": "pitching"
-    }
+    },
+    "riskChoice": true
   },
   {
     "title": "장타 생산 방식 변경",
@@ -4238,14 +4242,14 @@
         "label": "발사각을 높이는 스윙을 시도한다",
         "outcomes": [
           {
-            "weight": 50,
+            "weight": 35,
             "message": "발사각을 높이는 스윙을 시도한다에 집중한 끝에 새로운 동작을 몸에 익혔다.",
             "weeks": {
               "power": 8
             }
           },
           {
-            "weight": 50,
+            "weight": 65,
             "message": "큰 변화를 시도했지만 동작이 흔들렸다. 익숙한 감각을 되찾는 데 시간이 필요하다.",
             "stats": {
               "contact": -0.3
@@ -4258,14 +4262,14 @@
         "label": "배트 중심에 맞히는 데 집중한다",
         "outcomes": [
           {
-            "weight": 50,
+            "weight": 85,
             "message": "배트 중심에 맞히는 데 집중한다에 집중하며 기본 동작을 조금 더 안정시켰다.",
             "weeks": {
               "contact": 3
             }
           },
           {
-            "weight": 50,
+            "weight": 15,
             "message": "작은 조정도 아직 어색하다. 동작을 다시 맞춰야 한다.",
             "stats": {
               "contact": -0.3
@@ -4281,7 +4285,8 @@
       "activity": "training",
       "revision": 5,
       "field": "batting"
-    }
+    },
+    "riskChoice": true
   },
   {
     "title": "수비 범위 확장",
@@ -4599,8 +4604,8 @@
   },
   {
     "title": "비시즌 합동 캠프",
-    "description": "비시즌 체력 캠프에서 함께 운동할 선수를 모집한다.",
-    "category": "daily",
+    "description": "프로 선수들이 함께하는 비시즌 집중 캠프에 초대받았다. 참가해 새로운 감각을 익히거나 개인 훈련과 휴식을 택할 수 있다.",
+    "category": "baseball",
     "focus": "physical",
     "kind": "person",
     "rule": {
@@ -4615,43 +4620,52 @@
     },
     "choices": [
       {
-        "label": "강도 높은 체력 프로그램에 참여한다",
+        "id": "choice-1",
+        "label": "비시즌 합동 캠프에 참가한다",
         "outcomes": [
           {
-            "weight": 50,
-            "message": "체력 프로그램을 소화해 지구력을 길렀다.",
+            "weight": 5,
+            "message": "선수들과 코치의 도움으로 재능이 만개했다. 야구 전반의 감각이 함께 성장했다.",
             "weeks": {
-              "stamina": 8
+              "contact": 8,
+              "power": 8,
+              "speed": 8,
+              "defense": 8,
+              "velocity": 8,
+              "control": 8,
+              "movement": 8,
+              "stamina": 8,
+              "recovery": 8,
+              "arm": 8,
+              "bq": 8
             }
           },
           {
-            "weight": 50,
-            "message": "낯선 운동 중 가벼운 부상을 입었다.",
-            "injury": {
-              "severity": "mild",
-              "days": 3
+            "weight": 95,
+            "message": "집중 훈련을 소화하며 현재 역할에 필요한 기본기를 다졌다.",
+            "weeks": {
+              "core": 4
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
-        "label": "개인 회복 루틴을 지킨다",
+        "id": "choice-2",
+        "label": "참가하지 않고 개인 계획을 따른다",
         "outcomes": [
           {
             "weight": 50,
-            "message": "회복 루틴을 꾸준히 익혔다.",
+            "message": "개인 훈련으로 익숙한 동작을 차분히 다듬었다.",
             "weeks": {
-              "recovery": 3
+              "precision": 3
             }
           },
           {
             "weight": 50,
-            "message": "루틴이 잘 맞지 않아 조금 피곤해졌다.",
-            "fatigue": 2
+            "message": "집중 캠프 대신 충분히 쉬며 몸을 회복했다.",
+            "fatigue": -10
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "id": "PE84"

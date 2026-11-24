@@ -38,6 +38,8 @@ import {ensureAllstarSeason} from "./pro-allstar";
 import {awardsDate,ensureAwardsCeremony,presentAwardsCeremony} from "./pro-awards-ceremony";
 import {individualAwards} from "./pro-individual-awards";
 import {syncClubAwardCounts} from './pro-career-evaluation';
+import {seasonEndHonorStatus} from './retirement-honor-status';
+import {needsNpcFaHistoryUpgrade} from './npc-fa-history';
 import {farmPostseasonActive,reviewFarmPostseason} from './pro-farm-postseason';
 import {settleSeriesMvp} from './pro-series-awards';
 import {archiveProfessionalSeason,registerRetiredNumber,registerRetirementFarewell,retireProfessional,veteranRetirementReason} from "./pro-retirement";
@@ -189,9 +191,10 @@ export function closeProfessionalSeason(s:GameState){
   for(const p of s.players){if(!p.professional)continue;p.professional.proBonus=0;if(p.professional.employment==="freeAgent")p.professional.unattachedYears++;}
   const titles=individualAwards(s);
   const awards=[...regularAwards(s,titles,warContext),...[...(w.postseason?.series??[]),...(w.farmPostseason?.series??[])].flatMap(series=>series.mvp?[structuredClone(series.mvp)]:[])];w.seasons.push({year:w.year,endDate:s.date,standings:careerLeagueTable(s.calendar,"pro-first"),farmStandings:careerLeagueTable(s.calendar,"pro-second"),champion:w.postseason?.champion??null,farmChampion:w.farmPostseason?.champion??null,...(w.farmPostseason?{farmPostseason:structuredClone(w.farmPostseason)}:{}),awards,draft:[],individualAwards:titles,rookieRulesVersion,...(w.allstar?{allstar:structuredClone(w.allstar)}:{})});
-  const archived=w.seasons.at(-1)!;if(awards.some(a=>a.category))archived.awardsCeremony={version:1,scheduledAt:awardsDate(w.year)};
+  const archived=w.seasons.at(-1)!;if(awards.length||titles.length)archived.awardsCeremony={version:1,scheduledAt:awardsDate(w.year)};
   syncClubAwardCounts(s);
   const p=getPlayer(s),notice=professionalSeasonFinishNotice(s);
+  if(p.professional)p.professional.retirementHonorStatus=seasonEndHonorStatus(s,p);
   settleShopItems(p,w.year);
   proNotice(s,`season:${w.year}`,notice.title,notice.message,"seasonComplete");
   if(!w.retired&&!w.pendingRetirement)freezeProNational(s);
@@ -369,8 +372,15 @@ export function startNextProSeason(s:GameState,unattached=false){
   proNotice(s,`camp:${year}`,`${year} 캠프 시작`,`${p.age}세 · ${clubName(s,p.teamId<0?null:p.teamId%10)} · 지난 시즌 기록과 계약을 유지합니다. 노화는 이번 시즌 나이에 따라 한 번 적용했습니다.${unattached?" 무소속 훈련은 성장 60%, 공식 경기와 FA 공헌일은 없습니다.":" 개막 등록은 경쟁·컨디션에 따라 평가합니다."}`);
 }
 export type ProAction=OffseasonShopAction|{type:"awards"|"national"|"market"|"nextSeason"|"unattached"|"retire"|"wait"}|{type:"accept"|"negotiate";id:string}|{type:"request";kind:"chance"|"position"|"manage"|"trade"|"release";position?:Position}|{type:"goal";goal:string};
+export function tradeRequestProgressBlock(s:GameState):string|undefined{
+  if(s.careerNotice)return '통보 확인 후 요청 가능';
+  if(s.careerEvent||s.pendingEventOutcome)return '선택 결과 확인 후 요청 가능';
+  if(s.matchProgress||s.weekProgress?.day&&s.weekProgress.day.phase!=='beforeGames')return '오늘 일정 완료 후 요청 가능';
+}
 export function actOnProCareer(input:GameState,action:ProAction):GameState{
-  if(input.careerNotice||input.careerEvent||input.weekProgress||input.matchProgress)throw new Error("진행 중인 경기·선택·통보를 먼저 마쳐 주세요.");
+  const tradeRequest=action.type==='request'&&action.kind==='trade';
+  const blocked=tradeRequest?tradeRequestProgressBlock(input):input.careerNotice||input.careerEvent||input.weekProgress||input.matchProgress?'진행 중인 경기·선택·통보를 먼저 마쳐 주세요.':undefined;
+  if(blocked)throw new Error(blocked);
   const s=structuredClone(input);ensureProWorld(s);const w=s.proWorld!,p=getPlayer(s);const finish=()=>{syncJerseyNumbers(s);if(["market","negotiate","accept"].includes(action.type))capturePlayerEvaluations(s,"contract",[p.id]);return captureEvaluationChange(s,getPlayer(input));};
   if(w.stage==="retired")throw new Error("은퇴한 커리어입니다.");
   if(w.pendingRetirement&&['market','wait','nextSeason','unattached','retire'].includes(action.type)){
@@ -441,7 +451,7 @@ export function advanceUnattachedMonth(input:GameState,advance:(s:GameState)=>Ga
   }return s;
 }
 export function upgradeProfessionalState(input:GameState){
-  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===2&&!needsPostseasonUpgrade(input)&&!needsPostseasonRosterUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input)&&!needsNationalInvitationUpgrade(input)&&!needsCareerHonorUpgrade(input))return input;
+  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===2&&!needsPostseasonUpgrade(input)&&!needsPostseasonRosterUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input)&&!needsNationalInvitationUpgrade(input)&&!needsCareerHonorUpgrade(input)&&!needsNpcFaHistoryUpgrade(input))return input;
   const s=structuredClone(input);ensureProWorld(s);upgradeContractRules(s);upgradeNationalInvitation(s);upgradeCareerHonors(s);
   if(getPlayer(input).professional?.employment==="freeAgent"&&getPlayer(s).professional?.employment==="active")openContractMarket(s);
   migrateActivePostseason(s);

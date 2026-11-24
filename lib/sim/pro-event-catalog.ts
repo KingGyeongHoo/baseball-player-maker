@@ -1,11 +1,12 @@
 import data from "./pro-event-catalog.json";
+import {eventRewardVersion} from './event-reward-policy';
 import {getPlayer,isPitcher,positions} from "./engine";
 import type {CareerEvent,CareerEventBranch,EventRewardWeeks,GameState,Stat} from "./types";
 import type {ProEventContext} from "./pro-event-types";
 import type {EventRule,EventCategory} from "./event-stories";
 import type {EventFocusRule} from './event-selection';
 
-type Definition={id:string;title:string;description:string;category?:EventCategory;focus?:EventFocusRule;pitchingFocus?:EventFocusRule;battingFocus?:EventFocusRule;rule?:EventRule;choices:{id:string;label:string;outcomes:(Omit<CareerEventBranch,"weeks"|"stats">&{weeks?:Record<string,number>;stats?:Record<string,number>;trial?:boolean;requestChance?:boolean})[]}[]};
+type Definition={id:string;title:string;description:string;category?:EventCategory;riskChoice?:boolean;focus?:EventFocusRule;pitchingFocus?:EventFocusRule;battingFocus?:EventFocusRule;rule?:EventRule;choices:{id:string;label:string;outcomes:(Omit<CareerEventBranch,"weeks"|"stats">&{weeks?:Record<string,number>;stats?:Record<string,number>;trial?:boolean;requestChance?:boolean})[]}[]};
 export const proEventCatalog=data as Definition[];
 export const proBattingStats:Stat[]=["contact","power","speed","defense"],proPitchingStats:Stat[]=["velocity","control","movement"];
 export function createProEvent(s:GameState,id:string,context:ProEventContext):CareerEvent {
@@ -30,6 +31,6 @@ export function createProEvent(s:GameState,id:string,context:ProEventContext):Ca
   const eventPosition=p.twoWay?(pitching?p.twoWay.pitchingPosition:p.twoWay.battingPosition):p.position;
   let description=text(definition.description).replaceAll("{현재 포지션}",positions[eventPosition]).replaceAll("{목표 포지션}",positions[context.target??eventPosition]).replaceAll("{목표 역할}",positions[context.target??eventPosition]);
   if(context.partnerId){const partner=s.players.find(q=>q.id===context.partnerId);if(partner)description=`${partner.name} 선수와 함께합니다. ${description}`;}
-  return {id:`${p.id}:${context.year}:${s.date}:${id}:${context.channel}`,rewardVersion:4,definitionId:id,kind:context.channel==="game"?"game":"special",date:s.date,title,description,choices,proEvent:frozen,...(context.story?{story:context.story}:{})};
+  return {id:`${p.id}:${context.year}:${s.date}:${id}:${context.channel}`,rewardVersion:eventRewardVersion,definitionId:id,kind:context.channel==="game"?"game":"special",date:s.date,title,description,choices,proEvent:frozen,...(context.story?{story:context.story}:{})};
 }
 export const proMainField=(s:GameState)=>isPitcher(getPlayer(s).primaryRole)?"pitching" as const:"batting" as const;

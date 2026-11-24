@@ -16,7 +16,7 @@ export function selectAllstarMvps(entry:AllstarLeague,level:AllstarLevel,context
   const bestWar=Math.max(-Infinity,...candidates.map(row=>row.merit));
   const compare=(a:typeof candidates[number],b:typeof candidates[number])=>
     b.record.batting.HR-a.record.batting.HR||b.record.pitching.SO-a.record.pitching.SO||
-    b.record.batting.H-a.record.batting.H||b.record.batting.RBI-a.record.batting.RBI;
+    b.record.batting.RBI-a.record.batting.RBI||b.record.batting.H-a.record.batting.H;
   const leaders=candidates.filter(row=>bestWar-row.merit<=1e-9).sort(compare);
   return leaders.filter(row=>compare(row,leaders[0])===0).map(({playerId,name,side,merit})=>({playerId,name,side,merit}));
 }

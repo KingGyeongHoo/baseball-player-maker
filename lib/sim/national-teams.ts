@@ -1,7 +1,8 @@
 import {syncCareerHonorBonuses} from './pro-career-evaluation';
 import {available,getPlayer,isPitcher,ovr,roleFor,roleScore,selectionScore} from './engine';
-import {nationalSelectionScore} from './pro-selection';
+import {nationalSelectionScore,wildcardDeclineSelectionBonus} from './pro-selection';
 import {canPlayPosition} from './position-eligibility';
+import {createProWarContext,proWarAssessment,proWarRules} from './pro-war';
 import {createProEvent} from './pro-event-catalog';
 import {ensureProEvents,proDayFree,proEventsEnabled,recordProChoice} from './pro-event-ledger';
 import type {CareerEvent,GameState,Player,Position,RecordLine} from './types';
@@ -24,9 +25,9 @@ export function nationalRole(p:Player){
   return {pitching,position,role:roleFor(position)};
 }
 export function nationalCandidates(s:GameState,records:(p:Player)=>RecordLine|undefined,kind:NationalKind,
-  preferred:ReadonlyMap<string,Position>=new Map(),excludedId?:string){
+  preferred:ReadonlyMap<string,Position>=new Map(),excludedId?:string,includeOverAge=false){
   const youth=kind==='youth';
-  const eligible=s.players.filter(p=>p.id!==excludedId&&available(p,s.date)&&p.fatigue<80&&(youth?!p.careerMode:p.careerMode==='pro'&&p.professional?.employment==='active'&&p.teamId>=0&&p.proContract?.status!=='developmental')&&(!['apbc','olympics'].includes(kind)||(p.age??19)<=25));
+  const eligible=s.players.filter(p=>p.id!==excludedId&&available(p,s.date)&&p.fatigue<80&&(youth?!p.careerMode:p.careerMode==='pro'&&p.professional?.employment==='active'&&p.teamId>=0&&p.proContract?.status!=='developmental')&&(includeOverAge||!['apbc','olympics'].includes(kind)||(p.age??19)<=25));
   return eligible.map(p=>{
     const position=preferred.get(p.id)??nationalRole(p).position,role=roleFor(position),pitching=isPitcher(role),r=records(p);
     return {p,position,role,pitching,score:youth?p.reputation??selectionScore(p,role):nationalSelectionScore(p,role,r),ability:ovr(p,pitching),qualified:youth||(pitching?(r?.pitching.outs??0)>=90:(r?.batting.PA??0)>=100)};
@@ -36,8 +37,10 @@ export function nationalCandidates(s:GameState,records:(p:Player)=>RecordLine|un
 }
 export function nationalRoster(s:GameState,records:(p:Player)=>RecordLine|undefined,kind:NationalKind='premier12',
   options?:{preferred:ReadonlyMap<string,Position>;excludedId?:string}):NationalRosterMember[]{
-  const candidates=nationalCandidates(s,records,kind,options?.preferred,options?.excludedId);
-  const ranked=options?candidates:candidates.filter(row=>row.qualified);
+  const limited=kind==='apbc'||kind==='olympics';
+  const candidates=nationalCandidates(s,records,kind,options?.preferred,options?.excludedId,limited);
+  const pool=options?candidates:candidates.filter(row=>row.qualified);
+  const ranked=limited?pool.filter(row=>(row.p.age??19)<=25):pool;
   const selected:typeof ranked=[],used=new Set<string>();
   const take=(positions:Position[],n:number)=>{for(const row of ranked.filter(row=>positions.includes(row.position)&&!used.has(row.p.id)).slice(0,n)){selected.push(row);used.add(row.p.id);}};
   take(['SP'],5);take(['RP'],8);take(['CP'],2);take(['C'],2);
@@ -50,7 +53,27 @@ export function nationalRoster(s:GameState,records:(p:Player)=>RecordLine|undefi
   // A small candidate pool can lack a positional quota. Preserve 15 per field
   // without duplicating a two-way player or manufacturing candidates.
   for(const pitching of [true,false])for(const row of ranked.filter(row=>row.pitching===pitching&&!used.has(row.p.id))){if(selected.filter(row=>row.pitching===pitching).length>=15)break;selected.push(row);used.add(row.p.id);}
-  return selected.map(row=>({id:row.p.id,position:row.position,selectionScore:row.score,roleScore:roleScore(row.p,row.role)}));
+  const wildcards=new Set<string>();
+  if(limited){
+    const context=createProWarContext(s);
+    const senior=pool.filter(row=>(row.p.age??19)>25&&(row.qualified||options?.preferred.has(row.p.id))).map(row=>{
+      const line=proWarAssessment(row.p,context).first;
+      const merit=row.pitching?line.pitching*(['RP','CP'].includes(row.position)?proWarRules.relieverWinScale:1):line.batting+line.fielding+line.positional;
+      return {...row,merit};
+    }).sort((a,b)=>Number(!!options?.preferred.has(b.p.id))-Number(!!options?.preferred.has(a.p.id))||b.merit-a.merit||b.score-a.score||a.p.id.localeCompare(b.p.id));
+    for(const pitching of [true,false])for(const row of senior.filter(row=>row.pitching===pitching).slice(0,pitching?1:2)){
+      const field=selected.filter(member=>member.pitching===pitching);
+      if(field.length>=15){
+        // Replace the same position first, otherwise a duplicate position, keeping every defensive slot covered.
+        const replacement=field.filter(member=>!wildcards.has(member.p.id)&&(member.position===row.position||field.filter(other=>other.position===member.position).length>1))
+          .sort((a,b)=>Number(b.position===row.position)-Number(a.position===row.position)||a.score-b.score||a.p.id.localeCompare(b.p.id))[0];
+        if(!replacement)continue;
+        selected.splice(selected.indexOf(replacement),1);
+      }
+      selected.push(row);wildcards.add(row.p.id);
+    }
+  }
+  return selected.map(row=>({id:row.p.id,position:row.position,selectionScore:row.score,roleScore:roleScore(row.p,row.role),...(wildcards.has(row.p.id)?{wildcard:true as const}:{})}));
 }
 export function rememberNational(s:GameState,kind:NationalKind,roster:NationalRosterMember[],year=s.calendar.seasonYear){
   const rows=s.nationalTeams??=[],old=rows.find(row=>row.kind===kind&&row.year===year);if(old)return old;
@@ -68,6 +91,10 @@ export function nationalInvitation(s:GameState,entry:NationalSelection):CareerEv
   event.choices[0].label=`${rule.name}로 참가한다`;event.choices[1].label=entry.kind==='olympics'?'올림픽 차출을 거부하고 소속팀에 남는다':`${rule.name} 참가를 사양하고 소속팀에 남는다`;
   for(const branch of event.choices[0].outcomes)if(branch.weeks)for(const key of Object.keys(branch.weeks) as (keyof NonNullable<typeof branch.weeks>)[])branch.weeks[key]=branch.weeks[key]!>=6?rule.advanced:rule.weeks;
   event.choices[0].outcomes=[{weight:100,message:`${rule.name}에 합류한다. 경기 결과에 따라 대회 경험과 수상이 결정된다.`}];
+  if(member.wildcard){
+    event.title+=' · 와일드카드';event.description=`이번 시즌 활약을 인정받아 ${rule.name} 와일드카드로 선발됐다.`;
+    event.choices[1].outcomes=[{weight:100,message:`와일드카드 소집을 사양하고 소속팀에 집중한다. 출전평가 보너스 +${wildcardDeclineSelectionBonus}.`}];
+  }
   return nationalParticipationChoices(s,event);
 }
 export function nationalParticipationChoices(s:GameState,event:CareerEvent):CareerEvent{

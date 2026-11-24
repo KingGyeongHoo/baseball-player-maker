@@ -107,6 +107,37 @@ test('season-end dashboard and contract buttons change from awards to stove afte
  s=life.actOnProCareer(s,{type:'awards'});while(s.careerNotice)s=pc.acknowledgeCareer(s);
  assert.match(controls(),/>스토브리그<\/button>/);assert.match(panel(),/>스토브리그 →<\/button>/);
 });
+
+test('season awards and their career bonuses remain private after postseason and publish before the next season',()=>{
+ const {careerHonors}=require('../.test-build/lib/career-summary.js'),career=require('../.test-build/lib/sim/pro-career-evaluation.js');
+ let s=closed(),p=e.getPlayer(s),year=s.calendar.seasonYear;
+ p.professional.allstarHistory=[{year,level:'first',side:'blue',slot:'SS',method:'vote'}];
+ assert.equal(careerHonors(s).gold.length,0);assert.equal(careerHonors(s).individual.length,0);assert.equal(careerHonors(s).allstar.length,1);
+ assert.equal(career.playerCareerEvaluation(p,year,s).first.awardBonus,0);
+ // A previously loaded profile may already contain premature cached bonuses.
+ s.proWorld.careerHonorRulesVersion=4;p.professional.careerHonorBonuses=[{year,points:3}];p.professional.assessments.at(-1).clubAwardCounts={first:1,second:0};
+ s=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;p=e.getPlayer(s);
+ assert.equal(careerHonors(s).individual.length,0);assert.equal(career.playerCareerEvaluation(p,year).first.awardBonus,0);
+ assert.equal(ceremonies.presentAwardsCeremony(s,true),true);assert.equal(s.calendar.seasonYear,year);assert.equal(s.proWorld.stage,'summary');
+ const honors=careerHonors(s);assert.ok(honors.gold.length>0);assert.ok(honors.individual.some(row=>row.title==='홈런왕'));assert.ok(honors.individual.some(row=>row.title==='1군 최우수 선수'));
+ assert.ok(career.playerCareerEvaluation(p,year).first.awardBonus>0);
+ const repeated=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;assert.deepEqual(careerHonors(repeated),honors);assert.equal(ceremonies.presentAwardsCeremony(repeated,true),false);
+});
+test('series MVP cards do not publish career trophies ahead of the season ceremony',()=>{
+ const {careerHonors}=require('../.test-build/lib/career-summary.js'),s=closed(),p=e.getPlayer(s),season=s.proWorld.seasons[0];
+ const mvp={year:season.year,playerId:p.id,playerName:p.name,club:p.teamId%10,kind:'한국시리즈 MVP',category:'seriesMvp',series:'final',value:1};
+ season.awards.push(mvp);s.proWorld.postseason={seeds:[0,1,2,3,4],series:[{id:'final',stage:'final',winner:p.teamId%10,mvp}]};
+ assert.ok(!careerHonors(s).individual.some(row=>row.title==='한국시리즈 MVP'));
+ ceremonies.presentAwardsCeremony(s,true);assert.equal(careerHonors(s).individual.filter(row=>row.title==='한국시리즈 MVP').length,1);
+});
+test('a title-only season still publishes before next season even without any eligible MVP or gold glove',()=>{
+ const {careerHonors}=require('../.test-build/lib/career-summary.js'),s=fixture(),p=e.getPlayer(s);
+ for(const q of s.players)q.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};
+ Object.assign(p.seasonByLevel.first.batting,{PA:1,AB:1,H:1,HR:1});life.closeProfessionalSeason(s);
+ const season=s.proWorld.seasons[0];assert.ok(season.awardsCeremony);assert.ok(!season.awards.some(row=>row.category==='goldGlove'));
+ assert.ok(!careerHonors(s).individual.some(row=>row.title==='홈런왕'));ceremonies.presentAwardsCeremony(s,true);
+ assert.ok(careerHonors(s).individual.some(row=>row.title==='홈런왕'));assert.equal(s.calendar.seasonYear,season.year);
+});
 function dismissSeasonAwards(s){
  s=pc.acknowledgeCareer(pc.acknowledgeCareer(s));
  return s.careerNotice?.code?.startsWith('club-award:')?pc.acknowledgeCareer(s):s;
@@ -175,6 +206,17 @@ test('loading removes an active or queued individual gold glove celebration with
  s.careerNotice=legacy;
  const active=load(s);assert.equal(active.careerNotice.id,'next-notice');assert.equal(active.noticeQueue.length,0);
  assert.ok(active.proWorld.seasons[0].awards.some(award=>award.category==='goldGlove'&&award.playerId===s.playerId));
+});
+test('first and second-team MVP celebration notices are removed from old saves while award results stay intact',()=>{
+ for(const title of ['MVP','2군 MVP']){
+  const s=closed();s.date='2028-12-06';ceremonies.presentAwardsCeremony(s);
+  assert.ok(!s.noticeQueue.some(n=>n.award?.title.endsWith('MVP')));
+  const awards=structuredClone(s.proWorld.seasons[0].awards),legacy={id:'old-mvp',date:s.date,kind:'pro',code:`award-celebration:2028:mvp:${title==='MVP'?'':'second'}`,title:`2028년 ${title}를 획득했다!!`,message:'',award:{year:2028,title,bonus:3,after:74}},other={id:'after-mvp',date:s.date,kind:'pro',title:'다음 안내',message:''};
+  s.noticeQueue=[legacy,other];let loaded=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+  assert.deepEqual(loaded.noticeQueue.map(n=>n.id),['after-mvp']);
+  s.careerNotice=legacy;loaded=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+  assert.equal(loaded.careerNotice.id,'after-mvp');assert.deepEqual(loaded.proWorld.seasons[0].awards,awards);
+ }
 });
 
 test('second-team MVP remains in season awards without a personal modal and old saved copies are skipped',()=>{
@@ -378,6 +420,7 @@ test('club farm award uses the new name for current and legacy career honors',()
  life.closeProfessionalSeason(s);
  const award=s.proWorld.seasons[0].awards.find(row=>row.playerId===p.id&&row.kind==='2군 최우수 선수');
  assert.ok(award);
+ s.proWorld.seasons[0].awardsCeremony={version:1,scheduledAt:'2028-12-06',presentedAt:'2028-12-06'};
  assert.ok(careerHonors(s).individual.some(row=>row.title==='2군 최우수 선수'));
  award.kind='구단 육성 우수 선수';
  assert.ok(careerHonors(s).individual.some(row=>row.title==='2군 최우수 선수'));
@@ -399,5 +442,7 @@ test('each club picks a first-team winner by its own WAR even after a trade',()=
  const {awards}=s.proWorld.seasons[0],first=awards.filter(row=>row.kind==='1군 최우수 선수');
  assert.deepEqual(first.map(row=>[row.club,row.playerId]),[[origin,p.id],[destination,peer.id]]);
  assert.equal(awards.find(row=>row.kind==='2군 최우수 선수').playerId,farm.id);
+ assert.equal(p.professional.assessments[0].clubAwardCounts?.first??0,0);
+ ceremonies.presentAwardsCeremony(s,true);
  assert.equal(p.professional.assessments[0].clubAwardCounts.first,1);
 });

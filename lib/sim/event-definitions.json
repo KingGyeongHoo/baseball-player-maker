@@ -40,7 +40,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "contact"
+      "focus": "contact",
+      "schoolPeriod": "any"
     },
     {
       "id": "T02",
@@ -81,7 +82,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "defense"
+      "focus": "defense",
+      "schoolPeriod": "any"
     },
     {
       "id": "T03",
@@ -122,7 +124,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "movement"
+      "focus": "movement",
+      "schoolPeriod": "any"
     },
     {
       "id": "T04",
@@ -163,7 +166,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "precision"
+      "focus": "precision",
+      "schoolPeriod": "any"
     },
     {
       "id": "T05",
@@ -204,7 +208,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "physical"
+      "focus": "physical",
+      "schoolPeriod": "any"
     },
     {
       "id": "T06",
@@ -261,7 +266,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "velocity"
+      "focus": "velocity",
+      "schoolPeriod": "any"
     },
     {
       "id": "T07",
@@ -302,7 +308,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "speed"
+      "focus": "speed",
+      "schoolPeriod": "any"
     },
     {
       "id": "T08",
@@ -343,7 +350,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "weak"
+      "focus": "weak",
+      "schoolPeriod": "any"
     },
     {
       "id": "T09",
@@ -384,7 +392,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "physical"
+      "focus": "physical",
+      "schoolPeriod": "any"
     },
     {
       "id": "T10",
@@ -425,7 +434,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "physical"
+      "focus": "physical",
+      "schoolPeriod": "vacation"
     },
     {
       "id": "P01",
@@ -461,7 +471,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "physical"
+      "focus": "physical",
+      "schoolPeriod": "any"
     },
     {
       "id": "P02",
@@ -508,7 +519,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "precision"
+      "focus": "precision",
+      "schoolPeriod": "any"
     },
     {
       "id": "P03",
@@ -544,7 +556,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "control"
+      "focus": "control",
+      "schoolPeriod": "any"
     },
     {
       "id": "P04",
@@ -580,7 +593,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "precision"
+      "focus": "precision",
+      "schoolPeriod": "any"
     },
     {
       "id": "P05",
@@ -616,7 +630,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "control"
+      "focus": "control",
+      "schoolPeriod": "any"
     },
     {
       "id": "P06",
@@ -652,7 +667,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "bq"
+      "focus": "bq",
+      "schoolPeriod": "any"
     },
     {
       "id": "P07",
@@ -688,7 +704,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "physical"
+      "focus": "physical",
+      "schoolPeriod": "any"
     },
     {
       "id": "P08",
@@ -744,7 +761,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "bq"
+      "focus": "bq",
+      "schoolPeriod": "any"
     },
     {
       "id": "C01",
@@ -780,7 +798,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "power"
+      "focus": "power",
+      "schoolPeriod": "any"
     },
     {
       "id": "C02",
@@ -816,7 +835,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "fielding"
+      "focus": "fielding",
+      "schoolPeriod": "any"
     },
     {
       "id": "C03",
@@ -852,7 +872,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "speed"
+      "focus": "speed",
+      "schoolPeriod": "any"
     },
     {
       "id": "C04",
@@ -899,7 +920,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "defense"
+      "focus": "defense",
+      "schoolPeriod": "any"
     },
     {
       "id": "C05",
@@ -935,7 +957,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "movement"
+      "focus": "movement",
+      "schoolPeriod": "any"
     },
     {
       "id": "C06",
@@ -971,7 +994,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "precision"
+      "focus": "precision",
+      "schoolPeriod": "any"
     },
     {
       "id": "G01",
@@ -1012,7 +1036,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "power"
+      "focus": "power",
+      "schoolPeriod": "any"
     },
     {
       "id": "G02",
@@ -1053,7 +1078,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "contact"
+      "focus": "contact",
+      "schoolPeriod": "any"
     },
     {
       "id": "G03",
@@ -1094,7 +1120,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "contact"
+      "focus": "contact",
+      "schoolPeriod": "any"
     },
     {
       "id": "G04",
@@ -1135,7 +1162,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "velocity"
+      "focus": "velocity",
+      "schoolPeriod": "any"
     },
     {
       "id": "G05",
@@ -1176,7 +1204,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "movement"
+      "focus": "movement",
+      "schoolPeriod": "any"
     },
     {
       "id": "G06",
@@ -1217,7 +1246,8 @@
         }
       ],
       "category": "baseball",
-      "focus": "velocity"
+      "focus": "velocity",
+      "schoolPeriod": "any"
     },
     {
       "id": "T11",
@@ -1276,7 +1306,8 @@
           ]
         }
       ],
-      "focus": "power"
+      "focus": "power",
+      "schoolPeriod": "any"
     },
     {
       "id": "T12",
@@ -1335,7 +1366,8 @@
           ]
         }
       ],
-      "focus": "control"
+      "focus": "control",
+      "schoolPeriod": "any"
     },
     {
       "id": "T13",
@@ -1394,7 +1426,8 @@
           ]
         }
       ],
-      "focus": "contact"
+      "focus": "contact",
+      "schoolPeriod": "any"
     },
     {
       "id": "T14",
@@ -1453,7 +1486,8 @@
           ]
         }
       ],
-      "focus": "control"
+      "focus": "control",
+      "schoolPeriod": "any"
     },
     {
       "id": "T15",
@@ -1512,7 +1546,8 @@
           ]
         }
       ],
-      "focus": "movement"
+      "focus": "movement",
+      "schoolPeriod": "any"
     },
     {
       "id": "T16",
@@ -1571,7 +1606,8 @@
           ]
         }
       ],
-      "focus": "power"
+      "focus": "power",
+      "schoolPeriod": "any"
     },
     {
       "id": "T17",
@@ -1630,7 +1666,8 @@
           ]
         }
       ],
-      "focus": "movement"
+      "focus": "movement",
+      "schoolPeriod": "any"
     },
     {
       "id": "T18",
@@ -1689,7 +1726,8 @@
           ]
         }
       ],
-      "focus": "power"
+      "focus": "power",
+      "schoolPeriod": "any"
     },
     {
       "id": "T19",
@@ -1747,7 +1785,8 @@
           ]
         }
       ],
-      "focus": "physical"
+      "focus": "physical",
+      "schoolPeriod": "any"
     },
     {
       "id": "T20",
@@ -1806,7 +1845,8 @@
           ]
         }
       ],
-      "focus": "velocity"
+      "focus": "velocity",
+      "schoolPeriod": "any"
     },
     {
       "id": "P09",
@@ -1860,7 +1900,8 @@
           ]
         }
       ],
-      "focus": "contact"
+      "focus": "contact",
+      "schoolPeriod": "any"
     },
     {
       "id": "P10",
@@ -1914,7 +1955,8 @@
           ]
         }
       ],
-      "focus": "speed"
+      "focus": "speed",
+      "schoolPeriod": "any"
     },
     {
       "id": "L01",
@@ -1954,7 +1996,8 @@
             }
           ]
         }
-      ]
+      ],
+      "schoolPeriod": "any"
     },
     {
       "id": "L02",
@@ -1994,7 +2037,8 @@
             }
           ]
         }
-      ]
+      ],
+      "schoolPeriod": "any"
     },
     {
       "id": "L03",
@@ -2048,7 +2092,8 @@
           ]
         }
       ],
-      "focus": "movement"
+      "focus": "movement",
+      "schoolPeriod": "any"
     },
     {
       "id": "L04",
@@ -2088,7 +2133,8 @@
             }
           ]
         }
-      ]
+      ],
+      "schoolPeriod": "any"
     },
     {
       "id": "L05",
@@ -2142,7 +2188,8 @@
           ]
         }
       ],
-      "focus": "contact"
+      "focus": "contact",
+      "schoolPeriod": "any"
     },
     {
       "id": "L06",
@@ -2196,7 +2243,8 @@
           ]
         }
       ],
-      "focus": "control"
+      "focus": "control",
+      "schoolPeriod": "any"
     },
     {
       "id": "L07",
@@ -2255,7 +2303,8 @@
           ]
         }
       ],
-      "focus": "defense"
+      "focus": "defense",
+      "schoolPeriod": "any"
     },
     {
       "id": "L08",
@@ -2295,7 +2344,8 @@
             }
           ]
         }
-      ]
+      ],
+      "schoolPeriod": "term"
     },
     {
       "id": "L09",
@@ -2349,7 +2399,8 @@
           ]
         }
       ],
-      "focus": "velocity"
+      "focus": "velocity",
+      "schoolPeriod": "any"
     },
     {
       "id": "L10",
@@ -2389,7 +2440,8 @@
             }
           ]
         }
-      ]
+      ],
+      "schoolPeriod": "any"
     },
     {
       "id": "L11",
@@ -2442,7 +2494,8 @@
           ]
         }
       ],
-      "focus": "physical"
+      "focus": "physical",
+      "schoolPeriod": "any"
     },
     {
       "id": "L12",
@@ -2496,7 +2549,8 @@
           ]
         }
       ],
-      "focus": "speed"
+      "focus": "speed",
+      "schoolPeriod": "any"
     },
     {
       "id": "L13",
@@ -2556,7 +2610,8 @@
           ]
         }
       ],
-      "focus": "defense"
+      "focus": "defense",
+      "schoolPeriod": "any"
     },
     {
       "id": "L14",
@@ -2611,7 +2666,8 @@
           ]
         }
       ],
-      "focus": "defense"
+      "focus": "defense",
+      "schoolPeriod": "any"
     },
     {
       "id": "L15",
@@ -2651,7 +2707,8 @@
             }
           ]
         }
-      ]
+      ],
+      "schoolPeriod": "any"
     },
     {
       "id": "L16",
@@ -2705,7 +2762,8 @@
           ]
         }
       ],
-      "focus": "velocity"
+      "focus": "velocity",
+      "schoolPeriod": "any"
     },
     {
       "id": "L17",
@@ -2759,7 +2817,8 @@
           ]
         }
       ],
-      "focus": "speed"
+      "focus": "speed",
+      "schoolPeriod": "any"
     },
     {
       "id": "L18",
@@ -2812,7 +2871,8 @@
           ]
         }
       ],
-      "focus": "bq"
+      "focus": "bq",
+      "schoolPeriod": "any"
     },
     {
       "title": "타격폼 대개조",
@@ -2824,12 +2884,12 @@
           "label": "레그킥을 크게 바꾼다",
           "outcomes": [
             {
-              "weight": 50,
+              "weight": 35,
               "message": "레그킥을 크게 바꾼다에 집중한 끝에 새로운 동작을 몸에 익혔다.",
               "effect": "파워 +8주분"
             },
             {
-              "weight": 50,
+              "weight": 65,
               "message": "큰 변화를 시도했지만 동작이 흔들렸다. 익숙한 감각을 되찾는 데 시간이 필요하다.",
               "effect": "컨택 -0.3"
             }
@@ -2840,12 +2900,12 @@
           "label": "스윙 궤도만 다듬는다",
           "outcomes": [
             {
-              "weight": 50,
+              "weight": 85,
               "message": "스윙 궤도만 다듬는다에 집중하며 기본 동작을 조금 더 안정시켰다.",
               "effect": "컨택 +3주분"
             },
             {
-              "weight": 50,
+              "weight": 15,
               "message": "작은 조정도 아직 어색하다. 동작을 다시 맞춰야 한다.",
               "effect": "컨택 -0.3"
             }
@@ -2859,7 +2919,9 @@
         "activity": "training",
         "revision": 5,
         "field": "batting"
-      }
+      },
+      "schoolPeriod": "vacation",
+      "riskChoice": true
     },
     {
       "title": "새로운 결정구",
@@ -2871,12 +2933,12 @@
           "label": "낯선 그립으로 승부구를 던진다",
           "outcomes": [
             {
-              "weight": 50,
+              "weight": 35,
               "message": "낯선 그립으로 승부구를 던진다에 집중한 끝에 새로운 동작을 몸에 익혔다.",
               "effect": "변화구 +8주분"
             },
             {
-              "weight": 50,
+              "weight": 65,
               "message": "큰 변화를 시도했지만 동작이 흔들렸다. 익숙한 감각을 되찾는 데 시간이 필요하다.",
               "effect": "제구 -0.3"
             }
@@ -2887,12 +2949,12 @@
           "label": "익숙한 구종의 코스를 다듬는다",
           "outcomes": [
             {
-              "weight": 50,
+              "weight": 85,
               "message": "익숙한 구종의 코스를 다듬는다에 집중하며 기본 동작을 조금 더 안정시켰다.",
               "effect": "제구 +3주분"
             },
             {
-              "weight": 50,
+              "weight": 15,
               "message": "작은 조정도 아직 어색하다. 동작을 다시 맞춰야 한다.",
               "effect": "제구 -0.3"
             }
@@ -2906,7 +2968,9 @@
         "activity": "training",
         "revision": 5,
         "field": "pitching"
-      }
+      },
+      "schoolPeriod": "vacation",
+      "riskChoice": true
     },
     {
       "title": "득점권 승부",
@@ -2948,7 +3012,8 @@
           "id": "choice-2"
         }
       ],
-      "id": "G07"
+      "id": "G07",
+      "schoolPeriod": "any"
     },
     {
       "title": "중심타선과 정면승부",
@@ -2990,7 +3055,8 @@
           "id": "choice-2"
         }
       ],
-      "id": "G08"
+      "id": "G08",
+      "schoolPeriod": "any"
     },
     {
       "title": "축구부와 친선경기",
@@ -3036,7 +3102,8 @@
           "id": "choice-2"
         }
       ],
-      "id": "X01"
+      "id": "X01",
+      "schoolPeriod": "term"
     },
     {
       "title": "육상부 합동훈련",
@@ -3082,7 +3149,8 @@
           "id": "choice-2"
         }
       ],
-      "id": "X02"
+      "id": "X02",
+      "schoolPeriod": "term"
     },
     {
       "title": "체육대회 계주",
@@ -3128,7 +3196,8 @@
           "id": "choice-2"
         }
       ],
-      "id": "X03"
+      "id": "X03",
+      "schoolPeriod": "term"
     },
     {
       "title": "선배의 개인 레슨",
@@ -3174,7 +3243,8 @@
           "id": "choice-2"
         }
       ],
-      "id": "X04"
+      "id": "X04",
+      "schoolPeriod": "vacation"
     },
     {
       "title": "친구들과 주말 나들이",
@@ -3220,7 +3290,8 @@
           "id": "choice-2"
         }
       ],
-      "id": "X05"
+      "id": "X05",
+      "schoolPeriod": "any"
     },
     {
       "title": "가족과의 고민 상담",
@@ -3266,7 +3337,8 @@
           "id": "choice-2"
         }
       ],
-      "id": "X06"
+      "id": "X06",
+      "schoolPeriod": "any"
     }
   ]
 }

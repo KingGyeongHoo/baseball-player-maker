@@ -13,7 +13,7 @@ const squads={first:"1군",second:"2군",third:"3군",developmental:"육성선�
 function CareerMetric({evaluation,totalSeasons,label}:{evaluation:ReturnType<typeof evaluateCareer>;totalSeasons:number;label:string}){
   return <div><span>{label}</span><div className="contract-assessment-value">
     <b>{evaluation.cumulativeWar===null?'미평가':evaluation.cumulativeWar.toFixed(2)}</b>
-    <Tooltip content={`인정 ${evaluation.seasons}시즌 / 전체 ${totalSeasons}시즌 · WAR ${(evaluation.creditedWar??0).toFixed(2)} + 가산점 ${evaluation.awardBonus.toFixed(2)}`}>
+    <Tooltip content={`인정 ${evaluation.seasons}시즌 / 전체 ${totalSeasons}시즌`}>
       <GradeBadge score={evaluation.cumulativeWar} grade={evaluation.grade} pro label={label}/>
     </Tooltip>
   </div></div>;

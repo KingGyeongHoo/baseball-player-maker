@@ -1,18 +1,20 @@
-import {refreshCareerEvaluation,syncCareerHonorBonuses} from './pro-career-evaluation';
+import {refreshCareerEvaluation,syncClubAwardCounts} from './pro-career-evaluation';
 import {retirementEligibility,retirementHonorRules} from './retirement-honors';
 import {reservedJerseyNumbers} from '../permanent-retired-numbers';
+import {displayedHonorStatus} from './retirement-honor-status';
 import type {GameState,Player} from './types';
 
 export function needsCareerHonorUpgrade(s:GameState){
-  return s.careerMode==='pro'&&!!s.proWorld&&s.proWorld.careerHonorRulesVersion!==4;
+  return s.careerMode==='pro'&&!!s.proWorld&&s.proWorld.careerHonorRulesVersion!==6;
 }
 // Rebuild derived honors from original season WAR, never from the old adjusted total.
 export function upgradeCareerHonors(s:GameState){
   if(!needsCareerHonorUpgrade(s))return false;
   const w=s.proWorld!,wasDoubled=w.careerHonorRulesVersion===1;
-  syncCareerHonorBonuses(s);
+  syncClubAwardCounts(s);
   for(const p of s.players)refreshCareerEvaluation(p);
   const p=s.players.find(row=>row.id===s.playerId),pro=p?.professional;
+  if(p&&pro){const status=displayedHonorStatus(s,p);if(status)pro.retirementHonorStatus=status;}
   if(p&&pro&&w.retired){
     const previous=w.retirementHonors?.find(row=>row.playerId===p.id),number=w.retiredNumbers?.find(row=>row.playerId===p.id);
     const departure=[...pro.movements].reverse().find(row=>row.kind==='은퇴'&&row.from!==null);
@@ -40,6 +42,6 @@ export function upgradeCareerHonors(s:GameState){
       }
     }
   }
-  w.careerHonorRulesVersion=4;
+  w.careerHonorRulesVersion=6;
   return true;
 }

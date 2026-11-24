@@ -129,3 +129,38 @@ test('an offseason reserves money for minimum positions and the player renewal; 
   assert.equal(s.calendar.seasonYear,2029);for(const p of s.players.filter(p=>p.teamId>=0)){assert.ok(p.professional.contract);assert.ok(p.professional.contract.startYear<=2029&&p.professional.contract.endYear>=2029,p.id);}
   for(const club of s.proWorld.clubs){assert.ok(market.clubCost(s,club.id,2029)<=club.budget);assert.ok(market.clubRoster(s,club.id).length<=75);}
 });
+
+function pausedTradeFixture(phase){
+ const s=fixture(),p=e.getPlayer(s);s.date='2028-05-01';s.proWorld.stage='regular';s.proWorld.seasonClosed=false;
+ s.careerNotice=null;s.careerEvent=null;delete s.pendingEventOutcome;delete s.matchProgress;
+ delete p.professional.requestAfter;delete p.professional.tradeRequestAfter;
+ for(const q of s.players.filter(q=>q.teamId>=10&&q.teamId%10!==p.teamId%10))for(const key of ['contact','power','speed','defense'])q.stats[key]=76;
+ s.weekProgress={remainingDays:4,beforeStats:{...p.stats},policy:structuredClone(p.trainingPolicy),stance:{...p.stance},opportunity:null,
+  report:{from:s.date,to:s.date,growth:e.emptyStats(),fatigueBefore:p.fatigue,fatigueAfter:p.fatigue,fatigue:{training:0,game:0,recovered:0,peak:p.fatigue,days:[],events:0},games:[],messages:[],records:e.emptyRecord(),reputationBefore:p.reputation,reputationAfter:p.reputation}};
+ if(phase)s.weekProgress.day={phase,fatigue:{date:s.date,start:p.fatigue,end:p.fatigue,training:0,game:0,recovered:0,peak:p.fatigue,events:0},recovery:[],active:[],appearances:[],gameIds:[],gameIndex:0,playerIndex:0};
+ return s;
+}
+test('a paused weekly cursor allows trades before games or between days without discarding remaining progress',()=>{
+ for(const phase of [undefined,'beforeGames']){
+  const s=pausedTradeFixture(phase),p=e.getPlayer(s),club=p.teamId%10,progress=structuredClone(s.weekProgress),records=structuredClone(p.seasonByLevel),original=JSON.stringify(s);
+  assert.equal(life.tradeRequestProgressBlock(s),undefined);
+  const next=life.actOnProCareer(s,{type:'request',kind:'trade'}),q=e.getPlayer(next);
+  assert.notEqual(q.teamId%10,club);assert.equal(q.professional.movements.at(-1).requestedTrade,true);
+  assert.deepEqual(next.weekProgress,progress);assert.deepEqual(q.seasonByLevel,records);assert.equal(next.date,s.date);assert.equal(JSON.stringify(s),original);
+  assert.equal(q.professional.tradeRequestAfter,e.addDays(s.date,28));
+  const restored=decodeCareerSave(JSON.stringify(encodeCareerSave(next))).state;
+  assert.deepEqual(restored.weekProgress,progress);assert.equal(e.getPlayer(restored).professional.contract.club,q.teamId%10);
+ }
+});
+test('trade requests still reject active games, unfinished training, notices and choices while other actions retain the weekly lock',()=>{
+ for(const phase of ['games','players','finish']){
+  const s=pausedTradeFixture(phase);assert.match(life.tradeRequestProgressBlock(s),/일정/);
+  assert.throws(()=>life.actOnProCareer(s,{type:'request',kind:'trade'}),/일정/);
+ }
+ const s=pausedTradeFixture('beforeGames');s.matchProgress={gameId:'in-progress'};
+ assert.throws(()=>life.actOnProCareer(s,{type:'request',kind:'trade'}),/일정/);delete s.matchProgress;
+ s.careerNotice={title:'통보'};assert.throws(()=>life.actOnProCareer(s,{type:'request',kind:'trade'}),/통보/);s.careerNotice=null;
+ s.careerEvent={id:'pending'};assert.throws(()=>life.actOnProCareer(s,{type:'request',kind:'trade'}),/선택/);s.careerEvent=null;
+ s.pendingEventOutcome={id:'pending-result'};assert.throws(()=>life.actOnProCareer(s,{type:'request',kind:'trade'}),/선택/);delete s.pendingEventOutcome;
+ assert.throws(()=>life.actOnProCareer(s,{type:'request',kind:'manage'}),/먼저/);
+});

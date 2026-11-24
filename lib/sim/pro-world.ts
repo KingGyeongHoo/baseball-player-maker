@@ -1,6 +1,7 @@
 import {repairConversionRegistrations} from "./pro-conversion";
 import {upgradeRawSeasonWar} from './pro-war-upgrade';
 import {MIN_PRO_SALARY} from './pro-contract-rules';
+import {seedNpcFaHistory} from './npc-fa-history';
 import {canAssignProSquad,currentProPosition,guaranteedProStarter} from "./pro-positions";
 import {registrationChangeMessage,summarizeRegistrationNotices} from '../pro-registration-notice';
 import {ensurePlayableFarmRosters} from "./pro-farm";
@@ -38,7 +39,7 @@ export function proNotice(s:GameState,code:string,title:string,message:string,ki
   proNews(s,`${title} · ${message}`,id);
 }
 export function initializeProfessional(s:GameState,p:Player,club:number,entry="veteran") {
-  if(p.professional){clearProfessionalReputation(p);initializeProTwoWay(s,p,true);initializeAgingProfile(p);return;}
+  if(p.professional){clearProfessionalReputation(p);initializeProTwoWay(s,p,true);initializeAgingProfile(p);seedNpcFaHistory(s,p);return;}
   const year=s.calendar.seasonYear,age=p.age??19,rookieYear=entry==="veteran"?year-Math.max(0,age-19):year;
   p.proContract??={status:"regular",joinedDate:`${rookieYear}-03-01`};
   const salary=entry!=="veteran"?(p.proContract.status==="developmental"?MIN_PRO_SALARY:BASE_SALARY):(p.teamId<10?2+Math.max(0,ovr(p)-66)*.2:1)*BASE_SALARY;
@@ -50,13 +51,14 @@ export function initializeProfessional(s:GameState,p:Player,club:number,entry="v
   initializeProTwoWay(s,p);
   initializeAgingProfile(p);
   clearProfessionalReputation(p);
+  seedNpcFaHistory(s,p);
 }
 export function ensureProWorld(s:GameState) {
   syncProClubNames(s);
   if(s.careerMode!=="pro")return;
   discardRetiredPlayers(s);
   const year=s.calendar.seasonYear,p=getPlayer(s),info=s.postSchool?.pro;
-  s.proWorld??={version:1,careerHonorRulesVersion:4,contractRulesVersion:7,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
+  s.proWorld??={version:1,careerHonorRulesVersion:6,contractRulesVersion:7,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
     clubs:Array.from({length:10},(_,id)=>({id,direction:"balanced",budget:(220+hash(`${s.seed}:club-budget:${id}`)%81)*BASE_SALARY,deadMoney:{},nextReview:`${year}-03-15`})),
     seasons:[],archive:[],news:[],squadsVersion:s.teams.length>=40?2:undefined,goal:p.proContract?.status==="developmental"?"정식 선수 전환":"1군 정착",longGoal:"1군 데뷔와 꾸준한 출전",draftedYears:[year]};
   repairConversionRegistrations(s);

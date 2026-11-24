@@ -1,10 +1,20 @@
 import definitions from "./event-definitions.json";
+import {eventRewardVersion} from './event-reward-policy';
 import type {EventRule,EventCategory} from "./event-stories";
 import {eventFieldsFor,type EventField,type EventFocusRule} from './event-selection';
 import type { CareerEvent, CareerEventBranch, EventOpportunity, EventRewardWeeks, EventScene, Player, Role, Stat } from "./types";
 
-type Definition={id:string;title:string;description:string;category?:EventCategory;focus?:EventFocusRule;kind?:CareerEvent["kind"];rule?:EventRule;choices:{id:string;label:string;outcomes:{weight:number;message:string;effect:string;fatigueRange?:{min:number;max:number};recoveryPercent?:{min:number;max:number}}[]}[]};
+export type SchoolEventPeriod='term'|'vacation'|'any';
+type Definition={id:string;title:string;description:string;schoolPeriod:SchoolEventPeriod;category?:EventCategory;riskChoice?:boolean;focus?:EventFocusRule;kind?:CareerEvent["kind"];rule?:EventRule;choices:{id:string;label:string;outcomes:{weight:number;message:string;effect:string;fatigueRange?:{min:number;max:number};recoveryPercent?:{min:number;max:number}}[]}[]};
 export const schoolEventCatalog=definitions.events as Definition[];
+const schoolPeriods=new Map(schoolEventCatalog.map(event=>[event.id,event.schoolPeriod]));
+export function schoolCalendarPeriod(date:string):Exclude<SchoolEventPeriod,'any'>{
+  return [1,2,7,8].includes(Number(date.slice(5,7)))?'vacation':'term';
+}
+export function schoolEventAvailable(id:string,date:string){
+  const period=schoolPeriods.get(id)??'any';
+  return period==='any'||period===schoolCalendarPeriod(date);
+}
 export const eventIds = schoolEventCatalog.map(event => event.id);
 export function eventKind(id: string): CareerEvent["kind"] {
   const kind=schoolEventCatalog.find(row=>row.id===id)?.kind;if(kind)return kind;
@@ -53,7 +63,7 @@ export function createCareerEvent(definitionId: string, player: Player, date: st
   if (!definition) throw new Error("알 수 없는 이벤트입니다.");
   const field=context.scene?(context.scene.batting?'batting':'pitching'):context.field??eventFieldsFor({...player,twoWay:undefined},definition.focus,definition.rule?.field)[0];
   return {
-    id: `${player.id}:${week}:${date}:${definitionId}`, rewardVersion: 4, definitionId, kind: eventKind(definitionId), date, title: definition.title,
+    id: `${player.id}:${week}:${date}:${definitionId}`, rewardVersion: eventRewardVersion, definitionId, kind: eventKind(definitionId), date, title: definition.title,
     description: definition.description.replace("{제안 포지션}", context.targetRole ? rolePosition[context.targetRole] : "새로운 포지션"),
     choices: definition.choices.map(choice => ({ id: choice.id, label: choice.label,
       outcomes: choice.outcomes.map(outcome => ({ weight: outcome.weight, message: outcome.message, ...decodeEffects(outcome.effect, player, context.targetRole,field),...(outcome.fatigueRange?{fatigueRange:outcome.fatigueRange}:{}),...(outcome.recoveryPercent?{recoveryPercent:outcome.recoveryPercent}:{}) })) })),
