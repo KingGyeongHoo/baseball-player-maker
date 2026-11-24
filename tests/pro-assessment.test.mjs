@@ -62,7 +62,7 @@ function season(
   // Contract/exit policy fixtures retain historical point ratings. New WAR
   // calculation and cumulative integration are exercised in pro-war.test.mjs.
   const row = a.recordSeasonAssessment(s, p);
-  delete row.war; delete row.seasonEvaluation;
+  delete row.war; delete row.seasonEvaluation; delete row.noAppearances;
   row.score = injured ? null : score;
   row.grade = require("../.test-build/lib/roster-grades.js").rosterGrade(row.score, true);
   const values = p.professional.assessments.flatMap(r => r.score === null ? [] : [r.score]);
@@ -169,6 +169,8 @@ test("a sustained cumulative F triggers release for player and NPCs, preserve ye
   npc.teamId = 20;
   npc.professional.contract.endYear = 2032;
   life.closeProfessionalSeason(s);
+  assert.equal(p.professional.employment,'active');
+  s.proWorld.stove={year:2031};m.applySeasonExitPolicies(s);
   assert.equal(p.professional.employment, "freeAgent");
   assert.equal(npc.professional.employment, "freeAgent");
   const notices=[s.careerNotice,...s.noticeQueue??[]];
@@ -199,6 +201,10 @@ test("veteran retirement takes precedence over a qualifying release streak", () 
   for(const year of [2028,2029,2030])season(s,year,65,{lower:true});
   assert.ok(a.seasonExit(p,2030));
   life.closeProfessionalSeason(s);
+  assert.equal(p.professional.employment,'active');
+  s.careerNotice=null;s.noticeQueue=[];
+  require('../.test-build/lib/sim/pro-awards-ceremony.js').presentAwardsCeremony(s,true);
+  s.careerNotice=null;s.noticeQueue=[];life.prepareOffseason(s);
   assert.equal(p.professional.employment,'retired');
   assert.equal(p.professional.movements.at(-1).kind,'은퇴');
   assert.ok(!p.professional.movements.some(row=>row.kind==='방출'));
@@ -281,11 +287,11 @@ test("limited appearances cannot release veterans or young players with strong c
     assert.equal(a.seasonExit(p, 2027 + count), null);
   }
 });
-test("rookie grace excludes the first three years from the F streak, which then needs 3-5 review seasons", () => {
+test("rookie years are excluded from subsequent grade counts and three F seasons qualify", () => {
   for (const [age, count, growth] of [
     [34, 3, 0],
-    [28, 4, 0],
-    [23, 5, 0.6],
+    [28, 3, 0],
+    [23, 3, 0.6],
   ]) {
     const s = fixture(),
       p = e.getPlayer(s);
@@ -311,18 +317,18 @@ test("recent season grades control release regardless of a stronger career cumul
  season(state,2033,65,{firstGames:0,lower:true});assert.ok(a.assessmentValue(p,2033).cumulative>73);assert.equal(a.seasonExit(p,2033).kind,'post-rookie-evaluation');
 });
 
-test("FFFFF releases at five years while FFEFF resets at E and needs a new full streak",()=>{
+test("young players are released for three F grades within four years without requiring a streak",()=>{
  const state=fixture(),p=e.getPlayer(state);p.age=23;p.professional.rookieYear=2020;
- for(let i=0;i<5;i++){season(state,2028+i,65,{ability:71+i*.6,firstGames:0,lower:true});assert.equal(!!a.seasonExit(p,2028+i),i===4);}
- assert.match(a.seasonExit(p,2032).reason,/시즌 평가 F/);
- const reset=fixture(),q=e.getPlayer(reset);q.age=35;q.professional.rookieYear=2020;
- for(const [i,score] of [65,65,71,65,65].entries()){season(reset,2028+i,score,{ability:80,firstGames:0,lower:true});assert.equal(a.seasonExit(q,2028+i),null);}
+ for(let i=0;i<3;i++){season(state,2028+i,65,{ability:71+i*.6,firstGames:0,lower:true});assert.equal(!!a.seasonExit(p,2028+i),i===2);}
+ assert.match(a.seasonExit(p,2030).reason,/등급 F/);
+ const reset=fixture(),q=e.getPlayer(reset);q.age=23;q.professional.rookieYear=2020;
+ for(const [i,score] of [65,75,65,75,65].entries()){season(reset,2028+i,score,{ability:80,firstGames:0,lower:true});assert.equal(a.seasonExit(q,2028+i),null);}
  season(reset,2033,65,{ability:80});assert.equal(a.seasonExit(q,2033).kind,'post-rookie-evaluation');
 });
 
-test("consecutive E season grades never trigger the F-only release policy",()=>{
+test("three consecutive E seasons trigger twilight release",()=>{
  const state=fixture(),p=e.getPlayer(state);p.age=35;p.professional.rookieYear=2020;
- for(let year=2028;year<=2035;year++){season(state,year,71,{firstGames:0,lower:true});assert.equal(a.seasonExit(p,year),null);}
+ for(let year=2028;year<=2030;year++){season(state,year,71,{firstGames:0,lower:true});assert.equal(!!a.seasonExit(p,year),year===2030);}
 });
 
 test("old FFF seasons cannot release a player whose recent three seasons are CCC",()=>{
@@ -331,10 +337,11 @@ test("old FFF seasons cannot release a player whose recent three seasons are CCC
  assert.ok(a.assessmentValue(p,2033).cumulative<71);assert.equal(a.seasonExit(p,2033),null);
 });
 
-test("injured years defer season-grade review, missing years reset it, and appearance counters are irrelevant",()=>{
+test("unknown grades and missing years cannot complete the twilight three-year streak",()=>{
  const state=fixture(),p=e.getPlayer(state);p.age=35;p.professional.rookieYear=2020;
  season(state,2028,65);season(state,2029,65,{injured:true});season(state,2030,65);assert.equal(a.seasonExit(p,2030),null);
- season(state,2031,65);assert.equal(a.seasonExit(p,2031).kind,'post-rookie-evaluation');
+ season(state,2031,65);assert.equal(a.seasonExit(p,2031),null);
+ season(state,2032,65);assert.equal(a.seasonExit(p,2032).kind,'post-rookie-evaluation');
  const gap=fixture(),q=e.getPlayer(gap);q.age=35;q.professional.rookieYear=2020;
  season(gap,2028,65);season(gap,2030,65);season(gap,2031,65);assert.equal(a.seasonExit(q,2031),null);
  season(gap,2032,65).firstGames=null;assert.equal(a.seasonExit(q,2032).kind,'post-rookie-evaluation');
@@ -346,6 +353,7 @@ test("release offers can only be one-year developmental reentry at another club,
   p.age=28;p.professional.rookieYear=2020;
   for (const y of [2027,2028,2029,2030]) season(s,y,65,{lower:true});
   s.proWorld.seasonClosed = true;
+  s.proWorld.stove={year:2031,movedIds:[]};
   m.applySeasonExitPolicies(s);
   for (const club of s.proWorld.clubs) club.budget = 1e12;
   // Leave real roster members available while making recruitment capacity deterministic.
@@ -358,6 +366,7 @@ test("release offers can only be one-year developmental reentry at another club,
       q.professional.contract = null;
     }
   const denied = p.professional.nonRenewal.club;
+  for(let i=0;i<1000;i++){s.seed=`accepted-release-${i}`;if(e.hash(`${s.seed}:release-market:2031:${p.id}`)%100<50)break;}
   assert.equal(m.offerFor(s, p, denied, 2031, "released"), null);
   const offers = s.proWorld.clubs.flatMap(
     (c) => m.offerFor(s, p, c.id, 2031, "released") ?? [],
@@ -421,7 +430,7 @@ test("legacy saves reconstruct completed seasons only, prefer captured year-end 
   assert.equal(q.professional.assessments[0].source, "reconstructed");
   const frozen = structuredClone(q.professional.assessments);
   const upgraded = life.upgradeProfessionalState(decoded);
-  assert.equal(upgraded.proWorld.contractRulesVersion, 5);
+  assert.equal(upgraded.proWorld.contractRulesVersion, 7);
   assert.deepEqual(e.getPlayer(upgraded).professional.contract, signed);
   assert.deepEqual(e.getPlayer(upgraded).professional.assessments, frozen);
   assert.ok(upgraded.proWorld.market.offers.every((o) => o.salary < 1.1e9));
@@ -450,7 +459,7 @@ test("older cumulative-E refusal flags are removed and no longer require develop
   assert.equal(a.requiresDevelopmentalOffer(p, 2028), false);
   const upgraded = life.upgradeProfessionalState(s);
   assert.equal(e.getPlayer(upgraded).professional.nonRenewal, undefined);
-  assert.equal(upgraded.proWorld.contractRulesVersion, 5);
+  assert.equal(upgraded.proWorld.contractRulesVersion, 7);
 });
 test("first-team games count actual completed appearances, count two-way play once, and exclude postseason, farm, forfeits and registration", () => {
   const s = fixture(),
@@ -521,6 +530,7 @@ test("successful developmental reentry starts a fresh review period without eras
   for (const year of [2028, 2029, 2030])
     season(s, year, 65, { firstGames: 20 });
   s.proWorld.seasonClosed = true;
+  s.proWorld.stove={year:2031,movedIds:[]};
   m.applySeasonExitPolicies(s);
   assert.equal(p.professional.nonRenewal.kind, "post-rookie-evaluation");
   p.professional.employment = "active";

@@ -1,5 +1,6 @@
-import { available, isPitcher, roleFor, roleScore } from "./engine";
-import { BASE_SALARY, contractFor, initializeProfessional, proNews } from "./pro-world";
+import { available, isPitcher, roleFor, roleScore, selectionScore } from "./engine";
+import { BASE_SALARY, contractFor, initializeProfessional, proNews, proNotice } from "./pro-world";
+import {proSquad,setProSquad} from './pro-squads';
 import { canAfford, releasePlayer } from "./pro-market";
 import { createCareerNPC } from "./pro-roster";
 import { currentProPosition, guaranteedProStarter } from "./pro-positions";
@@ -11,9 +12,53 @@ import type { GameState, Player, Position } from "./types";
 export const farmMinimum: Record<Position, number> = { C:2,SS:1,CF:1,"2B":1,"1B":1,"3B":1,LF:1,RF:1,DH:0,SP:5,RP:5,CP:1 };
 const slots = Object.entries(farmMinimum).flatMap(([pos, n]) => Array<Position>(n).fill(pos as Position));
 
+// Fill registered second-team vacancies before relying on borrowed farm players.
+// This emergency rule overrides registration cooldowns and first-team promises.
+export function fillSecondTeamVacancies(s:GameState,clubs=Array.from({length:10},(_,i)=>i)){
+  if(!s.proWorld||!['camp','regular'].includes(s.proWorld.stage)||s.matchProgress)return false;
+  let changed=false;
+  const positions=Object.keys(farmMinimum) as Position[];
+  for(const club of clubs){
+    const members=s.players.filter(p=>p.teamId>=0&&p.teamId<40&&p.teamId%10===club&&p.professional?.employment==='active');
+    const second=()=>members.filter(p=>p.teamId===club+10);
+    for(const p of members){const pos=p.professional!.farmVacancyPosition;if(pos&&(p.teamId!==club+10||second().some(q=>q.id!==p.id&&currentProPosition(q,pos))))delete p.professional!.farmVacancyPosition;}
+    for(const pos of positions){
+      if(second().some(p=>currentProPosition(p,pos)))continue;
+      const first=members.filter(p=>p.teamId===club&&currentProPosition(p,pos));
+      const candidates=first.length>=3?first:members.filter(p=>p.teamId>=20&&currentProPosition(p,pos));
+      const score=(p:Player)=>selectionScore(p,roleFor(pos));
+      candidates.sort((a,b)=>(first.length>=3?score(a)-score(b):score(b)-score(a))||a.id.localeCompare(b.id));
+      const move=candidates[0];if(!move)continue;
+      const roster=second();
+      // Free a duplicate slot, never create a new positional hole or release anyone.
+      const back=roster.length>=30?roster.filter(p=>positions.every(key=>!currentProPosition(p,key)||roster.filter(q=>currentProPosition(q,key)).length>1))
+        .sort((a,b)=>selectionScore(a)-selectionScore(b)||a.id.localeCompare(b.id))[0]:undefined;
+      if(roster.length>=30&&!back)continue;
+      const from=proSquad(move.teamId)!;
+      if(!setProSquad(s,move,'second',true))continue;
+      move.professional!.farmVacancyPosition=pos;
+      if(back){
+        // A guaranteed slot cannot make the vacancy repair exceed the farm cap.
+        const to=back.proContract?.status==='developmental'?'developmental':'third';
+        setProSquad(s,back,to,true);
+      }
+      const reason=`2군 ${pos} 공백 보충 · ${first.length>=3?'1군 동포지션 3명 이상 중 출전평가 최하위':'3군·육성 동포지션 중 출전평가 최상위'}`;
+      move.professional!.movements.push({date:s.date,from:club,to:club,kind:'2군 공백 보충',reason,squad:'second'});
+      proNews(s,`${move.name} · ${reason}`,`${s.date}:farm-vacancy:${move.id}:${pos}`);
+      if(move.id===s.playerId||back?.id===s.playerId){
+        const mine=move.id===s.playerId?move:back!,to=proSquad(mine.teamId)!;
+        if(s.postSchool?.pro)s.postSchool.pro.transactions.push({date:s.date,from:mine===move?from:'second',to,reason,exchangedPlayerId:mine===move?back?.id??'':move.id});
+        proNotice(s,`${s.date}:farm-vacancy:${mine.id}`,'2군 포지션 공백으로 등록을 조정했습니다',reason,mine===move&&from!=='first'?'promoted':'demoted');
+      }
+      changed=true;
+    }
+  }
+  return changed;
+}
+
 export function ensurePlayableFarmRosters(s: GameState, clubs = Array.from({length:10}, (_, i) => i)) {
   if (!s.proWorld || !["camp", "regular"].includes(s.proWorld.stage) || s.matchProgress) return false;
-  let changed = false, added = false;
+  let changed = fillSecondTeamVacancies(s,clubs), added = false;
   for (const club of clubs) {
     const lower = () => s.players.filter(p => p.teamId >= 10 && p.teamId < 30 && p.teamId % 10 === club && p.professional?.employment === "active");
     const selected = new Set<string>();
@@ -70,6 +115,7 @@ export function ensurePlayableFarmRosters(s: GameState, clubs = Array.from({leng
     // Playing a farm game never changes a second/third registration.
 
   }
+  changed=fillSecondTeamVacancies(s,clubs)||changed;
   if(added)syncJerseyNumbers(s);
   return changed;
 }

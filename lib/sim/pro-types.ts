@@ -8,6 +8,7 @@ export type FaTerms={plan:"starter"|"money"|"contender"|"security"|"rebuild"|"co
 export type SalaryContract = { id:string; club:number; startYear:number; endYear:number; salary:number; segments:{from:string;salary:number}[]; source:"rookie"|"renewal"|"fa"|"released";faTerms?:FaTerms };
 export type AgingProfile={version:1;physical:number;peakStart:number;declineStart:number;loss:Partial<Stats>};
 export type ProfessionalPlayer = {
+  farmVacancyPosition?:Position;
   eventSelectionBonus?: number;
   careerHonorBonuses?:{year:number;points:number}[];
   awardBonuses?:{year:number;category:"mvp"|"goldGlove"|"rookie"|"wildcardMvp"|"semiMvp"|"playoffMvp"|"finalMvp";points:number;level?:"second";seriesId?:string}[];
@@ -55,7 +56,7 @@ export type ProWorld = {
   tradeActivity?:{year:number;regular:number;winter:number;lastReview?:string};
   stove?:{version:1;year:number;openedAt:string;closesAt:string;nextUpdate:string;round:number;closed:boolean;movedIds:string[];reported?:true};
   allstar?:ProAllstarSeason;
-  version:1; contractRulesVersion?:1|2|3|4|5; year:number; stage:ProStage; regularEnd:string; seasonClosed:boolean;
+  version:1; contractRulesVersion?:1|2|3|4|5|6|7; year:number; stage:ProStage; regularEnd:string; seasonClosed:boolean;
   clubs:{id:number;direction:"contend"|"balanced"|"rebuild";budget:number;deadMoney:Record<string,number>;nextReview?:string;closerId?:string}[];
   seasons:ProSeasonArchive[]; archive:Player[]; retiredRecords?:Record<string,RecordLine>; news:{id:string;date:string;text:string}[];
   postseason?:ProPostseason;
@@ -75,9 +76,10 @@ export type ProWorld = {
 };
 
 export type ProWarLine={batting:number;pitching:number;fielding:number;positional:number;pa:number;outs:number;bf:number;fieldingChances:number;fieldingOuts:number};
-export type ProWarAssessment={version:1;score:number;equivalentWins:number;first:ProWarLine;second:ProWarLine};
+export type ProWarAssessment={version:1|2;score:number;equivalentWins:number;first:ProWarLine;second:ProWarLine};
 export type ProSeasonEvaluation={version:1;regular:number;postseason:number;national:number;honors:number;score:number};
 export type ProSeasonAssessment={
+  noAppearances?:true;
   seasonRank?:ProSeasonRank;
   clubAwardCounts?:Record<'first'|'second',number>;
   seasonEvaluation?:ProSeasonEvaluation;
@@ -90,4 +92,4 @@ export type ProSeasonAssessment={
   ability:number;role:Role;squad:ProSquad|null;developmental:boolean;reserveSeason:boolean;firstTeam?:boolean;secondOnly?:boolean;firstGames?:number|null;
   source:"season-end"|"reconstructed";
 };
-export type ProSeasonRank={version:1;year:number;role:'batter'|'starter'|'bullpen'|'reliever'|'closer';level:'first'|'second';war:number;rank:number;total:number;grade:'S'|'A'|'B'|'C'|'D'|'F';basis?:'retained-records'};
+export type ProSeasonRank={version:1|2;year:number;role:'batter'|'starter'|'bullpen'|'reliever'|'closer';level:'first'|'second';war:number;rank:number;total:number;grade:'S'|'A'|'B'|'C'|'D'|'E'|'F';basis?:'retained-records'};

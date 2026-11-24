@@ -1,6 +1,6 @@
 import {selectionScore} from './engine';
 import {firstTeamCapacity,firstTeamSlotPosition,firstTeamSlots,postseasonTeamCapacity} from './pro-roster';
-import {canPromoteToFirst,setProSquad} from './pro-squads';
+import {canPromoteToFirst,normalizeFirstTeamRoster,setProSquad} from './pro-squads';
 import {canAssignProSquad,guaranteedProStarter} from './pro-positions';
 import type {GameState,Player} from './types';
 
@@ -35,6 +35,11 @@ export function expandPostseasonRosters(s:GameState){
     }
   }
   world.postseasonExpansion={year:world.year,clubs:[...post.seeds],calledUp};
+  for(const club of post.seeds){
+    const before=new Set(s.players.filter(p=>p.teamId===club).map(p=>p.id));
+    normalizeFirstTeamRoster(s,club);
+    for(const p of s.players.filter(p=>p.teamId===club&&!before.has(p.id)))if(!calledUp.includes(p.id))calledUp.push(p.id);
+  }
   post.rosterVersion=1;
   // Upgrade an ongoing save without resetting the bracket, scores or records.
   for(const series of post.series.filter(row=>row.winner===undefined))for(const club of series.clubs){
@@ -50,11 +55,20 @@ export function trimPostseasonRostersForOpening(s:GameState){
   if(!world||!expansion||world.year<=expansion.year||!opening||s.date<opening||s.matchProgress)return [];
   const changes=expansion.clubs.map(club=>{
     const first=s.players.filter(p=>p.teamId===club).sort((a,b)=>selectionScore(a)-selectionScore(b)||a.id.localeCompare(b.id));
-    const players=first.filter(p=>canAssignProSquad(p,'second',s.date)).slice(0,Math.max(0,first.length-firstTeamCapacity));
-    for(const p of players)setProSquad(s,p,'second');
+    const players:Player[]=[];
+    for(const p of first){
+      if(first.length-players.length<=firstTeamCapacity)break;
+      if(!canAssignProSquad(p,'second',s.date))continue;
+      const remaining=first.filter(q=>q.id!==p.id&&!players.includes(q));
+      if(remaining.filter(q=>q.position==='SP').length<5
+        ||remaining.filter(q=>['SP','RP','CP'].includes(q.position)).length<12
+        ||['C','SS','CF','2B','1B','3B','LF','RF'].some(pos=>!remaining.some(q=>q.position===pos)))continue;
+      if(setProSquad(s,p,'second'))players.push(p);
+    }
     return {club,players};
   });
   delete world.postseasonExpansion;
+  for(const club of expansion.clubs)normalizeFirstTeamRoster(s,club);
   world.openingRosterDate=s.date;
   return changes;
 }

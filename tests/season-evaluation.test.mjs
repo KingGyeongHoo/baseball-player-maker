@@ -20,6 +20,7 @@ test('official achievements and postseason stats leave the regular season evalua
 });
 test('late awards preserve the same season evaluation; save validation rejects tampered totals',()=>{
   const {s,p}=fixture(),year=s.calendar.seasonYear;
+  p.seasonByLevel.first.games={batting:1};
   a.recordSeasonAssessment(s,p);
   s.proWorld.seasons.push({year,standings:[],farmStandings:[],champion:null,draft:[],awards:[{year,kind:'골든글러브',category:'goldGlove',playerId:p.id,playerName:p.name,club:0,value:1}],individualAwards:[{level:'first',field:'batting',metric:'HR',label:'홈런왕',value:40,winners:[{playerId:p.id,playerName:p.name,club:0}]}],awardsCeremony:{version:1,scheduledAt:`${year}-12-06`}});
   v.refreshSeasonEvaluations(s);assert.equal(p.professional.assessments[0].score,71);

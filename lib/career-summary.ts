@@ -1,5 +1,6 @@
 import {emptyRecord,getPlayer,mergeRecord} from "./sim/engine";
-import {currentSeasonAssessment} from "./sim/pro-assessment";
+import {currentSeasonAssessment,hasSeasonAppearance} from "./sim/pro-assessment";
+import {emptyProWarAssessment} from './sim/pro-war';
 import {playerSeasons} from "./player-records";
 import {clubName} from "./sim/pro-world";
 import type {GameState,Player} from "./sim/types";
@@ -27,13 +28,14 @@ export function careerContractSummary(state:GameState){
   const career=playerCareerEvaluation(p,year,state),cumulative=career.first.score,current=rows.find(row=>row.year===year);
   const evaluation=!current&&pro?.employment==="active"&&p.teamId>=0?currentSeasonAssessment(state,p):undefined;
   const estimate=evaluation?.score??null;
+  const noAppearances=current?.noAppearances||evaluation?.noAppearances||current?.score===null&&pro?.employment==='active'&&!hasSeasonAppearance(p);
   const contract=pro?.contract,firstYear=Math.max(year+(state.proWorld?.seasonClosed?1:0),contract?.startYear??year);
   const seasons=contract&&pro?.employment==="active"?Math.max(0,contract.endYear-firstYear+1):0;
   const seasonRank=current?current.seasonRank:evaluation?.score!==null&&evaluation?.score!==undefined?createSeasonRankings(state).get(p.id):undefined;
   const usage=pro?.honorUsage?.year===year?pro.honorUsage:undefined;
   const honorRegistration=usage&&{seasonDays:regularSeasonDays(state),firstDaysByClub:usage.firstDaysByClub,injuryDaysByClub:usage.injuryDaysByClub};
   const projected=current||!seasonRank?cumulative:evaluateCareer([...rows,{year,score:estimate,role:p.primaryRole,war:evaluation?.war,seasonRank,honorRegistration}],'first',year).score;
-  return {cumulative,career,projected,seasons,salary:seasons?contract!.salary:null,seasonScore:seasonPercentile(seasonRank),seasonRank,seasonGrade:seasonRank?.grade??current?.grade,war:current?.war??evaluation?.war};
+  return {cumulative,career,projected,seasons,salary:seasons?contract!.salary:null,seasonScore:noAppearances?0:seasonPercentile(seasonRank),seasonRank:noAppearances?undefined:seasonRank,seasonGrade:noAppearances?'F':seasonRank?.grade??current?.grade,noAppearances,war:noAppearances?emptyProWarAssessment():current?.war??evaluation?.war};
 }
 
 export type CareerHonorCategory="national"|"gold"|"allstar"|"individual";

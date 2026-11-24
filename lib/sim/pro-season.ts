@@ -183,7 +183,6 @@ export function finishProfessionalDay(s:GameState){
 export function closeProfessionalSeason(s:GameState){
   const w=s.proWorld!;if(w.seasonClosed)return;
   w.seasonClosed=true;w.stage="summary";s.phase="ended";
-  reviewDevelopmentContract(s);
   const appearances=firstTeamAppearances(s),warContext=createProWarContext(s);
   for(const p of s.players){if(!p.professional)continue;recordSeasonAssessment(s,p,appearances,warContext);settleFaService(p.professional,w.year);archiveProfessionalSeason(s,p);payroll(s,p);}
   freezeSeasonRankings(s,warContext);
@@ -195,9 +194,6 @@ export function closeProfessionalSeason(s:GameState){
   const p=getPlayer(s),notice=professionalSeasonFinishNotice(s);
   settleShopItems(p,w.year);
   proNotice(s,`season:${w.year}`,notice.title,notice.message,"seasonComplete");
-  retireAtSeasonEnd(s);
-  if(w.pendingRetirement)presentAwardsCeremony(s,true);
-  applySeasonExitPolicies(s);
   if(!w.retired&&!w.pendingRetirement)freezeProNational(s);
 }
 export function addRookieClass(s:GameState,year:number){
@@ -267,6 +263,7 @@ export function prepareOffseason(s:GameState){
     if(player.professional&&!player.professional.faSeasons)settleFaService(player.professional,w.year);
   }
   capturePlayerEvaluations(s,"season-end");
+  reviewDevelopmentContract(s);
   for(const club of w.clubs){const rank=w.seasons.at(-1)?.standings.findIndex(r=>r.teamId===club.id)??5;club.direction=rank<3?"contend":rank>6?"rebuild":"balanced";}
   retireAtSeasonEnd(s);
   const retirement=s.proWorld!.pendingRetirement;
@@ -290,6 +287,7 @@ function processStoveRound(s:GameState){
   reviewNPCTrades(s);
   if(w.market&&!w.market.settled)refreshOffers(s);
   if(w.retired)return;
+  for(let club=0;club<10;club++)normalizeFirstTeamRoster(s,club);
 }
 export function advanceStoveLeague(s:GameState){
   prepareOffseason(s);const w=s.proWorld!,stove=w.stove!;
@@ -370,7 +368,7 @@ export function startNextProSeason(s:GameState,unattached=false){
   capturePlayerEvaluations(s,"season-start");
   proNotice(s,`camp:${year}`,`${year} 캠프 시작`,`${p.age}세 · ${clubName(s,p.teamId<0?null:p.teamId%10)} · 지난 시즌 기록과 계약을 유지합니다. 노화는 이번 시즌 나이에 따라 한 번 적용했습니다.${unattached?" 무소속 훈련은 성장 60%, 공식 경기와 FA 공헌일은 없습니다.":" 개막 등록은 경쟁·컨디션에 따라 평가합니다."}`);
 }
-export type ProAction=OffseasonShopAction|{type:"national"|"market"|"nextSeason"|"unattached"|"retire"|"wait"}|{type:"accept"|"negotiate";id:string}|{type:"request";kind:"chance"|"position"|"manage"|"trade"|"release";position?:Position}|{type:"goal";goal:string};
+export type ProAction=OffseasonShopAction|{type:"awards"|"national"|"market"|"nextSeason"|"unattached"|"retire"|"wait"}|{type:"accept"|"negotiate";id:string}|{type:"request";kind:"chance"|"position"|"manage"|"trade"|"release";position?:Position}|{type:"goal";goal:string};
 export function actOnProCareer(input:GameState,action:ProAction):GameState{
   if(input.careerNotice||input.careerEvent||input.weekProgress||input.matchProgress)throw new Error("진행 중인 경기·선택·통보를 먼저 마쳐 주세요.");
   const s=structuredClone(input);ensureProWorld(s);const w=s.proWorld!,p=getPlayer(s);const finish=()=>{syncJerseyNumbers(s);if(["market","negotiate","accept"].includes(action.type))capturePlayerEvaluations(s,"contract",[p.id]);return captureEvaluationChange(s,getPlayer(input));};
@@ -399,11 +397,12 @@ export function actOnProCareer(input:GameState,action:ProAction):GameState{
     if(!s.careerEvent&&!pendingNationalOffseason(s))delete s.proWorld!.offseasonContinuation;
     return finish();
   }
-  if(national&&['market','wait','nextSeason','unattached','accept','negotiate'].includes(action.type))throw new Error('11월 국제대회를 먼저 마친 뒤 스토브리그를 진행해 주세요.');
+  if(national&&['awards','market','wait','nextSeason','unattached','accept','negotiate'].includes(action.type))throw new Error('11월 국제대회를 먼저 마친 뒤 스토브리그를 진행해 주세요.');
   delete w.offseasonContinuation;
   if(action.type==="goal"){if(action.goal)w.customGoal=action.goal;else delete w.customGoal;return finish();}
   if(action.type==="request"){careerRequest(s,action.kind,action.position);return finish();}
   if(!w.seasonClosed)throw new Error("시즌 결산 후 선택할 수 있습니다.");
+  if(action.type==='awards'){delete w.resumeCampAfterAwards;presentAwardsCeremony(s,true);return finish();}
   if(action.type==="retire"){
     if(presentAwardsCeremony(s,true)){w.pendingRetirement={year:w.year,reason:"시즌 결산에서 은퇴를 선택했습니다."};return finish();}
     retireProfessional(s);return finish();

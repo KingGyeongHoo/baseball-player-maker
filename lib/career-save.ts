@@ -3,6 +3,7 @@ import {upgradeSchoolPositions} from './sim/school-position-upgrade';
 import {validNationalTournament} from "./sim/national-tournament";
 import {upgradeNationalInvitation} from './sim/national-teams';
 import {hydrateAssessments} from "./sim/pro-assessment";
+import {upgradeRawSeasonWar} from './sim/pro-war-upgrade';
 import {validFaTerms} from "./sim/pro-positions";
 import {MIN_PRO_SALARY} from './sim/pro-contract-rules';
 import {validProWarAssessment} from "./sim/pro-war";
@@ -17,7 +18,7 @@ import {statKeys,type GameState} from "./sim/types";
 import {careerSaveId} from "./career-save-key";
 import {compactCareerState} from './career-compaction';
 import {backfillSeasonHonors} from './sim/pro-historical-awards';
-import {isGoldGloveCelebration} from './sim/pro-awards-ceremony';
+import {isSuppressedAwardCelebration} from './sim/pro-awards-ceremony';
 import {acknowledgeCareer} from './sim/pro-career';
 import {awardBonusKey,awardBonusPoints} from './sim/pro-award-bonuses';
 import {gzipText,gunzipBytes,saveBlobText} from './save-compression';
@@ -145,6 +146,7 @@ function validateCareerSave(file:CareerSave):CareerSave {
   if(file?.format!=="baseball-life"||file.version!==1)throw new Error("지원하지 않는 저장 형식입니다. 원본 파일은 유지됩니다.");
   validateCareerState(file.state);if(saveChecksum(JSON.stringify(file.state))!==file.checksum)throw new Error("저장 파일의 무결성 확인에 실패했습니다. 원본 파일은 유지됩니다.");
   file.state=upgradeSchoolPositions(file.state);
+  upgradeRawSeasonWar(file.state);
   for(const p of file.state.players){hydrateAssessments(file.state,p);refreshCareerEvaluation(p);initializeAgingProfile(p);clearProfessionalReputation(p);}
   syncProClubNames(file.state);
   upgradeNationalInvitation(file.state);
@@ -153,8 +155,8 @@ function validateCareerSave(file:CareerSave):CareerSave {
   discardRetiredPlayers(file.state);
   const needsNumbers=file.state.players.some(p=>p.jerseyNumber===undefined);
   if(needsNumbers)syncJerseyNumbers(file.state);
-  if(isGoldGloveCelebration(file.state.careerNotice))file.state=acknowledgeCareer(file.state);
-  else if(file.state.noticeQueue?.some(isGoldGloveCelebration))file.state.noticeQueue=file.state.noticeQueue.filter(notice=>!isGoldGloveCelebration(notice));
+  if(isSuppressedAwardCelebration(file.state.careerNotice))file.state=acknowledgeCareer(file.state);
+  else if(file.state.noticeQueue?.some(isSuppressedAwardCelebration))file.state.noticeQueue=file.state.noticeQueue.filter(notice=>!isSuppressedAwardCelebration(notice));
   file.state=removeBattedBallRecords(compactCareerState(file.state));
   file.checksum=saveChecksum(JSON.stringify(file.state));
   return file;

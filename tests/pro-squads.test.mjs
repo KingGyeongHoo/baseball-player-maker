@@ -9,6 +9,48 @@ e.params['pro_events.enabled']=0;
 const template=pc.acknowledgeCareer(pc.createProfessionalDemo('four-squads','새신인','SS'));
 const fixture=()=>structuredClone(template);
 const skills=(p,n)=>{for(const key of Object.keys(p.stats))p.stats[key]=n;p.recentZ=0;p.fatigue=0;p.forcedRest=false;p.injury=null;};
+
+test('a depleted first team repairs missing fielders and its five-man rotation during a live week',()=>{
+ for(const date of ['2028-06-01','2028-09-10']){
+  const s=fixture();s.date=date;s.proWorld.stage='regular';s.weekProgress={};delete s.proWorld.openingRosterDate;
+  const before=new Map(s.players.map(p=>[p.id,structuredClone(p.stats)]));
+  for(const p of s.players){p.injury=null;p.forcedRest=false;p.fatigue=0;p.trainingPolicy=e.defaultPolicy(p.primaryRole);delete p.professional.contract.faTerms;}
+  const first=s.players.filter(p=>p.teamId===0),ss=first.filter(p=>p.position==='SS'),arms=first.filter(p=>p.position==='SP');
+  for(const p of [...ss,...arms.slice(3)]){p.teamId=20;p.proContract.status='regular';p.professional.lastRegistration=date;}
+  // Neither a just-moved third-team player nor a sole farm-position cover can
+  // normally be promoted immediately; emergency vacancies still need filling.
+  for(const p of s.players.filter(p=>p.teamId===10&&['SS','SP'].includes(p.position)))p.professional.farmVacancyPosition=p.position;
+  q.normalizeFirstTeamRoster(s,0);
+  const roster=s.players.filter(p=>p.teamId===0),side=world.professionalLineup(s,roster,date);
+  assert.ok(roster.filter(p=>p.position==='SP').length>=5,date);assert.equal(side.field.length,9,date);assert.ok(side.starter,date);
+  for(const p of s.players)assert.deepEqual(p.stats,before.get(p.id));
+  const ids=roster.map(p=>p.id);q.normalizeFirstTeamRoster(s,0);assert.deepEqual(s.players.filter(p=>p.teamId===0).map(p=>p.id),ids);
+ }
+});
+
+test('registration counts are exactly 29 or 32 despite cooldowns, missing reserves, and excess players',()=>{
+ for(const capacity of [29,32])for(const count of [16,28,29,32,36]){
+  const s=fixture();s.date='2028-06-10';s.proWorld.stage='regular';s.weekProgress={};
+  if(capacity===32)s.proWorld.postseasonExpansion={year:2028,clubs:[0],calledUp:[]};
+  const first=s.players.filter(p=>p.teamId===0);
+  for(const p of first.slice(count))p.teamId=20;
+  let i=0;while(s.players.filter(p=>p.teamId===0).length<count){const p=structuredClone(first[i++%first.length]);p.id=`excess-${i}`;s.players.push(p);}
+  for(const p of s.players.filter(p=>p.teamId>=10&&p.teamId%10===0)){p.teamId=20;p.professional.lastRegistration=s.date;}
+  q.normalizeFirstTeamRoster(s,0);
+  assert.equal(s.players.filter(p=>p.teamId===0).length,capacity,`${capacity}/${count}`);
+  const selected=s.players.filter(p=>p.teamId===0).map(p=>p.id);q.normalizeFirstTeamRoster(s,0);
+  assert.deepEqual(s.players.filter(p=>p.teamId===0).map(p=>p.id),selected);
+ }
+});
+
+test('an organization with too few regular players hires real minimum-salary depth without changing developmental status',()=>{
+ const s=fixture(),p=e.getPlayer(s);s.players=[p];p.teamId=30;p.proContract.status='developmental';
+ s.date='2028-06-10';s.proWorld.stage='regular';
+ q.normalizeFirstTeamRoster(s,0);
+ assert.equal(s.players.filter(p=>p.teamId===0).length,29);assert.equal(p.proContract.status,'developmental');assert.equal(p.teamId,30);
+ const hired=s.players.filter(p=>p.id!==s.playerId);assert.ok(hired.every(p=>p.professional.contract.salary===33_000_000));
+ const count=s.players.length;q.normalizeFirstTeamRoster(s,0);assert.equal(s.players.length,count);
+});
 test('regular rookies start in the third squad at full growth, with no independent third or developmental schedule',()=>{
  const s=fixture(),p=e.getPlayer(s);assert.equal(q.proSquad(p.teamId),'third');assert.equal(s.postSchool.pro.level,'third');assert.equal(e.growthMultiplier(p),1);assert.equal(s.teams.length,40);
  assert.ok(s.calendar.events.every(g=>g.homeTeamId<20&&g.awayTeamId<20));assert.ok(!s.calendar.competitions.some(c=>/third|developmental/.test(c.id)));

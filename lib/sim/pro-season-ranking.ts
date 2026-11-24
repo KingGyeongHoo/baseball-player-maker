@@ -6,7 +6,7 @@ import {refreshCareerEvaluation} from './pro-career-evaluation';
 export const seasonRoleNames={batter:'야수',starter:'선발',bullpen:'불펜',reliever:'중계',closer:'마무리'} as const;
 export function seasonRankGrade(rank:number,total:number){
   const fraction=(rank-1)/total;
-  return fraction<.1?'S':fraction<.3?'A':fraction<.5?'B':fraction<.8?'C':fraction<.9?'D':'F';
+  return fraction<.05?'S':fraction<.2?'A':fraction<.4?'B':fraction<.6?'C':fraction<.8?'D':fraction<.95?'E':'F';
 }
 function seasonRole(p:Player):ProSeasonRank['role']{
   const pitching=p.twoWay?.pitchingPosition??p.position;
@@ -34,7 +34,7 @@ export function createSeasonRankings(s:GameState,context:ProWarContext=createPro
     let rank=1;
     pool.forEach((entry,index)=>{
       if(index&&Math.abs(entry.war-pool[index-1].war)>1e-7)rank=index+1;
-      result.set(entry.id,{version:1,year:s.calendar.seasonYear,role:entry.role,level:entry.level,war:entry.war,rank,total:pool.length,grade:seasonRankGrade(rank,pool.length)});
+      result.set(entry.id,{version:2,year:s.calendar.seasonYear,role:entry.role,level:entry.level,war:entry.war,rank,total:pool.length,grade:seasonRankGrade(rank,pool.length)});
     });
   }
   return result;
@@ -54,7 +54,9 @@ export function needsSeasonRankings(s:GameState){
 export function validSeasonRank(value:unknown):value is ProSeasonRank{
   if(!value||typeof value!=='object')return false;
   const r=value as ProSeasonRank;
-  return r.version===1&&Number.isInteger(r.year)&&Object.hasOwn(seasonRoleNames,r.role)&&['first','second'].includes(r.level)
+  const fraction=(r.rank-1)/r.total;
+  const grade=r.version===1?(fraction<.1?'S':fraction<.3?'A':fraction<.5?'B':fraction<.8?'C':fraction<.9?'D':'F'):seasonRankGrade(r.rank,r.total);
+  return (r.version===1||r.version===2)&&Number.isInteger(r.year)&&Object.hasOwn(seasonRoleNames,r.role)&&['first','second'].includes(r.level)
     &&Number.isFinite(r.war)&&Number.isInteger(r.rank)&&Number.isInteger(r.total)&&r.rank>=1&&r.total>=r.rank
-    &&r.grade===seasonRankGrade(r.rank,r.total)&&(r.basis===undefined||r.basis==='retained-records');
+    &&r.grade===grade&&(r.basis===undefined||r.basis==='retained-records');
 }

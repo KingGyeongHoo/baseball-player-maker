@@ -70,6 +70,7 @@ test('postseason injury replacements also select a registered second-team player
 });
 test('release and re-signing cannot turn a third-team player into a first-team player without the registered second-team step',()=>{
  const s=fixture(),p=e.getPlayer(s);p.teamId=p.teamId%10+20;const club=(p.teamId%10+1)%10;
+ s.proWorld.seasonClosed=true;
  market.releasePlayer(s,p,'test',2029);assert.equal(p.professional.lastSquad,'third');
  assert.equal(market.contractPlacement(s,p,club,false,[],'first'),null);
 });
@@ -90,6 +91,7 @@ test('professional draft demand comes from actual positions and decays as the mi
 });
 test('rookies are signed before surplus decisions, remain protected in the intake and count toward replacing an old position',()=>{
  const s=fixture(),year=s.proWorld.year+1,club=0,oldIds=new Set(s.players.map(p=>p.id));
+ s.proWorld.seasonClosed=true;
  const arms=s.players.filter(p=>p.teamId>=10&&p.teamId%10===club&&p.position==='SP');
  assert.ok(arms.length);
  for(const p of arms){for(const key of Object.keys(p.stats))p.stats[key]=10;p.professional.contract.endYear=year-1;

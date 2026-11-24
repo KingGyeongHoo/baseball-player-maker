@@ -2,6 +2,7 @@ import {rosterGrade} from '../roster-grades';
 import type {GameState} from './types';
 import type {ProSeasonEvaluation,ProWarAssessment} from './pro-types';
 import {refreshCareerEvaluation} from './pro-career-evaluation';
+import {emptyProWarAssessment} from './pro-war';
 
 const clamp=(n:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,n));
 const regularScore=(wins:number)=>71+(wins>=0?3:2)*wins;
@@ -29,9 +30,10 @@ export function refreshSeasonEvaluations(s:GameState,year=s.calendar.seasonYear)
   for(const p of s.players){
     const rows=p.professional?.assessments;
     const row=rows?.find(row=>row.year===year);
+    if(row?.noAppearances)row.war=emptyProWarAssessment();
     if(!row?.war||row.score===null)continue;
     row.seasonEvaluation=seasonEvaluation(row.war);
-    row.score=row.seasonEvaluation.score;row.grade=row.seasonRank?.grade??rosterGrade(row.score,true);
+    row.score=row.seasonEvaluation.score;row.grade=row.noAppearances?'F':row.seasonRank?.grade??rosterGrade(row.score,true);
     let total=0,count=0;
     for(const assessment of [...rows!].sort((a,b)=>a.year-b.year)){
       if(assessment.score!==null&&!assessment.clubGamesShortage){total+=assessment.score;count++;}

@@ -18,7 +18,7 @@ const template=pc.acknowledgeCareer(pc.createProfessionalDemo('career-evaluation
 function row(year,rank=1,level='first'){
   const assessment=war.proWarAssessment({...e.getPlayer(template),seasonByLevel:{first:e.emptyRecord(),second:e.emptyRecord()}});
   const grade=ranks.seasonRankGrade(rank,10);
-  return {year,date:`${year}-10-31`,score:71,grade,cumulative:null,cumulativeGrade:'—',ability:70,role:'선발',squad:level,developmental:false,reserveSeason:false,firstTeam:level==='first',secondOnly:level==='second',firstGames:100,honorRegistration:{seasonDays:100,firstDaysByClub:level==='first'?{0:90}:{}},source:'season-end',war:assessment,seasonRank:{version:1,year,role:'starter',level,war:0,rank,total:10,grade}};
+  return {year,date:`${year}-10-31`,score:71,grade,cumulative:null,cumulativeGrade:'—',ability:70,role:'선발',squad:level,developmental:false,reserveSeason:false,firstTeam:level==='first',secondOnly:level==='second',firstGames:100,honorRegistration:{seasonDays:100,firstDaysByClub:level==='first'?{0:90}:{}},source:'season-end',war:assessment,seasonRank:{version:2,year,role:'starter',level,war:0,rank,total:10,grade}};
 }
 test('career totals include the same deduplicated MVP, gold glove, title and national bonuses as retired-number criteria',()=>{
  const s=structuredClone(template),p=e.getPlayer(s),club=p.teamId%10;s.calendar.seasonYear=2030;s.date='2030-10-31';
@@ -100,6 +100,19 @@ test('historical role changes use each saved rank; level WAR sums include fieldi
   p.professional.rookieYear=2027;p.professional.assessments=[first,second];p.position='SS';
   const result=c.playerCareerEvaluation(p);assert.equal(result.first.score,85);assert.equal(result.first.war,5.3);assert.equal(result.second.war,1.5);
 });
+
+test('only cumulative evaluations discount farm WAR, including mixed seasons, negative WAR and relief scaling',()=>{
+ for(const [farm,role,scale]of [[4,'센터라인',1],[-2,'센터라인',1],[4,'마무리',3]]){
+  const season=row(2030,1,'second');season.role=role;season.seasonRank.role=role==='마무리'?'bullpen':'batter';
+  if(role==='마무리')season.war.second.pitching=farm;else season.war.second.batting=farm;
+  const expected=farm*scale*.35,result=c.evaluateCareer([season],'first');
+  assert.ok(Math.abs(result.creditedWar-expected)<1e-9);
+  assert.ok(Math.abs(c.evaluateCareer([season],'second').creditedWar-expected)<1e-9);
+  assert.equal(c.evaluateCareer([season],'second').war,farm*scale);
+  season.seasonRank.level='first';season.war.first.batting=3;season.honorRegistration={seasonDays:100,firstDaysByClub:{0:90}};
+  assert.ok(Math.abs(c.evaluateCareer([season],'first').creditedWar-(3+expected))<1e-9);
+ }
+});
 test('retirement ceremonies still use first-team career grade independently of retired-number WAR',()=>{
   const s=structuredClone(template),p=e.getPlayer(s),pro=p.professional,club=pro.contract.club;
   pro.rookieYear=2030;pro.firstClub=club;pro.service=[{club,from:2030,to:2050}];pro.movements=[];pro.contract.endYear=2050;p.teamId=club;s.calendar.seasonYear=2050;s.proWorld.seasonClosed=true;
@@ -124,7 +137,7 @@ test('season and career numbers share the role-percentile scale across the live 
   p.professional.rookieYear=2027;p.professional.assessments=[row(2030,1),row(2031,6),row(2032,10)];
   p.career=[{year:2030,careerMode:'pro',schoolId:11},{year:2031,careerMode:'pro',schoolId:7}];
   const before=structuredClone(p.professional.assessments),summary=careerContractSummary(s);
-  assert.equal(summary.seasonScore,10);assert.equal(summary.seasonGrade,'F');
+  assert.equal(summary.seasonScore,10);assert.equal(summary.seasonGrade,'E');
   assert.ok(Math.abs(summary.cumulative-(100+50+10)/3)<1e-9);
   const html=renderToStaticMarkup(createElement(Summary,{state:s}));
   assert.match(html,/2030<\/th><td>서울 트윈스<\/td>/);

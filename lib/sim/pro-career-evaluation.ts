@@ -1,7 +1,7 @@
 import {buildCareerHonorBonusIndex,careerHonorBonusYears} from './career-honor-bonus';
 import type {GameState,Player,ProLevel} from './types';
 import type {ProSeasonAssessment,ProSeasonRank} from './pro-types';
-import {levelWarValue} from './pro-war';
+import {levelWarValue,proWarRules} from './pro-war';
 
 export const isBullpenSeason=(row:{role:string;seasonRank?:{role:string}})=>['불펜','중간계투','마무리'].includes(row.role)||['bullpen','reliever','closer'].includes(row.seasonRank?.role??'');
 
@@ -48,7 +48,10 @@ export function evaluateCareer(rows:CareerSeason[],level:ProLevel,year=Infinity,
     const values=rows.flatMap(row=>{const value=seasonWar(row);return value===undefined?[]:[value];});
     return values.length?values.reduce((sum,value)=>sum+value,0):null;
   };
-  const creditedWar=totalWar(ranked);
+  const rawCredit=totalWar(ranked),levelCredit=rawCredit===null?null:rawCredit*(level==='second'?proWarRules.farmWeight:1);
+  const farmValues=level==='first'?valid.flatMap(row=>row.war?[levelWarValue(row.war.second,isBullpenSeason(row))*proWarRules.farmWeight]:[]):[];
+  const farmCredit=farmValues.reduce((sum,n)=>sum+n,0);
+  const creditedWar=levelCredit===null?(farmCredit!==0?farmCredit:null):levelCredit+farmCredit;
   const cumulativeWar=creditedWar===null?(awardBonus>0?awardBonus:null):creditedWar+awardBonus;
   return {level,score,creditedWar,awardBonus,grade:careerWarGrade(cumulativeWar),average,peak,seasons:ranked.length,war:totalWar(seasons),cumulativeWar,unranked:valid.filter(row=>!row.seasonRank).length,reconstructed:ranked.filter(row=>row.seasonRank?.basis==='retained-records').length};
 }

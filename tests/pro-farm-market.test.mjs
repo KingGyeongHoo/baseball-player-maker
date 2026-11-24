@@ -29,21 +29,24 @@ function faFixture(level='first'){
  return s;
 }
 
-test('farm depth supplies reserve starters and essential positions without borrowing the first team or inventing past stats',()=>{
+test('farm depth repairs registration gaps using surplus first-team players before reserves without inventing past stats',()=>{
  const s=fixture();s.proWorld.stage='regular';s.date='2028-04-01';
  for(const p of s.players)if(p.teamId===10&&['SP','C','RF'].includes(p.position))p.teamId=20;
- const first=s.players.filter(p=>p.teamId===0).map(p=>p.id),records=structuredClone(e.getPlayer(s).seasonStats);
+ const first=s.players.filter(p=>p.teamId===0),records=structuredClone(e.getPlayer(s).seasonStats);
+ const surplusStarter=first.filter(p=>p.position==='SP').sort((a,b)=>e.selectionScore(a)-e.selectionScore(b)||a.id.localeCompare(b.id))[0];
  farm.ensurePlayableFarmRosters(s,[0]);
  const roster=farmGameRoster(s,10),lineup=world.professionalLineup(s,roster,s.date);
  assert.ok(roster.filter(p=>p.position==='SP').length>=5);assert.ok(roster.filter(p=>p.position==='RP').length>=5);
  assert.equal(lineup.field.length,9);assert.ok(lineup.starter);assert.ok(roster.length<=45);
- assert.deepEqual(s.players.filter(p=>p.teamId===0).map(p=>p.id),first);assert.deepEqual(e.getPlayer(s).seasonStats,records);
+ assert.equal(surplusStarter.teamId,10);assert.deepEqual(s.players.filter(p=>p.teamId===0).map(p=>p.id),first.filter(p=>p!==surplusStarter).map(p=>p.id));assert.deepEqual(e.getPlayer(s).seasonStats,records);
  const before=JSON.stringify(s);assert.equal(farm.ensurePlayableFarmRosters(s,[0]),false);assert.equal(JSON.stringify(s),before);
 });
 
 test('farm shortages recruit or reassign genuine pitchers within capacity and budget, with guaranteed pay preserved',()=>{
  const s=fixture();s.proWorld.stage='regular';s.date='2028-04-01';
+ s.proWorld.seasonClosed=true;
  for(const p of s.players.filter(p=>p.teamId>=10&&p.teamId%10===0&&['SP','RP'].includes(p.position)))market.releasePlayer(s,p,'test shortage',2028);
+ s.proWorld.seasonClosed=false;
  const budget=s.proWorld.clubs[0].budget;s.proWorld.clubs[0].budget=1e12;
  farm.ensurePlayableFarmRosters(s,[0]);
  const roster=farmGameRoster(s,10);
@@ -60,6 +63,7 @@ test('a forfeited farm season defers developmental rejection and cumulative refu
  const games=s.calendar.events.filter(g=>g.competitionId==='pro-second'&&[g.homeTeamId,g.awayTeamId].includes(club+10));
  for(const g of games){g.status='forfeit';g.forfeitTeamId=club+10;}
  games.slice(0,3).forEach(g=>g.status='completed');
+ p.seasonByLevel.second.games={batting:1};
  const row=assess.recordSeasonAssessment(s,p);assert.equal(row.clubGamesShortage,true);
  assert.equal(row.cumulative,null);assert.equal(assess.seasonExit(p,2028),null);assert.equal(assess.renewalAssessment(p,2028).seasons,0);
  p.professional.assessments=[];p.professional.developmentalRetry.deadlineYear=2028;games.forEach(g=>g.status='completed');
@@ -129,7 +133,7 @@ test('v4 refreshes unsigned legacy FA durations once and preserves signed contra
  for(const o of s.proWorld.market.offers)o.years=1;
  const signed=structuredClone(p.professional.contract);
  assert.equal(market.upgradeContractRules(s),true);
- assert.equal(s.proWorld.contractRulesVersion,5);
+ assert.equal(s.proWorld.contractRulesVersion,7);
  assert.ok(s.proWorld.market.offers.every(o=>o.years>=2));
  assert.deepEqual(p.professional.contract,signed);
  const snapshot=JSON.stringify(s);assert.equal(market.upgradeContractRules(s),false);assert.equal(JSON.stringify(s),snapshot);
@@ -235,12 +239,11 @@ test('relief-role guarantees change bullpen roles and priority without bypassing
 function releasedDepthFixture(trial=false){
  const s=faFixture('second'),p=e.getPlayer(s),club=(p.teamId%10+1)%10;
  market.releasePlayer(s,p,'test release',2029);s.players=[p];
+ for(let i=0;i<1000;i++){s.seed=`released-market-${i}`;if(e.hash(`${s.seed}:release-market:2029:${p.id}`)%100<5)break;}
  for(const key of Object.keys(p.stats))p.stats[key]=60;
  p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};p.seasonSpring=e.emptyRecord();
  if(trial){
   p.professional.nonRenewal={year:2028,kind:'post-rookie-evaluation',reason:'test season-grade refusal',club:(club+9)%10};p.age=24;p.professional.assessments=[{year:2028,score:65}];
-  for(let i=0;i<1000;i++){s.seed=`released-depth-${i}`;if(e.hash(`${s.seed}:reentry:2029:${p.id}:${club}`)%100<15)break;}
-  assert.ok(e.hash(`${s.seed}:reentry:2029:${p.id}:${club}`)%100<15);
  }
  return {s,p,club};
 }

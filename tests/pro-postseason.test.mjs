@@ -123,7 +123,7 @@ test('third-squad, developmental and unavailable farm stars cannot take special 
  for(const p of [third,dev,injured])assert.ok(!round(s,'wildcard').rosters['3'].includes(p.id));
 });
 
-test('expanded registrations survive saving and next camp, then the current three lowest ratings are cut at opening',()=>{
+test('expanded registrations survive saving and next camp, then three lowest eligible ratings are cut while preserving required positions',()=>{
  let s=fixture();life.closeProfessionalSeason(s);for(const p of s.players)if(p.professional.contract)p.professional.contract.endYear=2035;
  s.careerNotice=null;s.noticeQueue=[];life.startNextProSeason(s);const club=3,first=s.players.filter(p=>p.teamId===club);
  assert.equal(first.length,32);world.ensureProWorld(s);assert.equal(s.players.filter(p=>p.teamId===club).length,32);
@@ -134,8 +134,9 @@ test('expanded registrations survive saving and next camp, then the current thre
  s=decodeCareerSave(JSON.stringify(encodeCareerSave(s,false))).state;assert.ok(s.proWorld.postseasonExpansion);
  s.date=opening;const before=new Map(s.players.map(p=>[p.id,p.teamId]));world.reviewLeagueRegistrations(s);
  assert.equal(s.players.filter(p=>p.teamId===club).length,29);assert.equal(s.players.filter(p=>before.get(p.id)===club&&p.teamId===club+10).length,3);
- for(const p of lowest)assert.equal(s.players.find(q=>q.id===p.id).teamId,club+10);
- assert.equal(s.postSchool.pro.level,'second');assert.equal(s.careerNotice.kind,'demoted');assert.equal(s.careerNotice.message.split("\n\n").length,3);for(const p of lowest)assert.ok(s.careerNotice.message.includes(`[말소] ${p.name}`));
+ const demoted=s.players.filter(p=>before.get(p.id)===club&&p.teamId===club+10);
+ assert.ok(s.players.filter(p=>p.teamId===club&&p.position==='SP').length>=5);
+ assert.equal(s.postSchool.pro.level,'second');assert.equal(s.careerNotice.kind,'demoted');assert.equal(s.careerNotice.message.split("\n\n").length,3);for(const p of demoted)assert.ok(s.careerNotice.message.includes(`[말소] ${p.name}`));
  assert.equal(s.proWorld.postseasonExpansion,undefined);const registrations=s.players.map(p=>p.teamId);
  assert.deepEqual(postRoster.trimPostseasonRostersForOpening(s),[]);assert.deepEqual(s.players.map(p=>p.teamId),registrations);
  world.ensureProWorld(s);world.reviewLeagueRegistrations(s);assert.deepEqual(s.players.map(p=>p.teamId),registrations,'loading or acknowledging the notice cannot undo the final opening roster');

@@ -19,10 +19,6 @@ export const proWarRules = {
   scoreAtZero: 71,
   scorePerWin: 2,
   farmWeight: 0.35,
-  farmMaxWins: 2,
-  battingSeasonPA: 600,
-  starterSeasonOuts: 540,
-  relieverSeasonOuts: 180,
   relieverWinScale: 3,
   fieldingRunValue: 0.75,
   positionalRuns: { C:12.5,SS:7.5,CF:2.5,"2B":2.5,"1B":-12.5,"3B":2.5,LF:-7.5,RF:-7.5,DH:-17.5 },
@@ -115,11 +111,14 @@ export function proWarAssessment(p: Player, context: ProWarContext = {
   const second = warLine(p.seasonByLevel?.second, context.second);
   const pitchingPosition = p.twoWay?.pitchingPosition ?? p.position;
   const relief = pitchingPosition === "RP" || pitchingPosition === "CP";
-  const firstCoverage=clamp(first.pa/rules.battingSeasonPA+first.outs/(relief?rules.relieverSeasonOuts:rules.starterSeasonOuts),0,1);
-  const farmWins=Math.min(rules.farmMaxWins,levelWarValue(second,relief)*rules.farmWeight)*(1-firstCoverage);
-  const equivalentWins=levelWarValue(first,relief)+farmWins;
+  const equivalentWins=levelWarValue(first,relief)+levelWarValue(second,relief);
   const score=clamp(rules.scoreAtZero+rules.scorePerWin*equivalentWins,0,100);
-  return { version: 1, score, equivalentWins, first, second };
+  return { version: 2, score, equivalentWins, first, second };
+}
+
+export function emptyProWarAssessment():ProWarAssessment{
+  const line:ProWarLine={batting:0,pitching:0,fielding:0,positional:0,pa:0,outs:0,bf:0,fieldingChances:0,fieldingOuts:0};
+  return {version:2,score:rules.scoreAtZero,equivalentWins:0,first:{...line},second:{...line}};
 }
 
 export function levelWarValue(line:ProWarLine,relief:boolean){
@@ -143,7 +142,7 @@ export function firstTeamClubWar(p:Player,context:ProWarContext){
 export function validProWarAssessment(value: unknown): value is ProWarAssessment {
   if (!value || typeof value !== "object") return false;
   const w = value as ProWarAssessment;
-  return w.version === 1 && Number.isFinite(w.score) && w.score>=0 && w.score<=100 && Number.isFinite(w.equivalentWins)
+  return (w.version === 1||w.version===2) && Number.isFinite(w.score) && w.score>=0 && w.score<=100 && Number.isFinite(w.equivalentWins)
     && Math.abs(w.score-clamp(rules.scoreAtZero+rules.scorePerWin*w.equivalentWins,0,100))<1e-7
     && [w.first, w.second].every(r => r && [r.batting,r.pitching,r.fielding,r.positional].every(Number.isFinite)
       && [r.pa, r.outs, r.bf,r.fieldingChances,r.fieldingOuts].every(n => Number.isInteger(n) && n >= 0));

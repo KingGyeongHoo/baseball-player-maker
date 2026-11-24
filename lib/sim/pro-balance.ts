@@ -1,4 +1,4 @@
-import {addDays,available,hash,params,pitchingRole,roleScore,selectionScore} from './engine';
+import {addDays,available,hash,params,pitchingRole,roleScore,gameSelectionScore} from './engine';
 import type {Game,GameState,Player} from './types';
 import {guaranteedProStarter} from './pro-positions';
 import {farmSelectionTier,proGameTeam} from './pro-farm-roster';
@@ -63,7 +63,7 @@ export function proReliefPriority(p:Player,date:string,inning:number,lead:number
   const outings=record.games?.pitching??record.pitching.outs/3,innings=record.pitching.outs/3;
   const closing=p.id===closerId;
   const excess=Math.max(0,outings-(closing?59.5:56)*Math.min(1,(teamGames+1)/144));
-  return -1000*farmSelectionTier(p)+selectionScore(p,role)*.35+(guaranteedProStarter(p,p.position,date)?15:0)+(closing?(save?100:-200):15)
+  return -1000*farmSelectionTier(p)+gameSelectionScore(p,role,date)*.35+(guaranteedProStarter(p,p.position,date)?15:0)+(closing?(save?100:-200):15)
     +(p.id===setupId&&inning>=7&&inning<9&&lead>=1&&lead<=3?15:0)
     +(p.id===bridgeId&&inning>=6&&inning<7?10:0)+(p.id===longReliefId&&inning<5?15:0)
     -(days<=1?30:days<3?8:0)-outings*.65-innings*.35-excess*(closing?25:8);
@@ -99,7 +99,7 @@ export function proRotationStarter(s:GameState,pitchers:Player[],date:string){
   const ready=starters.slice(0,5).filter(p=>proStarterReady(s,p,date,team));
   const backup=starters.slice(5).find(p=>proStarterReady(s,p,date,team));
   if(backup&&!ready.length)return backup;
-  if(ready.length)return ready.sort((a,b)=>farmSelectionTier(a)-farmSelectionTier(b)||(starts.get(a.id)??0)-(starts.get(b.id)??0)||selectionScore(b,pitchingRole(b))-selectionScore(a,pitchingRole(a))||a.id.localeCompare(b.id))[0];
+  if(ready.length)return ready.sort((a,b)=>farmSelectionTier(a)-farmSelectionTier(b)||(starts.get(a.id)??0)-(starts.get(b.id)??0)||gameSelectionScore(b,pitchingRole(b),date)-gameSelectionScore(a,pitchingRole(a),date)||a.id.localeCompare(b.id))[0];
   // A vacancy must be covered by a genuine reserve starter. Neither an opener
   // nor a closer can bypass the rotation's role and rest requirements.
   return undefined;

@@ -1,11 +1,12 @@
 "use client";
+import {isSuppressedAwardCelebration,pendingSeasonAwards} from '../../lib/sim/pro-awards-ceremony';
 import {needsCareerHonorUpgrade} from '../../lib/sim/career-honor-upgrade';
 import {leaderQualification} from "../../lib/league-leaders";
 import PlayerEvaluationButton from "./player-evaluation";
 import { scoreText } from "../../lib/display";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { answerCareerEvent, dateLabel, getPlayer, validPolicy,draftRoleLabel } from "../../lib/sim/engine";
-import { careerLabel, developmentProgress } from "../../lib/sim/pro-career";
+import { acknowledgeCareer,careerLabel, developmentProgress } from "../../lib/sim/pro-career";
 import {createProWarContext} from '../../lib/sim/pro-war';
 import { AutoProgress, acceptedNationalInvitation, autoPauseReason, autoWaitingForDecision, cancelPendingSimulation } from "../../lib/auto-progress";
 import {restoreWorkerState,workerStateInput} from "../../lib/sim/worker-state";
@@ -71,6 +72,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const resetPending=useRef(false);
   const [autoProgress]=useState(()=>new AutoProgress());
   useEffect(()=>{
+    if(isSuppressedAwardCelebration(state.careerNotice)){onChange(acknowledgeCareer(state));return;}
     if(state.careerMode!=="pro"||state.proWorld&&state.proClubNamesVersion===2&&!needsPostseasonUpgrade(state)&&!needsProScheduleUpgrade(state)&&!needsProSquadUpgrade(state)&&!needsContractUpgrade(state)&&!needsAllstarScheduleUpgrade(state)&&!needsNationalInvitationUpgrade(state)&&!needsCareerHonorUpgrade(state))return;
     const scheduled=setTimeout(()=>{
       autoProgress.pause();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);setAuto(false);setOutcome(null);
@@ -157,7 +159,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
         {!!state.draft.length&&<details className="panel pro-archive"><summary>{state.postSchool?.graduationYear} 고교 드래프트 기록</summary><DraftRoundTable players={state.players} picks={state.draft} playerId={p.id} year={state.postSchool?.graduationYear??state.calendar.seasonYear} onSelect={setDraftPick}/></details>}
       </>}
     </main><footer className="site-footer"><div><span className="footer-brand">BASEBALL LIFE.</span><span>고교에서 프로까지, 나의 야구 인생</span><span>가상 구단·게임용 일정</span></div></footer>
-    {<ProgressControls state={state} policy={policy} busy={busy} auto={auto} autoStartWeek={autoStartWeek} pendingOutcome={!!outcome} onContinue={()=>setTab(state.proWorld?.stage==="retired"?"home":"career")} onStove={state.proWorld?.pendingRetirement?()=>onAction({type:"market"}):undefined} nationalAction={nationalAction?{...nationalAction,onClick:()=>onAction({type:'national'})}:undefined} onNextCamp={canEnterNextProCamp(state)?()=>onAction({type:"nextSeason"}):undefined} onAdvance={advance} onToggleAuto={()=>{if(auto)stop();else{setAutoStartWeek(state.week);autoProgress.start();setAuto(true);}}}/>}
+    {<ProgressControls state={state} policy={policy} busy={busy} auto={auto} autoStartWeek={autoStartWeek} pendingOutcome={!!outcome} onContinue={()=>setTab(state.proWorld?.stage==="retired"?"home":"career")} onStove={state.proWorld?.seasonClosed&&!state.proWorld.stove&&!nationalAction?()=>onAction({type:pendingSeasonAwards(state)?"awards":"market"}):undefined} nationalAction={nationalAction?{...nationalAction,onClick:()=>onAction({type:'national'})}:undefined} onNextCamp={canEnterNextProCamp(state)?()=>onAction({type:"nextSeason"}):undefined} onAdvance={advance} onToggleAuto={()=>{if(auto)stop();else{setAutoStartWeek(state.week);autoProgress.start();setAuto(true);}}}/>}
     {state.careerNotice&&!(tab==="career"&&state.careerMode==="college"&&ended)&&<CareerNoticeDialog state={state} onChange={onChange}/>}
     {(state.careerEvent||outcome)&&<CareerEventDialog state={state} event={state.careerEvent??null} outcome={outcome} disabled={busy} onRecover={()=>{autoProgress.cancelScheduled();cancelPendingSimulation({worker,request,locked,timer});setBusy(false);}} onDone={finishEventOutcome} onChoose={id=>{if(locked.current||!state.careerEvent)return false;const next=answerCareerEvent(state,id);if(state.careerEvent.definitionId.startsWith('AS-RESULT-')){delete next.pendingEventOutcome;onChange(next);setOutcome(null);return true;}next.pendingEventOutcome=next.careerEventHistory!.at(-1)!;if(next.phase!=='ended'&&acceptedNationalInvitation(state,next)){setAutoStartWeek(next.week);autoProgress.start();setAuto(true);}onChange(next);setOutcome(next.pendingEventOutcome);return true;}}/>}
 

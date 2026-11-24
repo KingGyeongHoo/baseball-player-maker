@@ -26,18 +26,18 @@ export default function ProAssessments({state}:{state:GameState}){
     ...proSeasons.map(row=>row.year),
   ].filter(year=>year<=state.calendar.seasonYear)).size;
   return <div className="compact-contract" aria-label="계약 요약과 시즌별 평가"><div className="compact-contract-metrics">
-    <div><span>시즌 평가</span><div className="contract-assessment-value"><b>{summary.seasonScore===null?'미평가':summary.seasonScore.toFixed(1)}</b><SeasonGradeBadge score={summary.seasonScore} grade={summary.seasonGrade} rank={summary.seasonRank} war={summary.war?.equivalentWins}/></div></div>
+    <div><span>시즌 평가</span><div className="contract-assessment-value"><b>{summary.seasonScore===null?'미평가':summary.seasonScore.toFixed(1)}</b><SeasonGradeBadge score={summary.seasonScore} grade={summary.seasonGrade} rank={summary.seasonRank} war={summary.war?.equivalentWins} noAppearances={summary.noAppearances}/></div></div>
     <CareerMetric label="누적 평가" evaluation={summary.career.first} totalSeasons={totalSeasons}/>
     <div><span>남은 계약 기간</span><b>{summary.seasons?`${summary.seasons}시즌`:pro?.contract?"계약 만료":"미계약"}</b></div>
     <div><span>연봉</span><b>{salaryText(summary.salary)}</b></div>
   </div>{rows.length>0&&<details className="contract-season-evaluations"><summary>시즌별 평가 · {rows.length}시즌</summary><div className="table-scroll"><table><thead><tr>{['시즌','팀명','시즌평가','점수','연봉','최종 등록'].map(label=><th key={label}>{label}</th>)}</tr></thead><tbody>{rows.map(row=>{
     const salary=row.salary!==undefined?row.salary:pro?.salaries.filter(item=>item.year===row.year).at(-1)?.salary??null;
-    const score=seasonPercentile(row.seasonRank);
+    const score=row.noAppearances?0:seasonPercentile(row.seasonRank);
     const archived=proSeasons.find(season=>season.year===row.year);
     const stint=pro?.service.findLast(item=>item.from<=row.year&&row.year<=item.to);
     const teamId=archived?.schoolId??stint?.club;
     const teamName=teamId!==undefined&&teamId>=0?proClubNames[teamId%10]:archived?.schoolName;
-    return <tr key={row.year}><th scope="row">{row.year}</th><td>{row.squad?teamName??'—':'무소속'}</td><td><SeasonGradeBadge score={score} grade={row.grade} rank={row.seasonRank} war={row.war?.equivalentWins}/>{row.clubGamesShortage&&<small> · 구단 경기 부족 · 재계약 심사 보류</small>}</td><td>{score===null?'—':score.toFixed(1)}</td><td>{salaryText(salary)}</td><td>{row.squad?squads[row.squad]:'무소속'}</td></tr>;
+    return <tr key={row.year}><th scope="row">{row.year}</th><td>{row.squad?teamName??'—':'무소속'}</td><td><SeasonGradeBadge score={score} grade={row.grade} rank={row.seasonRank} war={row.war?.equivalentWins} noAppearances={row.noAppearances}/>{row.clubGamesShortage&&<small> · 구단 경기 부족 · 재계약 심사 보류</small>}</td><td>{score===null?'—':score.toFixed(1)}</td><td>{salaryText(salary)}</td><td>{row.squad?squads[row.squad]:'무소속'}</td></tr>;
   })}</tbody></table></div></details>}
   </div>;
 }

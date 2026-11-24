@@ -63,6 +63,50 @@ test('legacy DH qualification uses recorded game box scores, never a fixed DH re
  assert.equal(dhWinner(s),undefined,'a legacy substitute registered as DH has no proof of the actual batting slot');
 });
 function closed(){const s=fixture();life.closeProfessionalSeason(s);return pc.acknowledgeCareer(s);}
+test('season close and the separate awards action defer releases until the stove button',()=>{
+ let s=fixture(),p=e.getPlayer(s);p.age=26;p.professional.rookieYear=2020;
+ const assessment=require('../.test-build/lib/sim/pro-assessment.js');
+ const row=assessment.recordSeasonAssessment(s,p);delete row.noAppearances;row.war.equivalentWins=-2;row.war.score=67;
+ row.seasonEvaluation=require('../.test-build/lib/sim/pro-season-evaluation.js').seasonEvaluation(row.war);row.score=row.seasonEvaluation.score;
+ life.closeProfessionalSeason(s);
+ assert.equal(p.professional.employment,'active');assert.equal(s.proWorld.stove,undefined);
+ assert.equal(ceremonies.seasonEndActionLabel(s),'골든글러브 시상식');
+ const before=s.proWorld.news.filter(n=>/방출|은퇴/.test(n.text)).length;
+ while(s.careerNotice)s=pc.acknowledgeCareer(s);
+ s=life.actOnProCareer(s,{type:'awards'});
+ assert.equal(s.careerNotice.code,`awards:${s.proWorld.year}`);
+ assert.equal(e.getPlayer(s).professional.employment,'active');assert.equal(s.proWorld.stove,undefined);
+ while(s.careerNotice)s=pc.acknowledgeCareer(s);
+ assert.equal(ceremonies.seasonEndActionLabel(s),'스토브리그');
+ assert.equal(s.proWorld.news.filter(n=>/방출|은퇴/.test(n.text)).length,before);
+ const loaded=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;
+ assert.equal(e.getPlayer(loaded).professional.employment,'active');
+ s=life.actOnProCareer(loaded,{type:'market'});
+ assert.ok(s.proWorld.stove);assert.equal(e.getPlayer(s).professional.employment,'freeAgent');
+ assert.ok([s.careerNotice,...s.noticeQueue??[]].some(n=>n?.title==='방출되었습니다'));
+});
+
+test('a retirement-eligible player finishes awards before retirement is announced at the stove action',()=>{
+ let s=fixture(),p=e.getPlayer(s);p.age=42;
+ life.closeProfessionalSeason(s);assert.equal(p.professional.employment,'active');assert.equal(s.proWorld.pendingRetirement,undefined);
+ while(s.careerNotice)s=pc.acknowledgeCareer(s);
+ s=life.actOnProCareer(s,{type:'awards'});
+ while(s.careerNotice)s=pc.acknowledgeCareer(s);
+ assert.equal(e.getPlayer(s).professional.employment,'active');
+ s=life.actOnProCareer(s,{type:'market'});
+ assert.equal(e.getPlayer(s).professional.employment,'retired');
+});
+
+test('season-end dashboard and contract buttons change from awards to stove after the presentations',()=>{
+ let s=closed();while(s.careerNotice)s=pc.acknowledgeCareer(s);
+ const Controls=require('../.test-build/app/components/progress-controls.js').default;
+ const Panel=require('../.test-build/app/components/pro-career-panels.js').ProContractPanel;
+ const controls=()=>renderToStaticMarkup(createElement(Controls,{state:s,policy:e.getPlayer(s).trainingPolicy,busy:false,auto:false,autoStartWeek:0,onAdvance(){},onToggleAuto(){},onStove(){}}));
+ const panel=()=>renderToStaticMarkup(createElement(Panel,{state:s,disabled:false,onAction(){},onRetire(){}}));
+ assert.match(controls(),/>골든글러브 시상식<\/button>/);assert.match(panel(),/>골든글러브 시상식 →<\/button>/);
+ s=life.actOnProCareer(s,{type:'awards'});while(s.careerNotice)s=pc.acknowledgeCareer(s);
+ assert.match(controls(),/>스토브리그<\/button>/);assert.match(panel(),/>스토브리그 →<\/button>/);
+});
 function dismissSeasonAwards(s){
  s=pc.acknowledgeCareer(pc.acknowledgeCareer(s));
  return s.careerNotice?.code?.startsWith('club-award:')?pc.acknowledgeCareer(s):s;
@@ -131,6 +175,22 @@ test('loading removes an active or queued individual gold glove celebration with
  s.careerNotice=legacy;
  const active=load(s);assert.equal(active.careerNotice.id,'next-notice');assert.equal(active.noticeQueue.length,0);
  assert.ok(active.proWorld.seasons[0].awards.some(award=>award.category==='goldGlove'&&award.playerId===s.playerId));
+});
+
+test('second-team MVP remains in season awards without a personal modal and old saved copies are skipped',()=>{
+ const s=closed(),season=s.proWorld.seasons[0];
+ season.awards=season.awards.filter(a=>a.category!=='mvp'||a.level!=='second');
+ season.awards.push({year:season.year,kind:'2군 시즌 MVP',category:'mvp',level:'second',playerId:s.playerId,playerName:e.getPlayer(s).name,club:e.getPlayer(s).teamId%10,value:3});
+ s.date=season.awardsCeremony.scheduledAt;ceremonies.presentAwardsCeremony(s,true);
+ assert.ok(season.awards.some(a=>a.category==='mvp'&&a.level==='second'&&a.playerId===s.playerId));
+ assert.ok(![s.careerNotice,...s.noticeQueue??[]].some(n=>n?.award?.title==='2군 MVP'));
+ const legacy={id:'old-second-mvp',date:s.date,kind:'pro',code:`award-celebration:${season.year}:mvp:second`,title:`${season.year}년 2군 MVP를 획득했다!!`,message:'',award:{year:season.year,title:'2군 MVP',bonus:1.5,after:72}};
+ const other={id:'following-notice',date:s.date,kind:'pro',title:'다음 안내',message:''};
+ const load=state=>save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(state))).state;
+ s.noticeQueue=[legacy,other];const queued=load(s);
+ assert.ok(!queued.noticeQueue.some(n=>n.id===legacy.id));assert.ok(queued.noticeQueue.some(n=>n.id===other.id));
+ s.careerNotice=legacy;const active=load(s);assert.equal(active.careerNotice.id,other.id);
+ assert.ok(active.proWorld.seasons[0].awards.some(a=>a.category==='mvp'&&a.level==='second'&&a.playerId===s.playerId));
 });
 
 test('winner presentation uses snapshotted season records even after an offseason position or club change',()=>{

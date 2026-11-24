@@ -9,15 +9,23 @@ import type {GameState} from "./types";
 import {refreshSeasonEvaluations} from './pro-season-evaluation';
 
 export const awardsDate=(year:number)=>`${year}-12-06`;
+export function pendingSeasonAwards(s:GameState){
+  const w=s.proWorld,season=w?.seasons.find(row=>row.year===w.year);
+  return !!w?.seasonClosed&&!!season&&!season.awardsCeremony?.presentedAt&&s.date<=`${w.year}-12-31`;
+}
+export const seasonEndActionLabel=(s:GameState)=>pendingSeasonAwards(s)?'골든글러브 시상식':'스토브리그';
 export function isGoldGloveCelebration(notice:GameState['careerNotice']){
   return !!notice?.award&&(/^award-celebration:\d{4}:goldGlove:/.test(notice.code??'')||notice.award.title.endsWith('골든글러브'));
+}
+export function isSuppressedAwardCelebration(notice:GameState['careerNotice']){
+  return isGoldGloveCelebration(notice)||!!notice?.award&&(notice.award.title==='2군 MVP'||/^award-celebration:\d{4}:mvp:second$/.test(notice.code??''));
 }
 
 export function queuePersonalAwardNotices(s:GameState,year:number,beforeScore?:number){
   const season=s.proWorld?.seasons.find(row=>row.year===year),ceremony=season?.awardsCeremony;
   if(!season||!ceremony?.presentedAt)return;
   const p=getPlayer(s),order=['mvp','rookie'];
-  const owned=season.awards.filter(award=>award.playerId===p.id&&order.includes(award.category??'')).sort((a,b)=>order.indexOf(a.category!)-order.indexOf(b.category!));
+  const owned=season.awards.filter(award=>award.playerId===p.id&&order.includes(award.category??'')&&!(award.category==='mvp'&&award.level==='second')).sort((a,b)=>order.indexOf(a.category!)-order.indexOf(b.category!));
   let cursor=beforeScore;
   const after=p.professional?.assessments?.find(row=>row.year===year)?.score??0;
   const notices:NonNullable<GameState['careerNotice']>[]=ceremony.celebrationsQueued?[]:owned.map(award=>{
@@ -31,7 +39,7 @@ export function queuePersonalAwardNotices(s:GameState,year:number,beforeScore?:n
   ceremony.celebrationsQueued=true;
   // The season summary already contains every title holder. Discard old queued copies.
   ceremony.individualTitlesQueued=true;
-  if(s.noticeQueue)s.noticeQueue=s.noticeQueue.filter(notice=>!notice.individualTitles&&!notice.code?.startsWith('individual-titles:')&&!isGoldGloveCelebration(notice));
+  if(s.noticeQueue)s.noticeQueue=s.noticeQueue.filter(notice=>!notice.individualTitles&&!notice.code?.startsWith('individual-titles:')&&!isSuppressedAwardCelebration(notice));
   if(!notices.length)return;
   const queue=s.noticeQueue??=[];
   const lastAwardIndex=queue.reduce((last,notice,index)=>notice.code===`awards:${year}`||notice.code===`awards-summary:${year}`||notice.award?.year===year?index:last,-1);

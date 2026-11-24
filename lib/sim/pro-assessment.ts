@@ -4,12 +4,13 @@ import { rosterGrade } from "../roster-grades";
 import { proContractRules as rules } from "./pro-contract-rules";
 import type { GameState, Player, ProSquad, RecordLine } from "./types";
 import type { ProSeasonAssessment } from "./pro-types";
-import { createProWarContext, firstTeamClubWar, proWarAssessment, type ProWarContext } from "./pro-war";
+import { createProWarContext, emptyProWarAssessment, firstTeamClubWar, proWarAssessment, type ProWarContext } from "./pro-war";
 import {proSeasonForm} from "./pro-selection";
 import {farmSeasonGames} from './pro-farm-schedule';
 import {recordHonorRegistration,regularSeasonDays} from './retirement-honors';
 import {seasonEvaluation} from './pro-season-evaluation';
 import {playerCareerEvaluation} from './pro-career-evaluation';
+import {seasonRankGrade} from './pro-season-ranking';
 const squad = (id: number): ProSquad | null =>
   id < 0
     ? null
@@ -128,7 +129,12 @@ function withCumulative(
 export function hydrateAssessments(s: GameState, p: Player): boolean {
   if (!p.professional) return false;
   if (p.professional.assessments !== undefined) {
-    let changed = false;
+    let changed = normalizeUnplayedAssessments(s,p);
+    for(const row of p.professional.assessments)if(row.seasonRank?.version===1){
+      row.seasonRank.version=2;
+      row.grade=row.seasonRank.grade=seasonRankGrade(row.seasonRank.rank,row.seasonRank.total);
+      changed=true;
+    }
     for(const row of p.professional.assessments)if(conversionYear(p)===row.year){
       if(row.reserveSeason||row.developmental||row.squad==='developmental'){
         row.reserveSeason=false;row.developmental=false;
@@ -273,7 +279,7 @@ export function recordSeasonAssessment(
   const pa = (first?.batting.PA ?? 0) + (second?.batting.PA ?? 0),
     outs = (first?.pitching.outs ?? 0) + (second?.pitching.outs ?? 0);
   const context=warContext??createProWarContext(s);
-  const evaluation = currentSeasonAssessment(s, p, context), score = evaluation.score;
+  const evaluation = currentSeasonAssessment(s, p, context), noAppearances=pro.employment==='active'&&!hasSeasonAppearance(p), score = evaluation.score;
   const promoted =
     !!usage &&
     usage.upperDays >= rules.upperDays &&
@@ -308,9 +314,10 @@ export function recordSeasonAssessment(
       date: s.date,
       salary:pro.contract&&pro.contract.startYear<=s.calendar.seasonYear&&pro.contract.endYear>=s.calendar.seasonYear?pro.contract.salary:null,
       score,
-      ...(evaluation.war ? { war: evaluation.war, firstWarByClub:firstTeamClubWar(p,context) } : {}),
+      ...(noAppearances?{noAppearances:true as const}:{}),
+      ...(evaluation.war ? { war: evaluation.war, ...(!noAppearances?{firstWarByClub:firstTeamClubWar(p,context)}:{}) } : {}),
       ...(evaluation.seasonEvaluation ? { seasonEvaluation: evaluation.seasonEvaluation } : {}),
-      grade: rosterGrade(score, true),
+      grade: noAppearances?'F':rosterGrade(score, true),
       ability: roleScore(p),
       role: p.primaryRole,
       squad: squad(p.teamId),
@@ -320,7 +327,7 @@ export function recordSeasonAssessment(
       secondOnly,
       firstGames: firstGameCount(first, appearances.get(p.id)),
       honorRegistration:{seasonDays:regularSeasonDays(s),firstDaysByClub:pro.honorUsage?.year===s.calendar.seasonYear?{...pro.honorUsage.firstDaysByClub}:{},...(pro.honorUsage?.year===s.calendar.seasonYear&&pro.honorUsage.injuryDaysByClub?{injuryDaysByClub:{...pro.honorUsage.injuryDaysByClub}}:{})},
-      ...(clubGamesShortage(s,p)?{clubGamesShortage:true}:{}),
+      ...(!noAppearances&&clubGamesShortage(s,p)?{clubGamesShortage:true}:{}),
       source: "season-end",
     },
     rows,
@@ -332,15 +339,37 @@ export function recordSeasonAssessment(
   return row;
 }
 export function currentSeasonAssessment(s: GameState, p: Player, warContext?: ProWarContext) {
-  const available = p.evaluationAvailability;
-  const records = p.seasonByLevel;
-  const appeared = records && [records.first, records.second].some(r => r.batting.PA > 0 || r.pitching.BF > 0);
-  const injuredAllYear = available?.year === s.calendar.seasonYear && available.days > 0
-    && available.availableDays === 0 && available.injuredDays === available.days && !appeared;
-  if (p.professional?.employment !== "active" || injuredAllYear) return { score: null };
+  if(p.professional?.employment!=='active')return {score:null};
+  if(!hasSeasonAppearance(p)){
+    const war=emptyProWarAssessment(),evaluation=seasonEvaluation(war);
+    return {score:evaluation.score,war,seasonEvaluation:evaluation,noAppearances:true as const};
+  }
   const context=warContext??createProWarContext(s),war = proWarAssessment(p, context);
   const evaluation=seasonEvaluation(war);
   return { score: evaluation.score, war, seasonEvaluation:evaluation };
+}
+
+// Official appearances include pinch runners and defensive substitutions with
+// no PA/BF. Spring exhibitions do not count toward the completed season.
+export function hasSeasonAppearance(p:Player){
+  return [p.seasonByLevel?.first,p.seasonByLevel?.second,p.seasonStats,p.seasonPostseason,p.seasonFarmPostseason].some(r=>!!r&&(
+    r.batting.PA>0||r.pitching.BF>0||r.pitching.outs>0||(r.games?.batting??0)>0||(r.games?.pitching??0)>0
+    ||(r.batting.SB??0)>0||(r.batting.CS??0)>0||r.batting.R>0||Object.values(r.fielding?.outs??{}).some(n=>(n??0)>0)));
+}
+
+// Upgrade the earlier F-without-WAR representation after save integrity checks.
+// Only explicitly marked historical rows and the verifiable current season are changed.
+export function normalizeUnplayedAssessments(s:GameState,p:Player){
+  const rows=p.professional?.assessments;if(!rows)return false;
+  let changed=false;
+  for(const row of rows){
+    if(!row.noAppearances&&!(row.score===null&&row.year===s.calendar.seasonYear&&p.professional?.employment==='active'&&!hasSeasonAppearance(p)))continue;
+    if(row.noAppearances&&row.war?.equivalentWins===0&&row.score===71&&row.grade==='F'&&row.seasonEvaluation?.score===71&&!row.seasonRank&&!row.clubGamesShortage)continue;
+    row.noAppearances=true;row.war=emptyProWarAssessment();row.seasonEvaluation=seasonEvaluation(row.war);row.score=row.seasonEvaluation.score;row.grade='F';
+    delete row.seasonRank;delete row.clubGamesShortage;changed=true;
+  }
+  if(changed){let total=0,count=0;for(const row of [...rows].sort((a,b)=>a.year-b.year)){if(row.score!==null&&!row.clubGamesShortage){total+=row.score;count++;}row.cumulative=count?total/count:null;row.cumulativeGrade=rosterGrade(row.cumulative,true);}}
+  return changed;
 }
 // Do not make roster/schedule failures look like a player's refusal to play.
 // Only concluded games count, and the exception needs a substantial schedule
@@ -388,6 +417,11 @@ export function firstTeamDemotionMargin(p: Player, year: number) {
     (!!b && b.PA >= 40 && b.AB > 0 && b.H / b.AB >= 0.3);
   return (established ? 8 : 3) + firstTeamRetention(p, year).bonus;
 }
+function releaseWarScale(p:Player,row:ProSeasonAssessment){
+  const role=row.seasonRank?.role??row.role??(p.twoWay?.pitchingPosition??p.position);
+  return ['bullpen','reliever','closer','중간계투','마무리','RP','CP'].includes(role) ? .5 : 1;
+}
+
 export function seasonExit(
   p: Player,
   year: number,
@@ -395,6 +429,40 @@ export function seasonExit(
   kind: "post-rookie-evaluation";
   reason: string;
 } | null {
+  if((p.age??19)>=36)return veteranSeasonExit(p,year);
+  const rookie = rookieSeasonExit(p, year);
+  if (rookie !== undefined) return rookie;
+  const pro=p.professional,age=p.age??19;
+  if(!pro||pro.employment!=='active'||age<23)return null;
+  const duration=age<=27?4:age<=32?5:3;
+  const start=Math.max(year-duration+1,pro.rookieYear+3,clubReviewStart(p),
+    (pro.nonRenewal?.year??-Infinity)+1,(conversionYear(p)??-Infinity)+1,
+    pro.developmentalRetry&&p.proContract?.status==='regular'?pro.developmentalRetry.year+1:-Infinity);
+  const rows=(pro.assessments??[]).filter(row=>row.year>=start&&row.year<=year);
+  if(!rows.some(row=>row.year===year))return null;
+  const war=(row:ProSeasonAssessment)=>row.noAppearances?0:row.war?.equivalentWins??row.seasonRank?.war;
+  const grade=(row:ProSeasonAssessment)=>row.noAppearances?'F':row.seasonRank?.grade??row.grade;
+  const exit=(reason:string)=>({kind:'post-rookie-evaluation' as const,reason});
+  const severe=age<=27?-2:-1,low=age<=27?0:1,total=age<=27?3:age<=32?5:3;
+  if(rows.some(row=>war(row)!==undefined&&war(row)!<=severe))
+    return exit(`최근 ${duration}시즌 중 WAR ${severe} 이하인 시즌이 있습니다.`);
+  if(rows.filter(row=>war(row)!==undefined&&war(row)!<=low*releaseWarScale(p,row)).length>=2)
+    return exit(`최근 ${duration}시즌 중 WAR ${low} 이하인 시즌이 2회 이상입니다. (불펜 기준 ${low*.5})`);
+  if(age<=27&&rows.filter(row=>grade(row)==='F').length>=3)
+    return exit('최근 4시즌 중 시즌 등급 F가 3회 이상입니다.');
+  if(age>=28&&rows.filter(row=>['E','F'].includes(grade(row))).length>=3)
+    return exit(age<=32?'최근 5시즌 중 시즌 등급 E 이하가 3회 이상입니다.':'최근 3시즌 연속 시즌 등급 E 이하입니다.');
+  // Total WAR requires every calendar season in the window, with known WAR.
+  const complete=Array.from({length:duration},(_,i)=>rows.find(row=>row.year===year-i));
+  if(complete.every(row=>row&&war(row)!==undefined)){
+    const totalLimit=total*complete.reduce((sum,row)=>sum+releaseWarScale(p,row!),0)/duration;
+    if(complete.reduce((sum,row)=>sum+war(row!)!,0)<=totalLimit)
+      return exit(`최근 ${duration}시즌 WAR 총합이 ${totalLimit} 이하입니다. (불펜 시즌 기준 1/2 적용)`);
+  }
+  return null;
+}
+
+function veteranSeasonExit(p:Player,year:number):{kind:'post-rookie-evaluation';reason:string}|null {
   const pro = p.professional,clubStart=clubReviewStart(p),
     rows = (pro?.assessments ?? [])
       .filter((r) => r.year >= clubStart && r.year <= year)
@@ -436,7 +504,7 @@ export function seasonExit(
   const low = streak(
     (row) =>
       row.year >= pro.rookieYear + rules.rookieGraceSeasons &&
-      (row.seasonRank?.grade??rosterGrade(row.score,true)) === "F",
+      (row.noAppearances?'F':row.seasonRank?.grade??rosterGrade(row.score,true)) === "F",
   );
   return low >= duration
     ? {
@@ -446,14 +514,42 @@ export function seasonExit(
     : null;
 }
 
+// The first three professional seasons are reviewed independently of age.
+// Missing historical WAR is unknown, never silently treated as zero.
+function rookieSeasonExit(p: Player, year: number): {kind:'post-rookie-evaluation';reason:string}|null|undefined {
+  const pro=p.professional;
+  if(!pro||pro.employment!=='active')return null;
+  const seasons=year-pro.rookieYear+1;
+  if(seasons>3)return undefined;
+  if(seasons<1)return null;
+  const rows=pro.assessments??[],latest=rows.find(row=>row.year===year);
+  if(!latest)return null;
+  const war=(row:ProSeasonAssessment)=>row.noAppearances?0:row.war?.equivalentWins;
+  const first=p.career.find(row=>row.year===year&&row.careerMode==='pro')?.byLevel?.first??p.seasonByLevel?.first;
+  const pa=latest.war?.first.pa??first?.batting.PA??0;
+  const outs=latest.war?.first.outs??first?.pitching.outs??0;
+  const currentWar=war(latest);
+  const severe=-1;
+  if((pa>=60||outs>=90)&&currentWar!==undefined&&currentWar<=severe)
+    return {kind:'post-rookie-evaluation',reason:`신인 최소 출전 기준(1군 60타석 또는 30이닝)을 충족한 시즌의 WAR이 ${severe} 이하입니다.`};
+  if(seasons===3){
+    const firstThree=Array.from({length:3},(_,i)=>rows.find(row=>row.year===pro.rookieYear+i));
+    if(firstThree.every(row=>row&&war(row)!==undefined)){
+      const totalLimit=firstThree.reduce((sum,row)=>sum+releaseWarScale(p,row!),0)/3;
+      if(firstThree.reduce((sum,row)=>sum+war(row!)!,0)<=totalLimit)
+        return {kind:'post-rookie-evaluation',reason:`프로 첫 3시즌 WAR 총합이 ${totalLimit} 이하입니다.`};
+    }
+  }
+  return null;
+}
+
 export function requiresDevelopmentalOffer(p: Player, year: number) {
   const pro = p.professional,
     denied = pro?.nonRenewal;
   if (
     !denied ||
     denied.year > year ||
-    ["low-evaluation", "second-team", "reserve", "limited-appearances"].includes(denied.kind) ||
-    ((pro?.assessments??[]).find(row=>row.year===denied.year)?.seasonRank?.grade??rosterGrade((pro?.assessments??[]).find(row=>row.year===denied.year)?.score,true))!=="F"
+    ["low-evaluation", "second-team", "reserve", "limited-appearances"].includes(denied.kind)
   )
     return false;
   const rows = (pro.assessments ?? []).filter((r) => r.year <= year),

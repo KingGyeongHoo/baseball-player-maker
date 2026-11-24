@@ -5,27 +5,34 @@ type StovePlayer={id:string;name:string;position:Position};
 export type StoveMove=StovePlayer&{club:number;direction:'joined'|'released'|'traded'|'retired'|'fa';reason:string;date?:string;otherClub?:number;exchange?:StovePlayer;from?:number;to?:number;retiredNumber?:number;squad?:ProSquad};
 export type StoveReport={club:number;moves:StoveMove[];tradeOnly?:true};
 
-function arrivalLabel(m:NonNullable<Player['professional']>['movements'][number]){
+function arrivalLabel(m:NonNullable<Player['professional']>['movements'][number],p?:Player){
   if(m.kind==='입단'){
     if(m.reason==='draft'||m.reason==='collegeDraft')return '드래프트';
     if(m.reason==='developmental')return '신고';
   }
   if(m.kind==='계약'&&(m.registration==='developmental'||m.reason.includes('신고')))return '신고';
+  if(m.kind==='계약'&&m.from===null&&p?.professional?.movements.some(row=>row.kind==='방출'&&row.date<=m.date))return '신규계약';
 }
 
 export function clubStoveMoves(rows:StoveMove[],club:number,players?:Player[]){
   const unique=new Map<string,StoveMove>();
+  let playerIndex:Map<string,Player>|undefined;
+  const findPlayer=(id:string)=>{
+    if(!players)return;
+    playerIndex??=new Map(players.map(p=>[p.id,p]));
+    return playerIndex.get(id);
+  };
   for(const saved of rows){
-    const row=saved.direction==='released'&&!saved.squad?{...saved,squad:players?.find(p=>p.id===saved.id)?.professional?.lastSquad}:saved;
-    if(row.club!==club)continue;
+    if(saved.club!==club)continue;
+    const row=saved.direction==='released'&&!saved.squad?{...saved,squad:findPlayer(saved.id)?.professional?.lastSquad}:saved;
     const key=row.direction==='traded'?`trade:${row.date}:${row.id}:${row.otherClub}:${row.exchange?.id}`:`${row.direction}:${row.id}`;
     if((row.direction==='joined'||row.direction==='released')&&['FA','FA 이적'].includes(row.reason)){
-      const m=players?.find(p=>p.id===row.id)?.professional?.movements.findLast(m=>m.kind==='FA 이적'&&(row.direction==='joined'?m.to:m.from)===club);
+      const m=findPlayer(row.id)?.professional?.movements.findLast(m=>m.kind==='FA 이적'&&(row.direction==='joined'?m.to:m.from)===club);
       unique.set(`fa:${row.id}`,{...row,direction:'fa',from:m?.from??(row.direction==='released'?club:undefined),to:m?.to??(row.direction==='joined'?club:undefined)});
     }
-    else if(row.direction==='joined'&&!['드래프트','신고','FA','트레이드'].includes(row.reason)){
-      const movement=players?.find(p=>p.id===row.id)?.professional?.movements.findLast(m=>m.kind===row.reason&&m.to===club);
-      const reason=movement&&arrivalLabel(movement);
+    else if(row.direction==='joined'&&!['드래프트','신고','신규계약','FA','트레이드'].includes(row.reason)){
+      const p=findPlayer(row.id),movement=p?.professional?.movements.findLast(m=>m.kind===row.reason&&m.to===club);
+      const reason=movement&&arrivalLabel(movement,p);
       if(reason)unique.set(key,{...row,reason});
     }else unique.set(key,row);
   }
@@ -48,11 +55,18 @@ export function stovePlayerMoves(p:Player,start:string,end:string):StoveMove[]{
       moves.push({...player,club:m.from,direction:'traded',date:m.date,otherClub:m.to,exchange:m.exchange,reason:m.kind});
     }
     else if(m.to!==null){
-      const reason=arrivalLabel(m);
+      const reason=arrivalLabel(m,p);
       if(reason)moves.push({...player,club:m.to,direction:'joined',reason});
     }
   }
   return moves;
+}
+
+export function reconcileStoveReport(s:GameState,report:StoveReport,end=s.date):StoveReport{
+  const year=s.proWorld?.year,start=s.proWorld?.seasons.find(row=>row.year===year)?.endDate;
+  if(!start||start>end)return report;
+  const arrivals=s.players.flatMap(p=>stovePlayerMoves(p,start,end)).filter(row=>row.direction==='joined');
+  return {...report,moves:clubStoveMoves([...report.moves,...arrivals],report.club,s.players)};
 }
 
 export function showStoveReport(s:GameState,stage:'review'|'final',club:number){

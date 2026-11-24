@@ -126,17 +126,38 @@ test("tiny samples never project a full-season WAR and the converted score stays
   }
 });
 
-test("farm contribution is separate, discounted and capped; a full first-team season is unaffected by farm padding", () => {
+test("farm WAR is full value in season assessments without a cap or first-team coverage discount", () => {
   const farm = fixture(70), major = fixture(70), p = e.getPlayer(farm), q = e.getPlayer(major);
   p.seasonByLevel.second = batting("good"); q.seasonByLevel.first = batting("good");
   const low = a.currentSeasonAssessment(farm, p), high = a.currentSeasonAssessment(major, q);
   assert.equal(low.war.first.batting, 0);
-  assert.ok(low.score > 71 && low.score <= 77);
-  assert.ok(high.score > low.score);
+  assert.ok(low.score > 71);
+  close(low.war.equivalentWins,war.levelWarValue(low.war.second,false));
+  close(high.war.equivalentWins,war.levelWarValue(high.war.first,false));
   p.seasonByLevel.first = batting("average");
   const context = war.createProWarContext(farm), before = war.proWarAssessment(p, context);
   p.seasonByLevel.second = batting("good", 10);
-  close(war.proWarAssessment(p, context).score, before.score);
+  const after=war.proWarAssessment(p,context);
+  assert.ok(after.equivalentWins>before.equivalentWins);
+  close(after.equivalentWins,war.levelWarValue(after.first,false)+war.levelWarValue(after.second,false));
+});
+
+test('old discounted season saves upgrade to raw WAR and re-rank once without changing records',()=>{
+ const s=fixture(),p=e.getPlayer(s);p.teamId=10;p.seasonByLevel.second=batting('good');
+ const row=a.recordSeasonAssessment(s,p),first=war.levelWarValue(row.war.first,false),second=war.levelWarValue(row.war.second,false);
+ row.war.version=1;row.war.equivalentWins=first+Math.min(2,second*.35);row.war.score=Math.max(0,Math.min(100,71+2*row.war.equivalentWins));
+ row.seasonEvaluation=require('../.test-build/lib/sim/pro-season-evaluation.js').seasonEvaluation(row.war);row.score=row.seasonEvaluation.score;
+ const records=structuredClone(p.seasonByLevel),skills={...p.stats};
+ assert.equal(market.needsContractUpgrade(s),true,'an already open career must detect the old discounted WAR');
+ const inMemory=life.upgradeProfessionalState(s);
+ assert.notStrictEqual(inMemory,s);assert.equal(e.getPlayer(inMemory).professional.assessments[0].war.version,2);
+ close(e.getPlayer(inMemory).professional.assessments[0].war.equivalentWins,first+second);
+ assert.equal(p.professional.assessments[0].war.version,1,'the original state remains untouched');
+ const loaded=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state,q=e.getPlayer(loaded),fixed=q.professional.assessments[0];
+ assert.equal(fixed.war.version,2);close(fixed.war.equivalentWins,first+second);
+ assert.deepEqual(q.seasonByLevel,records);assert.deepEqual(q.stats,skills);
+ const again=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(loaded))).state;
+ assert.deepEqual(e.getPlayer(again).professional.assessments,q.professional.assessments);
 });
 
 test("league references normalize the run environment, isolate both levels and ignore wins, RBI, postseason and old years", () => {
@@ -172,16 +193,16 @@ test("retiring an NPC preserves this year's league run environment without doubl
   assert.deepEqual(war.createProWarContext(s), before);
 });
 
-test("healthy unplayed and incomplete legacy records receive zero-WAR points, while full injury and free agency stay unrated", () => {
+test("live estimates retain zero-WAR points, while a finalized unplayed injury season is F and free agency stays unrated", () => {
   const s = fixture(), p = e.getPlayer(s);
   assert.equal(a.currentSeasonAssessment(s, p).score, 71);
   p.seasonByLevel.first.batting.PA = 100;
   assert.equal(a.currentSeasonAssessment(s, p).score, 71);
   p.seasonByLevel.first = e.emptyRecord();
   p.evaluationAvailability = { year: s.calendar.seasonYear, days: 200, availableDays: 0, injuredDays: 200 };
-  assert.equal(a.currentSeasonAssessment(s, p).score, null);
+  assert.equal(a.currentSeasonAssessment(s, p).war.equivalentWins, 0);
   const row = a.recordSeasonAssessment(s, p);
-  assert.equal(row.score, null); assert.equal(row.war, undefined);
+  assert.equal(row.score, 71); assert.equal(row.grade,'F'); assert.equal(row.noAppearances,true); assert.equal(row.war.equivalentWins, 0);
   delete p.evaluationAvailability; p.professional.employment = "freeAgent";
   assert.equal(a.currentSeasonAssessment(s, p).score, null);
 });
@@ -244,7 +265,7 @@ test("the UI shows annual and cumulative grades without removed formula guidance
   p.seasonByLevel.first = batting("good"); a.recordSeasonAssessment(s, p);
   const html = renderToStaticMarkup(createElement(Assessments, { state: s }));
   for (const label of ["시즌 평가", "누적 평가", "시즌별 평가"]) assert.ok(html.includes(label));
-  assert.match(html, /<th>시즌<\/th><th>시즌평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);
+  assert.match(html, /<th>시즌<\/th><th>팀명<\/th><th>시즌평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);
   assert.doesNotMatch(html,/→ 출전평가|올해 시즌 출전평가/);
 });
 

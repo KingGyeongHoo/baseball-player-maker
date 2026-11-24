@@ -25,9 +25,28 @@ test('relievers and closers share a bullpen pool, with starters and other levels
   const farm=structuredClone(s.players[0]);farm.id='farm';farm.seasonByLevel.second=farm.seasonByLevel.first;farm.seasonByLevel.first=e.emptyRecord();s.players.push(farm);
   const none=structuredClone(s.players[0]);none.id='no-appearance';none.seasonByLevel.first=e.emptyRecord();s.players.push(none);
   const snapshot=structuredClone(s),ranks=r.createSeasonRankings(s);
-  assert.deepEqual(s.players.slice(0,10).map(p=>ranks.get(p.id).grade),['S','A','A','B','B','C','C','C','D','F']);
+  assert.deepEqual(s.players.slice(0,10).map(p=>ranks.get(p.id).grade),['S','A','B','B','C','C','D','D','E','E']);
   for(const p of s.players.slice(0,10)){assert.equal(ranks.get(p.id).total,10);assert.equal(ranks.get(p.id).role,'bullpen');}
   assert.equal(ranks.get('starter').role,'starter');assert.equal(ranks.get('farm').level,'second');assert.equal(ranks.has('no-appearance'),false);assert.deepEqual(s,snapshot);
+});
+
+test('100 distinct ranks have the requested seven grade bands including exact boundaries',()=>{
+  const grades=Array.from({length:100},(_,i)=>r.seasonRankGrade(i+1,100));
+  assert.deepEqual(Object.fromEntries(['S','A','B','C','D','E','F'].map(g=>[g,grades.filter(v=>v===g).length])),{S:5,A:15,B:20,C:20,D:20,E:15,F:5});
+});
+
+test('legacy rank saves migrate grades without changing WAR or rank and remain valid on reload',()=>{
+  const s=fixture();for(const p of s.players)a.recordSeasonAssessment(s,p);
+  s.proWorld.seasonClosed=true;r.freezeSeasonRankings(s);
+  const row=s.players[2].professional.assessments[0];
+  // Third of ten used to be A and is now B.
+  row.seasonRank.version=1;row.seasonRank.grade=row.grade='A';
+  const before=structuredClone(row.seasonRank);
+  const loaded=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state;
+  const migrated=loaded.players[2].professional.assessments[0];
+  assert.deepEqual(migrated.seasonRank,{...before,version:2,grade:'B'});
+  assert.equal(migrated.grade,'B');
+  assert.doesNotThrow(()=>save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(loaded))));
 });
 test('equal WAR shares rank, grade and medal rather than using arbitrary player IDs',()=>{
   const s=fixture();s.players[1].seasonByLevel=structuredClone(s.players[0].seasonByLevel);

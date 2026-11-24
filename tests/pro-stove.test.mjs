@@ -17,6 +17,27 @@ function confirmReport(state){
  return pc.acknowledgeCareer(state);
 }
 let template;
+
+test('a released regular player signing elsewhere appears once as a new contract, including an old saved report',()=>{
+ const report=require('../.test-build/lib/sim/stove-report.js'),View=require('../.test-build/app/components/stove-changes.js').default;
+ const s=pc.acknowledgeCareer(pc.createProfessionalDemo('released-arrival','신규계약검증','SS')),p=e.getPlayer(s),year=s.proWorld.year;
+ const old=p.teamId%10,club=(old+1)%10;s.players=[p];s.date=`${year}-12-10`;s.phase='ended';s.proWorld.seasonClosed=true;s.proWorld.stage='offseason';
+ s.proWorld.seasons.push({year,endDate:`${year}-10-31`,standings:[],awards:[],draft:[],champion:null});
+ for(const c of s.proWorld.clubs)c.budget=1e12;
+ p.professional.movements.push({date:`${year}-11-01`,kind:'방출',reason:'시즌 평가',from:old,to:null,squad:'second'});
+ p.teamId=-1;p.professional.employment='freeAgent';p.professional.contract=null;p.professional.lastSquad='second';delete p.professional.nonRenewal;p.proContract.status='regular';
+ market.signContract(s,p,{id:'new-signing',club,year:year+1,years:1,salary:33_000_000,role:'1·2군 등록 경쟁',kind:'released',negotiated:false,final:false,competition:[],startingLevel:'second'});
+ const moves=report.stovePlayerMoves(p,`${year}-10-31`,s.date);
+ assert.ok(moves.some(row=>row.club===old&&row.direction==='released'));
+ assert.ok(moves.some(row=>row.club===club&&row.direction==='joined'&&row.reason==='신규계약'));
+ const legacy={club,moves:[]},recovered=report.reconcileStoveReport(s,legacy,s.date);
+ assert.equal(recovered.moves.filter(row=>row.direction==='joined'&&row.id===p.id).length,1);
+ assert.deepEqual(legacy.moves,[]);
+ const again=report.reconcileStoveReport(s,recovered,s.date);assert.deepEqual(again,recovered);
+ const html=renderToStaticMarkup(createElement(View,{report:recovered,playerId:p.id,players:s.players})).replaceAll('<!-- -->','');
+ assert.ok(html.includes('신규 입단 1명'));assert.ok(html.includes('신규계약'));assert.ok(html.includes(p.name));
+ assert.equal(report.reconcileStoveReport(s,legacy,`${year}-11-30`).moves.length,0);
+});
 test('released players retain their departure squad on the right even after joining a different squad',()=>{
  const {stovePlayerMoves,clubStoveMoves}=require('../.test-build/lib/sim/stove-report.js'),View=require('../.test-build/app/components/stove-changes.js').default;
  const players=Object.entries({first:'1군',second:'2군',third:'잔류군',developmental:'육성'}).map(([squad,name],i)=>({id:`released-${i}`,name:`방출${name}`,position:'SS',teamId:0,professional:{lastSquad:'first',movements:[{date:'2028-11-01',from:2,to:null,kind:'방출',reason:'계약 종료',squad}]}}));
@@ -323,5 +344,5 @@ for(const [kind,year,name] of [['premier12',2031,'프리미어12'],['apbc',2033,
  assert.equal(life.canEnterNextProCamp(s),false);let html=panel();assert.ok(html.includes(`${name} 참가 →`));assert.doesNotMatch(html,/<button[^>]*>스토브리그 시작/);assert.doesNotMatch(html,/<button[^>]*>다음 캠프로/);
  const props={state:s,policy:p.trainingPolicy,busy:false,auto:false,autoStartWeek:s.week,onAdvance(){},onToggleAuto(){},onContinue(){},onNextCamp(){},nationalAction:{...nt.nationalOffseasonActionLabel(s),onClick(){}}};html=renderToStaticMarkup(createElement(ProgressControls,props));assert.ok(html.includes(`${name} 참가 →`));assert.ok(!html.includes('다음 캠프로 바로 가기'));assert.ok(html.includes('INTERNATIONAL'));
  entry.participated=true;assert.ok(panel().includes(`${name} 참가 →`));entry.participated=false;assert.ok(panel().includes(`${name} 결과 확인 →`));
- entry.tournament={finished:`${year}-11-18`};assert.equal(life.canEnterNextProCamp(s),true);html=panel();assert.match(html,/<button[^>]*>스토브리그 시작/);assert.ok(!html.includes(`${name} 참가 →`));
+ entry.tournament={finished:`${year}-11-18`};assert.equal(life.canEnterNextProCamp(s),true);html=panel();assert.match(html,/<button[^>]*>스토브리그 →/);assert.ok(!html.includes(`${name} 참가 →`));
 });

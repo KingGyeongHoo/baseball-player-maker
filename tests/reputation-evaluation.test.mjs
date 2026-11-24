@@ -41,9 +41,9 @@ test('pro selection weighs the first-team season more than farm results and caps
   p.recentAppearances=Array.from({length:5},()=>batting(5,4,1,1));
   assert.ok(e.proSelectionScore(p)>small);
   p.recentAppearances=[batting(50,0,0,0)];
-  close(e.proSelectionScore(p),first-3);
+  close(e.proSelectionScore(p),first-1);
   p.recentAppearances=[batting(50,40,10,10)];
-  close(e.proSelectionScore(p),first+3);
+  close(e.proSelectionScore(p),first+1);
 });
 test('only last season carries into spring, and its influence fades as current PA accumulate',()=>{
   const s=fixture(true),p=e.getPlayer(s),year=p.professional.registration.year;

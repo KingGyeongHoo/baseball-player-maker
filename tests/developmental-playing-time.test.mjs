@@ -16,10 +16,79 @@ function player(s,id,pos,team,ability=65){
 function fixture(pos='3B'){
   const s=structuredClone(template);s.date=`${s.calendar.seasonYear}-04-01`;s.proWorld.stage='regular';s.careerNotice=null;s.careerEvent=null;s.noticeQueue=[];delete s.matchProgress;delete s.weekProgress;
   const roster=club=>Object.entries(farmMinimum).flatMap(([pos,n])=>Array.from({length:n},(_,i)=>player(s,`${club}-${pos}-${i}`,pos,club+10)));
-  s.players=[...roster(0),...roster(1)];const third=player(s,'third',pos,20,80),dev=player(s,'developmental',pos,30,90);s.players.push(third,dev);s.playerId=dev.id;s.postSchool.pro.level='developmental';
+  const first=s.players.filter(p=>p.teamId===0||p.teamId===1);
+  for(const p of first){p.injury=null;p.forcedRest=false;p.fatigue=0;delete p.professional.contract.faTerms;}
+  s.players=[...first,...roster(0),...roster(1)];const third=player(s,'third',pos,20,80),dev=player(s,'developmental',pos,30,90);s.players.push(third,dev);s.playerId=dev.id;s.postSchool.pro.level='developmental';
   return {s,third,dev};
 }
 const game=(s,id='farm')=>({id,date:s.date,homeTeamId:10,awayTeamId:11,competitionId:'pro-second',status:'scheduled',score:[0,0],innings:[[],[]],lineup:[],boxScore:{},rulesetId:'test'});
+
+test('first-team rest rotation keeps an absolute ten percent floor for large rating gaps',()=>{
+ for(const gap of [7,8,10,25]){
+  const {s,dev}=fixture('SS');
+  const roster=s.players.filter(p=>p.teamId===10);for(const p of roster)p.teamId=0;
+  const current=roster.find(p=>p.position==='SS');
+  for(const key of Object.keys(current.stats))current.stats[key]=90;
+  for(const key of Object.keys(dev.stats))dev.stats[key]=90-gap;
+  dev.teamId=0;dev.proContract.status='regular';roster.push(dev);
+  // Keep the reserve out of the open DH competition.
+  const dh=player(s,'better-dh','DH',0,100);roster.push(dh);
+  let opportunities=0;
+  for(let day=0;day<100;day++){
+   const date=e.addDays(s.date,day),roll=e.hash(`${s.seed}:${date}:${current.id}:rest`)%100;
+   const side=world.professionalLineup(s,roster,date,[]);
+   assert.equal(side.field[1].id,roll<10?dev.id:current.id,`gap=${gap}, roll=${roll}`);
+   if(roll<10)opportunities++;
+  }
+  assert.ok(opportunities>0);
+ }
+});
+
+test('older low-rated second-team players receive real evaluation appearances in every role',()=>{
+ for(const pos of ['SS','SP','RP','CP']){
+  const {s,dev}=fixture(pos);dev.teamId=10;dev.proContract.status='regular';dev.age=30;dev.professional.rookieYear=s.calendar.seasonYear-10;
+  for(const key of Object.keys(dev.stats))dev.stats[key]=35;
+  delete dev.professional.lastAppearance;
+  assert.ok(world.evaluationCandidates(s,farmGameRoster(s,10),s.date).includes(dev),pos);
+  const g=game(s);s.calendar.events=[g];world.prepareEvaluationOpportunities(s,[g.id]);
+  assert.ok(g.evaluationPlayers.includes(dev.id),pos);
+  e.simulateGame(s,g,[]);assert.equal(g.status,'completed',pos);
+  const record=dev.seasonByLevel.second;
+  assert.ok((pos==='SS'?record.batting.PA:record.pitching.BF)>0,pos);
+  assert.equal(dev.professional.lastEvaluation,s.date,pos);assert.equal(dev.professional.lastAppearance,s.date,pos);
+  assert.equal(dev.teamId,10,pos);
+ }
+});
+
+test('longest actual absence wins over a higher score or an older evaluation date',()=>{
+ const {s}=fixture();const idle=[player(s,'oldest','SS',10,30),player(s,'next','CF',10,30),player(s,'stronger','C',10,90)];
+ for(const [i,p] of idle.entries()){p.age=32;p.professional.rookieYear=s.calendar.seasonYear-12;p.professional.lastAppearance=e.addDays(s.date,-40+i*10);}
+ idle[0].professional.lastEvaluation=e.addDays(s.date,-20);s.players.push(...idle);
+ const g=game(s);s.calendar.events=[g];world.prepareEvaluationOpportunities(s,[g.id]);
+ assert.ok(g.evaluationPlayers.includes('oldest'));assert.ok(g.evaluationPlayers.includes('next'));assert.ok(!g.evaluationPlayers.includes('stronger'));
+});
+
+test('farm rest-day rotation still gives a reserve a start with a rating gap above ten',()=>{
+ const {s,dev}=fixture('SS');dev.teamId=10;dev.proContract.status='regular';
+ for(const key of Object.keys(dev.stats))dev.stats[key]=30;
+ const regular=s.players.find(p=>p.teamId===10&&p.position==='SS'&&p!==dev);
+ assert.ok(e.selectionScore(regular)-e.selectionScore(dev)>10);
+ let played=false;
+ for(let day=0;day<100;day++){
+  const date=e.addDays(s.date,day),side=world.professionalLineup(s,farmGameRoster(s,10),date,[]);
+  if(side.field[1]?.id===dev.id){played=true;break;}
+ }
+ assert.ok(played);
+});
+
+test('automatic opportunities retain injury, recovery and actual-appearance cooldown restrictions',()=>{
+ const {s,dev}=fixture('SS');dev.teamId=10;dev.age=32;dev.professional.rookieYear=s.calendar.seasonYear-10;
+ delete dev.professional.lastAppearance;
+ dev.trainingPolicy.mode='rest';assert.ok(!world.evaluationCandidates(s,[dev],s.date).includes(dev));
+ dev.trainingPolicy=e.defaultPolicy(dev.primaryRole);dev.professional.managedUntil=e.addDays(s.date,5);assert.ok(!world.evaluationCandidates(s,[dev],s.date).includes(dev));
+ delete dev.professional.managedUntil;dev.professional.lastEvaluation=e.addDays(s.date,-1);assert.ok(!world.evaluationCandidates(s,[dev],s.date).includes(dev));
+ delete dev.professional.lastEvaluation;assert.ok(world.evaluationCandidates(s,[dev],s.date).includes(dev));
+});
 test('ordinary selection remains second, then third, then developmental with every lower squad in the pool',()=>{
   const {s,third,dev}=fixture(),second=s.players.find(p=>p.teamId===10&&p.position==='3B'),pool=farmGameRoster(s,10);
   assert.ok(pool.includes(dev));assert.equal(proGameTeam(dev),10);assert.equal(e.lineup(pool,s.date).field[5].id,second.id);
