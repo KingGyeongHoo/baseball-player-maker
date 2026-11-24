@@ -4,6 +4,7 @@ import {validNationalTournament} from "./sim/national-tournament";
 import {upgradeNationalInvitation} from './sim/national-teams';
 import {hydrateAssessments} from "./sim/pro-assessment";
 import {upgradeRawSeasonWar} from './sim/pro-war-upgrade';
+import {upgradePendingCareerEvent} from './sim/event-system';
 import {validFaTerms} from "./sim/pro-positions";
 import {MIN_PRO_SALARY} from './sim/pro-contract-rules';
 import {validProWarAssessment} from "./sim/pro-war";
@@ -147,6 +148,7 @@ function validateCareerSave(file:CareerSave):CareerSave {
   validateCareerState(file.state);if(saveChecksum(JSON.stringify(file.state))!==file.checksum)throw new Error("저장 파일의 무결성 확인에 실패했습니다. 원본 파일은 유지됩니다.");
   file.state=upgradeSchoolPositions(file.state);
   upgradeRawSeasonWar(file.state);
+  upgradePendingCareerEvent(file.state);
   for(const p of file.state.players){hydrateAssessments(file.state,p);refreshCareerEvaluation(p);initializeAgingProfile(p);clearProfessionalReputation(p);}
   syncProClubNames(file.state);
   upgradeNationalInvitation(file.state);

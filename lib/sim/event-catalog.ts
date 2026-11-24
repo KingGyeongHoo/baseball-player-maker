@@ -53,7 +53,7 @@ export function createCareerEvent(definitionId: string, player: Player, date: st
   if (!definition) throw new Error("알 수 없는 이벤트입니다.");
   const field=context.scene?(context.scene.batting?'batting':'pitching'):context.field??eventFieldsFor({...player,twoWay:undefined},definition.focus,definition.rule?.field)[0];
   return {
-    id: `${player.id}:${week}:${date}:${definitionId}`, rewardVersion: 2, definitionId, kind: eventKind(definitionId), date, title: definition.title,
+    id: `${player.id}:${week}:${date}:${definitionId}`, rewardVersion: 4, definitionId, kind: eventKind(definitionId), date, title: definition.title,
     description: definition.description.replace("{제안 포지션}", context.targetRole ? rolePosition[context.targetRole] : "새로운 포지션"),
     choices: definition.choices.map(choice => ({ id: choice.id, label: choice.label,
       outcomes: choice.outcomes.map(outcome => ({ weight: outcome.weight, message: outcome.message, ...decodeEffects(outcome.effect, player, context.targetRole,field),...(outcome.fatigueRange?{fatigueRange:outcome.fatigueRange}:{}),...(outcome.recoveryPercent?{recoveryPercent:outcome.recoveryPercent}:{}) })) })),

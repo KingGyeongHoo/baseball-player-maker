@@ -8,6 +8,7 @@ import {beginProRoleTrial,decideProRoleTrial} from "./pro-role-evaluation";
 import {recordProChoice} from "./pro-event-ledger";
 import {eligibleStory} from "./event-stories";
 import {schoolEventCatalog} from "./event-catalog";
+import {createProEvent,proEventCatalog} from './pro-event-catalog';
 import {eventCategoryPool,eventFieldsFor,eventFocusPool,resolveEventFocus} from './event-selection';
 import type {ProEventResult} from "./pro-event-types";
 import { teamStrength } from "../team-strength";
@@ -178,13 +179,26 @@ export function applyMatchEffect<T extends { bb: number; hit: number; hr: number
   return { ...base, bb: clamp(base.bb + (effect?.bb ?? 0), 0, 1), hit: clamp(base.hit + (effect?.hit ?? 0), 0, 1),
     k: clamp(base.k + (effect?.k ?? 0), 0, 1), hr: clamp(base.hr + (effect?.hr ?? 0), 0, Math.max(0, 1 - base.double - base.triple)) };
 }
+export function needsPendingEventUpgrade(s:GameState){
+  const event=s.careerEvent;
+  if(!event||(event.rewardVersion??0)>=4||event.nationalContext||event.proEvent?.nationalKind||event.proEvent?.channel==='followup')return false;
+  if(['P08','PE25','PE26','PE27'].includes(event.definitionId))return false;
+  return event.proEvent?proEventCatalog.some(d=>d.id===event.definitionId):schoolEventCatalog.some(d=>d.id===event.definitionId);
+}
+export function upgradePendingCareerEvent(s:GameState){
+  if(!needsPendingEventUpgrade(s))return false;
+  const event=s.careerEvent!,p=getPlayer(s);
+  const updated=event.proEvent?createProEvent(s,event.definitionId,event.proEvent):createCareerEvent(event.definitionId,p,event.date,s.week,event);
+  event.choices=updated.choices;event.rewardVersion=4;return true;
+}
 export function resolveCareerEvent(input: GameState, choiceId: string): GameState {
   const national=input.careerEvent?.proEvent?.catalogId==="PE27"?input.proEvents?.national[String(input.careerEvent.proEvent.year)]:undefined;
   if (!input.careerEvent||input.phase === "ended"&&!(input.careerMode==="pro"&&["summary","offseason"].includes(input.proWorld?.stage??"")&&(!!input.careerEvent?.nationalContext||(national?.offered||!!input.careerEvent?.proEvent?.nationalKind)&&!national?.settled))) throw new Error("선택할 이벤트가 없습니다.");
   // An unchosen event from the previous fixed-point policy must not retain its
   // old +8/+12/+24 rewards after upgrading. Settled history is never rerolled.
-  const pending = input.careerEvent;
-  const choices = pending.rewardVersion === 2 || pending.rewardVersion === 3 ? pending.choices : createCareerEvent(pending.definitionId, getPlayer(input), pending.date, input.week, pending).choices;
+  if(needsPendingEventUpgrade(input)){input=structuredClone(input);upgradePendingCareerEvent(input);}
+  const pending = input.careerEvent!;
+  const choices = [2,3,4].includes(pending.rewardVersion??0) ? pending.choices : createCareerEvent(pending.definitionId, getPlayer(input), pending.date, input.week, pending).choices;
   const selected = choices.find(choice => choice.id === choiceId);
   if (!selected) throw new Error("유효하지 않은 이벤트 선택입니다.");
   const s = structuredClone(input), p = getPlayer(s), event = s.careerEvent!;

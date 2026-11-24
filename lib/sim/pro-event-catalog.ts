@@ -30,6 +30,6 @@ export function createProEvent(s:GameState,id:string,context:ProEventContext):Ca
   const eventPosition=p.twoWay?(pitching?p.twoWay.pitchingPosition:p.twoWay.battingPosition):p.position;
   let description=text(definition.description).replaceAll("{현재 포지션}",positions[eventPosition]).replaceAll("{목표 포지션}",positions[context.target??eventPosition]).replaceAll("{목표 역할}",positions[context.target??eventPosition]);
   if(context.partnerId){const partner=s.players.find(q=>q.id===context.partnerId);if(partner)description=`${partner.name} 선수와 함께합니다. ${description}`;}
-  return {id:`${p.id}:${context.year}:${s.date}:${id}:${context.channel}`,rewardVersion:3,definitionId:id,kind:context.channel==="game"?"game":"special",date:s.date,title,description,choices,proEvent:frozen,...(context.story?{story:context.story}:{})};
+  return {id:`${p.id}:${context.year}:${s.date}:${id}:${context.channel}`,rewardVersion:4,definitionId:id,kind:context.channel==="game"?"game":"special",date:s.date,title,description,choices,proEvent:frozen,...(context.story?{story:context.story}:{})};
 }
 export const proMainField=(s:GameState)=>isPitcher(getPlayer(s).primaryRole)?"pitching" as const:"batting" as const;

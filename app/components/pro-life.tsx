@@ -1,5 +1,6 @@
 "use client";
 import {isSuppressedAwardCelebration,pendingSeasonAwards} from '../../lib/sim/pro-awards-ceremony';
+import {needsPendingEventUpgrade,upgradePendingCareerEvent} from '../../lib/sim/event-system';
 import {needsCareerHonorUpgrade} from '../../lib/sim/career-honor-upgrade';
 import {leaderQualification} from "../../lib/league-leaders";
 import PlayerEvaluationButton from "./player-evaluation";
@@ -72,6 +73,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   const resetPending=useRef(false);
   const [autoProgress]=useState(()=>new AutoProgress());
   useEffect(()=>{
+    if(needsPendingEventUpgrade(state)){const next=structuredClone(state);upgradePendingCareerEvent(next);onChange(next);return;}
     if(isSuppressedAwardCelebration(state.careerNotice)){onChange(acknowledgeCareer(state));return;}
     if(state.careerMode!=="pro"||state.proWorld&&state.proClubNamesVersion===2&&!needsPostseasonUpgrade(state)&&!needsProScheduleUpgrade(state)&&!needsProSquadUpgrade(state)&&!needsContractUpgrade(state)&&!needsAllstarScheduleUpgrade(state)&&!needsNationalInvitationUpgrade(state)&&!needsCareerHonorUpgrade(state))return;
     const scheduled=setTimeout(()=>{

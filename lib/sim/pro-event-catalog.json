@@ -5,44 +5,39 @@
     "description": "장비 담당자가 지금보다 무게 중심이 다른 배트를 권했다. 타격 훈련에서 시험해볼까?",
     "choices": [
       {
+        "id": "choice-1",
         "label": "다른 배트를 시험한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "스윙 궤도가 자연스럽게 이어졌다. 새 배트의 감각을 잡았다.",
             "weeks": {
-              "contact": 8
+              "contact": 4
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
-            "stats": {
-              "contact": -2
-            }
+            "weight": 50,
+            "message": "타이밍이 쉽게 맞지 않아 연습을 오래 이어갔다."
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "익숙한 배트를 유지한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 감각 속에서 타격 동작을 더 정교하게 다듬었다.",
             "weeks": {
               "contact": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "contact": -0.3
-            }
+            "weight": 50,
+            "message": "장비 고민을 마치고 정해둔 양만 연습했다.",
+            "fatigue": -2
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "category": "baseball",
@@ -54,44 +49,39 @@
     "description": "투수 코치가 디딤발의 위치를 조금 바꿔보자고 한다. 익숙한 동작에 변화를 줄까?",
     "choices": [
       {
+        "id": "choice-1",
         "label": "새 동작으로 연습한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "몸의 회전과 릴리스가 이전보다 자연스럽게 연결됐다.",
             "weeks": {
-              "control": 8
+              "control": 4
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
-            "stats": {
-              "control": -2
-            }
+            "weight": 50,
+            "message": "새로운 감각을 잡는 데 예상보다 많은 반복이 필요했다."
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "현재 동작의 반복성을 다듬는다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 동작을 일정하게 반복하는 요령을 찾았다.",
             "weeks": {
               "control": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "오늘은 동작을 크게 바꾸지 않고 훈련을 마쳤다.",
+            "fatigue": -2
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "category": "baseball",
@@ -107,14 +97,14 @@
         "label": "약점을 고치는 연습을 한다",
         "outcomes": [
           {
-            "weight": 70,
+            "weight": 50,
             "message": "기록과 동작을 함께 보니 보완할 부분이 선명해졌다.",
             "weeks": {
               "weak": 4
             }
           },
           {
-            "weight": 30,
+            "weight": 50,
             "message": "수정 방향은 잡았지만 아직 몸에 익지는 않았다.",
             "weeks": {
               "bq": 3
@@ -127,11 +117,15 @@
         "label": "상황별 판단을 정리한다",
         "outcomes": [
           {
-            "weight": 100,
+            "weight": 50,
             "message": "어떤 상황에서 다른 선택을 할지 구체적으로 정리했다.",
             "weeks": {
               "bq": 3
             }
+          },
+          {
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
         ]
       },
@@ -140,9 +134,13 @@
         "label": "개인 루틴을 먼저 지킨다",
         "outcomes": [
           {
-            "weight": 100,
+            "weight": 50,
             "message": "계획한 루틴을 마치고 회복 시간을 확보했다.",
             "fatigue": -4
+          },
+          {
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
         ]
       }
@@ -156,44 +154,46 @@
     "description": "타격 코치가 강한 타구를 만들기 위한 집중 훈련을 제안했다. 오늘은 어떤 부분을 다듬을까?",
     "choices": [
       {
+        "id": "choice-1",
         "label": "힘을 싣는 스윙을 집중 연습한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 70,
             "message": "하체에서 배트까지 힘을 연결하는 감각을 찾았다.",
             "weeks": {
-              "power": 8
+              "power": 4
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
-            "stats": {
-              "power": -2
+            "weight": 20,
+            "message": "힘이 들어가 동작이 굳었다. 충분한 정리가 필요하다."
+          },
+          {
+            "weight": 10,
+            "message": "반복 동작 중 불편감이 생겨 훈련을 중단했다.",
+            "injury": {
+              "severity": "mild",
+              "days": 7
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "정확한 임팩트에 집중한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "중심을 유지하며 공을 맞히는 감각을 다듬었다.",
             "weeks": {
               "contact": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "contact": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "category": "baseball",
@@ -205,44 +205,39 @@
     "description": "배터리 코치가 변화구를 잡는 손가락 위치를 조금 조정해보자고 한다.",
     "choices": [
       {
+        "id": "choice-1",
         "label": "새로운 그립 감각을 시험한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "손끝에서 공을 다루는 감각이 좋아졌다.",
             "weeks": {
-              "movement": 8
+              "movement": 4
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
-            "stats": {
-              "movement": -2
-            }
+            "weight": 50,
+            "message": "그립이 익숙하지 않아 같은 동작을 여러 번 확인했다."
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "기존 그립으로 제구를 다듬는다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 공을 일정하게 보내는 데 집중할 수 있었다.",
             "weeks": {
               "control": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "정해둔 투구량만 소화하고 마무리했다.",
+            "fatigue": -2
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "category": "baseball",
@@ -254,44 +249,38 @@
     "description": "수비 코치가 포구 후 송구까지의 연결 동작을 점검하자고 한다.",
     "choices": [
       {
+        "id": "choice-1",
         "label": "송구 연결 동작을 바꿔본다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "발과 팔의 움직임이 자연스럽게 이어졌다.",
             "weeks": {
-              "arm": 8
+              "arm": 4
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
-            "stats": {
-              "arm": -2
-            }
+            "weight": 50,
+            "message": "새로운 스텝이 어색해 반복 연습이 길어졌다."
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "포구와 기본 자세부터 다듬는다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "흔들리던 기본 자세를 정리했다.",
             "weeks": {
               "defense": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "defense": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "category": "baseball",
@@ -303,44 +292,38 @@
     "description": "주루 코치가 출발 동작과 상황 판단 중 한 가지를 집중해서 점검하자고 한다.",
     "choices": [
       {
+        "id": "choice-1",
         "label": "첫발을 빠르게 떼는 연습을 한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "몸의 중심을 앞으로 옮기는 감각을 잡았다.",
             "weeks": {
-              "speed": 8
+              "speed": 4
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
-            "stats": {
-              "speed": -2
-            }
+            "weight": 50,
+            "message": "출발을 의식하다 동작이 굳어 훈련을 일찍 마쳤다."
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "상황별 주루 판단을 정리한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "무리할 때와 멈출 때를 구체적으로 복기했다.",
             "weeks": {
               "bq": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "bq": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "category": "baseball",
@@ -567,14 +550,14 @@
         "label": "기본 동작을 더 점검한다",
         "outcomes": [
           {
-            "weight": 75,
+            "weight": 50,
             "message": "반복하던 동작을 정리하고 준비를 마쳤다.",
             "weeks": {
               "precision": 3
             }
           },
           {
-            "weight": 25,
+            "weight": 50,
             "message": "긴장 탓에 준비가 길어졌다.",
             "stats": {
               "bq": -0.3
@@ -587,11 +570,15 @@
         "label": "상대 선수의 기록을 살핀다",
         "outcomes": [
           {
-            "weight": 100,
+            "weight": 50,
             "message": "상대를 어떻게 맞이할지 계획을 정리했다.",
             "weeks": {
               "bq": 3
             }
+          },
+          {
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
         ]
       },
@@ -600,9 +587,13 @@
         "label": "몸을 가볍게 풀고 기다린다",
         "outcomes": [
           {
-            "weight": 100,
+            "weight": 50,
             "message": "몸의 긴장을 풀고 경기 시작을 기다렸다.",
             "fatigue": -6
+          },
+          {
+            "weight": 50,
+            "message": "이번에는 별다른 변화가 없었다."
           }
         ]
       }
@@ -620,14 +611,14 @@
         "label": "타격의 보완점에 집중한다",
         "outcomes": [
           {
-            "weight": 70,
+            "weight": 50,
             "message": "타격에서 반복되던 문제를 다듬을 실마리를 찾았다.",
             "weeks": {
               "battingWeak": 4
             }
           },
           {
-            "weight": 30,
+            "weight": 50,
             "message": "집중력을 오래 유지하기 어려워 연습을 마쳤다.",
             "stats": {
               "bq": -0.3
@@ -640,14 +631,14 @@
         "label": "투구의 보완점에 집중한다",
         "outcomes": [
           {
-            "weight": 70,
+            "weight": 50,
             "message": "투구 동작에서 놓치던 부분을 정리했다.",
             "weeks": {
               "pitchingWeak": 4
             }
           },
           {
-            "weight": 30,
+            "weight": 50,
             "message": "몸이 무거워 반복을 줄이고 마무리했다.",
             "stats": {
               "bq": -0.3
@@ -660,9 +651,13 @@
         "label": "오늘은 회복에 집중한다",
         "outcomes": [
           {
-            "weight": 100,
+            "weight": 50,
             "message": "양쪽 훈련으로 쌓인 피로를 풀었다.",
             "fatigue": -10
+          },
+          {
+            "weight": 50,
+            "message": "이번에는 별다른 변화가 없었다."
           }
         ]
       }
@@ -680,14 +675,14 @@
         "label": "추가 연습으로 감각을 다듬는다",
         "outcomes": [
           {
-            "weight": 70,
+            "weight": 50,
             "message": "집중해서 반복한 동작이 자연스럽게 이어졌다.",
             "weeks": {
               "precision": 3
             }
           },
           {
-            "weight": 30,
+            "weight": 50,
             "message": "준비가 길어져 몸이 무거워졌다.",
             "stats": {
               "bq": -0.3
@@ -700,11 +695,15 @@
         "label": "상대 기록을 정리하고 마친다",
         "outcomes": [
           {
-            "weight": 100,
+            "weight": 50,
             "message": "원정에서 만날 상대를 차분히 정리했다.",
             "weeks": {
               "bq": 3
             }
+          },
+          {
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
         ]
       },
@@ -713,9 +712,14 @@
         "label": "남은 훈련을 마치고 쉰다",
         "outcomes": [
           {
-            "weight": 100,
+            "weight": 50,
             "message": "출발 전에 몸을 정비할 시간을 확보했다.",
             "fatigue": -10,
+            "skipTraining": true
+          },
+          {
+            "weight": 50,
+            "message": "이번에는 별다른 변화가 없었다.",
             "skipTraining": true
           }
         ]
@@ -734,14 +738,14 @@
         "label": "익숙한 루틴을 충분히 반복한다",
         "outcomes": [
           {
-            "weight": 75,
+            "weight": 50,
             "message": "좋은 감각을 기술로 정리하는 시간을 가졌다.",
             "weeks": {
               "strong": 3
             }
           },
           {
-            "weight": 25,
+            "weight": 50,
             "message": "흐름을 지키려다 훈련이 길어졌다.",
             "stats": {
               "bq": -0.3
@@ -754,9 +758,14 @@
         "label": "오늘 남은 훈련을 줄이고 회복한다",
         "outcomes": [
           {
-            "weight": 100,
+            "weight": 50,
             "message": "감각을 쫓기보다 몸을 정비하며 하루를 마쳤다.",
             "fatigue": -8,
+            "skipTraining": true
+          },
+          {
+            "weight": 50,
+            "message": "이번에는 별다른 변화가 없었다.",
             "skipTraining": true
           }
         ]
@@ -775,14 +784,14 @@
         "label": "약점을 고치는 훈련을 한다",
         "outcomes": [
           {
-            "weight": 65,
+            "weight": 50,
             "message": "반복하던 문제를 다르게 접근할 실마리를 찾았다.",
             "weeks": {
               "weak": 4
             }
           },
           {
-            "weight": 35,
+            "weight": 50,
             "message": "한 번의 연습으로 답을 찾기는 어려웠다.",
             "stats": {
               "bq": -0.3
@@ -795,14 +804,14 @@
         "label": "익숙한 기본 동작으로 돌아간다",
         "outcomes": [
           {
-            "weight": 80,
+            "weight": 50,
             "message": "복잡했던 생각을 정리하며 기본기를 다듬었다.",
             "weeks": {
               "precision": 3
             }
           },
           {
-            "weight": 20,
+            "weight": 50,
             "message": "정해둔 양을 소화했지만 아직 감각은 돌아오지 않았다.",
             "stats": {
               "bq": -0.3
@@ -815,10 +824,14 @@
         "label": "오늘은 몸을 먼저 정비한다",
         "outcomes": [
           {
-            "weight": 100,
+            "weight": 50,
             "message": "남은 훈련을 마치고 회복에 집중했다.",
             "fatigue": -10,
             "skipTraining": true
+          },
+          {
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
         ]
       }
@@ -909,7 +922,7 @@
         "label": "구종을 예상해 강하게 노린다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
             "match": {
               "hr": 0.12,
@@ -918,7 +931,7 @@
             "selectionBonus": 0.6
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
             "match": {
               "hit": -0.1,
@@ -933,7 +946,7 @@
         "label": "스윙을 간결하게 가져간다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": 0.025
@@ -941,7 +954,7 @@
             "selectionBonus": 0.15
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "hit": -0.02
@@ -964,7 +977,7 @@
         "label": "한 번의 큰 타구를 노린다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
             "match": {
               "hr": 0.12,
@@ -973,7 +986,7 @@
             "selectionBonus": 0.6
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
             "match": {
               "hit": -0.1,
@@ -988,7 +1001,7 @@
         "label": "다음 타자에게 기회를 잇는다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": 0.025
@@ -996,7 +1009,7 @@
             "selectionBonus": 0.15
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "hit": -0.02
@@ -1019,7 +1032,7 @@
         "label": "강한 공으로 삼진을 노린다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
             "match": {
               "k": 0.15,
@@ -1028,7 +1041,7 @@
             "selectionBonus": 0.6
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
             "match": {
               "hr": 0.1,
@@ -1043,7 +1056,7 @@
         "label": "낮은 코스로 침착하게 승부한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": -0.025
@@ -1051,7 +1064,7 @@
             "selectionBonus": 0.15
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "bb": 0.02
@@ -1074,7 +1087,7 @@
         "label": "힘을 실어 삼진을 노린다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
             "match": {
               "k": 0.15,
@@ -1083,7 +1096,7 @@
             "selectionBonus": 0.6
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
             "match": {
               "hr": 0.1,
@@ -1098,7 +1111,7 @@
         "label": "익숙한 템포로 낮게 던진다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": -0.025
@@ -1106,7 +1119,7 @@
             "selectionBonus": 0.15
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "bb": 0.02
@@ -1129,7 +1142,7 @@
         "label": "힘을 모아 한 타자와 승부한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
             "match": {
               "k": 0.15,
@@ -1138,7 +1151,7 @@
             "selectionBonus": 0.6
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
             "match": {
               "hr": 0.1,
@@ -1153,7 +1166,7 @@
         "label": "동작을 간결하게 하고 제구에 집중한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": -0.025
@@ -1161,7 +1174,7 @@
             "selectionBonus": 0.15
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "bb": 0.02
@@ -1349,14 +1362,14 @@
         "label": "기술을 효율적으로 다듬는다",
         "outcomes": [
           {
-            "weight": 90,
+            "weight": 50,
             "message": "불필요한 움직임을 줄이며 익숙한 기술을 정리했다.",
             "weeks": {
               "strong": 3
             }
           },
           {
-            "weight": 10,
+            "weight": 50,
             "message": "기술을 바꾸기보다 상황을 읽는 관점을 얻었다.",
             "weeks": {
               "bq": 3
@@ -1369,14 +1382,14 @@
         "label": "체력 기반을 보완한다",
         "outcomes": [
           {
-            "weight": 70,
+            "weight": 50,
             "message": "현재 몸에 맞춘 훈련으로 체력의 바탕을 다졌다.",
             "weeks": {
               "stamina": 4
             }
           },
           {
-            "weight": 30,
+            "weight": 50,
             "message": "계획한 양을 소화했지만 몸이 무거웠다.",
             "stats": {
               "bq": -0.3
@@ -1389,9 +1402,14 @@
         "label": "오늘 남은 훈련을 줄이고 회복한다",
         "outcomes": [
           {
-            "weight": 100,
+            "weight": 50,
             "message": "몸의 상태에 맞춰 훈련을 마쳤다.",
             "fatigue": -10,
+            "skipTraining": true
+          },
+          {
+            "weight": 50,
+            "message": "이번에는 별다른 변화가 없었다.",
             "skipTraining": true
           }
         ]
@@ -1448,14 +1466,14 @@
         "label": "신인과 번갈아 {힘 훈련}을 반복한다",
         "outcomes": [
           {
-            "weight": 65,
+            "weight": 50,
             "message": "동료의 동작을 본 뒤 자신의 발과 몸통 순서를 맞췄다. 마지막까지 힘이 이어졌다.",
             "weeks": {
               "force": 4
             }
           },
           {
-            "weight": 35,
+            "weight": 50,
             "message": "전력 동작은 줄이고 낮은 강도로 순서를 다시 맞췄다. 하체 힘을 전달하는 기본 감각을 익혔다.",
             "weeks": {
               "force": 3
@@ -1468,14 +1486,14 @@
         "label": "개인 훈련으로 하체 회전을 맞춘다",
         "outcomes": [
           {
-            "weight": 75,
+            "weight": 50,
             "message": "개인 과제로 같은 동작을 반복했다. 발에서 시작한 힘이 손끝까지 자연스럽게 이어졌다.",
             "weeks": {
               "force": 3
             }
           },
           {
-            "weight": 25,
+            "weight": 50,
             "message": "훈련량을 줄여 몸을 가볍게 정리했다.",
             "fatigue": -3
           }
@@ -1498,38 +1516,29 @@
     },
     "choices": [
       {
-        "label": "식사와 산책으로 새 회복 루틴을 시도한다",
+        "id": "choice-1",
+        "label": "늦은 아침을 먹고 가볍게 걷는다",
         "outcomes": [
           {
-            "weight": 35,
-            "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
-            "weeks": {
-              "recovery": 8
-            }
-          },
-          {
-            "weight": 65,
-            "message": "예상보다 일정이 길어져 피곤해졌다.",
-            "fatigue": 10
+            "weight": 100,
+            "message": "무리하지 않고 몸을 움직인 뒤 편하게 쉬었다.",
+            "fatigue": -8
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
-        "label": "일정을 줄이고 충분히 쉰다",
+        "id": "choice-2",
+        "label": "잠을 더 자고 하루를 천천히 시작한다",
         "outcomes": [
           {
-            "weight": 85,
-            "message": "편안히 쉬며 피로를 풀었다.",
-            "fatigue": -12
-          },
-          {
-            "weight": 15,
-            "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
-            "fatigue": 2
+            "weight": 100,
+            "message": "쌓인 피로를 느끼며 충분히 수면을 취했다.",
+            "recoveryPercent": {
+              "min": 14,
+              "max": 22
+            }
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ]
   },
@@ -1545,44 +1554,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "레그킥을 도입해 하체 힘을 싣는다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "들었던 다리를 딛자 배트가 함께 돌아갔다. 장타를 만드는 힘의 순서를 익혔다.",
             "weeks": {
-              "power": 8
+              "power": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "발이 내려오는 순간을 놓쳐 배트가 늦었다. 빠른 공에 타이밍이 흔들렸다.",
             "stats": {
-              "power": -2
+              "contact": -0.8
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "토탭을 작게 가져가며 타이밍을 지킨다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "고개가 움직이지 않도록 짧게 디뎠다. 빠른 공에도 배트 중심을 맞혔다.",
             "weeks": {
               "contact": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "contact": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "power"
@@ -1599,44 +1617,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "이중 키킹으로 투구 균형을 바꾼다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "두 번째로 다리를 들 때 허리가 뒤에 남았다. 디딤발과 릴리스의 방향이 맞아들었다.",
             "weeks": {
-              "control": 8
+              "control": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "동작을 끊어 가는 동안 팔이 늦었다. 직구에 실리던 힘이 줄었다.",
             "stats": {
-              "control": -2
+              "velocity": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "한 번만 들고 축발을 길게 누른다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "투구 리듬을 끊지 않고 마운드를 밀었다. 몸통의 힘이 직구에 이어졌다.",
             "weeks": {
               "velocity": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "velocity": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "control"
@@ -1653,38 +1680,29 @@
     },
     "choices": [
       {
-        "label": "가족과 경기 고민을 솔직히 나눈다",
+        "id": "choice-1",
+        "label": "식사 뒤 잠깐 이야기하고 돌아간다",
         "outcomes": [
           {
-            "weight": 35,
-            "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
-            "weeks": {
-              "bq": 8
-            }
-          },
-          {
-            "weight": 65,
-            "message": "예상보다 일정이 길어져 피곤해졌다.",
-            "fatigue": 10
+            "weight": 100,
+            "message": "차분한 식사를 마치고 몸과 마음의 긴장을 풀었다.",
+            "fatigue": -7
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
-        "label": "일정을 줄이고 충분히 쉰다",
+        "id": "choice-2",
+        "label": "안부를 전하고 일찍 잠자리에 든다",
         "outcomes": [
           {
-            "weight": 85,
-            "message": "편안히 쉬며 피로를 풀었다.",
-            "fatigue": -12
-          },
-          {
-            "weight": 15,
-            "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
-            "fatigue": 2
+            "weight": 100,
+            "message": "귀가 시간을 당겨 충분한 수면을 취했다.",
+            "recoveryPercent": {
+              "min": 12,
+              "max": 20
+            }
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ]
   },
@@ -1700,38 +1718,29 @@
     },
     "choices": [
       {
-        "label": "친구와 긴 산책을 한다",
+        "id": "choice-1",
+        "label": "차 한 잔을 마시며 쉬었다 돌아간다",
         "outcomes": [
           {
-            "weight": 35,
-            "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
-            "weeks": {
-              "stamina": 8
-            }
-          },
-          {
-            "weight": 65,
-            "message": "예상보다 일정이 길어져 피곤해졌다.",
-            "fatigue": 10
+            "weight": 100,
+            "message": "짧은 만남으로 기분을 풀고 남은 시간은 쉬었다.",
+            "fatigue": -6
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
-        "label": "일정을 줄이고 충분히 쉰다",
+        "id": "choice-2",
+        "label": "잠깐 인사하고 집에서 쉰다",
         "outcomes": [
           {
-            "weight": 85,
-            "message": "편안히 쉬며 피로를 풀었다.",
-            "fatigue": -12
-          },
-          {
-            "weight": 15,
-            "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
-            "fatigue": 2
+            "weight": 100,
+            "message": "몸이 무겁다는 말을 전하고 일찍 휴식을 시작했다.",
+            "recoveryPercent": {
+              "min": 10,
+              "max": 18
+            }
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ]
   },
@@ -1747,44 +1756,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "옆 회전을 늘려 스위퍼 궤적을 만든다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "공이 직구 궤적에서 더 길게 옆으로 벗어났다. 타자의 스윙을 비키는 감각을 찾았다.",
             "weeks": {
-              "movement": 8
+              "movement": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "회전을 의식하느라 손목이 먼저 열렸다. 변화구가 스트라이크 존에 들어오지 않았다.",
             "stats": {
-              "movement": -2
+              "control": -0.6
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "기존 슬라이더를 타자 무릎 높이에 꽂는다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "궤적을 키우기 전에 시작점을 고정했다. 슬라이더의 높낮이가 안정됐다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "movement"
@@ -1801,44 +1819,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "몸을 낮추고 첫 세 걸음을 짧게 몰아 뗀다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "발이 땅에 오래 머물지 않았다. 짧은 보폭이 이어지며 빠르게 가속했다.",
             "weeks": {
-              "speed": 8
+              "speed": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "무게중심이 앞으로 쏠려 견제에 몸을 되돌리기 어려웠다. 출발 자세가 흐트러졌다.",
             "stats": {
-              "speed": -2
+              "speed": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "작은 리드에서 첫발만 반복한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "서두르지 않고 발을 떼는 순서를 맞췄다. 작은 리드에서도 가속을 붙였다.",
             "weeks": {
               "speed": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "speed": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "speed"
@@ -1855,38 +1882,29 @@
     },
     "choices": [
       {
-        "label": "회복을 위한 새 식단을 직접 만든다",
+        "id": "choice-1",
+        "label": "간단히 요리해 먹고 쉰다",
         "outcomes": [
           {
-            "weight": 35,
-            "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
-            "weeks": {
-              "recovery": 8
-            }
-          },
-          {
-            "weight": 65,
-            "message": "예상보다 일정이 길어져 피곤해졌다.",
-            "fatigue": 10
+            "weight": 100,
+            "message": "서두르지 않고 식사를 마친 뒤 몸을 편히 쉬게 했다.",
+            "fatigue": -8
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
-        "label": "일정을 줄이고 충분히 쉰다",
+        "id": "choice-2",
+        "label": "준비된 식사를 먹고 수면을 보충한다",
         "outcomes": [
           {
-            "weight": 85,
-            "message": "편안히 쉬며 피로를 풀었다.",
-            "fatigue": -12
-          },
-          {
-            "weight": 15,
-            "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
-            "fatigue": 2
+            "weight": 100,
+            "message": "식사 시간을 줄여 누워 쉴 시간을 더 확보했다.",
+            "recoveryPercent": {
+              "min": 12,
+              "max": 20
+            }
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ]
   },
@@ -1902,44 +1920,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "다리 들기를 줄여 투구 시간을 단축한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "상체와 디딤발이 함께 나갔다. 빨리 던져도 공이 낮은 코스에 모였다.",
             "weeks": {
-              "control": 8
+              "control": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "팔이 따라올 시간이 줄어 변화구가 일찍 빠졌다. 꺾이는 지점이 흔들렸다.",
             "stats": {
-              "control": -2
+              "movement": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "정지 시간을 바꾸며 주자를 묶는다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "주자가 출발할 박자를 읽기 어렵게 만들었다. 견제와 투구를 섞는 판단이 빨라졌다.",
             "weeks": {
               "bq": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "bq": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "control"
@@ -1956,44 +1983,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "스플리터를 새 결정구로 연습한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "직구와 비슷하게 출발한 공이 미트 앞에서 가라앉았다. 떨어지는 구종을 다룰 감각이 생겼다.",
             "weeks": {
-              "movement": 8
+              "movement": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "손에서 빠지는 시점이 일정하지 않았다. 공이 땅에 먼저 닿았다.",
             "stats": {
-              "movement": -2
+              "control": -0.6
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "그립을 덜 벌리고 낮은 코스를 맞힌다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "손에 맞는 간격으로 공을 놓았다. 원하는 출발 높이를 반복할 수 있게 됐다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "movement"
@@ -2011,44 +2047,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "옆으로 돌아서 받으며 한 동작에 송구한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "공이 글러브에 들어올 때 몸이 이미 홈 쪽을 향했다. 중계 송구가 끊기지 않았다.",
             "weeks": {
-              "defense": 8
+              "defense": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "공을 받기 전에 팔부터 돌아갔다. 강하게 던질 자세를 만들지 못했다.",
             "stats": {
-              "defense": -2
+              "arm": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "가슴 앞에서 잡고 발을 디뎌 강하게 던진다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "공을 안정적으로 쥔 뒤 체중을 실었다. 송구가 중간에서 처지지 않았다.",
             "weeks": {
               "arm": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "arm": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "defense"
@@ -2065,38 +2110,29 @@
     },
     "choices": [
       {
-        "label": "새로운 수면 루틴을 시도한다",
+        "id": "choice-1",
+        "label": "휴대전화를 내려놓고 바로 잠든다",
         "outcomes": [
           {
-            "weight": 35,
-            "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
-            "weeks": {
-              "recovery": 8
-            }
-          },
-          {
-            "weight": 65,
-            "message": "예상보다 일정이 길어져 피곤해졌다.",
-            "fatigue": 10
+            "weight": 100,
+            "message": "방해받지 않고 잠들어 몸에 남은 피로를 풀었다.",
+            "fatigue": -10
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
-        "label": "일정을 줄이고 충분히 쉰다",
+        "id": "choice-2",
+        "label": "따뜻한 물로 씻고 몸을 쉬게 한다",
         "outcomes": [
           {
-            "weight": 85,
-            "message": "편안히 쉬며 피로를 풀었다.",
-            "fatigue": -12
-          },
-          {
-            "weight": 15,
-            "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
-            "fatigue": 2
+            "weight": 100,
+            "message": "긴장을 푼 뒤 잠자리에 들어 푹 쉬었다.",
+            "recoveryPercent": {
+              "min": 12,
+              "max": 20
+            }
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ]
   },
@@ -2113,38 +2149,29 @@
     },
     "choices": [
       {
-        "label": "정차 시간마다 걷고 몸을 푼다",
+        "id": "choice-1",
+        "label": "좌석을 정리하고 짧게 잠든다",
         "outcomes": [
           {
-            "weight": 35,
-            "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
-            "weeks": {
-              "stamina": 8
-            }
-          },
-          {
-            "weight": 65,
-            "message": "예상보다 일정이 길어져 피곤해졌다.",
-            "fatigue": 10
+            "weight": 100,
+            "message": "몸을 편하게 받친 뒤 눈을 붙였다.",
+            "fatigue": -7
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
-        "label": "일정을 줄이고 충분히 쉰다",
+        "id": "choice-2",
+        "label": "정차 때 가볍게 걷고 다시 쉰다",
         "outcomes": [
           {
-            "weight": 85,
-            "message": "편안히 쉬며 피로를 풀었다.",
-            "fatigue": -12
-          },
-          {
-            "weight": 15,
-            "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
-            "fatigue": 2
+            "weight": 100,
+            "message": "오래 앉아 굳은 다리를 풀고 남은 이동 시간에 쉬었다.",
+            "recoveryPercent": {
+              "min": 10,
+              "max": 16
+            }
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ]
   },
@@ -2160,44 +2187,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "손을 뒤에 남기고 회전으로 배트를 끌어낸다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "허리와 배트 사이에 여유가 생겼다. 모아둔 힘이 임팩트에서 풀렸다.",
             "weeks": {
-              "power": 8
+              "power": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "손을 너무 뒤에 둬 빠른 공에 늦었다. 배트가 길게 돌아나왔다.",
             "stats": {
-              "power": -2
+              "contact": -0.8
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "로드를 줄이고 공을 보는 시간을 늘린다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "준비 동작을 간결하게 줄였다. 공에 따라 배트가 나오는 시점을 조절했다.",
             "weeks": {
               "contact": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "contact": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "power"
@@ -2214,38 +2250,29 @@
     },
     "choices": [
       {
-        "label": "몸 관리 방법을 새롭게 연습한다",
+        "id": "choice-1",
+        "label": "짧게 눈을 붙이고 가볍게 몸을 푼다",
         "outcomes": [
           {
-            "weight": 35,
-            "message": "새로운 방법이 잘 맞았다. 몸과 마음을 관리하는 요령을 익혔다.",
-            "weeks": {
-              "recovery": 8
-            }
-          },
-          {
-            "weight": 65,
-            "message": "예상보다 일정이 길어져 피곤해졌다.",
-            "fatigue": 10
+            "weight": 100,
+            "message": "잠깐 잠든 뒤 편안하게 몸을 움직였다.",
+            "fatigue": -9
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
-        "label": "일정을 줄이고 충분히 쉰다",
+        "id": "choice-2",
+        "label": "일정을 비우고 충분히 누워 쉰다",
         "outcomes": [
           {
-            "weight": 85,
-            "message": "편안히 쉬며 피로를 풀었다.",
-            "fatigue": -12
-          },
-          {
-            "weight": 15,
-            "message": "잠을 설쳐 오히려 조금 피곤해졌다.",
-            "fatigue": 2
+            "weight": 100,
+            "message": "외출을 미루고 남은 시간을 온전히 쉬었다.",
+            "recoveryPercent": {
+              "min": 14,
+              "max": 22
+            }
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ]
   },
@@ -2261,44 +2288,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "직구 팔 스윙으로 체인지업을 던진다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "공을 느리게 놓으려고 팔을 멈추지 않았다. 직구와의 속도 차이가 살아났다.",
             "weeks": {
-              "movement": 8
+              "movement": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "빠른 팔에 손가락이 따라오지 못했다. 체인지업이 바깥으로 새었다.",
             "stats": {
-              "movement": -2
+              "control": -0.6
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "두 구종을 같은 높이에서 출발시킨다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "속도보다 릴리스 위치를 먼저 맞췄다. 두 공을 원하는 코스로 보내는 감각이 좋아졌다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "movement"
@@ -2315,44 +2351,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "베이스를 스치며 전력으로 돌아 나간다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "베이스 앞에서 보폭을 맞춰 속도를 지켰다. 3루로 나가는 첫발에도 힘이 남았다.",
             "weeks": {
-              "speed": 8
+              "speed": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "베이스를 크게 돌아 주로가 길어졌다. 급히 방향을 틀다 걸음이 엉켰다.",
             "stats": {
-              "speed": -2
+              "speed": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "속도를 낮춰 진입 각도부터 맞춘다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "밟을 위치를 정해 같은 주로를 반복했다. 코너 뒤에도 자연스럽게 속도가 붙었다.",
             "weeks": {
               "speed": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "speed": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "speed"
@@ -2369,44 +2414,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "보폭을 넓혀 체중을 공에 싣는다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "뒤에 남던 체중이 앞으로 실렸다. 릴리스까지 힘이 이어져 직구가 빨라졌다.",
             "weeks": {
-              "velocity": 8
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "보폭만 늘려 상체가 뒤에 남았다. 늦어진 릴리스에 공이 높게 빠졌다.",
             "stats": {
-              "velocity": -2
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "짧은 거리에서 밀고 딛는 동작을 맞춘다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "하체를 밀어내는 순간부터 맞췄다. 팔에만 의지하지 않고 직구에 힘을 실었다.",
             "weeks": {
               "velocity": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "velocity": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "velocity"
@@ -2423,44 +2477,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "리드를 넓히고 빠르게 스타트한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "앞발을 바로 빼고 달려 나갔다. 도루 출발 때 가속이 붙었다.",
             "weeks": {
-              "speed": 8
+              "speed": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "넓어진 거리를 오가느라 다리에 힘이 빨리 빠졌다. 반복 출발이 무거워졌다.",
             "stats": {
-              "speed": -2
+              "stamina": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "리드는 유지하고 투수의 첫 움직임에 반응한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "투수 발이 홈으로 향하는 순간을 골랐다. 출발할 공을 고르는 판단이 좋아졌다.",
             "weeks": {
               "bq": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "bq": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "speed"
@@ -2481,44 +2544,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "발과 손을 동시에 움직여 송구를 당긴다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "미트에서 공을 빼는 순간 몸이 돌아갔다. 송구 준비에서 낭비하는 동작이 줄었다.",
             "weeks": {
-              "defense": 8
+              "defense": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "빠르게 던지려다 상체가 뒤로 젖었다. 송구에 힘을 싣지 못했다.",
             "stats": {
-              "defense": -2
+              "arm": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "준비를 서두르지 않고 2루까지 강하게 던진다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "몸을 세우고 체중을 앞에 실었다. 송구가 베이스까지 단단하게 뻗었다.",
             "weeks": {
               "arm": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "arm": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "defense"
@@ -2535,44 +2607,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "앞발을 딛고 변화구를 끝까지 기다린다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "하체가 멈춰도 손은 뒤에 남았다. 느린 공에 몸이 먼저 나가지 않았다.",
             "weeks": {
-              "contact": 8
+              "contact": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "기다리는 데만 집중해 하체 회전을 쓰지 못했다. 타구에 힘이 덜 실렸다.",
             "stats": {
-              "contact": -2
+              "power": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "빠른 공에 맞춰 강한 스윙을 반복한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "확실한 출발 박자를 정하고 회전했다. 임팩트 때 힘이 모였다.",
             "weeks": {
               "power": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "power": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "contact"
@@ -2589,44 +2670,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "팔 각도를 세워 큰 커브를 만든다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "공이 높은 곳에서 출발해 아래로 떨어졌다. 커브의 낙차를 키우는 감각을 익혔다.",
             "weeks": {
-              "movement": 8
+              "movement": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "팔을 세우려다 릴리스가 늦었다. 공이 낮은 곳으로 몰렸다.",
             "stats": {
-              "movement": -2
+              "control": -0.6
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "평소 각도로 커브를 스트라이크 존에 넣는다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "과하게 각도를 만들지 않고 놓는 지점을 맞췄다. 커브를 원하는 높이에서 꺾었다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "movement"
@@ -2644,44 +2734,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "시선을 공에 두고 낙구 지점까지 달린다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "달리는 동안 고개가 덜 흔들렸다. 공 아래에 들어갈 때 몸의 방향을 맞췄다.",
             "weeks": {
-              "defense": 8
+              "defense": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "공을 놓치지 않으려다 보폭이 작아졌다. 첫 가속이 느려졌다.",
             "stats": {
-              "defense": -2
+              "speed": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "펜스와 라인을 확인하고 짧은 전력 질주를 한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "주변을 확인한 뒤 확실한 방향으로 출발했다. 타구를 향한 첫 가속이 붙었다.",
             "weeks": {
               "speed": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "speed": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "defense"
@@ -2698,44 +2797,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "토탭으로 바꿔 준비 동작을 줄인다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "발이 빨리 제자리로 돌아왔다. 강한 공에도 배트가 늦지 않았다.",
             "weeks": {
-              "contact": 8
+              "contact": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "하체에 체중을 모으기 전에 배트가 나갔다. 정타에도 힘이 덜 붙었다.",
             "stats": {
-              "contact": -2
+              "power": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "레그킥은 유지하고 다리 높이만 낮춘다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "힘을 모으는 동작을 남기면서 시간을 줄였다. 하체를 써서 강하게 때렸다.",
             "weeks": {
               "power": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "power": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "contact"
@@ -2752,44 +2860,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "골반 회전 뒤 상체를 빠르게 돌린다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "팔이 몸통 회전을 따라 빠르게 나왔다. 직구가 미트까지 힘 있게 뻗었다.",
             "weeks": {
-              "velocity": 8
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "어깨를 억지로 붙잡다 팔이 늦었다. 공이 손끝에서 빠지는 위치가 흔들렸다.",
             "stats": {
-              "velocity": -2
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "낮은 강도로 회전 순서를 반복한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "하체부터 돌고 상체를 따라 보냈다. 전신의 힘을 공으로 옮기는 감각을 익혔다.",
             "weeks": {
               "velocity": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "velocity": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "velocity"
@@ -2806,44 +2923,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "앞다리로 버티고 상체를 빠르게 회전한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "디딤발에서 몸이 주저앉지 않았다. 몸통 회전의 힘이 직구에 전달됐다.",
             "weeks": {
-              "velocity": 8
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "앞다리에 힘을 너무 줘 상체가 일찍 들렸다. 공이 높은 곳으로 몰렸다.",
             "stats": {
-              "velocity": -2
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 7,
+              "max": 10
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "착지 위치를 맞추며 낮은 코스를 던진다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "발이 놓이는 방향을 고정했다. 상체가 들리지 않고 공을 낮게 놓았다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "velocity"
@@ -2860,44 +2986,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "글러브를 가슴 앞에 모으고 코스를 노린다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "글러브 쪽 어깨가 버텨 줬다. 손끝이 흔들리지 않아 공이 미트 안으로 모였다.",
             "weeks": {
-              "control": 8
+              "control": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "글러브를 너무 세게 당겨 몸이 한쪽으로 돌아갔다. 공의 좌우 편차가 커졌다.",
             "stats": {
-              "control": -2
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "반 강도로 같은 위치에 글러브를 모은다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "힘을 빼고 동작을 맞췄다. 같은 자세로 릴리스하는 감각을 익혔다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "control"
@@ -2913,44 +3048,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "주자 위치를 보며 중계와 백업을 직접 지시한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "타구가 나오자 주자와 송구 방향을 함께 봤다. 중계와 백업이 겹치지 않아 다음 진루를 막았다.",
             "weeks": {
-              "bq": 8
+              "bq": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "앞선 주자만 보고 뒤 주자를 놓쳤다. 서로 다른 콜이 나와 중계가 늦어졌다.",
             "stats": {
-              "bq": -2
+              "bq": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "주자 한 명인 상황부터 위치를 맞춘다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "상황을 하나씩 반복하며 설 곳을 익혔다. 공이 오기 전에 다음 송구를 준비했다.",
             "weeks": {
               "bq": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "bq": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "bq"
@@ -2967,44 +3111,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "앞발을 열고 몸쪽 공을 강하게 친다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "배트가 몸에 걸리지 않고 돌아나왔다. 안쪽 공을 강하게 당겨 쳤다.",
             "weeks": {
-              "power": 8
+              "power": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "몸이 일찍 열리면서 바깥쪽 공에 배트가 닿지 않았다. 맞히는 범위가 흔들렸다.",
             "stats": {
-              "power": -2
+              "contact": -0.8
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "발 위치는 두고 손을 몸 가까이 붙인다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "배트가 짧은 길로 공에 닿았다. 몸쪽 공에도 중심을 맞혔다.",
             "weeks": {
               "contact": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "contact": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "power"
@@ -3021,44 +3174,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "몸을 앞으로 보내며 릴리스를 길게 만든다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "투구가 몸 앞쪽에서 끝났다. 힘을 중간에 끊지 않고 공에 실었다.",
             "weeks": {
-              "velocity": 8
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "멀리 뻗으려다 디딤발 위에서 균형을 잃었다. 공이 땅으로 쏠렸다.",
             "stats": {
-              "velocity": -2
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 7,
+              "max": 10
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "디딤발 위에 멈춰 릴리스 위치를 반복한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "발과 몸통이 함께 멈췄다. 공을 놓는 높이가 일정해졌다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "velocity"
@@ -3075,44 +3237,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "타석을 좁혀 바깥쪽 공을 끝까지 친다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "공이 배트 끝보다 안쪽에 맞기 시작했다. 바깥쪽 공을 밀어내는 감각을 익혔다.",
             "weeks": {
-              "contact": 8
+              "contact": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "타석에 붙자 몸쪽 공을 강하게 돌리지 못했다. 스윙에 힘을 모으기 어려웠다.",
             "stats": {
-              "contact": -2
+              "power": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "타석 위치를 유지하고 앞팔을 길게 쓴다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "몸을 공 쪽으로 던지지 않고 팔을 뻗었다. 먼 코스에서도 타구에 힘이 붙었다.",
             "weeks": {
               "power": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "power": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "contact"
@@ -3129,44 +3300,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "직구처럼 던지는 커터를 익힌다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "직구로 보이던 공이 배트 앞에서 짧게 꺾였다. 새로운 구종을 던질 감각이 생겼다.",
             "weeks": {
-              "movement": 8
+              "movement": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "손목을 억지로 돌려 직구 릴리스까지 흔들렸다. 공이 반대쪽으로 빠졌다.",
             "stats": {
-              "movement": -2
+              "control": -0.6
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "직구의 양쪽 코너부터 다시 맞힌다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "구종을 늘리는 대신 기준이 되는 공을 다듬었다. 코너에 공을 놓는 감각이 안정됐다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "movement"
@@ -3183,44 +3363,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "공을 끝까지 기다려 빈 쪽으로 밀어 친다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "상체를 남겨두고 배트 중심으로 공을 받았다. 바깥쪽 공을 맞히는 범위가 넓어졌다.",
             "weeks": {
-              "contact": 8
+              "contact": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "밀어치려다 손만 내밀었다. 회전을 쓰지 못해 타구가 힘없이 떴다.",
             "stats": {
-              "contact": -2
+              "power": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "배트 궤적을 길게 쓰며 강하게 밀어 친다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "몸통을 돌린 뒤 배트를 반대 방향으로 밀었다. 밀어 친 공도 깊게 뻗었다.",
             "weeks": {
               "power": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "power": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "contact"
@@ -3237,44 +3426,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "글러브를 낮추고 곧바로 투구한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "손을 푸는 길이 짧아졌다. 디딤발과 팔이 같은 박자로 나왔다.",
             "weeks": {
-              "control": 8
+              "control": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "동작이 짧아지면서 상체를 돌릴 여유를 잃었다. 직구에 힘이 줄었다.",
             "stats": {
-              "control": -2
+              "velocity": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "손 위치는 유지하고 몸통 회전에 집중한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 리듬으로 허리를 돌렸다. 주자가 있어도 직구에 힘을 실었다.",
             "weeks": {
               "velocity": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "velocity": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "control"
@@ -3297,44 +3495,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "맨손 포구와 러닝 송구를 연결한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "공을 잡는 위치와 던지는 발이 맞았다. 멈추지 않고 타구를 처리했다.",
             "weeks": {
-              "defense": 8
+              "defense": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "달리는 힘을 제어하지 못해 팔로만 던졌다. 송구가 약하게 떠올랐다.",
             "stats": {
-              "defense": -2
+              "arm": -0.5
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "두 손으로 잡고 몸을 세워 던진다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "공을 안정적으로 잡은 뒤 체중을 옮겼다. 짧은 거리에서도 송구에 힘이 붙었다.",
             "weeks": {
               "arm": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "arm": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "defense"
@@ -3351,44 +3558,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "착지 뒤 몸통을 버티며 전력으로 던진다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "몸이 먼저 꺾이지 않아 팔이 빠르게 지나갔다. 마지막 순간까지 힘이 직구에 실렸다.",
             "weeks": {
-              "velocity": 8
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "버티는 동작에 힘이 들어가 몸통이 굳었다. 릴리스 방향이 옆으로 흔들렸다.",
             "stats": {
-              "velocity": -2
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "반 강도로 던지며 상체가 숙여지는 때를 늦춘다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "디딘 다리 위에서 팔을 보냈다. 힘이 새지 않는 동작으로 직구를 던졌다.",
             "weeks": {
               "velocity": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "velocity": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "velocity"
@@ -3405,44 +3621,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "임팩트 뒤 한 손을 풀어 피니시한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "임팩트 직후 배트가 멈추지 않았다. 회전이 타구 끝까지 이어졌다.",
             "weeks": {
-              "power": 8
+              "power": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "손을 너무 빨리 풀어 배트가 공에서 벗어났다. 임팩트 위치가 흔들렸다.",
             "stats": {
-              "power": -2
+              "contact": -0.8
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "두 손을 유지하고 짧은 스윙을 반복한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "배트가 몸통과 함께 돌아갔다. 공을 맞히는 지점이 일정해졌다.",
             "weeks": {
               "contact": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "contact": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "power"
@@ -3459,44 +3684,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "포구 순간 베이스를 강하게 차고 나간다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "몸을 미리 흔들지 않고도 발이 빠르게 떨어졌다. 홈까지 달리는 속도가 빨라졌다.",
             "weeks": {
-              "speed": 8
+              "speed": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "출발하려다 발을 다시 붙였다. 두 번 움직이는 동안 몸의 균형이 무너졌다.",
             "stats": {
-              "speed": -2
+              "speed": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "짧은 거리에서 출발과 가속을 반복한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "포구 신호에 맞춰 일정하게 출발했다. 멈춘 자세에서도 빠르게 가속했다.",
             "weeks": {
               "speed": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "speed": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "speed"
@@ -3513,44 +3747,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "하체를 끝까지 써서 전력 직구를 던진다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "발에서 시작한 힘이 손끝까지 이어졌다. 직구가 미트에 더 강하게 꽂혔다.",
             "weeks": {
-              "velocity": 8
+              "velocity": 4
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "힘을 한꺼번에 쓰면서 머리가 먼저 들렸다. 직구가 높게 빠졌다.",
             "stats": {
-              "velocity": -2
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 7,
+              "max": 10
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "강도를 낮추고 높은 코너를 정확히 맞힌다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "팔을 억지로 휘두르지 않고 릴리스를 맞췄다. 높은 코스에서도 공이 모였다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "velocity"
@@ -3567,44 +3810,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "네 모서리를 연속으로 맞히는 투구를 한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "미트 위치가 바뀌어도 손끝이 따라갔다. 원하는 코스에 공을 넣는 감각이 선명해졌다.",
             "weeks": {
-              "control": 8
+              "control": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "모서리를 의식하다 팔로 공을 조절했다. 릴리스가 흔들려 가운데로 몰렸다.",
             "stats": {
-              "control": -2
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "한 코스를 정해 같은 동작을 반복한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "한 곳에 던지며 놓는 순간을 맞췄다. 일정한 동작에서 코스를 잡았다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "control"
@@ -3620,44 +3872,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "타구를 잡자마자 2루로 정확하게 연결한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "2루에서 아웃을 잡은 뒤 1루 송구까지 이어졌다. 동료의 위치를 읽고 병살 플레이의 타이밍을 맞췄다.",
             "weeks": {
-              "bq": 8
+              "bq": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "서둘러 던진 공이 베이스에서 벗어났다. 연결 동작이 늦어 두 번째 아웃을 잡지 못했다.",
             "stats": {
-              "bq": -2
+              "bq": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "속도를 낮춰 포구와 송구 순서를 맞춘다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "포구와 베이스 커버, 1루 송구를 차례로 맞췄다. 병살 플레이에서 맡을 위치가 분명해졌다.",
             "weeks": {
               "bq": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "bq": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "bq"
@@ -3673,44 +3934,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "마지막 세트까지 정해진 속도를 지킨다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "숨이 찼지만 발이 끌리지 않았다. 반복해서 움직여도 하체가 버텨 주는 시간이 늘었다.",
             "weeks": {
-              "stamina": 8
+              "stamina": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "초반에 힘을 다 써 끝 세트에서 자세가 무너졌다. 다리가 무겁게 굳었다.",
             "stats": {
-              "stamina": -2
+              "stamina": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "반복 횟수를 나눠 일정한 자세로 달린다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "반복 사이 호흡을 맞췄다. 일정한 움직임을 끝까지 이어 가는 힘을 다졌다.",
             "weeks": {
               "stamina": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "stamina": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "physical"
@@ -3727,44 +3997,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "같은 팔 동작으로 높은 공과 낮은 공을 섞는다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "손끝이 흔들리지 않아 원하는 높이에 공이 들어갔다. 높은 공 뒤에도 낮은 코스로 돌아왔다.",
             "weeks": {
-              "control": 8
+              "control": 4
+            },
+            "fatigueRange": {
+              "min": 4,
+              "max": 7
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "높이를 바꾸려다 팔을 들었다 내렸다 했다. 공이 존 밖으로 빠졌다.",
             "stats": {
-              "control": -2
+              "control": -0.5
+            },
+            "fatigueRange": {
+              "min": 6,
+              "max": 9
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "낮은 미트부터 일정하게 맞힌다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "일정한 높이에 던지며 동작을 고정했다. 미트 위치가 조금 바뀌어도 공이 따라갔다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "control"
@@ -3780,44 +4059,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "조깅과 가동성 운동을 한 묶음 더 한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "몸이 식은 뒤에도 다시 움직이는 박자를 찾았다. 반복 활동을 버티는 힘을 길렀다.",
             "weeks": {
-              "stamina": 8
+              "stamina": 4
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "더위 속에 운동을 늘려 몸에 피로가 오래 남았다. 몸을 회복시키는 리듬이 흐트러졌다.",
             "stats": {
-              "stamina": -2
+              "recovery": -0.5
+            },
+            "fatigueRange": {
+              "min": 7,
+              "max": 10
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "그늘에서 수분을 보충하고 가볍게 몸을 푼다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "열이 오른 몸을 식히고 굳은 부위만 풀었다. 훈련 사이에 몸을 되돌리는 방법을 익혔다.",
             "weeks": {
               "recovery": 3
+            },
+            "fatigueRange": {
+              "min": -5,
+              "max": -2
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "recovery": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "physical"
@@ -3834,44 +4122,53 @@
     },
     "choices": [
       {
+        "id": "choice-1",
         "label": "손가락 끝에 힘을 모아 그립을 바꾼다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "미끄러지던 공이 손끝을 타고 나갔다. 변화구의 회전이 다시 선명해졌다.",
             "weeks": {
-              "movement": 8
+              "movement": 4
+            },
+            "fatigueRange": {
+              "min": 3,
+              "max": 6
             }
           },
           {
-            "weight": 65,
-            "message": "새 동작에 적응하지 못해 감각이 크게 흔들렸다.",
+            "weight": 50,
+            "message": "공을 놓치지 않으려 너무 세게 쥐었다. 릴리스가 늦어 공이 바운드됐다.",
             "stats": {
-              "movement": -2
+              "control": -0.6
+            },
+            "fatigueRange": {
+              "min": 5,
+              "max": 8
             }
           }
-        ],
-        "id": "choice-1"
+        ]
       },
       {
+        "id": "choice-2",
         "label": "손을 닦고 낮은 강도로 코스를 맞힌다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "불필요하게 쥐는 힘을 뺐다. 손이 미끄러워도 목표를 향해 공을 놓았다.",
             "weeks": {
               "control": 3
+            },
+            "fatigueRange": {
+              "min": 1,
+              "max": 3
             }
           },
           {
-            "weight": 15,
-            "message": "작은 조정에 타이밍이 조금 흔들렸다.",
-            "stats": {
-              "control": -0.3
-            }
+            "weight": 50,
+            "message": "동작을 점검했지만 이번에는 뚜렷한 변화를 얻지 못했다."
           }
-        ],
-        "id": "choice-2"
+        ]
       }
     ],
     "focus": "movement"
@@ -3886,17 +4183,17 @@
         "label": "투구 동작을 크게 바꾼다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "투구 동작을 크게 바꾼다에 집중한 끝에 새로운 동작을 몸에 익혔다.",
             "weeks": {
               "velocity": 8
             }
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "큰 변화를 시도했지만 동작이 흔들렸다. 익숙한 감각을 되찾는 데 시간이 필요하다.",
             "stats": {
-              "control": -2
+              "control": -0.3
             }
           }
         ],
@@ -3906,14 +4203,14 @@
         "label": "릴리스 반복성을 다듬는다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "릴리스 반복성을 다듬는다에 집중하며 기본 동작을 조금 더 안정시켰다.",
             "weeks": {
               "control": 3
             }
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "작은 조정도 아직 어색하다. 동작을 다시 맞춰야 한다.",
             "stats": {
               "control": -0.3
@@ -3941,17 +4238,17 @@
         "label": "발사각을 높이는 스윙을 시도한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "발사각을 높이는 스윙을 시도한다에 집중한 끝에 새로운 동작을 몸에 익혔다.",
             "weeks": {
               "power": 8
             }
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "큰 변화를 시도했지만 동작이 흔들렸다. 익숙한 감각을 되찾는 데 시간이 필요하다.",
             "stats": {
-              "contact": -2
+              "contact": -0.3
             }
           }
         ],
@@ -3961,14 +4258,14 @@
         "label": "배트 중심에 맞히는 데 집중한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "배트 중심에 맞히는 데 집중한다에 집중하며 기본 동작을 조금 더 안정시켰다.",
             "weeks": {
               "contact": 3
             }
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "작은 조정도 아직 어색하다. 동작을 다시 맞춰야 한다.",
             "stats": {
               "contact": -0.3
@@ -3996,17 +4293,17 @@
         "label": "공격적인 첫발로 타구에 접근한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "공격적인 첫발로 타구에 접근한다에 집중한 끝에 새로운 동작을 몸에 익혔다.",
             "weeks": {
               "defense": 8
             }
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "큰 변화를 시도했지만 동작이 흔들렸다. 익숙한 감각을 되찾는 데 시간이 필요하다.",
             "stats": {
-              "defense": -2
+              "defense": -0.3
             }
           }
         ],
@@ -4016,14 +4313,14 @@
         "label": "포구 자세를 안정시킨다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "포구 자세를 안정시킨다에 집중하며 기본 동작을 조금 더 안정시켰다.",
             "weeks": {
               "defense": 3
             }
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "작은 조정도 아직 어색하다. 동작을 다시 맞춰야 한다.",
             "stats": {
               "defense": -0.3
@@ -4053,7 +4350,7 @@
         "label": "구종을 예측해 크게 돌린다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
             "match": {
               "hr": 0.12,
@@ -4062,7 +4359,7 @@
             "selectionBonus": 0.6
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
             "match": {
               "hit": -0.1,
@@ -4077,7 +4374,7 @@
         "label": "끝까지 보고 짧게 대응한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": 0.025
@@ -4085,7 +4382,7 @@
             "selectionBonus": 0.15
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "hit": -0.02
@@ -4109,7 +4406,7 @@
         "label": "존 안으로 강하게 승부한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "과감한 승부를 준비했다. 이번 승부에 유리한 감각을 잡았다.",
             "match": {
               "k": 0.15,
@@ -4118,7 +4415,7 @@
             "selectionBonus": 0.6
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "과감한 시도의 타이밍이 어긋났다. 이번 승부의 부담이 커졌다.",
             "match": {
               "hr": 0.1,
@@ -4133,7 +4430,7 @@
         "label": "낮은 코스로 승부한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": -0.025
@@ -4141,7 +4438,7 @@
             "selectionBonus": 0.15
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "bb": 0.02
@@ -4166,13 +4463,13 @@
         "label": "투수의 첫 움직임에 출발한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "투수의 움직임을 읽었다. 과감하게 출발할 준비를 마쳤다.",
             "steal": 0.18,
             "selectionBonus": 0.6
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "첫 움직임을 잘못 읽었다. 출발 타이밍이 크게 흔들렸다.",
             "steal": -0.3,
             "selectionBonus": -0.6
@@ -4184,13 +4481,13 @@
         "label": "확실한 틈을 기다려 출발한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "투구 동작을 끝까지 확인했다. 안정적으로 출발할 준비를 했다.",
             "steal": 0.04,
             "selectionBonus": 0.15
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "확인하는 사이 첫발이 조금 늦었다.",
             "steal": -0.04,
             "selectionBonus": -0.1
@@ -4215,7 +4512,7 @@
         "label": "긴 일정에 참여한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "팬들과 야구 이야기를 나누며 경기를 보는 관점을 넓혔다.",
             "weeks": {
               "bq": 8
@@ -4223,7 +4520,7 @@
             "fatigue": 5
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "행사가 길어져 몸이 무거워졌다.",
             "fatigue": 14
           }
@@ -4234,12 +4531,12 @@
         "label": "불참하고 회복한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "휴식으로 피로를 풀었다.",
             "fatigue": -12
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "수면 리듬이 어긋나 조금 피곤해졌다.",
             "fatigue": 2
           }
@@ -4264,7 +4561,7 @@
         "label": "야외 촬영에 참여한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "경기 경험을 설명하며 전술 이해를 넓혔다.",
             "weeks": {
               "bq": 8
@@ -4272,7 +4569,7 @@
             "fatigue": 5
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "촬영이 길어져 피로가 쌓였다.",
             "fatigue": 14
           }
@@ -4283,14 +4580,14 @@
         "label": "짧은 서면 인터뷰로 대신한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "질문에 답하며 경기 상황을 차분히 정리했다.",
             "weeks": {
               "bq": 3
             }
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "질문을 정리하다 휴식 시간이 줄었다.",
             "fatigue": 2
           }
@@ -4321,14 +4618,14 @@
         "label": "강도 높은 체력 프로그램에 참여한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "체력 프로그램을 소화해 지구력을 길렀다.",
             "weeks": {
               "stamina": 8
             }
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "낯선 운동 중 가벼운 부상을 입었다.",
             "injury": {
               "severity": "mild",
@@ -4342,14 +4639,14 @@
         "label": "개인 회복 루틴을 지킨다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "회복 루틴을 꾸준히 익혔다.",
             "weeks": {
               "recovery": 3
             }
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "루틴이 잘 맞지 않아 조금 피곤해졌다.",
             "fatigue": 2
           }
@@ -4374,14 +4671,14 @@
         "label": "경기에 직접 뛴다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "새로운 종목을 즐기며 지구력을 길렀다.",
             "weeks": {
               "stamina": 8
             }
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "경합 중 가벼운 부상을 입었다.",
             "injury": {
               "severity": "mild",
@@ -4395,12 +4692,12 @@
         "label": "짧은 행사에만 참여한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "짧게 인사한 뒤 돌아와 쉬었다.",
             "fatigue": -8
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "행사가 조금 늦게 끝났다.",
             "fatigue": 2
           }
@@ -4425,14 +4722,14 @@
         "label": "체력 루틴을 직접 함께한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "후배와 체력 루틴을 끝까지 소화했다.",
             "weeks": {
               "stamina": 8
             }
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "시범을 많이 보이다 피로가 쌓였다.",
             "fatigue": 14
           }
@@ -4443,14 +4740,14 @@
         "label": "짧게 경기 경험을 이야기한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "상황을 설명하며 경기 이해를 다듬었다.",
             "weeks": {
               "bq": 3
             }
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "대화가 길어져 조금 피곤해졌다.",
             "fatigue": 2
           }
@@ -4475,14 +4772,14 @@
         "label": "새로운 회복 장비를 사용한다",
         "outcomes": [
           {
-            "weight": 35,
+            "weight": 50,
             "message": "새 장비의 사용법을 익혀 회복 요령을 넓혔다.",
             "weeks": {
               "recovery": 8
             }
           },
           {
-            "weight": 65,
+            "weight": 50,
             "message": "장비가 몸에 맞지 않아 회복 감각이 흐트러졌다.",
             "stats": {
               "recovery": -2
@@ -4495,14 +4792,14 @@
         "label": "익숙한 회복 방법을 유지한다",
         "outcomes": [
           {
-            "weight": 85,
+            "weight": 50,
             "message": "익숙한 방법을 차분하게 다듬었다.",
             "weeks": {
               "recovery": 3
             }
           },
           {
-            "weight": 15,
+            "weight": 50,
             "message": "회복 동작이 조금 어긋났다.",
             "stats": {
               "recovery": -0.3
