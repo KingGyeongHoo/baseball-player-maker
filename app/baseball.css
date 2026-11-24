@@ -225,6 +225,7 @@
 .scouting-development {padding-bottom:12px;}
 @media(max-width:600px){.scouting-tools{grid-template-columns:1fr;}.scouting-report-modal .guide-content{padding:18px;}.scouting-report-modal .modal-header{padding:18px;}.scouting-report-modal .modal-header h2{font-size:16px;}.scouting-tools article{padding:12px;}}
 .draft-next-actions { display: flex; flex-shrink: 0; gap: 8px; align-items: center; }
+.draft-next-actions.draft-developmental-offers { flex-direction:column; align-items:stretch; }
 .draft-reveal-panel { padding: 64px 24px; text-align: center; background: #f7f9fc; }
 .draft-reveal-panel h1 { margin: 16px 0; font-size: clamp(23px, 3vw, 34px); color: var(--navy); }
 .draft-reveal-panel p { margin: 16px 0; line-height: 1.9; color: var(--muted); }

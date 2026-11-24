@@ -5,7 +5,7 @@ import {createProWarContext,proWarAssessment,type ProWarContext} from './pro-war
 import {firstTeamRetention} from "./pro-assessment";
 import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, pitchingRole, positions, random, recovery, reputationScore, roleScore, selectionScore } from "./engine";
 import { careerLeagueTable, developmentCalendar } from "./pro-calendar";
-import { developmentalOffer, revealDraftResult } from "./draft-outcome";
+import { developmentalOffer, rejectedDraftOffers, revealDraftResult } from "./draft-outcome";
 import { clubName,ensureProWorld,proNews,proNotice,reviewLeagueRegistrations,BASE_SALARY } from "./pro-world";
 import { continueToNextProCamp,finishProfessionalDay } from "./pro-season";
 import type { GameState, Player, Position, ProLevel, Team } from "./types";
@@ -87,7 +87,7 @@ function resetWorld(s: GameState, p: Player, year: number, pro: boolean) {
   s.calendar = developmentCalendar(year,pro); s.phase = "weekStart"; s.report = null; s.records = emptyRecord(); s.pendingEvents = [];
   s.careerEvent = null; s.lastCareerEventWeek = s.week; delete s.weekProgress; delete s.matchProgress; delete s.matchEffect; delete s.careerOpportunities;
 }
-export function continueCareer(input: GameState, choice: CareerChoice): GameState {
+export function continueCareer(input: GameState, choice: CareerChoice, developmentalClub?: string): GameState {
   if (input.phase !== "ended" || input.careerEvent || input.careerNotice) throw new Error("시즌 결과와 알림을 확인한 뒤 진로를 선택해 주세요.");
   if (input.careerMode === "pro") throw new Error("프로의 다음 시즌은 계약 화면에서 선택해 주세요.");
   if (!input.careerMode && !input.draftOutcome?.revealed) throw new Error("드래프트 결과를 먼저 확인해 주세요.");
@@ -99,10 +99,17 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   let entry: "draft" | "tryout" | "collegeDraft" | "developmental" | "direct" = s.careerMode === "college" ? "collegeDraft" : "draft";
   if(choice==="direct"){club=hash(`${s.seed}:direct-club`)%10;entry="direct";}
   if (choice === "developmental") {
-    const offer = developmentalOffer(s);
-    if (!offer || pick) throw new Error("신고선수 입단 제의가 없습니다.");
-    club = draftClubs.indexOf(offer.club); entry = "developmental";
+    if(pick){
+      if(s.draftOutcome?.rejected!==true||!developmentalClub||!rejectedDraftOffers(s).includes(developmentalClub))throw new Error("지명 거부 후 제안받은 세 구단 중에서 선택해 주세요.");
+      club=draftClubs.indexOf(developmentalClub);
+    }else{
+      const offer = developmentalOffer(s);
+      if (!offer||developmentalClub&&developmentalClub!==offer.club) throw new Error("신고선수 입단 제의가 없습니다.");
+      club = draftClubs.indexOf(offer.club);
+    }
+    entry = "developmental";
   }
+  if (choice === "join" && s.draftOutcome?.rejected) throw new Error("지명을 거부했습니다. 신고선수 제안을 선택해 주세요.");
   if (choice === "join" && !pick) throw new Error("지명받은 구단이 없습니다. 대학 진학이나 입단 테스트로 도전하세요.");
   if (choice === "tryout") {
     if (pick) throw new Error("지명 구단 입단을 선택해 주세요.");
@@ -124,7 +131,7 @@ export function continueCareer(input: GameState, choice: CareerChoice): GameStat
   }
   if (club < 0) throw new Error("입단할 구단을 확인할 수 없습니다.");
   // Preserve the actual draft class, including its personal school records.
-  const rookies = board.map(d => ({ pick:d, player:s.players.find(other => other.id === d.playerId) })).filter(row => row.player);
+  const rookies = board.filter(d=>entry!=="developmental"||d.playerId!==p.id).map(d => ({ pick:d, player:s.players.find(other => other.id === d.playerId) })).filter(row => row.player);
   for (const row of rookies) archiveCareerSeason(s,row.player!);
   if(choice!=="direct")archiveCareerSeason(s,p);
   const year = s.calendar.seasonYear + 1, oldDate = s.date;

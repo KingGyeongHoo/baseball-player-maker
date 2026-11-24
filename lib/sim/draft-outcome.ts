@@ -1,6 +1,21 @@
-import { draftAssessment } from "./draft";
-import { getPlayer } from "./engine";
+import { draftAssessment, draftClubs } from "./draft";
+import { getPlayer, hash } from "./engine";
 import { statKeys, type DevelopmentalOffer, type GameState } from "./types";
+
+export function rejectedDraftOffers(s: GameState): string[] {
+  const p=getPlayer(s),pick=s.draft.find(row=>row.playerId===p.id);
+  if(s.careerMode||s.phase!=="ended"||p.grade!==3||!s.draftOutcome?.revealed||!pick)return [];
+  return draftClubs.filter(club=>club!==pick.club)
+    .map(club=>({club,order:hash(`${s.seed}:rejected-draft:${s.calendar.seasonYear}:${p.id}:${club}`)}))
+    .sort((a,b)=>a.order-b.order||a.club.localeCompare(b.club)).slice(0,3).map(row=>row.club);
+}
+export function rejectDraftPick(input: GameState): GameState {
+  if(input.careerEvent||input.careerNotice||rejectedDraftOffers(input).length!==3)throw new Error("고3 드래프트 결과를 확인한 뒤 지명을 거부할 수 있습니다.");
+  if(input.draftOutcome?.rejected)return input;
+  const s=structuredClone(input);
+  s.draftOutcome!.rejected=true;
+  return s;
+}
 
 export function developmentalOffer(s: GameState): DevelopmentalOffer | null {
   const p = getPlayer(s);

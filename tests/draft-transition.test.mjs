@@ -63,6 +63,47 @@ test('developmental entry preserves the player and school records, starts in the
   assert.equal(next.careerNotice.kind,'entry');assert.match(next.careerNotice.message,/90%/);
   assert.equal(next.draft.some(row=>row.playerId===p.id),false);assert.throws(()=>pc.continueCareer(shown(graduate(20)),'developmental'),/제의가 없습니다/);
 });
+test('rejecting a high-school pick persists three distinct alternative clubs without rerolling the draft',()=>{
+  const source=graduate();source.draft[0].playerId=source.playerId;
+  const s=shown(source),before=structuredClone(s),offers=outcome.rejectedDraftOffers(s);
+  assert.equal(offers.length,3);assert.equal(new Set(offers).size,3);assert.ok(!offers.includes(s.draft[0].club));
+  assert.deepEqual(s,before);
+  const rejected=outcome.rejectDraftPick(s);
+  assert.deepEqual(s,before);assert.equal(rejected.draftOutcome.rejected,true);assert.equal(outcome.rejectDraftPick(rejected),rejected);
+  assert.deepEqual(rejected.draft,s.draft);assert.deepEqual(rejected.rngStates,s.rngStates);
+  const save=require('../.test-build/lib/career-save.js');
+  const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(rejected))).state;
+  assert.equal(restored.draftOutcome.rejected,true);assert.deepEqual(outcome.rejectedDraftOffers(restored),offers);
+  const html=render(restored);assert.equal((html.match(/신고선수 입단 →/g)??[]).length,3);
+  for(const club of offers)assert.ok(html.includes(`${club} 신고선수 입단`));
+  assert.ok(!html.includes('프로 입단 →'));
+  assert.throws(()=>pc.continueCareer(restored,'join'),/거부/);
+  assert.throws(()=>pc.continueCareer(s,'developmental',offers[0]),/지명 거부 후/);
+  assert.throws(()=>pc.continueCareer(restored,'developmental'),/세 구단/);
+  assert.throws(()=>pc.continueCareer(restored,'developmental',s.draft[0].club),/세 구단/);
+});
+test('each alternative club signs the rejected prospect once as developmental and preserves high-school records',()=>{
+  const source=graduate();source.draft[0].playerId=source.playerId;
+  const p=e.getPlayer(source);p.seasonStats.batting.PA=123;
+  const s=outcome.rejectDraftPick(shown(source)),before=structuredClone(s);
+  for(const club of outcome.rejectedDraftOffers(s)){
+    const next=pc.continueCareer(s,'developmental',club),q=e.getPlayer(next),id=e.draftClubs.indexOf(club);
+    assert.deepEqual(s,before);assert.equal(next.postSchool.pro.club,id);assert.equal(next.postSchool.pro.entry,'developmental');
+    assert.equal(next.postSchool.pro.level,'developmental');assert.equal(q.teamId,id+30);assert.equal(q.proContract.status,'developmental');
+    assert.equal(q.professional.contract.salary,33_000_000);assert.equal(e.growthMultiplier(q),.9);
+    assert.equal(next.players.filter(row=>row.id===p.id).length,1);assert.deepEqual(q.stats,p.stats);
+    assert.equal(q.career[0].records.batting.PA,123);assert.deepEqual(q.trainingPolicy,p.trainingPolicy);
+    assert.equal(next.draft.find(row=>row.playerId===p.id).club,s.draft[0].club);
+  }
+});
+test('draft rejection is unavailable before reveal, for an undrafted prospect, or outside high school',()=>{
+  const s=graduate();assert.throws(()=>outcome.rejectDraftPick(s),/고3 드래프트/);
+  const picked=structuredClone(s);picked.draft[0].playerId=picked.playerId;
+  assert.throws(()=>outcome.rejectDraftPick(picked),/고3 드래프트/);
+  const shownPick=shown(picked);
+  for(const invalid of [{...shownPick,careerMode:'college'},{...shownPick,phase:'weekStart'},{...shownPick,careerNotice:{id:'pending'}}])assert.throws(()=>outcome.rejectDraftPick(invalid),/고3 드래프트/);
+  assert.throws(()=>outcome.rejectDraftPick(shown(s)),/고3 드래프트/);
+});
 test('developmental training and event growth are 90%, with unmodified fatigue, negative effects and talent exposure',()=>{
   const s=developmental(),p=e.getPlayer(s),regular=structuredClone(p);delete regular.proContract;
   const before={...p.stats};e.train(p,1);e.train(regular,1);

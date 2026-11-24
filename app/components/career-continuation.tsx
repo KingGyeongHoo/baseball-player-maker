@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getPlayer, labels } from "../../lib/sim/engine";
-import { developmentalOffer } from "../../lib/sim/draft-outcome";
+import { developmentalOffer, rejectedDraftOffers, rejectDraftPick } from "../../lib/sim/draft-outcome";
 import { acknowledgeCareer, continueCareer, type CareerChoice } from "../../lib/sim/pro-career";
 import type { GameState } from "../../lib/sim/types";
 import ScoutingReportButton from "./scouting-report";
@@ -51,16 +51,17 @@ export default function CareerContinuation({ state, onChange, onRetire }: { stat
   if (state.careerMode === "college") return <CollegeContinuation state={state} onChange={onChange}/>;
   if (state.phase !== "ended" || state.careerMode || !state.draftOutcome?.revealed) return null;
   const p=getPlayer(state),pick=state.draft.find(row=>row.playerId===p.id),offer=state.draftOutcome.offer ?? developmentalOffer(state);
-  const act=(choice:CareerChoice)=>{if(choosing.current)return;choosing.current=true;try{setError("");onChange(continueCareer(state,choice));}catch(error){choosing.current=false;setError(error instanceof Error?error.message:"입단에 실패했습니다.");}};
+  const rejected=!!pick&&state.draftOutcome.rejected===true,offers=rejected?rejectedDraftOffers(state):[];
+  const act=(choice:CareerChoice|"reject",club?:string)=>{if(choosing.current)return;choosing.current=true;try{setError("");onChange(choice==="reject"?rejectDraftPick(state):continueCareer(state,choice,club));}catch(error){choosing.current=false;setError(error instanceof Error?error.message:"입단에 실패했습니다.");}};
   return <div className="draft-result-summary draft-next-chapter">
     <div className="draft-next-copy"><span className="eyebrow">THE NEXT CHAPTER</span>
-      <div className="draft-pick-heading"><h3>{pick ? `${pick.club} · 전체 ${pick.overall}순위 지명` : offer ? "드래프트 지명은 받지 못했지만, 신고선수로 입단 제의를 받았습니다." : "이번 드래프트에서는 지명받지 못했습니다."}</h3>{pick&&<ScoutingReportButton state={state} pick={pick} year={state.calendar.seasonYear}/>}</div>
-      {pick ? <p>{pick.round}라운드 · {pick.slot}순번 · {pick.role}<br/>고교 기록과 능력치를 이어 {pick.club}의 신인 시즌을 시작합니다.</p>
+      <div className="draft-pick-heading"><h3>{rejected ? "신고선수 입단 제안" : pick ? `${pick.club} · 전체 ${pick.overall}순위 지명` : offer ? "드래프트 지명은 받지 못했지만, 신고선수로 입단 제의를 받았습니다." : "이번 드래프트에서는 지명받지 못했습니다."}</h3>{pick&&!rejected&&<ScoutingReportButton state={state} pick={pick} year={state.calendar.seasonYear}/>}</div>
+      {rejected ? <><p>{pick!.club}의 지명을 거부했습니다. 입단할 구단을 선택하세요.</p><p>육성선수로 시작 · 성장 90% · 시즌 성과에 따라 정식 선수 전환</p></> : pick ? <p>{pick.round}라운드 · {pick.slot}순번 · {pick.role}<br/>고교 기록과 능력치를 이어 {pick.club}의 신인 시즌을 시작합니다.</p>
         : offer ? <><p><b>{offer.club}</b> · {offer.reason === "topSkill" ? `${labels[offer.stat!]} 전국 TOP${offer.rank}` : "지명권과 근소한 평가 차이로 가능성을 인정받았습니다."}</p><p>신고선수는 프로 입단은 가능하지만, 성장과 기회가 제한적입니다.</p><p>성장 90% · 출전 기회 감소 · 2군 경기 성과를 쌓으면 정식 선수 전환과 제한 해제</p></>
         : <p>고교에서 쌓은 기록은 아래에서 확인할 수 있습니다.<br/>은퇴를 선택하면 첫 화면으로 돌아갑니다.</p>}
       {error&&<p className="error" role="alert">{error}</p>}
     </div>
-    <div className="draft-next-actions">{pick ? <button className="primary" onClick={()=>act("join")}>프로 입단 →</button> : <>
+    <div className={`draft-next-actions${rejected?' draft-developmental-offers':''}`}>{rejected ? offers.map(club=><button key={club} className="primary" onClick={()=>act("developmental",club)}>{club} 신고선수 입단 →</button>) : pick ? <><button className="primary" onClick={()=>act("join")}>프로 입단 →</button><button className="secondary" onClick={()=>act("reject")}>지명 거부 · 신고선수 제안</button></> : <>
       {offer&&<button className="primary" onClick={()=>act("developmental")}>신고선수 입단 →</button>}
       <button className={offer?"secondary":"primary"} onClick={onRetire}>은퇴</button>
     </>}</div>
