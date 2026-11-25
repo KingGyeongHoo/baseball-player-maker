@@ -19,5 +19,5 @@ export function proFieldTarget(s:GameState,p:Player=getPlayer(s)):Position|undef
   const adjacent:Partial<Record<Position,Position[]>>={C:["1B"],"1B":["3B"],"2B":["SS"],"3B":["1B"],SS:["2B"],LF:["RF"],CF:["LF","RF"],RF:["LF"]},order:Position[]=["C","1B","2B","3B","SS","LF","CF","RF"];
   const candidates=[...new Set([...p.eligiblePositions,...(adjacent[p.position]??[])])].filter(pos=>canPlayPosition(p,pos)&&pos!==p.position&&!['SP','RP','CP','DH'].includes(pos)&&!proRoleAptitudeIssue(p,pos));
   const rivals=(position:Position)=>s.players.filter(q=>q.id!==p.id&&q.teamId>=0&&q.teamId%10===p.teamId%10&&q.professional?.employment==="active"&&q.position===position).length;
-  return candidates.sort((a,b)=>roleScore(p,roleFor(b))-roleScore(p,roleFor(a))||rivals(a)-rivals(b)||order.indexOf(a)-order.indexOf(b))[0];
+  return candidates.sort((a,b)=>roleScore(p,roleFor(b),b)-roleScore(p,roleFor(a),a)||rivals(a)-rivals(b)||order.indexOf(a)-order.indexOf(b))[0];
 }

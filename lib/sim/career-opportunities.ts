@@ -22,7 +22,7 @@ export function recordTwoWayWeek(s: GameState) {
   ledger.lastCountedWeek = s.week;
 }
 export function twoWayPositions(p: Player) {
-  const best = (list: Position[]) => list.filter(pos=>canPlayPosition(p,pos)).sort((a, b) => roleScore(p, roleFor(b)) - roleScore(p, roleFor(a)) || list.indexOf(a) - list.indexOf(b))[0];
+  const best = (list: Position[]) => list.filter(pos=>canPlayPosition(p,pos)).sort((a, b) => roleScore(p, roleFor(b),b) - roleScore(p, roleFor(a),a) || list.indexOf(a) - list.indexOf(b))[0];
   return { pitchingPosition: isPitcher(p.primaryRole) ? p.position : best(["SP", "RP", "CP"]),
     battingPosition: isPitcher(p.primaryRole) ? best(["2B", "CF", "1B", "3B", "SS", "LF", "RF", "C", "DH"]) : p.position };
 }

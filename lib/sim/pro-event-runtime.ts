@@ -61,7 +61,7 @@ export function proGeneralCandidates(s:GameState,date=s.date){
     if((p.age??19)>=33&&regular&&["camp","regular"].includes(stage??"")){
       const target:Position|undefined=p.position==="SP"?"RP":undefined;
       const sparse=stage==="regular"?evidence.tracked&&evidence.teamGames>=5&&(pitching?stats.pitching.BF<=10:stats.batting.PA<=8):s.players.some(q=>q.id!==p.id&&active(q)&&q.teamId%10===p.teamId%10&&q.primaryRole===p.primaryRole&&roleScore(q)>roleScore(p));
-      if(target&&sparse&&ovr(p,pitching)>=45&&roleScore(p,roleFor(target))>=45){veteranRole=true;add("PE29",{target});}
+      if(target&&sparse&&ovr(p,pitching)>=45&&roleScore(p,roleFor(target),target)>=45){veteranRole=true;add("PE29",{target});}
     }
     if(!veteranRole){
       if(stage==="camp"&&!pitching&&ovr(p,false)>=45){const target=proFieldTarget(s,p);if(target)add("PE09",{target});}

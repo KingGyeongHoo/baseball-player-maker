@@ -28,7 +28,7 @@ export function springPriority(s:GameState,p:Player){
   return rank>=Math.floor(s.players.filter(q=>q.teamId===p.teamId&&isPitcher(q.primaryRole)===isPitcher(p.primaryRole)).length/2)?2:3;
 }
 // Equal third/developmental opportunity: omit the regular-league registration penalty.
-export const springSelectionScore=(p:Player,position:Position=p.position,date?:string)=>gameSelectionScore(p,roleFor(position),date)+(p.proContract?.status==='developmental'?6:0);
+export const springSelectionScore=(p:Player,position:Position=p.position,date?:string)=>gameSelectionScore(p,roleFor(position),date,position)+(p.proContract?.status==='developmental'?6:0);
 export function springLineup(s:GameState,roster:Player[],date:string){
   const ready=roster.filter(p=>available(p,date)),priority=new Map(ready.map(p=>[p.id,springPriority(s,p)])),used=new Set<string>();
   const ranked=(rows:Player[],position:Position)=>rows.sort((a,b)=>priority.get(a.id)!-priority.get(b.id)!||springSelectionScore(b,position,date)-springSelectionScore(a,position,date)||a.id.localeCompare(b.id));

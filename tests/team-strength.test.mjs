@@ -7,6 +7,33 @@ const { teamStrength, teamRankings } = require('../.test-build/lib/team-strength
 const close = (a,b) => assert.ok(Math.abs(a-b) < 1e-8, `${a} != ${b}`);
 const game = e.createGame('team-power', '전력검증', 'SS');
 
+test('position competition uses the approved hitter and starter weights while retaining both bullpen roles',()=>{
+ const p=e.previewPlayer('position-weights','가중치','1B');p.throws='R';p.fatigue=0;p.recentZ=0;
+ Object.assign(p.stats,{contact:20,power:80,defense:60,speed:40,arm:100,velocity:90,control:70,movement:50,stamina:30,recovery:10});
+ const expected={ '1B':50,'3B':50,'2B':51,'SS':51,'CF':51,'C':52,'LF':54,'RF':54,'SP':52,'RP':66,'CP':73,'DH':50 };
+ for(const [position,score]of Object.entries(expected)){
+  p.position=position;p.primaryRole=e.roleFor(position);delete p.twoWay;
+  close(e.roleScore(p),score);close(e.selectionScore(p),score);
+  p.careerMode='pro';p.seasonByLevel={first:e.emptyRecord(),second:e.emptyRecord()};
+  close(e.selectionScore(p),score);delete p.careerMode;
+ }
+ p.position='SP';p.primaryRole=e.roleFor('SP');p.twoWay={pitchingPosition:'SP',battingPosition:'LF',nextAssignment:'batting',reputationBonus:0};
+ close(e.roleScore(p,'코너 야수'),54);close(e.roleScore(p,'선발'),52);
+});
+
+test('utility players compete with the target position weights in depth charts and daily lineups',()=>{
+ const roster=['power','speed'].map((id,index)=>{
+  const p=e.previewPlayer(id,id,'1B');p.id=id;p.throws='R';p.fatigue=0;p.recentZ=0;p.injury=null;p.eligiblePositions=['1B','LF'];
+  delete p.freshmanReserve;for(const key of Object.keys(p.stats))p.stats[key]=50;
+  p.stats.power=index?0:60;p.stats.speed=index?100:0;return p;
+ });
+ assert.ok(e.gameSelectionScore(roster[0],'코너 야수','2027-04-01','1B')<e.gameSelectionScore(roster[1],'코너 야수','2027-04-01','1B'));
+ assert.ok(e.gameSelectionScore(roster[0],'코너 야수','2027-04-01','LF')>e.gameSelectionScore(roster[1],'코너 야수','2027-04-01','LF'));
+ const {startingAssignments}=require('../.test-build/lib/roster-status.js'),assigned=startingAssignments(roster);
+ assert.equal(assigned.get('speed'),'1B');assert.equal(assigned.get('power'),'LF');
+ assert.deepEqual(e.lineup(roster,'2027-04-01').field.map(p=>p.id),['speed','power']);
+});
+
 test('the school DH depth-chart role is awarded to a remaining hitter without fixed DH registration',()=>{
  const roster=['C','SS','CF','2B','1B','3B','LF','RF','C','DH'].map((position,i)=>{
   const p=e.previewPlayer(`school-dh-${i}`,`선수${i}`,position);p.id=`school-dh-${i}`;p.throws='R';p.eligiblePositions=[position];delete p.freshmanReserve;

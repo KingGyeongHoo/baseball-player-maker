@@ -9,7 +9,7 @@ export function teamStrength(players: Player[], teamId: number) {
     const slot = assigned.get(player.id);
     const weight = slot ? 1 : 0.5;
     const pitching = slot ? ["SP", "RP", "CP"].includes(slot) : isPitcher(player.primaryRole);
-    const score = roleScore(player, slot ? roleFor(slot) : player.primaryRole);
+    const score = roleScore(player, slot ? roleFor(slot) : player.primaryRole,slot);
     return { player, slot, weight, pitching, score, contribution: score * weight };
   }).sort((a, b) => b.weight - a.weight || b.score - a.score || a.player.id.localeCompare(b.player.id));
   const average = (rows: typeof members, score: (p: Player, roleValue: number) => number) => {

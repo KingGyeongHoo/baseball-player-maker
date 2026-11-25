@@ -184,7 +184,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
     if(game.exhibition&&m.inning>=4){
       const fieldIndex=m.sides[side].field.indexOf(batter.id),position=(["C","SS","CF","2B","1B","3B","LF","RF","DH"] as Position[])[fieldIndex];
       const substitute=rosters[side].filter(p=>!isPitcher(p.primaryRole)&&available(p,game.date)&&!game.lineup[side].includes(p.id)&&p.eligiblePositions.includes(position))
-        .sort((a,b)=>(pro?tier(a)-tier(b):0)||Number(pro&&currentProPosition(b,position))-Number(pro&&currentProPosition(a,position))||gameSelectionScore(b,roleFor(position),game.date)-gameSelectionScore(a,roleFor(position),game.date)||a.id.localeCompare(b.id))[0];
+        .sort((a,b)=>(pro?tier(a)-tier(b):0)||Number(pro&&currentProPosition(b,position))-Number(pro&&currentProPosition(a,position))||gameSelectionScore(b,roleFor(position),game.date,position)-gameSelectionScore(a,roleFor(position),game.date,position)||a.id.localeCompare(b.id))[0];
       if(substitute){m.sides[side].field[fieldIndex]=substitute.id;m.sides[side].order[orderIndex]=substitute.id;game.lineup[side].push(substitute.id);batter=substitute;
         m.defense[side]=m.sides[side].field.slice(0,8).reduce((sum,id)=>sum+effective(player(id)).defense,0)/8;
         m.arm[side]=[2,6,7].reduce((sum,i)=>sum+effective(player(m.sides[side].field[i])).arm/3,0);
@@ -194,7 +194,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       const fieldIndex = m.sides[side].field.indexOf(batter.id);
       const position = (["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH"] as Position[])[fieldIndex];
       const substitute = rosters[side].filter(p => available(p, game.date) && !m.sides[side].field.includes(p.id) && (!m.usedPitchers[side].includes(p.id)||!!p.twoWay&&position==='DH') && (position==='DH'?canBatAsDH(p):p.eligiblePositions.includes(position)))
-        .sort((a, b) => position==='DH'?compareDesignatedHitters(a,b,game.date):(pro?tier(a)-tier(b):0)||Number(pro&&currentProPosition(b,position))-Number(pro&&currentProPosition(a,position))||gameSelectionScore(b, roleFor(position),game.date) - gameSelectionScore(a, roleFor(position),game.date) || a.id.localeCompare(b.id))[0];
+        .sort((a, b) => position==='DH'?compareDesignatedHitters(a,b,game.date):(pro?tier(a)-tier(b):0)||Number(pro&&currentProPosition(b,position))-Number(pro&&currentProPosition(a,position))||gameSelectionScore(b, roleFor(position),game.date,position) - gameSelectionScore(a, roleFor(position),game.date,position) || a.id.localeCompare(b.id))[0];
       if (!substitute) return forfeit(side);
       m.sides[side].field[fieldIndex] = substitute.id; m.sides[side].order[orderIndex] = substitute.id; game.lineup[side].push(substitute.id); batter = substitute;
     }
@@ -287,7 +287,14 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
           const first=p.professional.firsts,debuts=!first.debut;
           if(debuts){first.debut=game.date;first.debutClub=p.teamId%10;}
           if(game.lineup.some(side=>side.slice(0,10).includes(id)))first.start??=game.date;
-          if(debuts&&id===s.playerId)proNotice(s,"first-team-debut","첫 1군 경기의 기록을 남겼습니다",`${game.date} · 실제 1군 경기에서 ${record.batting.AB}타수·${record.pitching.BF}타자를 상대했습니다. 능력 보너스 없이 이 순간을 커리어에 보관합니다.`);
+          if(debuts&&id===s.playerId){
+            const b=record.batting,pitch=record.pitching,pitching=isPitcher(p.primaryRole);
+            const lines=[`${game.date} 1군 경기의 기록입니다`,
+              ...(!pitching||p.twoWay?[`(타자) ${b.AB}타수 ${b.H}안타 ${b.HR}홈런 ${b.RBI}타점`]:[]),
+              ...(pitching||p.twoWay?[`(투수) ${Math.floor(pitch.outs/3)}.${pitch.outs%3}이닝 ${pitch.SO}삼진 ${pitch.R}실점`]:[]),
+              "능력 보너스 없이 이 순간을 커리어에 보관합니다."];
+            proNotice(s,"first-team-debut","첫 1군 경기의 기록을 남겼습니다",lines.join("\n\n"));
+          }
           if(record.batting.H)first.hit??=game.date;if(record.batting.HR)first.homeRun??=game.date;if(record.pitching.SO)first.strikeout??=game.date;
         }
       }

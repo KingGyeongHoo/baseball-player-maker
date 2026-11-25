@@ -26,7 +26,7 @@ export function fillSecondTeamVacancies(s:GameState,clubs=Array.from({length:10}
       if(second().some(p=>currentProPosition(p,pos)))continue;
       const first=members.filter(p=>p.teamId===club&&currentProPosition(p,pos));
       const candidates=first.length>=3?first:members.filter(p=>p.teamId>=20&&currentProPosition(p,pos));
-      const score=(p:Player)=>selectionScore(p,roleFor(pos));
+      const score=(p:Player)=>selectionScore(p,roleFor(pos),pos);
       candidates.sort((a,b)=>(first.length>=3?score(a)-score(b):score(b)-score(a))||a.id.localeCompare(b.id));
       const move=candidates[0];if(!move)continue;
       const roster=second();
@@ -67,7 +67,7 @@ export function ensurePlayableFarmRosters(s: GameState, clubs = Array.from({leng
     if(Object.entries(farmMinimum).every(([pos,n])=>current.filter(p=>healthy(p)&&currentProPosition(p,pos as Position)).length>=n))continue;
     const ordered = (position: Position) => lower().filter(healthy).sort((a, b) =>
       Number(guaranteedProStarter(b,position,s.date))-Number(guaranteedProStarter(a,position,s.date))
-      || Number(b.teamId === club+10)-Number(a.teamId === club+10) || roleScore(b,roleFor(position))-roleScore(a,roleFor(position)) || a.id.localeCompare(b.id));
+      || Number(b.teamId === club+10)-Number(a.teamId === club+10) || roleScore(b,roleFor(position),position)-roleScore(a,roleFor(position),position) || a.id.localeCompare(b.id));
     for (const position of slots) {
       let p = ordered(position).find(p => !selected.has(p.id) && currentProPosition(p, position));
       if (!p && ["SP","RP","CP"].includes(position)) {

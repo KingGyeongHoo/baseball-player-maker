@@ -927,8 +927,7 @@
             "match": {
               "hr": 0.12,
               "hit": 0.05
-            },
-            "selectionBonus": 0.6
+            }
           },
           {
             "weight": 50,
@@ -936,8 +935,7 @@
             "match": {
               "hit": -0.1,
               "k": 0.12
-            },
-            "selectionBonus": -0.6
+            }
           }
         ],
         "id": "choice-1"
@@ -950,16 +948,14 @@
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": 0.025
-            },
-            "selectionBonus": 0.15
+            }
           },
           {
             "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "hit": -0.02
-            },
-            "selectionBonus": -0.1
+            }
           }
         ],
         "id": "choice-2"
@@ -982,8 +978,7 @@
             "match": {
               "hr": 0.12,
               "hit": 0.05
-            },
-            "selectionBonus": 0.6
+            }
           },
           {
             "weight": 50,
@@ -991,8 +986,7 @@
             "match": {
               "hit": -0.1,
               "k": 0.12
-            },
-            "selectionBonus": -0.6
+            }
           }
         ],
         "id": "choice-1"
@@ -1005,16 +999,14 @@
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": 0.025
-            },
-            "selectionBonus": 0.15
+            }
           },
           {
             "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "hit": -0.02
-            },
-            "selectionBonus": -0.1
+            }
           }
         ],
         "id": "choice-2"
@@ -1037,8 +1029,7 @@
             "match": {
               "k": 0.15,
               "hit": -0.08
-            },
-            "selectionBonus": 0.6
+            }
           },
           {
             "weight": 50,
@@ -1046,8 +1037,7 @@
             "match": {
               "hr": 0.1,
               "hit": 0.08
-            },
-            "selectionBonus": -0.6
+            }
           }
         ],
         "id": "choice-1"
@@ -1060,16 +1050,14 @@
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": -0.025
-            },
-            "selectionBonus": 0.15
+            }
           },
           {
             "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "bb": 0.02
-            },
-            "selectionBonus": -0.1
+            }
           }
         ],
         "id": "choice-2"
@@ -1092,8 +1080,7 @@
             "match": {
               "k": 0.15,
               "hit": -0.08
-            },
-            "selectionBonus": 0.6
+            }
           },
           {
             "weight": 50,
@@ -1101,8 +1088,7 @@
             "match": {
               "hr": 0.1,
               "hit": 0.08
-            },
-            "selectionBonus": -0.6
+            }
           }
         ],
         "id": "choice-1"
@@ -1115,16 +1101,14 @@
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": -0.025
-            },
-            "selectionBonus": 0.15
+            }
           },
           {
             "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "bb": 0.02
-            },
-            "selectionBonus": -0.1
+            }
           }
         ],
         "id": "choice-2"
@@ -1147,8 +1131,7 @@
             "match": {
               "k": 0.15,
               "hit": -0.08
-            },
-            "selectionBonus": 0.6
+            }
           },
           {
             "weight": 50,
@@ -1156,8 +1139,7 @@
             "match": {
               "hr": 0.1,
               "hit": 0.08
-            },
-            "selectionBonus": -0.6
+            }
           }
         ],
         "id": "choice-1"
@@ -1170,16 +1152,14 @@
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": -0.025
-            },
-            "selectionBonus": 0.15
+            }
           },
           {
             "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "bb": 0.02
-            },
-            "selectionBonus": -0.1
+            }
           }
         ],
         "id": "choice-2"
@@ -1629,7 +1609,8 @@
             "fatigueRange": {
               "min": 3,
               "max": 6
-            }
+            },
+            "selectionBonus": 0.6
           },
           {
             "weight": 65,
@@ -1640,7 +1621,8 @@
             "fatigueRange": {
               "min": 5,
               "max": 8
-            }
+            },
+            "selectionBonus": -0.6
           }
         ]
       },
@@ -1769,7 +1751,8 @@
             "fatigueRange": {
               "min": 3,
               "max": 6
-            }
+            },
+            "selectionBonus": 0.6
           },
           {
             "weight": 65,
@@ -1780,7 +1763,8 @@
             "fatigueRange": {
               "min": 5,
               "max": 8
-            }
+            },
+            "selectionBonus": -0.6
           }
         ]
       },
@@ -2811,7 +2795,8 @@
             "fatigueRange": {
               "min": 3,
               "max": 6
-            }
+            },
+            "selectionBonus": 0.6
           },
           {
             "weight": 65,
@@ -2822,7 +2807,8 @@
             "fatigueRange": {
               "min": 5,
               "max": 8
-            }
+            },
+            "selectionBonus": -0.6
           }
         ]
       },
@@ -4190,14 +4176,16 @@
             "message": "투구 동작을 크게 바꾼다에 집중한 끝에 새로운 동작을 몸에 익혔다.",
             "weeks": {
               "velocity": 8
-            }
+            },
+            "selectionBonus": 0.6
           },
           {
             "weight": 65,
             "message": "큰 변화를 시도했지만 동작이 흔들렸다. 익숙한 감각을 되찾는 데 시간이 필요하다.",
             "stats": {
               "control": -0.3
-            }
+            },
+            "selectionBonus": -0.6
           }
         ],
         "id": "choice-1"
@@ -4246,14 +4234,16 @@
             "message": "발사각을 높이는 스윙을 시도한다에 집중한 끝에 새로운 동작을 몸에 익혔다.",
             "weeks": {
               "power": 8
-            }
+            },
+            "selectionBonus": 0.6
           },
           {
             "weight": 65,
             "message": "큰 변화를 시도했지만 동작이 흔들렸다. 익숙한 감각을 되찾는 데 시간이 필요하다.",
             "stats": {
               "contact": -0.3
-            }
+            },
+            "selectionBonus": -0.6
           }
         ],
         "id": "choice-1"
@@ -4360,8 +4350,7 @@
             "match": {
               "hr": 0.12,
               "hit": 0.05
-            },
-            "selectionBonus": 0.6
+            }
           },
           {
             "weight": 50,
@@ -4369,8 +4358,7 @@
             "match": {
               "hit": -0.1,
               "k": 0.12
-            },
-            "selectionBonus": -0.6
+            }
           }
         ],
         "id": "choice-1"
@@ -4383,16 +4371,14 @@
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": 0.025
-            },
-            "selectionBonus": 0.15
+            }
           },
           {
             "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "hit": -0.02
-            },
-            "selectionBonus": -0.1
+            }
           }
         ],
         "id": "choice-2"
@@ -4416,8 +4402,7 @@
             "match": {
               "k": 0.15,
               "hit": -0.08
-            },
-            "selectionBonus": 0.6
+            }
           },
           {
             "weight": 50,
@@ -4425,8 +4410,7 @@
             "match": {
               "hr": 0.1,
               "hit": 0.08
-            },
-            "selectionBonus": -0.6
+            }
           }
         ],
         "id": "choice-1"
@@ -4439,16 +4423,14 @@
             "message": "익숙한 동작으로 승부를 준비했다. 이번 승부의 흐름을 조금 유리하게 만들었다.",
             "match": {
               "hit": -0.025
-            },
-            "selectionBonus": 0.15
+            }
           },
           {
             "weight": 50,
             "message": "동작을 작게 조절했지만 타이밍이 조금 흔들렸다.",
             "match": {
               "bb": 0.02
-            },
-            "selectionBonus": -0.1
+            }
           }
         ],
         "id": "choice-2"
@@ -4470,14 +4452,12 @@
           {
             "weight": 50,
             "message": "투수의 움직임을 읽었다. 과감하게 출발할 준비를 마쳤다.",
-            "steal": 0.18,
-            "selectionBonus": 0.6
+            "steal": 0.18
           },
           {
             "weight": 50,
             "message": "첫 움직임을 잘못 읽었다. 출발 타이밍이 크게 흔들렸다.",
-            "steal": -0.3,
-            "selectionBonus": -0.6
+            "steal": -0.3
           }
         ],
         "id": "choice-1"
@@ -4488,14 +4468,12 @@
           {
             "weight": 50,
             "message": "투구 동작을 끝까지 확인했다. 안정적으로 출발할 준비를 했다.",
-            "steal": 0.04,
-            "selectionBonus": 0.15
+            "steal": 0.04
           },
           {
             "weight": 50,
             "message": "확인하는 사이 첫발이 조금 늦었다.",
-            "steal": -0.04,
-            "selectionBonus": -0.1
+            "steal": -0.04
           }
         ],
         "id": "choice-2"

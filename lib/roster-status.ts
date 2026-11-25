@@ -17,7 +17,7 @@ export function startingAssignments(roster: Player[]) {
     const eligible = roster.filter(p => !p.freshmanReserve && !assigned.has(p.id) && (p.careerMode==="pro"||p.professional?currentProPosition(p,position):p.eligiblePositions.includes(position)));
     const natural = roster.some(p=>p.careerMode) ? [] : eligible.filter(p=>p.position===position);
     const best = (natural.length ? natural : eligible)
-      .sort((a, b) => (a.careerMode==="pro"||a.professional?farmSelectionTier(a)-farmSelectionTier(b):0)||roleScore(b, roleFor(position)) - roleScore(a, roleFor(position)) || a.id.localeCompare(b.id))[0];
+      .sort((a, b) => (a.careerMode==="pro"||a.professional?farmSelectionTier(a)-farmSelectionTier(b):0)||roleScore(b, roleFor(position),position) - roleScore(a, roleFor(position),position) || a.id.localeCompare(b.id))[0];
     if (best) assigned.set(best.id, position);
   }
   return assigned;

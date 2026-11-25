@@ -57,8 +57,9 @@ test('camp jackpots, career decisions, certainty and two beneficial alternatives
 test('real choice resolution uses the adjusted threshold once and remains deterministic across reloads',()=>{
  const s=fixture(),p=e.getPlayer(s),event=open(s,'PE20');p.stats.power=100;p.stats.contact=0;seed(s,.7,.74);
  const original=structuredClone(s),next=e.answerCareerEvent(s,event.choices[0].id);
- assert.ok(next.careerEventHistory.at(-1).selectionBonus>0);
- const precision=e.answerCareerEvent(s,event.choices[1].id);assert.ok(precision.careerEventHistory.at(-1).selectionBonus<0);
+ assert.equal(next.careerEventHistory.at(-1).message,event.choices[0].outcomes[0].message);
+ assert.equal(next.careerEventHistory.at(-1).selectionBonus,undefined);
+ const precision=e.answerCareerEvent(s,event.choices[1].id);assert.equal(precision.careerEventHistory.at(-1).message,event.choices[1].outcomes[1].message);assert.equal(precision.careerEventHistory.at(-1).selectionBonus,undefined);
  assert.deepEqual(s,original);assert.equal(next.rngStates.match,s.rngStates.match);
  const probe={rngStates:{...s.rngStates}};e.random(probe,'events');assert.equal(next.rngStates.events,probe.rngStates.events);
  // Ordinary pre-bonus pending saves still use their frozen outcomes and current skills.

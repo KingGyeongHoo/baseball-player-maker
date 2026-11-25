@@ -47,12 +47,12 @@ test('new training and outside events expose two different risk profiles with ex
   for(const id of ids){const s=fixture(mode),event=open(s,id);assert.deepEqual(event.choices.map(c=>c.outcomes.map(o=>o.weight)),[[35,65],[85,15]],id);assert.notDeepEqual(event.choices[0].outcomes,event.choices[1].outcomes,id);}
  }
 });
-test('training directly changes abilities and never adds fatigue or explicit selection/reputation bonuses',()=>{
+test('training changes abilities with direct selection bonuses only for professional challenges',()=>{
  for(const [mode,id,key]of [['school','T21','power'],['pro','PE77','power']]){
   const s=fixture(mode);open(s,id);seed(s,.1);const before=structuredClone(e.getPlayer(s));const success=e.answerCareerEvent(s,'choice-1'),out=success.careerEventHistory.at(-1);
-  assert(out.stats[key]>0);assert.equal(out.fatigue,0);assert.equal(out.selectionBonus,undefined);assert.equal(e.getPlayer(success).professional?.eventSelectionBonus,undefined);assert.deepEqual(e.getPlayer(success).seasonStats,before.seasonStats);
-  seed(s,.9);const failure=e.answerCareerEvent(s,'choice-1').careerEventHistory.at(-1);assert.equal(failure.stats.contact,-2);assert.equal(failure.fatigue,0);
-  seed(s,.9);const small=e.answerCareerEvent(s,'choice-2').careerEventHistory.at(-1);assert(Math.abs(small.stats.contact+.3)<1e-8);
+  assert(out.stats[key]>0);assert.equal(out.fatigue,0);assert.equal(out.selectionBonus,mode==='pro'?.6:undefined);assert.equal(e.getPlayer(success).professional?.eventSelectionBonus,mode==='pro'?.6:undefined);assert.deepEqual(e.getPlayer(success).seasonStats,before.seasonStats);
+  seed(s,.9);const failure=e.answerCareerEvent(s,'choice-1').careerEventHistory.at(-1);assert(Math.abs(failure.stats.contact+.3)<1e-8);assert.equal(failure.fatigue,0);assert.equal(failure.selectionBonus,mode==='pro'?-.6:undefined);
+  seed(s,.9);const small=e.answerCareerEvent(s,'choice-2').careerEventHistory.at(-1);assert(Math.abs(small.stats.contact+.3)<1e-8);assert.equal(small.selectionBonus,undefined);
  }
 });
 test('every external branch affects only body management or BQ and remains off game days',()=>{
@@ -74,13 +74,13 @@ test('school and pro match choices preserve abilities and records, changing enco
  for(const [mode,ids]of [['school',['G01','G02','G03','G04','G05','G06','G07','G08']],['pro',['PE20','PE21','PE22','PE23','PE24','PE79','PE80']]])for(const id of ids){
   const s=fixture(mode),p=e.getPlayer(s);open(s,id,scene);s.matchProgress={gameId:scene.gameId,battingSide:1,battingIndex:[0,0],sides:[{order:[]},{order:[p.id]}],pitchers:['pitcher',p.id],eventFatigue:0};
   for(const roll of [.1,.9]){seed(s,roll);const next=e.answerCareerEvent(s,'choice-1'),out=next.careerEventHistory.at(-1);assert.deepEqual(out.stats,{},id);assert.equal(out.fatigue,0);assert(next.matchEffect,id);assert.deepEqual(e.getPlayer(next).stats,p.stats);assert.deepEqual(e.getPlayer(next).seasonStats,p.seasonStats);assert.equal(next.rngStates.match,s.rngStates.match);
-   if(mode==='pro'){assert.equal(out.reputation,0);assert.equal(out.selectionBonus,roll<.35?.6:-.6);assert(Math.abs(e.selectionScore(e.getPlayer(next))-e.selectionScore(p)-out.selectionBonus)<1e-8);}
+   if(mode==='pro'){assert.equal(out.reputation,0);assert.equal(out.selectionBonus,undefined);assert.equal(e.selectionScore(e.getPlayer(next)),e.selectionScore(p));}
    else assert((roll<.35?1:-1)*out.reputation>0);
   }
  }
 });
 test('pro evaluation bonus is bounded, saved and cannot be awarded by an external event',()=>{
- const s=fixture('pro'),p=e.getPlayer(s);p.professional.eventSelectionBonus=4.9;open(s,'PE79',scene);seed(s,.1);
+ const s=fixture('pro'),p=e.getPlayer(s);p.professional.eventSelectionBonus=4.9;open(s,'PE77');seed(s,.1);
  const next=e.answerCareerEvent(s,'choice-1');assert.equal(e.getPlayer(next).professional.eventSelectionBonus,5);
  const loaded=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(next,false))).state;assert.equal(e.getPlayer(loaded).professional.eventSelectionBonus,5);
  open(s,'PE82');seed(s,.1);const external=e.answerCareerEvent(s,'choice-1');assert.equal(e.getPlayer(external).professional.eventSelectionBonus,4.9);assert.equal(external.careerEventHistory.at(-1).selectionBonus,undefined);
@@ -93,7 +93,7 @@ test('steal choices pause for the actual runner, survive saving and modify a rea
  const s=fixture('pro'),p=e.getPlayer(s);s.weekProgress={remainingDays:1,beforeStats:{...p.stats},report:{growth:e.emptyStats(),fatigue:{training:0,game:0,recovered:0,peak:p.fatigue,days:[]}}};s.calendar.events=[{id:scene.gameId,date:s.date,status:'scheduled',homeTeamId:p.teamId,awayTeamId:99,boxScore:{},score:[1,0]}];s.matchProgress={gameId:scene.gameId,ready:true,stealPending:true,bases:[{playerId:p.id,pitcherId:'pitcher'},null,null],eventFatigue:0};
  const before=e.params['pro_events.game_chance'];e.params['pro_events.game_chance']=1;
  try{assert(!runtime.openProStealEvent(s,scene,'another-runner'));assert(runtime.openProStealEvent(s,scene,p.id));assert.equal(s.careerEvent.definitionId,'PE81');seed(s,.1);
-  const loaded=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(s,false))).state,next=e.answerCareerEvent(loaded,'choice-1');assert.equal(next.stealEffect.adjustment,.18);assert(next.matchProgress.stealPending);assert.equal(next.careerEventHistory.at(-1).selectionBonus,.6);assert(!runtime.openProStealEvent(next,scene,p.id));
+  const loaded=storage.decodeCareerSave(JSON.stringify(storage.encodeCareerSave(s,false))).state,next=e.answerCareerEvent(loaded,'choice-1');assert.equal(next.stealEffect.adjustment,.18);assert(next.matchProgress.stealPending);assert.equal(next.careerEventHistory.at(-1).selectionBonus,undefined);assert(!runtime.openProStealEvent(next,scene,p.id));
   const stats=p.stats;assert.equal(stolenBaseAttempt(stats,stats,stats,0,.75,.18),'safe');assert.equal(stolenBaseAttempt(stats,stats,stats,0,.75,-.3),'out');assert.equal(stolenBaseAttempt(stats,stats,stats,1,0),'none');
  }finally{e.params['pro_events.game_chance']=before;}
 });

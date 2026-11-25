@@ -244,8 +244,11 @@ export const positionLabel = (p: Player) => {const mode=p.careerMode??(p.profess
 export const pitchingRole = (p: Player) => p.twoWay?roleFor(p.twoWay.pitchingPosition):p.primaryRole;
 export const twoWayReputation = (p: Player) => p.twoWay ? Math.max(p.twoWay.reputationBonus, 3 * Math.min(1, p.seasonStats.batting.PA / 20, p.seasonStats.pitching.BF / 15)) : 0;
 const roleWeights=Object.fromEntries(Object.entries(balance.roleWeights).map(([role,weights])=>[role,Object.entries(weights)])) as Record<Role,[Stat,number][]>;
-export function roleScore(p:Player,role=p.primaryRole){
-  let score=0;for(const [key,weight]of roleWeights[role])score+=p.stats[key]*weight;
+const positionWeights=Object.fromEntries(Object.entries(balance.positionWeights).map(([position,weights])=>[position,Object.entries(weights)])) as Partial<Record<Position,[Stat,number][]>>;
+export function roleScore(p:Player,role=p.primaryRole,position?:Position){
+  const target=position??(!isPitcher(role)&&p.twoWay?p.twoWay.battingPosition:p.position);
+  const weights=roleFor(target)===role?positionWeights[target]??roleWeights[role]:roleWeights[role];
+  let score=0;for(const [key,weight]of weights)score+=p.stats[key]*weight;
   return score;
 }
 export const reputationScore = (p: Player) => p.careerMode==="pro"||p.professional?null:reputationBreakdown(p).total;
@@ -475,8 +478,8 @@ export function ops(r: RecordLine) {
 const pitchingQ = (r: RecordLine) => r.pitching.BF ? (params["reputation.pitch_k"] * r.pitching.SO - params["reputation.pitch_bb"] * r.pitching.BB - params["reputation.pitch_hr"] * r.pitching.HR) / r.pitching.BF : 0;
 export const available = (p: Player, date: string) => p.professional?.employment!=="retired" && !p.forcedRest && p.trainingPolicy.mode !== "rest" && !(p.injury && date < p.injury.unavailableUntil);
 export const growthMultiplier = (p: Player) => p.proContract?.status === "developmental" ? .9 : 1;
-export const selectionScore = (p: Player, role = p.primaryRole) => p.careerMode === "pro" || p.professional ? proSelectionScore(p, role) : roleScore(p, role)*leftPitcherMultiplier(p,role) - params["coach.fatigue_penalty"] * p.fatigue + params["coach.recent_max"] * clamp(p.recentZ, -1, 1) - (p.proContract?.status === "developmental" ? 6 : 0);
-export const gameSelectionScore=(p:Player,role=p.primaryRole,date?:string)=>selectionScore(p,role)-proManagementPenalty(p,date);
+export const selectionScore = (p: Player, role = p.primaryRole,position?:Position) => p.careerMode === "pro" || p.professional ? proSelectionScore(p, role,position) : roleScore(p, role,position)*leftPitcherMultiplier(p,role) - params["coach.fatigue_penalty"] * p.fatigue + params["coach.recent_max"] * clamp(p.recentZ, -1, 1) - (p.proContract?.status === "developmental" ? 6 : 0);
+export const gameSelectionScore=(p:Player,role=p.primaryRole,date?:string,position?:Position)=>selectionScore(p,role,position)-proManagementPenalty(p,date);
 // DH is a daily batting assignment, open to every remaining hitter.
 export const canBatAsDH = (p: Player) => !isPitcher(p.primaryRole) || !!p.twoWay;
 export const battingAbilityScore = (stats: Pick<Stats,'contact'|'power'|'bq'>) => stats.contact * .45 + stats.power * .45 + stats.bq * .1;
@@ -505,7 +508,7 @@ export function lineup(roster: Player[], date: string,selectedStarter?:Player) {
     const natural=professional?eligible.filter(p=>currentProPosition(p,pos)):[];
     // Compete for the current job. Utility eligibility is only an emergency
     // cover when no available player currently holds that position.
-    const p = (natural.length?natural:eligible).sort((a, b) => (professional?farmSelectionTier(a)-farmSelectionTier(b):0)||Number(professional&&guaranteedProStarter(b,pos,date))-Number(professional&&guaranteedProStarter(a,pos,date)) || gameSelectionScore(b, roleFor(pos),date) - gameSelectionScore(a, roleFor(pos),date) || a.id.localeCompare(b.id))[0];
+    const p = (natural.length?natural:eligible).sort((a, b) => (professional?farmSelectionTier(a)-farmSelectionTier(b):0)||Number(professional&&guaranteedProStarter(b,pos,date))-Number(professional&&guaranteedProStarter(a,pos,date)) || gameSelectionScore(b, roleFor(pos),date,pos) - gameSelectionScore(a, roleFor(pos),date,pos) || a.id.localeCompare(b.id))[0];
     if (p) field.push(p);
   }
   const pitchers = pitchingPool.filter(p=>!field.includes(p)||!!p.twoWay);

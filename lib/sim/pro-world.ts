@@ -139,7 +139,7 @@ export function reviewLeagueRegistrations(s:GameState) {
     const regular=s.date>=(club.nextReview??`${w.year}-03-15`);if(regular)club.nextReview=addDays(s.date,14);
     for(const pos of positions){
       const fits=(p:Player)=>currentProPosition(p,pos)||pos==='RP'&&currentProPosition(p,'CP');
-      const score=(p:Player)=>selectionScore(p,roleFor(pos));
+      const score=(p:Player)=>selectionScore(p,roleFor(pos),pos);
       // Fill every earned place at this position in the same review, rather
       // than leaving the second-best farm player behind a weaker incumbent.
       while(true){
@@ -242,7 +242,7 @@ export function professionalLineup(s:GameState,roster:Player[],date:string,ids:s
       const restRoll=hash(`${s.seed}:${date}:${current.id}:rest`)%100;
       if(restRoll>=restChance)continue;
       const replacement=roster.filter(p=>available(p,date)&&(!isPitcher(p.primaryRole)||!!p.twoWay)&&!starters.has(p.id)&&!result.field.includes(p)&&currentProPosition(p,slots[i])&&(!p.twoWay||slots[i]==='DH'||pitchingRole(p)==='선발'&&p!==result.starter))
-        .sort((a,b)=>farmSelectionTier(a)-farmSelectionTier(b)||(gameSelectionScore(b,roleFor(slots[i]),date)+hash(`${s.seed}:${date}:${b.id}:bench`)%24)-(gameSelectionScore(a,roleFor(slots[i]),date)+hash(`${s.seed}:${date}:${a.id}:bench`)%24)||a.id.localeCompare(b.id))[0];
+        .sort((a,b)=>farmSelectionTier(a)-farmSelectionTier(b)||(gameSelectionScore(b,roleFor(slots[i]),date,slots[i])+hash(`${s.seed}:${date}:${b.id}:bench`)%24)-(gameSelectionScore(a,roleFor(slots[i]),date,slots[i])+hash(`${s.seed}:${date}:${a.id}:bench`)%24)||a.id.localeCompare(b.id))[0];
       if(!replacement)continue;
       const role=roleFor(slots[i]),lead=Math.max(0,gameSelectionScore(current,role,date)-gameSelectionScore(replacement,role,date));
       // Farm development keeps at least a quarter of the normal rest chance,

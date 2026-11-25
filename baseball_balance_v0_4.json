@@ -1503,23 +1503,23 @@
       "speed": 0.1
     },
     "센터라인": {
-      "defense": 0.45,
+      "defense": 0.4,
       "speed": 0.3,
-      "contact": 0.2,
-      "power": 0.05
+      "contact": 0.15,
+      "power": 0.15
     },
     "포수": {
-      "defense": 0.65,
-      "arm": 0.2,
-      "contact": 0.1,
-      "power": 0.05
+      "defense": 0.4,
+      "speed": 0.2,
+      "contact": 0.2,
+      "power": 0.2
     },
     "선발": {
-      "stamina": 0.35,
-      "control": 0.35,
-      "recovery": 0.15,
-      "movement": 0.1,
-      "velocity": 0.05
+      "stamina": 0.2,
+      "control": 0.3,
+      "recovery": 0.1,
+      "movement": 0.3,
+      "velocity": 0.1
     },
     "중간계투": {
       "velocity": 0.3,
@@ -1533,7 +1533,13 @@
       "control": 0.15
     }
   },
-  "roleWeightStatus": "임시 기본값",
+  "positionWeights": {
+    "1B": { "contact": 0.3, "power": 0.3, "defense": 0.2, "speed": 0.2 },
+    "3B": { "contact": 0.3, "power": 0.3, "defense": 0.2, "speed": 0.2 },
+    "LF": { "contact": 0.3, "power": 0.4, "defense": 0.2, "speed": 0.1 },
+    "RF": { "contact": 0.3, "power": 0.4, "defense": 0.2, "speed": 0.1 }
+  },
+  "roleWeightStatus": "포지션별 사용자 확정 비율",
   "sources": [
     {
       "purpose": "대화에서 채택한 요구사항",

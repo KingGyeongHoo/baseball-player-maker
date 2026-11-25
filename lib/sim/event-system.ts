@@ -226,9 +226,13 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   for (const [key, delta] of Object.entries(deltas) as [Stat, number][]) { const before = p.stats[key]; p.stats[key] = clamp(limitPhysicalGrowth(p,key,before + delta), 1); changes[key] = p.stats[key] - before; }
   const oldPosition = p.position;
   let selectionBonus: number | undefined;
-  if(event.scene&&event.kind==='game'&&p.professional&&outcome.selectionBonus){
+  // Read this policy from the current catalog so pending saves cannot retain
+  // ordinary/stable bonuses or miss a newly added challenge bonus.
+  const challengeBonus=proDefinition?.riskChoice&&selected.id===proDefinition.choices[0]?.id
+    ?proDefinition.choices[0].outcomes[outcomes.indexOf(outcome)]?.selectionBonus:undefined;
+  if(p.professional&&challengeBonus){
     const before=p.professional.eventSelectionBonus??0;
-    p.professional.eventSelectionBonus=clamp(before+outcome.selectionBonus,-5,5);
+    p.professional.eventSelectionBonus=clamp(before+challengeBonus,-5,5);
     selectionBonus=p.professional.eventSelectionBonus-before;
   }
   const opportunityChanges = applyOpportunityChoice(s, outcome);

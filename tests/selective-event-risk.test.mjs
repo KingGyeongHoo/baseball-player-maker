@@ -28,6 +28,43 @@ test('only seven selected technical conversions use challenge and stable probabi
  }
 });
 
+test('only professional challenge choices directly raise or lower selection evaluation',()=>{
+ for(const definition of pro.proEventCatalog)for(const [choiceIndex,choice]of definition.choices.entries())for(const [branchIndex,branch]of choice.outcomes.entries()){
+  assert.equal(branch.selectionBonus,definition.riskChoice&&choiceIndex===0?(branchIndex===0?.6:-.6):undefined,`${definition.id}:${choice.id}`);
+ }
+ for(const [id,position]of [['PE33','SP'],['PE36','SP'],['PE54','SS'],['PE76','SP'],['PE77','SS']]){
+  for(const [choice,target,expected]of [['choice-1',.01,.6],['choice-1',.99,-.6],['choice-2',.01,undefined],['choice-2',.99,undefined]]){
+   const s=fixture(position);open(s,id);roll(s,target);
+   const next=e.answerCareerEvent(s,choice),p=e.getPlayer(next),out=next.careerEventHistory.at(-1);
+   assert.equal(out.selectionBonus,expected,`${id}:${choice}:${target}`);assert.equal(p.professional.eventSelectionBonus??0,expected??0);
+   assert.deepEqual(p.seasonByLevel,e.getPlayer(s).seasonByLevel);
+  }
+ }
+});
+
+test('old pending ordinary and stable choices cannot retain a direct evaluation bonus',()=>{
+ for(const [id,choice]of [['PE20','choice-1'],['PE21','choice-2'],['PE22','choice-1'],['PE23','choice-2'],['PE24','choice-1'],['PE79','choice-1'],['PE80','choice-2'],['PE81','choice-1'],['PE77','choice-2']]){
+  const s=fixture(),p=e.getPlayer(s);p.professional.eventSelectionBonus=1.2;
+  const event=open(s,id);event.kind='game';event.proEvent.channel='game';
+  event.scene={gameId:'pending-game',inning:7,battingSide:0,outs:1,bases:[null,null,null],score:[0,0],batting:true,batterName:p.name,pitcherName:'상대 투수'};
+  for(const row of event.choices)for(const branch of row.outcomes)branch.selectionBonus=3;
+  const loaded=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+  roll(loaded,.01);const next=e.answerCareerEvent(loaded,choice);
+  assert.equal(e.getPlayer(next).professional.eventSelectionBonus,1.2,id);assert.equal(next.careerEventHistory.at(-1).selectionBonus,undefined,id);
+ }
+});
+
+test('old pending challenges gain the current bonus once, bounded and preserved on reload',()=>{
+ for(const [target,start,end]of [[.01,4.9,5],[.99,-4.9,-5]]){
+  const s=fixture(),event=open(s,'PE77');for(const choice of event.choices)for(const branch of choice.outcomes)delete branch.selectionBonus;
+  e.getPlayer(s).professional.eventSelectionBonus=start;roll(s,target);
+  const next=e.answerCareerEvent(s,'choice-1');assert.equal(e.getPlayer(next).professional.eventSelectionBonus,end);
+  assert.ok(Math.abs(next.careerEventHistory.at(-1).selectionBonus-(end-start))<1e-9);
+  const restored=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(next))).state;
+  assert.equal(e.getPlayer(restored).professional.eventSelectionBonus,end);assert.deepEqual(restored.careerEventHistory,next.careerEventHistory);
+ }
+});
+
 test('professional offseason camp matches high-school center rewards for pitchers and hitters',()=>{
  for(const position of ['SP','SS']){
   const s=fixture(position),p=e.getPlayer(s),center=school.createCareerEvent('T10',p,s.date,s.week),camp=open(s,'PE84');
