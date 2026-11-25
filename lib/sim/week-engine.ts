@@ -1,5 +1,6 @@
 import {playNationalDay} from "./national-tournament";
 import {conditioningMultiplier} from './offseason-shop';
+import {syncTrainingDiary} from './pro-selection';
 import {nationalAway} from "./national-teams";
 import {proGameTeam} from "./pro-farm-roster";
 import { tryTrainingFocus } from "./training-focus";
@@ -67,6 +68,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
     if (p.recentAppearances.some(record => !Array.isArray(record))) p.recentAppearances = p.recentAppearances.map(packRecentRecord);
   }
   ensureProWorld(s);
+  syncTrainingDiary(player);
   upgradeProSchedule(s);ensureSpringSchedule(s);
   upgradeAllstarSchedule(s);
   tickProEvents(s);

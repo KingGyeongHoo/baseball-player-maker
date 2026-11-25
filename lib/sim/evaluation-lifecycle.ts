@@ -1,9 +1,11 @@
 import {available,hash,ovr} from "./engine";
+import {syncTrainingDiary} from './pro-selection';
 import {archiveEvaluationContext,buildEvaluationContext,createPlayerObservation} from "./player-evaluation";
 import type {EvaluationReason} from "./player-evaluation-types";
 import type {Game,GameState,Player} from "./types";
 
 export function capturePlayerEvaluations(s:GameState,reason?:EvaluationReason,ids?:string[]) {
+  const player=s.players.find(p=>p.id===s.playerId);if(player)syncTrainingDiary(player);
   if(s.careerMode==="college")return s;
   if(ids&&!ids.includes(s.playerId))return s;
   for(const p of s.players)if(p.id!==s.playerId)delete p.evaluationHistory;
@@ -33,6 +35,7 @@ export function capturePlayerEvaluations(s:GameState,reason?:EvaluationReason,id
 }
 export function captureEvaluationChange(s:GameState,before:Player) {
   const p=s.players.find(p=>p.id===before.id);if(!p)return s;
+  syncTrainingDiary(p);
   if(p.teamId!==before.teamId)return capturePlayerEvaluations(s,"team-change",[p.id]);
   if(p.position!==before.position||p.primaryRole!==before.primaryRole||p.twoWay?.pitchingPosition!==before.twoWay?.pitchingPosition||p.twoWay?.battingPosition!==before.twoWay?.battingPosition)return capturePlayerEvaluations(s,"role-change",[p.id]);
   const latest=p.evaluationHistory?.at(-1);if(latest?.date===s.date&&Object.keys(p.stats).every(key=>p.stats[key as keyof Player["stats"]]===latest.stats[key as keyof Player["stats"]]))return s;

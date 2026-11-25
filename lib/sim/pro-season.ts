@@ -1,6 +1,7 @@
 import {needsCareerHonorUpgrade,upgradeCareerHonors} from './career-honor-upgrade';
 import {showStoveReport} from './stove-report';
 import {buyShopItems,settleShopItems,type OffseasonShopAction} from './offseason-shop';
+import {syncTrainingDiary} from './pro-selection';
 import {settleFaService} from './fa-service';
 import {advanceNationalOffseason,pendingNationalOffseason} from "./national-tournament";
 import {nationalInvitation,needsNationalInvitationUpgrade,upgradeNationalInvitation} from './national-teams';
@@ -364,6 +365,7 @@ export function startNextProSeason(s:GameState,unattached=false){
   s.calendar=developmentCalendar(year,true);s.date=campDate;s.phase="weekStart";s.report=null;s.records=emptyRecord();delete s.weekProgress;delete s.matchProgress;delete s.matchEffect;s.careerEvent=null;delete s.pendingEventOutcome;s.pendingEvents=[];
   for(const team of s.teams){team.wins=0;team.losses=0;team.draws=0;}
   w.year=year;w.stage="camp";w.regularEnd=s.calendar.competitions.find(c=>c.id==="pro-first")!.endDate;w.seasonClosed=false;delete w.postseason;delete w.farmPostseason;delete w.market;
+  syncTrainingDiary(p);
   for(let club=0;club<10;club++)normalizeFirstTeamRoster(s,club);
   ensurePlayableFarmRosters(s);
   delete w.monthly;delete w.lastMonthly;delete w.allstar;delete w.stove;

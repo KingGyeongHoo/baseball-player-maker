@@ -1,4 +1,5 @@
-import {clamp,emptyRecord,isPitcher,ops,params,roleScore} from "./engine";
+import {clamp,emptyRecord,isPitcher,ops,params,roles,roleScore} from "./engine";
+import {hasShopItem} from './offseason-shop';
 import {leftPitcherMultiplier} from './handedness';
 import {mergeRecentRecord,recentSample} from './recent-records';
 import type {Player,RecordLine,Role} from "./types";
@@ -51,7 +52,7 @@ function regularSeasonForm(records:Records|undefined,pitching:boolean){
   return {value:first.value+farm.value*farmWeight,reliability:first.reliability+farm.reliability*farmWeight};
 }
 
-export function proSelectionScore(p:Player,role:Role=p.primaryRole){
+export function rawProSelectionScore(p:Player,role:Role=p.primaryRole){
   const pitching=isPitcher(role),limit=params[pitching?"coach.recent_outs":"coach.recent_pa"];
   const year=p.professional?.registration?.year;
   const previous=year===undefined?undefined:p.career.findLast(row=>row.year===year-1&&row.careerMode==='pro');
@@ -68,6 +69,23 @@ export function proSelectionScore(p:Player,role:Role=p.primaryRole){
   const recentAdjustment=limit>0?proSelectionRules.recentMax*form(recent,pitching).quality*Math.min(1,recentWorkload/limit):0;
   return clamp(roleScore(p,role)*leftPitcherMultiplier(p,role)+proSelectionRules.seasonMax*seasonForm+recentAdjustment+clamp(p.professional?.eventSelectionBonus??0,-5,5)
     -(p.proContract?.status==="developmental"?6:0)+(p.professional?.wildcardDeclines?.length??0)*wildcardDeclineSelectionBonus,0,100);
+}
+
+// Update only at simulation boundaries; reading a score must never change a save.
+export function syncTrainingDiary(p:Player){
+  const shop=p.offseasonShop,year=p.professional?.registration?.year;
+  if(!shop)return;
+  if(year===undefined||shop.settlement?.year===year||!hasShopItem(p,'trainingDiary',year)){
+    delete shop.trainingDiary;return;
+  }
+  if(shop.trainingDiary?.year!==year)shop.trainingDiary={year,peaks:{}};
+  for(const role of roles)shop.trainingDiary.peaks[role]=Math.max(shop.trainingDiary.peaks[role]??0,rawProSelectionScore(p,role));
+}
+
+export function proSelectionScore(p:Player,role:Role=p.primaryRole){
+  const score=rawProSelectionScore(p,role),diary=p.offseasonShop?.trainingDiary,year=p.professional?.registration?.year;
+  const peak=diary?.year===year&&p.offseasonShop?.settlement?.year!==year&&hasShopItem(p,'trainingDiary',year)?diary?.peaks[role]:undefined;
+  return peak===undefined?score:score+Math.max(0,peak-score)*.5;
 }
 
 export function nationalSelectionScore(p:Player,role:Role,records?:RecordLine){

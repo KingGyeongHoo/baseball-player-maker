@@ -1,4 +1,6 @@
-import type {GameState,Player,Stat} from './types';
+import type {GameState,Player,Role,Stat} from './types';
+import {roles} from './engine';
+import {syncTrainingDiary} from './pro-selection';
 
 export const conditioningEffectMultiplier=.5;
 
@@ -20,6 +22,7 @@ export const offseasonItems={
   physicalCoach:{name:'피지컬 코치',icon:'💪',price:180_000_000,stats:physical,bonus:.5,detail:'스태미나·회복·송구 훈련 배율 +0.5'},
   conditioning:{name:'컨디셔닝 코치',icon:'🩺',price:150_000_000,stats:[],bonus:0,detail:'경기·훈련 피로와 노화에 따른 능력 하락 50% 감소'},
   agent:{name:'에이전트',icon:'🤝',price:300_000_000,stats:[],bonus:0,detail:'FA·연봉 재협상 시 인상률 +10%p. 구단 예산 내 적용'},
+  trainingDiary:{name:'훈련일지',icon:'📓',price:100_000_000,stats:[],bonus:0,detail:'해당 시즌 구매 이후 최고 출전평가 대비 하락 폭 50% 감소. 5점 하락 시 2.5점만 하락'},
 } satisfies Record<string,{name:string;icon:string;price:number;stats:readonly Stat[];bonus:number;detail:string}>;
 
 export type OffseasonItemId=keyof typeof offseasonItems;
@@ -27,6 +30,7 @@ export type OffseasonInventory=Partial<Record<OffseasonItemId,number>>;
 export type OffseasonShop={
   spent:number;items:OffseasonInventory;active?:{id:OffseasonItemId;year:number};
   settlement?:{year:number;agent:boolean;conditioning:boolean};
+  trainingDiary?:{year:number;peaks:Partial<Record<Role,number>>};
 };
 export type OffseasonShopAction={type:'buyOffseasonItems';items:OffseasonInventory};
 export function offseasonBalance(p:Player){
@@ -41,6 +45,7 @@ export function buyShopItems(s:GameState,p:Player,items:OffseasonInventory){
   const shop=p.offseasonShop??={spent:0,items:{}};
   for(const [id,count] of entries)shop.items[id]=(shop.items[id]??0)+count;
   shop.spent+=cost;
+  syncTrainingDiary(p);
 }
 
 export function hasShopItem(p:Player,id:OffseasonItemId,year=p.professional?.agedYear){
@@ -60,6 +65,7 @@ export function settleShopItems(p:Player,year:number){
     if(count===1)delete shop.items[id];else shop.items[id]=count-1;
   }
   if(shop.active&&shop.active.year<=year)delete shop.active;
+  delete shop.trainingDiary;
 }
 
 function validInventory(value:unknown){
@@ -73,7 +79,10 @@ export function validOffseasonShop(value:unknown,year:number){
     (shop.active===undefined||!!shop.active&&Object.hasOwn(offseasonItems,shop.active.id)&&
       Number.isInteger(shop.active.year)&&shop.active.year>0&&shop.active.year<=year+1)&&
     (shop.settlement===undefined||!!shop.settlement&&Number.isInteger(shop.settlement.year)&&
-      shop.settlement.year>0&&shop.settlement.year<=year&&typeof shop.settlement.agent==='boolean'&&typeof shop.settlement.conditioning==='boolean');
+      shop.settlement.year>0&&shop.settlement.year<=year&&typeof shop.settlement.agent==='boolean'&&typeof shop.settlement.conditioning==='boolean')&&
+    (shop.trainingDiary===undefined||!!shop.trainingDiary&&Number.isInteger(shop.trainingDiary.year)&&
+      shop.trainingDiary.year>0&&shop.trainingDiary.year<=year&&!!shop.trainingDiary.peaks&&typeof shop.trainingDiary.peaks==='object'&&!Array.isArray(shop.trainingDiary.peaks)&&
+      Object.keys(shop.trainingDiary.peaks).length>0&&Object.entries(shop.trainingDiary.peaks).every(([role,score])=>roles.includes(role as Role)&&typeof score==='number'&&Number.isFinite(score)&&score>=0&&score<=100));
 }
 const trainingItems=(Object.keys(offseasonItems) as OffseasonItemId[]).filter(id=>offseasonItems[id].bonus>0);
 export function trainingItemBonus(p:Player,stat:Stat){

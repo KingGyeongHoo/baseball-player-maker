@@ -1,4 +1,5 @@
 import {conditioningMultiplier} from './offseason-shop';
+import {syncTrainingDiary} from './pro-selection';
 import {openNationalMatchChoice} from "./national-tournament";
 import {springRoster,springLineup,springPriority,springSelectionScore} from './pro-spring';
 import {nationalAway} from './national-teams';
@@ -302,6 +303,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       if (isPitcher(p.primaryRole) ? outs >= params["coach.recent_outs"] : batting >= params["coach.recent_pa"]) break;
     }
     p.recentAppearances = p.recentAppearances.slice(keepFrom);
+    syncTrainingDiary(p);
   }
   delete s.matchProgress; delete s.matchEffect; delete s.stealEffect;
   return true;
