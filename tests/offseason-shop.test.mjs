@@ -77,3 +77,18 @@ test('public purchase action is immutable and rejects insufficient funds without
   p.professional.earnings=99_999_999;const poor=structuredClone(s);
   assert.throws(()=>shop.buyShopItems(s,p,{trainingDiary:1}),/자금/);assert.deepEqual(s,poor);
 });
+
+test('season performance losses are halved and the public next-season transition establishes a fresh peak',()=>{
+  const {s,p}=fixture(),year=s.proWorld.year;
+  shop.buyShopItems(s,p,{trainingDiary:2});
+  Object.assign(p.seasonByLevel.first.batting,{PA:400,AB:360,H:70,BB:40,HR:3});
+  const raw=selection.rawProSelectionScore(p);assert.ok(raw<80);
+  near(e.selectionScore(p),80-(80-raw)/2);
+  shop.settleShopItems(p,year);s.proWorld.seasonClosed=true;
+  p.professional.contract.endYear=year+2;delete s.proWorld.stove;
+  life.startNextProSeason(s);
+  assert.equal(p.offseasonShop.trainingDiary.year,year+1);
+  near(e.selectionScore(p),selection.rawProSelectionScore(p));
+  const nextPeak=e.selectionScore(p);p.professional.eventSelectionBonus=-5;
+  near(e.selectionScore(p),nextPeak-2.5);
+});

@@ -10,14 +10,17 @@ const e=require(resolve(build,'lib/sim/engine.js'));
 const {advanceWeekInPlace}=require(resolve(build,'lib/sim/week-engine.js'));
 const pc=require(resolve(build,'lib/sim/pro-career.js'));
 const label=process.argv.find(arg=>arg.startsWith('--label='))?.split('=')[1]??'current';
+const option=(name,fallback)=>process.argv.find(arg=>arg.startsWith(`--${name}=`))?.slice(name.length+3)??fallback;
+const weeks=Number(option('weeks','4')),position=option('position','SS'),seed=option('seed','progress-benchmark');
+if(!Number.isInteger(weeks)||weeks<1)throw new Error('--weeks must be a positive integer');
 mkdirSync('test-results',{recursive:true});
-for(const key of ['events.weekly_chance','events.focus_chance','pro_events.general_chance','pro_events.game_chance'])e.params[key]=0;
+if(!process.argv.includes('--events'))for(const key of ['events.weekly_chance','events.focus_chance','pro_events.general_chance','pro_events.game_chance'])e.params[key]=0;
 const results=[];
 for(const mode of ['school','pro']){
-  let state=mode==='school'?e.createGame('progress-benchmark-school','성능확인','SS'):pc.acknowledgeCareer(pc.createProfessionalDemo('progress-benchmark-pro','성능확인','SS'));
+  let state=mode==='school'?e.createGame(`${seed}-school`,'성능확인',position):pc.acknowledgeCareer(pc.createProfessionalDemo(`${seed}-pro`,'성능확인',position));
   state.date=state.calendar.competitions.find(c=>c.id===(mode==='pro'?'pro-first':'weekend-first'))?.startDate??`${state.calendar.seasonYear}-04-06`;
   const times=[];
-  for(let week=0;week<4;week++){
+  for(let week=0;week<weeks;week++){
     const current=state.week,start=performance.now();let guard=0;
     while(state.week===current&&state.phase!=='ended'){
       if(++guard>80)throw new Error('Benchmark continuation did not complete');

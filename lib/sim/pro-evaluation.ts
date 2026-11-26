@@ -4,21 +4,22 @@ import type {ProAward,ProIndividualAward} from "./pro-types";
 import {individualAwards} from './pro-individual-awards';
 import {createProWarContext,levelWarValue,proWarAssessment,proWarRules,type ProWarContext} from './pro-war';
 import {clubAwardNames} from './pro-career-evaluation';
+import {injuryRiskAssessment} from './injury-system';
 
 export function performanceValue(p:Player,records:RecordLine,farm=false) {
   const r=records,pit=r.pitching,b=r.batting;
   const value=isPitcher(p.primaryRole)?pit.BF?50+((pit.SO-1.5*pit.BB-2*pit.HR)/pit.BF-.13)*120:50:b.PA?50+((ops(r)??.72)-.72)*65:50;
   return clamp(value,0,farm?70:100);
 }
-export function contractValue(p:Player,year:number) {
+export function contractValue(p:Player,year:number,date=`${year}-12-31`) {
   const rows=[{year,first:p.seasonByLevel?.first,second:p.seasonByLevel?.second},...p.career.filter(r=>r.careerMode==="pro").map(r=>({year:r.year,first:r.byLevel?.first,second:r.byLevel?.second}))];
   let performance=0,weights=0;
   for(let ago=0;ago<3;ago++){const r=rows.find(r=>r.year===year-ago);if(!r)continue;const weight=[.6,.3,.1][ago],first=r.first??emptyRecord(),second=r.second??emptyRecord();
     const n=isPitcher(p.primaryRole)?first.pitching.outs/3:first.batting.PA,target=isPitcher(p.primaryRole)?30:100,blend=Math.min(1,n/target);
     performance+=weight*(blend*performanceValue(p,first)+(1-blend)*performanceValue(p,second,true));weights+=weight;
   }
-  const age=p.age??19,potential=age<=23?80:age<=29?65:Math.max(15,65-(age-29)*5),availability=p.injury?Math.max(20,100-p.injury.penaltyRemaining*5):100-p.fatigue*.3;
-  return .45*(weights?performance/weights:50)+.3*roleScore(p)+.1*potential+.1*availability+.05*proSelectionScore(p);
+  const age=p.age??19,potential=age<=23?80:age<=29?65:Math.max(15,65-(age-29)*5),availability=100-p.fatigue*.3;
+  return .45*(weights?performance/weights:50)+.3*roleScore(p)+.1*potential+.1*availability+.05*proSelectionScore(p)-injuryRiskAssessment(p,date).interestPenalty;
 }
 function recordAwardMerit(r:RecordLine,league:RecordLine,pitching:boolean) {
   const b=r.batting,q=r.pitching,n=pitching?q.outs/3:b.PA;

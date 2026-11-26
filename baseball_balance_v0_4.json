@@ -1534,7 +1534,7 @@
     }
   },
   "positionWeights": {
-    "1B": { "contact": 0.3, "power": 0.3, "defense": 0.2, "speed": 0.2 },
+    "1B": { "contact": 0.3, "power": 0.4, "defense": 0.2, "speed": 0.1 },
     "3B": { "contact": 0.3, "power": 0.3, "defense": 0.2, "speed": 0.2 },
     "LF": { "contact": 0.3, "power": 0.4, "defense": 0.2, "speed": 0.1 },
     "RF": { "contact": 0.3, "power": 0.4, "defense": 0.2, "speed": 0.1 }

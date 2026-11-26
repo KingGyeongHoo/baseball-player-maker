@@ -9,6 +9,7 @@ import {proSeasonForm} from "./pro-selection";
 import {farmSeasonGames} from './pro-farm-schedule';
 import {recordHonorRegistration,regularSeasonDays} from './retirement-honors';
 import {seasonEvaluation} from './pro-season-evaluation';
+import {injurySeasonAdjustment} from './injury-system';
 import {playerCareerEvaluation} from './pro-career-evaluation';
 import {seasonRankGrade} from './pro-season-ranking';
 const squad = (id: number): ProSquad | null =>
@@ -18,7 +19,7 @@ const squad = (id: number): ProSquad | null =>
         Math.floor(id / 10)
       ] ?? null);
 const average = (rows: ProSeasonAssessment[]) => {
-  const values = rows.flatMap((r) => (r.score === null || r.clubGamesShortage ? [] : [r.war?seasonEvaluation(r.war).score:r.score]));
+  const values = rows.flatMap((r) => (r.score === null || r.clubGamesShortage ? [] : [r.war?seasonEvaluation(r.war,r.seasonEvaluation?.injury).score:r.score]));
   return values.length
     ? values.reduce((a, b) => a + b, 0) / values.length
     : null;
@@ -341,11 +342,11 @@ export function recordSeasonAssessment(
 export function currentSeasonAssessment(s: GameState, p: Player, warContext?: ProWarContext) {
   if(p.professional?.employment!=='active')return {score:null};
   if(!hasSeasonAppearance(p)){
-    const war=emptyProWarAssessment(),evaluation=seasonEvaluation(war);
+    const war=emptyProWarAssessment(),evaluation=seasonEvaluation(war,injurySeasonAdjustment(p,s.calendar.seasonYear,s.date));
     return {score:evaluation.score,war,seasonEvaluation:evaluation,noAppearances:true as const};
   }
   const context=warContext??createProWarContext(s),war = proWarAssessment(p, context);
-  const evaluation=seasonEvaluation(war);
+  const evaluation=seasonEvaluation(war,injurySeasonAdjustment(p,s.calendar.seasonYear,s.date));
   return { score: evaluation.score, war, seasonEvaluation:evaluation };
 }
 
@@ -363,6 +364,7 @@ export function normalizeUnplayedAssessments(s:GameState,p:Player){
   const rows=p.professional?.assessments;if(!rows)return false;
   let changed=false;
   for(const row of rows){
+    if(row.seasonEvaluation?.injury)continue;
     if(!row.noAppearances&&!(row.score===null&&row.year===s.calendar.seasonYear&&p.professional?.employment==='active'&&!hasSeasonAppearance(p)))continue;
     if(row.noAppearances&&row.war?.equivalentWins===0&&row.score===71&&row.grade==='F'&&row.seasonEvaluation?.score===71&&!row.seasonRank&&!row.clubGamesShortage)continue;
     row.noAppearances=true;row.war=emptyProWarAssessment();row.seasonEvaluation=seasonEvaluation(row.war);row.score=row.seasonEvaluation.score;row.grade='F';
@@ -394,7 +396,7 @@ export function assessmentValue(p: Player, year: number) {
     ),
     current = rows.find((r) => r.year === year);
   const cumulative = average(rows),
-    score = current ? current.clubGamesShortage||current.score===null?null:current.war?seasonEvaluation(current.war).score:current.score : proWarAssessment(p).score;
+    score = current ? current.clubGamesShortage||current.score===null?null:current.war?seasonEvaluation(current.war,current.seasonEvaluation?.injury).score:current.score : proWarAssessment(p).score;
   const basis = score ?? cumulative ?? proWarAssessment(p).score;
   return {
     current: score,

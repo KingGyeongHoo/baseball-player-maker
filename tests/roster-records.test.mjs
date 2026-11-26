@@ -64,9 +64,15 @@ test('shared roster renders the requested columns and exact selected-league reco
   assert.deepEqual(headers,['선수','OVR','등급','소속','나이','포지션','출전경기','이닝','승','패','홀드','세이브','탈삼진','평균자책점','출전평가']);
   assert.match(html,/<td>13<\/td><td>3\.18<\/td>/);
   assert.match(html,/출전평가 등급 F/);assert.match(html,/>5\.2</);assert.match(html,/>3\.18</);assert.doesNotMatch(html,/투수 OVR|타자 OVR/);
-  Object.assign(p.seasonStats.batting,{PA:30,AB:25,H:10,HR:2,RBI:8,BB:5});p.seasonStats.games={batting:9};
+  Object.assign(p.seasonStats.batting,{PA:30,AB:25,H:10,HR:2,RBI:8,BB:5,SB:6});p.seasonStats.games={batting:9};
   const bat=renderToStaticMarkup(createElement(RosterTable,{state:s,players:[p],field:'batting',onSelect(){}}));
   assert.match(bat,/<th>타수<\/th>/);assert.match(bat,/<th>OPS<\/th>/);assert.match(bat,/>\.400</);assert.doesNotMatch(bat,/<th>평균자책점<\/th>/);
+  assert.match(bat,/<th>타점<\/th><th>도루<\/th><th>타율<\/th>/);assert.match(bat,/<td>8<\/td><td>6<\/td><td>\.400<\/td>/);
+  p.seasonByLevel.first.batting.SB=1;p.seasonByLevel.second.batting.SB=5;
+  const steals=r.rosterMetrics.batting.find(m=>m.id==='SB');
+  assert.deepEqual(['first','second','total'].map(level=>steals.value(r.rosterRecords(p,level))),[1,5,6]);
+  const other=player('slower');assert.equal(steals.value(other.seasonStats),0);
+  assert(r.compareRosterPlayers(p,other,'batting','total','SB')<0);
 });
 test('pro grades and ordering use season results and recent appearances, while school grades retain reputation',()=>{
   const rested=player('rested'),tired=player('tired');for(const p of [rested,tired]){for(const k of Object.keys(p.stats))p.stats[k]=70;p.recentZ=0;p.fatigue=0;}

@@ -10,6 +10,51 @@ const {StateTransferCache}=require('../.test-build/lib/sim/state-transfer.js');
 const {workerStateInput,restoreWorkerState}=require('../.test-build/lib/sim/worker-state.js');
 const {LatestSaveQueue}=require('../.test-build/lib/latest-save-queue.js');
 
+test('direct plate-appearance packing preserves every delta and optional legacy stolen-base fields',()=>{
+  const {packRecentBattingChange,packRecentPitchingChange}=require('../.test-build/lib/sim/recent-records.js');
+  for(const optional of [{},{SB:0},{CS:2},{SB:5,CS:3},{SB:undefined}]){
+    const before=e.emptyRecord(),after=e.emptyRecord();let n=0;
+    for(const group of ['batting','pitching'])for(const key of Object.keys(before[group])){
+      before[group][key]=++n/3;after[group][key]=n/7;
+    }
+    Object.assign(before.batting,optional);Object.assign(after.batting,optional);
+    if(Object.hasOwn(after.batting,'SB'))after.batting.SB=7;
+    if(Object.hasOwn(after.batting,'CS'))after.batting.CS=4;
+    const snapshot=structuredClone([before,after]);
+    for(const [group,pack]of [['batting',packRecentBattingChange],['pitching',packRecentPitchingChange]]){
+      const reference=e.emptyRecord();
+      for(const key of Object.keys(after[group]))reference[group][key]=after[group][key]-before[group][key];
+      assert.deepEqual(pack(after[group],before[group]),packRecentRecord(reference));
+    }
+    assert.deepEqual([before,after],snapshot);
+  }
+});
+
+test('recent injury load stays current across leap days, save switches and live balance edits',()=>{
+  const {recentInjuryLoad}=require('../.test-build/lib/sim/injury-system.js');
+  const {injuryRules}=require('../.test-build/lib/sim/injury-rules.js');
+  const player={injuryWorkload:[
+    {date:'2028-02-02',load:.3,keys:[]},{date:'2028-02-29',load:.7,keys:[]},
+    {date:'2028-03-01',load:2,keys:[]},{date:'2028-03-02',load:100,keys:[]},
+  ]};
+  const reference=(p,date)=>p.injuryWorkload.filter(row=>row.date<=date&&Math.max(0,Math.round((Date.parse(date)-Date.parse(row.date))/86400000))<injuryRules.recentDays).reduce((sum,row)=>sum+row.load,0);
+  const original=injuryRules.recentDays;
+  try{
+    for(const window of [1,2,28,29]){
+      injuryRules.recentDays=window;
+      for(const date of ['2028-03-01','2028-02-29','2028-03-02','2028-02-02'])assert.equal(recentInjuryLoad(player,date),reference(player,date));
+    }
+    for(let n=0;n<1100;n++){
+      const date=e.addDays('2030-01-01',n),other={injuryWorkload:[{date,load:n/10,keys:[]}]};
+      assert.equal(recentInjuryLoad(other,date),n/10);
+    }
+    const restored=structuredClone(player);restored.injuryWorkload[1].load=8;
+    assert.equal(recentInjuryLoad(restored,'2028-03-01'),reference(restored,'2028-03-01'));
+    player.injuryWorkload.push({date:'2028-03-01',load:1.25,keys:[]});
+    assert.equal(recentInjuryLoad(player,'2028-03-01'),reference(player,'2028-03-01'));
+  }finally{injuryRules.recentDays=original;}
+});
+
 test('static training defaults stay isolated and live fatigue weights retain exact loads after edits',()=>{
   const original=e.defaultPolicy('센터라인'),changed=e.defaultPolicy('센터라인');changed.tickets.contact=99;
   assert.deepEqual(e.defaultPolicy('센터라인'),original);assert.notEqual(changed.tickets,original.tickets);

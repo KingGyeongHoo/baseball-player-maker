@@ -24,6 +24,7 @@ export const rosterMetrics:Record<RosterField,Metric[]>={
     {id:"SO",label:"탈삼진",value:r=>r.pitching.SO},
     {id:"era",label:"평균자책점",ascending:true,value:r=>recordRates(r).era}],
   batting:[{id:"games",label:"출전경기",value:r=>count(r,"batting")},...([['AB','타수'],['H','안타'],['HR','홈런'],['RBI','타점']] as const).map(([id,label])=>({id,label,value:(r:RecordLine)=>r.batting[id]})),
+    {id:"SB",label:"도루",value:r=>r.batting.SB??0},
     {id:"avg",label:"타율",value:r=>recordRates(r).average},{id:"ops",label:"OPS",value:r=>recordRates(r).ops}],
 };
 export function compareRosterPlayers(a:Player,b:Player,field:RosterField,level:RosterLevel,sort:string,pro=a.careerMode==="pro"){

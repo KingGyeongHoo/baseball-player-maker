@@ -5,16 +5,17 @@ import type {GameState} from "../../lib/sim/types";
 import {dashboardRecordValues} from "./dashboard-records";
 import {scoreText} from "../../lib/display";
 import {rosterGrade} from '../../lib/roster-grades';
+import RetirementHonorDisplay from './retirement-honor-display';
 
 export default function ProRetirement({state,onRecords,onNew,onSave,saving=false,saveMessage}:{state:GameState;onRecords:()=>void;onNew:()=>void;onSave?:()=>void;saving?:boolean;saveMessage?:string}){
   const p=getPlayer(state),w=state.proWorld!,retired=w.retired;if(!retired)return null;
-  const {records,milestones,counts}=retirementSummary(state),primary=isPitcher(p.primaryRole);
+  const {records,milestones,honorCollections}=retirementSummary(state),primary=isPitcher(p.primaryRole);
   const fields=[primary,!primary].filter(pitching=>pitching===primary||p.twoWay||(pitching?records.pitching.BF>0:records.batting.PA>0));
   const honor=w.retiredNumbers?.find(row=>row.playerId===p.id);
   const retirementHonor=w.retirementHonors?.find(row=>row.playerId===p.id);
   const seasons=new Set(p.career.filter(row=>row.careerMode==="pro").map(row=>row.year)).size;
-  const summaries=[{label:"올스타 선정",value:counts.allstar,note:"1·2군 선발 · 대체 선발 포함"},{label:"개인 수상",value:counts.individual,note:"골든글러브 · 기록 타이틀 · 대회 개인상"},{label:"시즌 MVP",value:counts.mvp,note:"리그 최고의 선수"},{label:"국가대표 발탁",value:counts.national,note:"성인 대표 · WBC"}];
   return <div className="pro-retirement retirement-dashboard">
+    <p>{retired.reason}</p>
     <section className="retirement-records" aria-labelledby="retirement-records-title">
       <div className="retirement-records-heading"><div><span className="eyebrow">CAREER TOTALS</span><h1 id="retirement-records-title">야구인생 통산 기록</h1><p><b>{p.name}</b><span>{positionLabel(p)} · 프로 {seasons}시즌</span></p></div><span className="retirement-date">{retired.date.replaceAll("-",".")} 은퇴</span></div>
       {fields.map(pitching=><div className="retirement-record-group" key={String(pitching)}><h2>{pitching?"투수 기록":"타자 기록"}</h2><dl className="retirement-stat-grid">{dashboardRecordValues(records,pitching).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></div>)}
@@ -25,7 +26,7 @@ export default function ProRetirement({state,onRecords,onNew,onSave,saving=false
       <ol className="career-timeline">{milestones.map(milestone=><li key={milestone.id} className={`milestone-${milestone.kind}`}><time dateTime={milestone.date}>{milestone.dateLabel}</time><span className="milestone-marker" aria-hidden="true"/><div><h3>{milestone.title}</h3><p>{milestone.detail}</p></div></li>)}</ol>
     </section>
 
-    <section className="retirement-honor-counts" aria-label="선발과 수상 횟수">{summaries.map(({label,value,note})=><article className="panel" key={label}><h2>{label}</h2><p><strong>{value}</strong><span>회</span></p><small>{note}</small></article>)}</section>
+    <RetirementHonorDisplay honors={honorCollections}/>
 
     <section className="panel retirement-farewell" aria-label="은퇴 예우"><div className="panel-heading"><h2>은퇴 예우</h2></div><div className="career-panel-body"><p><b>은퇴식</b> · {retirementHonor?.ceremony?'해당':'해당 없음'}</p><p><b>은퇴 투어</b> · {retirementHonor?.tour?'해당':'해당 없음'}</p><p><b>영구결번</b> · {honor?honor.number+'번':'해당 없음'}</p></div></section>
     {honor&&<section className="panel retired-number-honor" aria-label="영구결번"><strong>{honor.number}</strong><div><span className="eyebrow">RETIRED NUMBER</span><h2>{clubName(state,honor.club)} 영구결번</h2><p>{honor.playerName} · {honor.criteria?`구단 WAR ${honor.criteria.clubWar.toFixed(1)} · 수상 가산점 ${honor.criteria.awardBonus.toFixed(1)} · 인정 ${honor.criteria.seasons}시즌`:`누적 평가 ${scoreText(honor.score)}점 · ${honor.grade??rosterGrade(honor.score,true)}등급`}</p><p>이 선수의 저장을 보관하는 동안 해당 구단에서 이 번호를 다시 사용할 수 없습니다.</p></div></section>}

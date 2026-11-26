@@ -1,10 +1,10 @@
-import {careerRegistrationRatio,meetsCareerRegistration,playerCareerEvaluation} from './pro-career-evaluation';
+import {careerRegistrationRatio,isBullpenSeason,meetsCareerRegistration,playerCareerEvaluation} from './pro-career-evaluation';
 import {buildCareerHonorBonusIndex,careerHonorBonusYears} from './career-honor-bonus';
 import {levelWarValue} from './pro-war';
 import type {ProfessionalPlayer,ProSeasonAssessment,RetirementHonorProgress} from './pro-types';
 import type {GameState,Player} from './types';
 
-export const retirementHonorRules={rookieSeasons:3,registrationRatio:careerRegistrationRatio,ceremonyScore:30,tourScore:40,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:13,tourConsecutive:10,debutCeremony:20,debutTour:23,debutTradeGrace:2,numberConsecutive:10,numberAfterTrade:13,numberWar:40,numberScore:50} as const;
+export const retirementHonorRules={rookieSeasons:3,rookieWarThreshold:3,registrationRatio:careerRegistrationRatio,ceremonyScore:30,tourScore:40,ceremonyTotal:10,ceremonyConsecutive:7,tourTotal:13,tourConsecutive:10,debutCeremony:20,debutTour:23,debutTradeGrace:2,numberConsecutive:10,numberAfterTrade:13,numberWar:40,numberScore:50} as const;
 export function validHonorDays(value:Record<string,number>,maximum:number){
   return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.entries(value).every(([club,days])=>/^[0-9]$/.test(club)&&Number.isInteger(days)&&days>=0&&days<=maximum)&&Object.values(value).reduce((sum,n)=>sum+n,0)<=maximum;
 }
@@ -109,7 +109,9 @@ export function retirementEligibility(s:GameState,p:Player,withProgress=false){
   const evaluation=playerCareerEvaluation(p,s.calendar.seasonYear,s,true).first,score=evaluation.score,grade=evaluation.grade;
   const clubs=new Set<number>();if(pro){if(pro.firstClub>=0)clubs.add(pro.firstClub);for(const row of pro.service)clubs.add(row.club);if(pro.contract)clubs.add(pro.contract.club);for(const row of pro.movements){if(row.from!==null)clubs.add(row.from);if(row.to!==null)clubs.add(row.to);}}
   const years=club===undefined?[]:[...new Set(rows.filter(row=>
-    row.year>=(pro?.rookieYear??Infinity)+retirementHonorRules.rookieSeasons&&meetsCareerRegistration(row.honorRegistration,club)
+    row.year>=(pro?.rookieYear??Infinity)&&meetsCareerRegistration(row.honorRegistration,club)&&
+    (row.year>=(pro?.rookieYear??Infinity)+retirementHonorRules.rookieSeasons||
+      !!row.war&&levelWarValue(row.war.first,isBullpenSeason(row))>retirementHonorRules.rookieWarThreshold)
   ).map(row=>row.year))].sort((a,b)=>a-b);
   const stint=pro?.service.findLast(row=>row.club===club&&row.from<=s.calendar.seasonYear);
   // Continuity belongs to the club stint. Uncredited seasons add nothing and never reset it.

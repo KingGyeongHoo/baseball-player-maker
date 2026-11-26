@@ -1,11 +1,15 @@
 import {playNationalDay} from "./national-tournament";
 import {conditioningMultiplier} from './offseason-shop';
 import {syncTrainingDiary} from './pro-selection';
+import {upgradeFarmPostseasonDates} from './pro-farm-postseason';
+import {advanceInjuryRecovery,assessInjuryExposure,injuryTrainingPolicy,injuryView,emptyInjuryLoad} from './injury-system';
+import {injuryRules,injuryBodies} from './injury-rules';
+import {settleInjuryRetirements} from './injury-career';
 import {nationalAway} from "./national-teams";
 import {proGameTeam} from "./pro-farm-roster";
 import { tryTrainingFocus } from "./training-focus";
 import { finishCompetitionDay, prepareCompetitions } from "./calendar";
-import { addDays, available, clamp, overall, draftPlayers, emptyRecord, emptyStats, getPlayer, injuryRisk, mergeRecord, npcPolicy, params, promote, random, reputationScore, simulateGame, ticketsUsed, train, trainingFatigueDay, updateReputation, validPolicy } from "./engine";
+import { addDays, available, clamp, overall, draftPlayers, emptyRecord, emptyStats, getPlayer, mergeRecord, npcPolicy, params, promote, random, reputationScore, simulateGame, ticketsUsed, train, trainingEffort, trainingFatigueDay, updateReputation, validPolicy } from "./engine";
 import { openScheduledEvent, planEventWeek, tryNationalEvent,tryWinterTrainingCenter } from "./event-system";
 import { joinPendingTransfer, recordTwoWayWeek, tryCareerOpportunity, twoWayQualified } from "./career-opportunities";
 import { statKeys, type GameState, type Player, type Policy, type Stance } from "./types";
@@ -25,7 +29,7 @@ import {packRecentRecord} from "./recent-records";
 import {upgradeProSchedule} from "./pro-schedule";
 import type {RecentReputationCache} from "./engine";
 import {upgradeAllstarSchedule,allstarDates} from "./pro-allstar-calendar";
-import {allstarGameOn,allstarRules,finishAllstarDay,playAllstarDay,prepareAllstarDay} from "./pro-allstar";
+import {allstarGameOn,finishAllstarDay,playAllstarDay,prepareAllstarDay} from "./pro-allstar";
 import {ensureSpringSchedule} from './pro-spring';
 import {tryScheduledNational} from "./national-teams";
 import {tryWbcInvitation} from "./pro-wbc";
@@ -95,6 +99,8 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
     const date = s.date;
     if (!twoWayQualified(player)) progress.twoWayQualified = false;
     if (!progress.day) {
+      for(const p of s.players)if(p.injury)advanceInjuryRecovery(p,date);
+      upgradeFarmPostseasonDates(s);
       tickProEvents(s);
       for(const p of s.players)if(p.professional?.managedUntil&&s.date>p.professional.managedUntil)delete p.professional.managedUntil;
       if (!s.careerMode && date > s.calendar.seasonEnd) {
@@ -190,35 +196,31 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
         if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
         if (p.id === s.playerId && ((!nationalAway(s,p)&&openProGeneralEvent(s)) || tryTrainingFocus(s) || openScheduledEvent(s, "training"))) { day.active = [...active]; return pause(); }
         const injured = !!p.injury && date < p.injury.unavailableUntil;
+        const health=injuryView(p,date),rehab=health.stage==='rehab',trainingPolicy=injuryTrainingPolicy(p,p.trainingPolicy,date);
+        let participation=0;
         let trained = false;
         if (p.id === s.playerId && injured) s.injuryDays++;
-        if (training && available(p, date) && ticketsUsed(p.trainingPolicy) && !(p.id===s.playerId && day.skipPlayerTraining)) {
+        if (training && !p.injuryRetirement&&(available(p, date)||rehab&&!p.forcedRest&&p.trainingPolicy.mode!=='rest') && ticketsUsed(trainingPolicy) && !(p.id===s.playerId && day.skipPlayerTraining)) {
           const hasGame = nationalAway(s,p)||playingTeams.has(s.careerMode==="pro"?proGameTeam(p):p.teamId)||evaluationPlayers.has(p.id)||exhibitionPlayers.has(p.id);
           const a = hasGame ? appearances.has(p.id) ? params["training.game_fraction"] : params["training.bench_fraction"] : 1;
-          train(p, a);
+          participation=a*(rehab?injuryRules.rehabLoad:1);
+          train(p, participation,trainingPolicy,rehab);
           if (p.id === s.playerId && p.transferAdaptation?.weeksRemaining) progress.adaptationTrained = true;
           active.add(p.id);
           trained = true;
-          if(s.careerMode==="pro")recordProRoleTraining(s,p);
+          if(s.careerMode==="pro"&&!rehab)recordProRoleTraining(s,p);
         }
-        const allocation=p.forcedRest||injured||p.trainingPolicy.mode==="rest"||!trainingCycle||allstarRest||p.id===s.playerId&&day.skipPlayerTraining?0:p.trainingPolicy;
+        const allocation=p.forcedRest||injured&&!rehab||p.trainingPolicy.mode==="rest"||!trainingCycle||allstarRest||p.id===s.playerId&&day.skipPlayerTraining?0:trainingPolicy;
         const beforeFatigue=p.fatigue,fatigueDay=trainingFatigueDay(p.fatigue,fatigueRecoveryStats.get(p.id)??p.stats.recovery,allocation,conditioningMultiplier(p));
         p.fatigue=fatigueDay.end;
         if(p.id===s.playerId){day.fatigue.training+=fatigueDay.training;day.fatigue.recovered+=fatigueDay.recovered;day.fatigue.peak=Math.max(day.fatigue.peak,beforeFatigue,p.fatigue);day.fatigue.end=p.fatigue;}
         if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
         else if(p.forcedRest&&p.fatigue<params["fatigue.ready_return"])p.forcedRest=false;
-        const risk=exhibitionPlayers.has(p.id)?Math.min(1,injuryRisk(p.fatigue,trained)*allstarRules.injuryMultiplier+allstarRules.injuryExtra):injuryRisk(p.fatigue,trained);
-        if (active.has(p.id) && !injured && random(s, "injury") < risk) {
-          const roll = random(s, "injury"), severity = roll < params["injury.mild.weight"] ? "mild" : roll < params["injury.mild.weight"] + params["injury.moderate.weight"] ? "moderate" : "severe", prefix = `injury.${severity}`;
-          const duration = params[`${prefix}.min_days`] + Math.floor(random(s, "injury") * (params[`${prefix}.max_days`] - params[`${prefix}.min_days`] + 1));
-          p.injury = { severity, startDate: date, unavailableUntil: addDays(date, duration + 1), originalPenalty: Math.max(p.injury?.originalPenalty ?? 0, params[`${prefix}.penalty`]),
-            penaltyRemaining: Math.max(p.injury?.penaltyRemaining ?? 0, params[`${prefix}.penalty`]), penaltyRecoverDays: Math.max(p.injury?.penaltyRecoverDays ?? 0, params[`${prefix}.recovery_days`]) };
-          if (p.id === s.playerId) report.messages.push(`활동 후 ${severity === "mild" ? "경미한" : severity === "moderate" ? "보통" : "심각한"} 부상 발견 · ${duration}일 결장`);
+        if(trained){const load=participation*(injuryRules.trainingBaseLoad+trainingEffort(trainingPolicy).equivalentTickets/injuryRules.trainingTicketReference)*injuryRules.trainingLoadScale;
+          const episode=assessInjuryExposure(s,p,{...emptyInjuryLoad(),key:`training:${date}`,date,cause:'training',fatigue:Math.max(beforeFatigue,p.fatigue),training:load,trainingTickets:trainingPolicy.tickets});
+          if(episode&&p.id===s.playerId)report.messages.push(`부상: ${injuryBodies[episode.body].name} ${injuryRules.grades[episode.severity].name} · 회복 필요 ${episode.requiredDays}일`);
         }
-        if (p.injury && date >= p.injury.unavailableUntil) {
-          p.injury.penaltyRemaining = Math.max(0, p.injury.penaltyRemaining - (p.injury.penaltyRecoverDays ? p.injury.originalPenalty / p.injury.penaltyRecoverDays : 0));
-          if (!p.injury.penaltyRemaining) p.injury = null;
-        }
+        advanceInjuryRecovery(p,date);
         day.playerIndex++;
       }
       day.phase = "finish";
@@ -227,6 +229,8 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
     report.fatigue.events = (report.fatigue.events ?? 0) + (day.fatigue.events ?? 0);
     report.fatigue.peak = Math.max(report.fatigue.peak, day.fatigue.peak); report.fatigue.days.push(day.fatigue);
     report.to = date; delete progress.day; progress.remainingDays--;
+    settleInjuryRetirements(s);
+    if(player.injuryRetirement?.handled){s.phase='ended';break;}
     if (s.careerMode === "pro" && s.postSchool?.pro) {
       if(player.teamId>=0&&player.teamId<10)s.postSchool.pro.firstTeamWeeks+=1/7;else if(player.teamId>=10&&player.teamId<20)s.postSchool.pro.secondTeamWeeks+=1/7;
       recordProfessionalDay(s);recordProTwoWayDay(s);
@@ -273,6 +277,8 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
   if (!Object.values(report.growth).some(n => n > 0)) report.messages.push(player.injury && s.date < player.injury.unavailableUntil ? "부상으로 훈련에 참가하지 못했습니다." : progress.policy.mode === "rest" ? "회복 방침으로 훈련과 출전을 쉬었습니다." : ticketsUsed(progress.policy) === 0 ? "사용한 티켓이 없어 성장하지 않았습니다." : "비시즌으로 정규 훈련이 없습니다.");
   if (player.offerCooldown > 0) player.offerCooldown--;
   s.week++; s.report = report; s.history.push({ week: s.week, ovr: overall(player), ovrScale:100, fatigue: player.fatigue });
+  for(const p of s.players)if(p.injury)advanceInjuryRecovery(p,s.date);
   delete s.weekProgress;
+  settleInjuryRetirements(s);
   return syncJerseyNumbers(capturePendingEvaluationChanges(s));
 }

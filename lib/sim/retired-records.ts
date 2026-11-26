@@ -16,6 +16,7 @@ export function discardRetiredPlayers(s:GameState){
     if(moves.length)(world.departedStoveMoves??=[]).push(...moves);
   }
   const totals=world.retiredRecords??={};
+  for(const p of retired.values())if(p.injuryHistory?.length)(world.retiredInjuries??={})[p.id]={name:p.name,history:structuredClone(p.injuryHistory),...(p.injuryRetirement?{retirement:{...p.injuryRetirement}}:{})};
   for(const p of retired.values())for(const year of [s.calendar.seasonYear,s.calendar.seasonYear-1,s.calendar.seasonYear-2]){
     const row=p.career.find(row=>row.year===year&&row.careerMode==="pro");
     const lastYear=p.professional?.agedYear??s.calendar.seasonYear;

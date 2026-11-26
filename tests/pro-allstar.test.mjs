@@ -95,7 +95,7 @@ test('real exhibition records and MVP preserve regular stats, standings, registr
  s.date=c.allstarDates(2028).second;a.playAllstarDay(s);const entry=s.proWorld.allstar.levels.second;assert.equal(entry.game.status,'completed');assert.ok(entry.game.innings[0].length<=9&&entry.game.innings[1].length<=9);assert.ok(Object.values(entry.game.boxScore).some(r=>r.batting.PA>0));assert.ok(allstarMvps(entry).length);
  assert.ok([...entry.blue.roster,...entry.white.roster].some(row=>row.method==='manager'&&(entry.game.boxScore[row.playerId]?.batting.PA??0)>0));
  for(const p of s.players){const old=records.get(p.id);assert.deepEqual(p.seasonStats,old.season);assert.deepEqual(p.seasonByLevel,old.levels);assert.deepEqual(p.recentAppearances,old.recent);assert.deepEqual(p.professional.firsts,old.firsts);assert.equal(p.professional.faDays,old.fa);assert.equal(p.teamId,old.team);}
- assert.deepEqual(s.teams,teams);assert.deepEqual(s.rngStates,rng);const before=structuredClone(s);a.playAllstarDay(s);assert.deepEqual(s,before);
+ assert.deepEqual(s.teams,teams);assert.deepEqual({...s.rngStates,injury:rng.injury},rng);assert.notEqual(s.rngStates.injury,rng.injury);const before=structuredClone(s);a.playAllstarDay(s);assert.deepEqual(s,before);
 });
 
 test('July preparation, result events and loaded exhibition results settle once without rerolls',()=>{
@@ -116,15 +116,15 @@ test('awards allstar page opens voting from May without a league modal, and late
  delete s.proWorld.allstar;s.date='2028-08-01';a.prepareAllstarDay(s);assert.equal(s.proWorld.allstar.skipped,true);assert.equal(s.proWorld.allstar.levels.first.game,undefined);
 });
 
-test('weekly progression applies extra injury risk only to actual exhibition players and records no official game',()=>{
+test('weekly progression applies shared injury exposure only to actual exhibition players and records no official game',()=>{
  const s=selected();s.date=c.allstarDates(2028).second;const p=e.getPlayer(s),before=structuredClone(p.seasonStats),teams=structuredClone(s.teams);
  for(const club of s.proWorld.clubs)club.nextReview='2099-01-01';
- const settings={'pro_events.enabled':0,'events.weekly_chance':0,'events.focus_chance':0,'injury.training_base_risk':0,'injury.risk_at60':0,'injury.risk_slope60':0,'injury.risk_at80':0,'injury.risk_slope80':0},old=Object.fromEntries(Object.keys(settings).map(key=>[key,e.params[key]])),extra=a.allstarRules.injuryExtra;
- try{Object.assign(e.params,settings);a.allstarRules.injuryExtra=1;
+ const settings={'pro_events.enabled':0,'events.weekly_chance':0,'events.focus_chance':0,'injury.training_base_risk':0,'injury.risk_at60':0,'injury.risk_slope60':0,'injury.risk_at80':0,'injury.risk_slope80':0},old=Object.fromEntries(Object.keys(settings).map(key=>[key,e.params[key]])),injuryRules=require('../.test-build/lib/sim/injury-rules.js').injuryRules,injuryBefore={...injuryRules};
+ try{Object.assign(e.params,settings);Object.assign(injuryRules,{gameBaseRisk:100,trainingBaseRisk:0,fatigueRisk:0,maxRisk:1});
   let next=s,guard=0;while(next.week===s.week&&guard++<30){while(next.careerNotice)next=pc.acknowledgeCareer(next);assert.equal(next.careerEvent,null);next=e.advanceWeek(next,e.getPlayer(next).trainingPolicy,e.getPlayer(next).stance);}
   assert.equal(next.week,s.week+1);const game=next.proWorld.allstar.levels.first.game;assert.equal(game.status,'completed');assert.ok(e.getPlayer(next).injury);assert.equal(e.getPlayer(next).professional.firsts.debut,undefined);assert.deepEqual(e.getPlayer(next).seasonStats,before);assert.deepEqual(next.teams,teams);assert.equal(next.report.records.batting.PA,0);assert.equal(next.report.records.pitching.BF,0);
   const played=new Set([...Object.keys(next.proWorld.allstar.levels.first.game.boxScore),...Object.keys(next.proWorld.allstar.levels.second.game.boxScore)]);assert.ok(next.players.filter(p=>!played.has(p.id)).every(p=>!p.injury));
- }finally{Object.assign(e.params,old);a.allstarRules.injuryExtra=extra;}
+ }finally{Object.assign(e.params,old);Object.assign(injuryRules,injuryBefore);}
 });
 
 test('allstar honors and match results survive season archival while the next season starts fresh',()=>{

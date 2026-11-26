@@ -170,10 +170,10 @@ test('youth offers ignore weekly chance, occur once per September and never afte
 
 test('national injury lasts 14 days, blocks training, and never shortens an existing worse injury',()=>{
   const s=fixture(),p=e.getPlayer(s);p.grade=2;s.eventLedger={recent:[],centerGrades:[],nationalGrades:[2],competitions:[],games:[]};
-  const injured=answer(s,'P08',0,[.2875,.525]),q=e.getPlayer(injured);assert.equal(q.injury.unavailableUntil,e.addDays(s.date,14));assert.equal(q.injury.severity,'moderate');
-  const next=withParams({'events.weekly_chance':0},()=>e.advanceWeek(injured,q.trainingPolicy,q.stance));assert.equal(next.report.fatigue.training,0);assert.deepEqual(e.getPlayer(next).stats,q.stats);
+  const injured=answer(s,'P08',0,[.2875,.525]),q=e.getPlayer(injured);assert.equal(q.injury.unavailableUntil,e.addDays(s.date,14));assert.equal(q.injury.severity,'mild');
+  const next=withParams({'events.weekly_chance':0},()=>e.advanceWeek(injured,q.trainingPolicy,q.stance));assert.equal(next.report.fatigue.training,0);const {injuryBodies}=require('../.test-build/lib/sim/injury-rules.js');for(const key of injuryBodies[q.injuryHistory.at(-1).body].stats)assert.equal(e.getPlayer(next).stats[key],q.stats[key]);
   p.injury={severity:'severe',startDate:s.date,unavailableUntil:e.addDays(s.date,30),penaltyRemaining:9,originalPenalty:9,penaltyRecoverDays:40};
-  const worse=e.getPlayer(answer(s,'P08',0,[.2875,.525])).injury;assert.equal(worse.unavailableUntil,p.injury.unavailableUntil);assert.equal(worse.penaltyRemaining,9);assert.equal(worse.penaltyRecoverDays,40);
+  const combined=e.getPlayer(answer(s,'P08',0,[.2875,.525])),worse=combined.injury;assert.equal(worse.unavailableUntil,p.injury.unavailableUntil);assert.ok(worse.penaltyRemaining>=9);assert.equal(combined.injuryHistory[0].adaptationUntil,e.addDays(p.injury.unavailableUntil,40));
 });
 test('training conditions, rest-compatible conversations, recent five exclusion and center yearly limit are enforced',()=>{
   const s=fixture(),p=e.getPlayer(s);const ids=()=>system.eventCandidates(s,s.date).map(o=>o.definitionId);

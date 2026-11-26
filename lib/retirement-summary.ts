@@ -15,6 +15,19 @@ export function retirementSummary(state:GameState){
   const youthNationals=visible(honors.national).filter(row=>row.title==="청소년 국가대표");
   const nationals=visible(honors.national).filter(row=>isNationalSelection(row)&&row.title!=="청소년 국가대표");
   const mvps=visible(honors.individual).filter(row=>row.title.endsWith("시즌 MVP"));
+  const gold=visible(honors.gold),rookies=visible(honors.individual).filter(row=>/^(?:2군 )?신인(?:왕|상)$/.test(row.title));
+  const championships:CareerHonor[]=[];
+  const movements=[...pro.movements].sort((a,b)=>a.date.localeCompare(b.date));
+  for(const season of world.seasons){
+    if(season.year>year||season.champion==null||season.endDate&&season.endDate>retiredDate||championships.some(row=>row.year===season.year))continue;
+    // Resolve membership at the title, before offseason FA moves. Legacy saves
+    // without exact dates count only an unambiguous season-long club stint.
+    const movement=season.endDate?movements.findLast(row=>row.date<=season.endDate!):undefined;
+    const archived=player.career.find(row=>row.careerMode==='pro'&&row.year===season.year);
+    const clubs=new Set(pro.service.filter(row=>row.from<=season.year&&row.to>=season.year).map(row=>row.club));
+    const club=movement?movement.to:archived?.schoolId!==undefined?(archived.schoolId<0?null:archived.schoolId%10):clubs.size===1?[...clubs][0]:undefined;
+    if(club===season.champion)championships.push({year:season.year,title:'한국시리즈 우승',detail:clubName(state,club)});
+  }
   const awards=[...visible(honors.gold),...visible(honors.individual).filter(row=>!mvps.includes(row)&&row.title!=="영구결번"),
     ...visible(honors.allstar).filter(row=>row.title.endsWith("미스터 올스타"))];
   const milestones:CareerMilestone[]=[];
@@ -70,5 +83,6 @@ export function retirementSummary(state:GameState){
   if(retired)add("retirement",retired.date,"은퇴",`${player.age??"—"}세 · 프로 ${new Set(player.career.filter(row=>row.careerMode==="pro").map(row=>row.year)).size}시즌의 선수 생활을 마무리했습니다.`,"retirement");
   const order={school:0,entry:1,record:2,allstar:3,award:4,national:5,transfer:6,retirement:7};
   milestones.sort((a,b)=>a.date.localeCompare(b.date)||order[a.kind]-order[b.kind]||a.id.localeCompare(b.id));
-  return {records:lifetimeRecords(player,state.calendar.seasonYear),milestones,counts:{allstar:allstars.length,individual:awards.length,mvp:mvps.length,national:nationals.length}};
+  return {records:lifetimeRecords(player,state.calendar.seasonYear),milestones,counts:{allstar:allstars.length,individual:awards.length,mvp:mvps.length,national:nationals.length},
+    honorCollections:{allstar:allstars,gold,mvp:mvps,rookie:rookies,championship:championships,national:nationals}};
 }

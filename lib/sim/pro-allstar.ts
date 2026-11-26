@@ -1,3 +1,4 @@
+import {copyInjuryOutcome} from './injury-system';
 import {nationalAway} from "./national-teams";
 import {available,clamp,emptyRecord,getPlayer,hash,isPitcher,params,roleFor,roleScore,selectionScore,simulateGame} from "./engine";
 import {eventTrainingReward} from "./event-system";
@@ -14,7 +15,7 @@ export const allstarSlots:Position[]=["SP","RP","CP","C","1B","2B","3B","SS","LF
 export const allstarSides:AllstarSide[]=["blue","white"];
 export const allstarLevels:AllstarLevel[]=["first","second"];
 export const allstarSideLabels={blue:"BLUE Team",white:"WHITE Team"};
-export const allstarRules={selectionGrowthWeeks:3,mvpGrowthWeeks:2,injuryMultiplier:1.5,injuryExtra:.015};
+export const allstarRules={selectionGrowthWeeks:3,mvpGrowthWeeks:2};
 const blueClubs=new Set([0,9,7,3,4]);
 export const allstarSide=(club:number):AllstarSide=>blueClubs.has(club%10)?"blue":"white";
 const fieldPositions:Position[]=["C","SS","CF","2B","1B","3B","LF","RF","DH"];
@@ -35,6 +36,11 @@ export function ensureAllstarSeason(s:GameState){
   return s.proWorld.allstar;
 }
 export const allstarVotingDates=(year:number)=>[`${year}-05-01`,`${year}-05-15`,`${year}-05-29`,`${year}-06-12`,`${year}-06-26`,`${year}-06-30`];
+// Display the previous archive only until this year's first voting day.
+export function defaultAllstarYear(s:GameState){
+  const year=s.calendar.seasonYear;
+  return s.date<allstarVotingDates(year)[0]&&s.proWorld?.seasons.some(row=>row.year===year-1&&row.allstar)?year-1:year;
+}
 export function nextAllstarVoteDate(s:GameState){const season=allstarSeasonView(s);return allstarVotingDates(season.year).find(date=>date>(season.lastUpdated??""))??null;}
 function currentLevel(p:Player,level:AllstarLevel){return level==="first"?p.teamId>=0&&p.teamId<10:p.teamId>=10&&p.teamId<20;}
 function played(p:Player,level:AllstarLevel,pitching=isPitcher(p.primaryRole)){const r=p.seasonByLevel?.[level];return !!r&&(pitching?r.pitching.BF>0:r.batting.PA>0);}
@@ -167,11 +173,11 @@ function simulateAllstar(s:GameState,level:AllstarLevel){
   if(prepared.some(row=>row.field.length!==9||!row.starter)){entry.cancelled="출전 가능한 포지션의 선수가 부족하여 올스타 경기를 열지 못했습니다.";return;}
   const game:Game={id:`${season.year}:allstar:${level}`,date:s.date,homeTeamId:0,awayTeamId:1,competitionId:`allstar-${level}`,exhibition:"allstar",round:1,rulesetId:"pro-allstar-v1",status:"scheduled",score:[0,0],innings:[[],[]],lineup:[],boxScore:{},proPreparedLineup:prepared as NonNullable<Game["proPreparedLineup"]>};
   const sandbox:GameState={...s,careerMode:undefined,proWorld:undefined,proEvents:undefined,players:rosters.flat(),playerId:"allstar-observer",careerEvent:null,careerNotice:undefined,weekProgress:undefined,matchProgress:undefined,matchEffect:undefined,rngStates:{...s.rngStates,match:hash(`${s.seed}:allstar:${season.year}:${level}`)}};
-  simulateGame(sandbox,game,rosters);entry.game=game;
+  simulateGame(sandbox,game,rosters);entry.game=game;s.rngStates.injury=sandbox.rngStates.injury;
   entry.mvps=selectAllstarMvps(entry,level,createProWarContext(s));
   const mvpIds=new Set(entry.mvps.map(row=>row.playerId));
   for(const clone of sandbox.players){const r=game.boxScore[clone.id];if(!r||!r.batting.PA&&!r.pitching.BF)continue;
-    const p=s.players.find(p=>p.id===clone.id)!;p.fatigue=clamp(clone.fatigue+2);if(r.pitching.BF)p.lastPitched=s.date;
+    const p=s.players.find(p=>p.id===clone.id)!;copyInjuryOutcome(p,clone);p.fatigue=clamp(clone.fatigue+2);if(r.pitching.BF)p.lastPitched=s.date;
     const history=p.professional?.allstarHistory?.find(row=>row.year===season.year&&row.level===level);if(history)history.participated=true;
     if(p.professional&&mvpIds.has(p.id)){
       p.stats.bq=clamp(p.stats.bq+eventTrainingReward(p,"bq",allstarRules.mvpGrowthWeeks),1);

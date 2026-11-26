@@ -8,6 +8,37 @@ const Allstar=require('../.test-build/app/components/pro-allstar.js').default;
 const AwardsHub=require('../.test-build/app/components/pro-awards-hub.js').default;
 const {careerHonors}=require('../.test-build/lib/career-summary.js');
 const render=s=>renderToStaticMarkup(createElement(Allstar,{state:s,onRecords(){}}));
+
+test('awards hub shows last year until April 30 and this year from the first voting day',()=>{
+  const a=require('../.test-build/lib/sim/pro-allstar.js'),s=fixture(),previous=s.proWorld.allstar.year,current=previous+1;
+  s.proWorld.seasons=[{year:previous,allstar:structuredClone(s.proWorld.allstar)}];
+  s.calendar.seasonYear=current;s.proWorld.year=current;delete s.proWorld.allstar;
+  s.date=`${current}-04-30`;s.proWorld.allstar=a.allstarSeasonView(s);
+  s.proWorld.allstar.levels.first.blue.ballots.SP=[{playerId:'this-year',name:'올해 후보',club:0,slot:'SP',votes:1234,nominated:true}];
+  const before=structuredClone(s);
+  let html=renderToStaticMarkup(createElement(AwardsHub,{state:s,onRecords(){}}));
+  assert.equal(a.defaultAllstarYear(s),previous);assert.match(html,new RegExp(`<h2>${previous} 올스타</h2>`));
+  assert.match(html,new RegExp(`<option value="${previous}" selected="">`));assert.match(html,/BLUE 1 대 3 WHITE/);assert.doesNotMatch(html,/올해 후보/);
+  assert.deepEqual(s,before);
+  for(const date of [`${current}-05-01`,`${current}-05-15`,`${current}-07-20`]){
+    s.date=date;html=renderToStaticMarkup(createElement(AwardsHub,{state:s,onRecords(){}}));
+    assert.equal(a.defaultAllstarYear(s),current);assert.match(html,new RegExp(`<h2>${current} 올스타</h2>`));
+    assert.match(html,new RegExp(`<option value="${current}" selected="">`));assert.match(html,/올해 후보/);assert.match(html,/1,234/);assert.doesNotMatch(html,/BLUE 1 대 3 WHITE/);
+    assert.match(html,/allstar-comparison allstar-voting/);assert.match(html,new RegExp(`<option value="${previous}">`));
+  }
+  assert.deepEqual(s.proWorld.seasons,before.proWorld.seasons);
+});
+
+test('voting start switches to the current year even before its first tally, and missing archives stay empty',()=>{
+  const a=require('../.test-build/lib/sim/pro-allstar.js'),s=fixture(),previous=s.calendar.seasonYear,current=previous+1;
+  s.proWorld.seasons=[{year:previous,allstar:s.proWorld.allstar}];s.calendar.seasonYear=current;delete s.proWorld.allstar;
+  s.date=`${current}-05-01`;
+  let html=renderToStaticMarkup(createElement(AwardsHub,{state:s,onRecords(){}}));
+  assert.match(html,new RegExp(`<h2>${current} 올스타</h2>`));assert.match(html,/BLUE 0 대 0 WHITE/);assert.doesNotMatch(html,/일군백1/);
+  s.proWorld.seasons=[];s.date=`${current}-04-30`;
+  html=renderToStaticMarkup(createElement(AwardsHub,{state:s,onRecords(){}}));
+  assert.equal(a.defaultAllstarYear(s),current);assert.match(html,/5월 1일부터/);assert.match(html,new RegExp(`<h2>${current} 올스타</h2>`));
+});
 test('allstar has zero scores before the game, two view buttons and a league toggle in the title bar',()=>{
   const s=fixture(false,false),before=structuredClone(s),html=render(s);
   assert.match(html,/aria-label="BLUE 0 대 0 WHITE"/);assert.match(html,/allstar-heading/);assert.match(html,/올스타 리그/);

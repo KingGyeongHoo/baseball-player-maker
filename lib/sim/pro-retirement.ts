@@ -62,6 +62,7 @@ export function retireProfessional(s:GameState,reason="시즌 결산에서 은�
   const eligibility=registerRetirementFarewell(s,p),honor=registerRetiredNumber(s,p,eligibility);
   if(p.teamId>=0)pro.movements.push({date:s.date,from:p.teamId%10,to:null,kind:"은퇴",reason});
   pro.employment="retired";pro.contract=null;p.teamId=-1;w.stage="retired";s.phase="ended";
+  if(p.injuryRetirement)p.injuryRetirement.handled=true;
   if(w.market){w.market.offers=[];w.market.settled=true;}
   delete w.resumeCampAfterAwards;
   delete w.pendingRetirement;

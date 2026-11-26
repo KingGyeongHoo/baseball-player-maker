@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const e = require('../.test-build/lib/sim/engine.js');
+const {injuryRules}=require('../.test-build/lib/sim/injury-rules.js');
 const close = (a,b) => assert.ok(Math.abs(a-b) < 1e-9);
 
 test('training has a small baseline injury risk at zero fatigue and fatigue adds further risk', () => {
@@ -14,9 +15,9 @@ test('training has a small baseline injury risk at zero fatigue and fatigue adds
 });
 
 test('only actual training can cause baseline injuries, including when training adds no fatigue', () => {
-  const risk = e.params['injury.training_base_risk'], cost = e.params['fatigue.ticket_cost'];
+  const risk = injuryRules.trainingBaseRisk, max=injuryRules.maxRisk, cost = e.params['fatigue.ticket_cost'];
   try {
-    e.params['injury.training_base_risk'] = 1;
+    injuryRules.trainingBaseRisk=100;injuryRules.maxRisk=1;
     e.params['fatigue.ticket_cost'] = 0;
     for (const kind of ['training', 'recovery', 'offseason', 'zero-tickets']) {
       const state = e.createGame('training-injury', '훈련부상', 'SS');
@@ -31,12 +32,12 @@ test('only actual training can cause baseline injuries, including when training 
       assert.equal(e.getPlayer(result).fatigue, 0);
       assert.deepEqual(state, before);
       if (kind === 'training') {
-        assert.equal(e.getPlayer(result).injury.startDate, state.date);
+        assert.equal(e.getPlayer(result).injuryHistory[0].date, state.date);
         assert.ok(result.report.messages.some(m=>m.includes('부상')));
       } else assert.equal(e.getPlayer(result).injury, null, kind);
     }
   } finally {
-    e.params['injury.training_base_risk'] = risk;
+    injuryRules.trainingBaseRisk=risk;injuryRules.maxRisk=max;
     e.params['fatigue.ticket_cost'] = cost;
   }
 });

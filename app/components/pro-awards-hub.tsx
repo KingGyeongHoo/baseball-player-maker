@@ -4,6 +4,7 @@ import type {GameState,ProLevel} from "../../lib/sim/types";
 import type {ProSeasonArchive} from "../../lib/sim/pro-types";
 import {GoldGloveAwards,SeasonAwards,seriesAwardRecordText} from "./pro-awards";
 import ProAllstar from "./pro-allstar";
+import {allstarVotingDates,defaultAllstarYear} from '../../lib/sim/pro-allstar';
 import {IndividualAwardsTable} from './individual-awards-table';
 export {awardValueText} from './individual-awards-table';
 import {seriesMvpNames} from '../../lib/sim/pro-series-awards';
@@ -30,10 +31,14 @@ export function IndividualAwards({state,season,onRecords}:{state:GameState;seaso
     <div className="career-panel-body title-award-columns">{(['pitching','batting'] as const).map(field=><section className="title-award-field" key={field} aria-label={field==='pitching'?'투수 타이틀':'타자 타이틀'}><h3>{field==='pitching'?'투수':'타자'}</h3><IndividualAwardsTable state={state} season={season} level={level} field={field} onRecords={onRecords} compact/></section>)}</div></section>;
 }
 export default function ProAwardsHub({state,onRecords}:{state:GameState;onRecords:(id:string)=>void}){
-  const [category,setCategory]=useState('allstar'),[year,setYear]=useState(state.calendar.seasonYear);
+  const [category,setCategory]=useState('allstar'),[awardYear,setAwardYear]=useState(state.calendar.seasonYear);
+  const [allstarSelection,setAllstarSelection]=useState<{period:string;year:number}|null>(null);
+  const period=`${state.calendar.seasonYear}:${state.date>=allstarVotingDates(state.calendar.seasonYear)[0]}`;
+  const year=category==='allstar'?(allstarSelection?.period===period?allstarSelection.year:defaultAllstarYear(state)):awardYear;
+  const setYear=(year:number)=>category==='allstar'?setAllstarSelection({period,year}):setAwardYear(year);
   const seasons=state.proWorld?.seasons??[],years=[...new Set([state.calendar.seasonYear,...seasons.map(row=>row.year)])].sort((a,b)=>b-a),season=seasons.find(row=>row.year===year);
   const viewState=year===state.calendar.seasonYear?state:{...state,calendar:{...state.calendar,seasonYear:year},proWorld:state.proWorld?{...state.proWorld,allstar:season?.allstar}:undefined};
-  const selectCategory=(key:string)=>{setCategory(key);if(key!=='allstar'&&key!=='postseason'&&!season&&seasons.length)setYear(seasons.at(-1)!.year);};
+  const selectCategory=(key:string)=>{setCategory(key);if(key==='allstar')setAllstarSelection(null);else if(key!=='postseason'&&!seasons.some(row=>row.year===awardYear)&&seasons.length)setAwardYear(seasons.at(-1)!.year);};
   return <div className="pro-awards-hub"><div className="section-intro"><div><span className="eyebrow">SEASON AWARDS</span><h1>어워드</h1><p>올스타와 한 시즌을 빛낸 선수들</p></div><label className="awards-year">시즌<select aria-label="어워드 시즌" value={year} onChange={event=>setYear(Number(event.target.value))}>{years.map(value=><option key={value} value={value}>{value}</option>)}</select></label></div>
     <div className="segmented awards-category-tabs" aria-label="어워드 종류">{[['allstar','올스타'],['gold','골든글러브'],['individual','타이틀'],['postseason','포스트시즌 MVP']].map(([key,label])=><button key={key} className={category===key?'selected':''} aria-pressed={category===key} onClick={()=>selectCategory(key)}>{label}</button>)}</div>
     {category==='allstar'&&(year!==state.calendar.seasonYear&&!season?.allstar?<p className="empty-note">이 시즌의 올스타 기록이 없습니다.</p>:<ProAllstar key={year} state={viewState} onRecords={onRecords}/>)}

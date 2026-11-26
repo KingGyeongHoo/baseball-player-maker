@@ -1,5 +1,6 @@
 import {showStoveReport} from './stove-report';
 import {winterShopBenefit} from './offseason-shop';
+import {injuryRiskAssessment} from './injury-system';
 import {assessmentValue,hydrateAssessments,requiresDevelopmentalOffer,salaryUnits,seasonExit} from "./pro-assessment";
 import {canPlayPosition} from './position-eligibility';
 import {MIN_PRO_SALARY,proContractRules as rules} from "./pro-contract-rules";
@@ -35,20 +36,21 @@ function registrationPayMultiplier(p:Player,year:number,s?:GameState){
 function adjustedSalary(p:Player,year:number,s?:GameState,multiplier=1){
   const base=salaryUnits(assessmentValue(p,year).score)*BASE_SALARY;
   const offer=Math.min(20*BASE_SALARY,base*multiplier);
-  return Math.floor((offer*registrationPayMultiplier(p,year,s)+1e-6)/100_000)*100_000;
+  return Math.floor((offer*registrationPayMultiplier(p,year,s)*injuryRiskAssessment(p,s?.date??`${year}-12-31`).salaryMultiplier+1e-6)/100_000)*100_000;
 }
 export function salaryQuote(p:Player,year:number,s?:GameState) {
   return p.proContract?.status==='developmental'?MIN_PRO_SALARY:Math.max(MIN_PRO_SALARY,adjustedSalary(p,year,s));
 }
-export function faContractYears(p:Player,score:number,year:number,club:number){
+function nominalFaContractYears(p:Player,score:number,year:number,club:number){
   const band=rules.faDurationBands.find(([minimum])=>score>=minimum)??rules.faDurationBands.at(-1)!;
   const years=score<rules.multiYearScore?1:band[1]+hash(`${year}:${p.id}:${club}`)%(band[2]-band[1]+1);
   return Math.min(faContractYearLimit(p),years);
 }
+export function faContractYears(p:Player,score:number,year:number,club:number,date=`${year}-12-31`){return Math.max(1,nominalFaContractYears(p,score,year,club)-injuryRiskAssessment(p,date).yearsLost);}
 const faContractYearLimit=(p:Player)=>(p.age??19)>=40?1:(p.age??19)>=38?2:(p.age??19)>=36?3:6;
 export function clubInterest(s:GameState,p:Player,club:number,year:number){
   const direction=s.proWorld!.clubs[club].direction,age=p.age??19;
-  return contractValue(p,year)+(direction==="rebuild"?Math.max(-8,Math.min(8,27-age)):direction==="contend"?(roleScore(p)-60)*.15-Math.max(0,age-36):0);
+  return contractValue(p,year,s.date)+(direction==="rebuild"?Math.max(-8,Math.min(8,27-age)):direction==="contend"?(roleScore(p)-60)*.15-Math.max(0,age-36):0);
 }
 export function clubCost(s:GameState,club:number,year:number,exclude:string[]=[]){
   return (s.proWorld?.clubs[club]?.deadMoney[String(year)]??0)+s.players.filter(p=>!exclude.includes(p.id)&&p.professional?.employment==="active"&&p.professional.contract?.club===club&&p.professional.contract.startYear<=year&&p.professional.contract.endYear>=year)
@@ -197,12 +199,12 @@ export function offerFor(s:GameState,p:Player,club:number,year:number,kind:Contr
     const minimumInterest=veteran?rules.veteranFaInterest+Math.min(rules.veteranFaMaxPenalty,((p.age??19)-rules.veteranAge)*rules.veteranFaAgePenalty):40;
     if(clubInterest(s,p,club,year-1)<minimumInterest)return null;
   }
-  const years=trial?1:kind==="fa"?faContractYears(p,value,year,club):1;
+  const years=trial?1:kind==="fa"?nominalFaContractYears(p,value,year,club):1;
   const proposal=kind==="fa"&&!trial&&p.proContract?.status!=="developmental"?faProposal(s,p,club,year,value,years):undefined;
   const baseSalary=trial||p.proContract?.status==='developmental'?MIN_PRO_SALARY:adjustedSalary(p,year-1,s,proposal?.multiplier);
   const adjusted=kind==='released'?Math.floor(baseSalary*releaseTerms.salaryMultiplier/100_000)*100_000:baseSalary;
   const salary=Math.max(MIN_PRO_SALARY,adjusted);
-  let duration=Math.min(kind==='fa'?faContractYearLimit(p):1,proposal?.years??years);while(duration>1&&!canAfford(s,club,salary,year,duration,[p.id]))duration--;
+  let duration=Math.max(1,Math.min(kind==='fa'?faContractYearLimit(p):1,proposal?.years??years)-(kind==='fa'?injuryRiskAssessment(p,s.date).yearsLost:0));while(duration>1&&!canAfford(s,club,salary,year,duration,[p.id]))duration--;
   if(!canAfford(s,club,salary,year,duration,[p.id]))return null;
   if(proposal?.terms.plan==="security"){
     proposal.terms.title=duration>1?"장기 계약":"계약 안정";
@@ -269,11 +271,11 @@ export function negotiateOffer(s:GameState,id:string){
   proNotice(s,`negotiation:${id}`,"최종 계약 조건이 도착했습니다","화면의 최종 연봉·기간을 확인한 뒤 수락하거나 다른 진로를 선택하세요. 같은 제안의 재협상은 한 번입니다.");
 }
 export function renewNPCs(s:GameState,year:number,stoveRound?:number){
-  const list=s.players.filter(p=>p.id!==s.playerId&&p.professional?.employment==="active").sort((a,b)=>contractValue(b,year-1)-contractValue(a,year-1)||a.id.localeCompare(b.id));
-  const protectedIds=new Set(list.filter(p=>!canRemove(s,p)).map(p=>p.id));list.sort((a,b)=>Number(protectedIds.has(b.id))-Number(protectedIds.has(a.id))||contractValue(b,year-1)-contractValue(a,year-1)||a.id.localeCompare(b.id));
+  const list=s.players.filter(p=>p.id!==s.playerId&&p.professional?.employment==="active").sort((a,b)=>contractValue(b,year-1,s.date)-contractValue(a,year-1,s.date)||a.id.localeCompare(b.id));
+  const protectedIds=new Set(list.filter(p=>!canRemove(s,p)).map(p=>p.id));list.sort((a,b)=>Number(protectedIds.has(b.id))-Number(protectedIds.has(a.id))||contractValue(b,year-1,s.date)-contractValue(a,year-1,s.date)||a.id.localeCompare(b.id));
   for(const p of list){const pro=p.professional!,contract=pro.contract;if(contract&&contract.endYear>=year)continue;
     if(stoveRound!==undefined&&hash(`${s.seed}:renewal:${year}:${p.id}`)%9>stoveRound)continue;
-    const club=contract?.club??p.teamId%10,salary=salaryQuote(p,year-1,s),value=contractValue(p,year-1);
+    const club=contract?.club??p.teamId%10,salary=salaryQuote(p,year-1,s),value=contractValue(p,year-1,s.date);
     if(pro.faEligible&&canRemove(s,p)){
       const alternatives=s.proWorld!.clubs.filter(c=>c.id!==club&&clubInterest(s,p,c.id,year-1)>clubInterest(s,p,club,year-1)+2).sort((a,b)=>clubInterest(s,p,b.id,year-1)-clubInterest(s,p,a.id,year-1)||a.id-b.id);
       const offer=alternatives.flatMap(c=>{const candidate=offerFor(s,p,c.id,year,"fa");return candidate?[candidate]:[];})[0];
@@ -324,7 +326,7 @@ export function reviewNPCTrades(s:GameState){
     const roster=clubRoster(s,club.id);
     const depth=(p:Player)=>roster.filter(q=>q.position===p.position).length;
     const candidates=roster.filter(p=>p.id!==s.playerId&&p.professional?.contract&&canRemove(s,p)&&!world.stove?.movedIds.includes(p.id))
-      .sort((a,b)=>depth(b)-depth(a)||contractValue(a,world.year)-contractValue(b,world.year)||a.id.localeCompare(b.id));
+      .sort((a,b)=>depth(b)-depth(a)||contractValue(a,world.year,s.date)-contractValue(b,world.year,s.date)||a.id.localeCompare(b.id));
     if(candidates.some(p=>tradePlayer(s,p)))return;
   }
 }
@@ -332,14 +334,14 @@ export function reviewStoveReleases(s:GameState,year:number){
   for(const club of s.proWorld!.clubs){
     const roster=clubRoster(s,club.id);
     const candidates=roster.filter(p=>p.id!==s.playerId&&p.professional!.rookieYear<year&&(!p.professional!.contract||p.professional!.contract!.endYear<year)&&canRemove(s,p))
-      .filter(p=>roster.length>=70||((p.age??19)>=26&&contractValue(p,year-1)<47))
-      .sort((a,b)=>contractValue(a,year-1)-contractValue(b,year-1)||b.age!-a.age!||a.id.localeCompare(b.id));
+      .filter(p=>roster.length>=70||((p.age??19)>=26&&contractValue(p,year-1,s.date)<47))
+      .sort((a,b)=>contractValue(a,year-1,s.date)-contractValue(b,year-1,s.date)||b.age!-a.age!||a.id.localeCompare(b.id));
     const p=candidates[0];if(p)releasePlayer(s,p,"스토브리그 전력 재편 · 만료 계약과 포지션 수요 검토",year);
   }
 }
 export function trimForRookies(s:GameState,club:number,needed:number,year:number){
   const removable=clubRoster(s,club).filter(p=>p.id!==s.playerId&&p.teamId>=10&&p.professional!.rookieYear<year)
-    .sort((a,b)=>Number(!!a.professional!.contract&&a.professional!.contract!.endYear>=year)-Number(!!b.professional!.contract&&b.professional!.contract!.endYear>=year)||contractValue(a,year-1)-contractValue(b,year-1)||b.age!-a.age!||a.id.localeCompare(b.id));
+    .sort((a,b)=>Number(!!a.professional!.contract&&a.professional!.contract!.endYear>=year)-Number(!!b.professional!.contract&&b.professional!.contract!.endYear>=year)||contractValue(a,year-1,s.date)-contractValue(b,year-1,s.date)||b.age!-a.age!||a.id.localeCompare(b.id));
   for(const p of removable){if(clubRoster(s,club).length+needed<=75&&clubRoster(s,club).filter(q=>q.teamId>=10).length+needed<=45)break;if(canRemove(s,p))releasePlayer(s,p,"신인 합류 후 포지션 수요·하위 군 합산 정원을 검토한 잉여 인원 조정",year);}
 }
 export function tradePlayer(s:GameState,p:Player,requestedByPlayer=false):boolean{
@@ -348,9 +350,9 @@ export function tradePlayer(s:GameState,p:Player,requestedByPlayer=false):boolea
   if(activity.regular+activity.winter>=tradeLimit(s))return false;
   const half=s.calendar.events.filter(g=>g.competitionId==="pro-first")[360]?.date;if(w.stage==="regular"&&half&&s.date>half)return false;
   const requiredYear=w.stage==="summary"||w.stage==="offseason"?w.year+1:w.year;if(pro.contract.endYear<requiredYear)return false;
-  const from=pro.contract.club,value=contractValue(p,w.year);
-  const options=s.players.filter(q=>q.id!==p.id&&q.teamId>=0&&q.teamId%10!==from&&q.professional?.contract&&q.professional.contract.endYear>=requiredYear&&q.professional.employment==="active"&&Math.abs(contractValue(q,w.year)-value)<=12)
-    .filter(q=>canRemove(s,p)&&canRemove(s,q)&&!(w.stove&&!w.stove.closed&&w.stove.movedIds.includes(q.id))).sort((a,b)=>Math.abs(contractValue(a,w.year)-value)-Math.abs(contractValue(b,w.year)-value)||a.id.localeCompare(b.id));
+  const from=pro.contract.club,value=contractValue(p,w.year,s.date);
+  const options=s.players.filter(q=>q.id!==p.id&&q.teamId>=0&&q.teamId%10!==from&&q.professional?.contract&&q.professional.contract.endYear>=requiredYear&&q.professional.employment==="active"&&Math.abs(contractValue(q,w.year,s.date)-value)<=12)
+    .filter(q=>canRemove(s,p)&&canRemove(s,q)&&!(w.stove&&!w.stove.closed&&w.stove.movedIds.includes(q.id))).sort((a,b)=>Math.abs(contractValue(a,w.year,s.date)-value)-Math.abs(contractValue(b,w.year,s.date)-value)||a.id.localeCompare(b.id));
   for(const q of options){const other=q.professional!,to=other.contract!.club,pc=pro.contract,qc=other.contract!;
     const future=Math.max(pc.endYear,qc.endYear);let affordable=true;
     for(let y=w.year;y<=future;y++)if(clubCost(s,from,y,[p.id,q.id])+(qc.startYear<=y&&qc.endYear>=y?qc.salary:0)>w.clubs[from].budget||clubCost(s,to,y,[p.id,q.id])+(pc.startYear<=y&&pc.endYear>=y?pc.salary:0)>w.clubs[to].budget)affordable=false;
@@ -414,7 +416,7 @@ export function careerRequest(s:GameState,kind:"chance"|"position"|"manage"|"tra
     if(!tradePlayer(s,p,true))proNotice(s,`request:${s.date}`,"트레이드 요청 결과","현재 조건에 맞는 교환 상대와 구단 합의를 찾지 못했습니다.");return;
   }
   if(kind==="release"){
-    if(canRemove(s,p)&&contractValue(p,s.proWorld!.year)<55){releasePlayer(s,p,"선수 요청과 구단 동의에 따른 계약 해제",s.proWorld!.year+1);s.proWorld!.market=undefined;}
+    if(canRemove(s,p)&&contractValue(p,s.proWorld!.year,s.date)<55){releasePlayer(s,p,"선수 요청과 구단 동의에 따른 계약 해제",s.proWorld!.year+1);s.proWorld!.market=undefined;}
     proNotice(s,`request:${s.date}`,"계약 해제 요청 결과",p.teamId<0?"구단이 요청에 동의했습니다. 다음 계약 시장에서 새 기회를 찾을 수 있습니다.":"구단이 현재 전력과 계약을 고려해 동의하지 않았습니다. 최종안 또는 은퇴를 검토할 수 있습니다.");return;
   }
   if(kind==="manage"){pro.managedUntil=addDays(s.date,14);proNotice(s,`request:${s.date}`,"몸 관리 기간을 조정했습니다","14일 동안 출전보다 몸 관리를 우선합니다. 훈련 설정과 실제 부상·피로 제한은 유지됩니다.");return;}

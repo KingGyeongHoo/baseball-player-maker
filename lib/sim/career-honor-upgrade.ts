@@ -8,7 +8,7 @@ export function needsCareerHonorUpgrade(s:GameState){
   if(s.careerMode!=='pro'||!s.proWorld)return false;
   const pro=s.players.find(row=>row.id===s.playerId)?.professional;
   const cutoff=Math.min(pro?.retirementHonorStatus?.year??Infinity,s.calendar.seasonYear-Number(!s.proWorld.seasonClosed));
-  return s.proWorld.careerHonorRulesVersion!==6||!pro?.retirementHonorStatus?.progress&&!!pro?.assessments?.some(row=>row.year<=cutoff);
+  return s.proWorld.careerHonorRulesVersion!==7||(!pro?.retirementHonorStatus?.progress||pro.retirementHonorStatus.rulesVersion!==3)&&!!pro?.assessments?.some(row=>row.year<=cutoff);
 }
 // Rebuild derived honors from original season WAR, never from the old adjusted total.
 export function upgradeCareerHonors(s:GameState){
@@ -45,6 +45,6 @@ export function upgradeCareerHonors(s:GameState){
       }
     }
   }
-  w.careerHonorRulesVersion=6;
+  w.careerHonorRulesVersion=7;
   return true;
 }

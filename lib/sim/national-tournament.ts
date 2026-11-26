@@ -1,4 +1,6 @@
-import {addDays,available,compareDesignatedHitters,clamp,defaultPolicy,emptyRecord,getPlayer,hash,injuryRisk,mergeRecord,params,pitchingRole,roleFor,simulateGame} from './engine';
+import {copyInjuryOutcome} from './injury-system';
+import {addDays,available,compareDesignatedHitters,clamp,defaultPolicy,emptyRecord,getPlayer,hash,mergeRecord,params,pitchingRole,roleFor,simulateGame} from './engine';
+import {settleInjuryRetirements} from './injury-career';
 import {canPlayPosition} from './position-eligibility';
 import {randomPlayerHands} from './handedness';
 import {statKeys} from './types';
@@ -8,7 +10,7 @@ import {compactNationalTournament} from './national-storage';
 import {refreshSeasonEvaluations} from './pro-season-evaluation';
 import type {Game,GameState,Player,Position,RecordLine,Stats} from './types';
 
-export type NationalAthlete={id:string;name:string;position:Position;stats:Stats;age:number;sourceId?:string;fatigue:number;lastPitched:string|null;records:RecordLine;injury?:Player['injury']};
+export type NationalAthlete={id:string;name:string;position:Position;stats:Stats;age:number;sourceId?:string;fatigue:number;lastPitched:string|null;records:RecordLine;injury?:Player['injury'];injuryHistory?:Player['injuryHistory'];injuryWorkload?:Player['injuryWorkload'];injuryRetirement?:Player['injuryRetirement']};
 export type NationalCountry={id:number;name:string;players:NationalAthlete[]};
 export type NationalStage={id:string;name:string;groups:number[][];knockout?:boolean;byes?:number[]};
 export type NationalTournament={version:1;strengthVersion?:2;lastDay?:string;countries:NationalCountry[];games:Game[];stages:NationalStage[];current:number;finished?:string;champion?:number;bronze?:number;returned?:string;rewarded?:boolean;prepared:string[];scenes:string[];rng?:number;progress?:GameState['matchProgress'];effect?:GameState['matchEffect'];awards?:{title:string;id:string;name:string;country:number;score:number;reason:string}[]};
@@ -174,7 +176,7 @@ function playGame(s:GameState,entry:NationalSelection,game:Game){
       t.countries[0].players=koreanTournamentRoster(s,entry);
     }
   }
-  const rosters=ids.map((id,side)=>t.countries[id].players.map(row=>{const original=row.sourceId?s.players.find(p=>p.id===row.sourceId):undefined,p=structuredClone(original??template);if(!original){delete p.offseasonShop;let handDraw=0;Object.assign(p,randomPlayerHands(row.position,()=>hash(`${s.seed}:${row.id}:national-hands:${handDraw++}`)/4294967296));}p.id=row.id;p.name=row.name;p.stats={...row.stats};if(id===0&&entry.kind!=='youth'&&t.strengthVersion===2)for(const key of statKeys)p.stats[key]=clamp(p.stats[key]*.98,1);p.age=row.age;p.position=row.position;p.primaryRole=roleFor(row.position);p.trainingPolicy=defaultPolicy(p.primaryRole);p.teamId=side;p.fatigue=original?.fatigue??row.fatigue;p.lastPitched=row.lastPitched;p.seasonStats=emptyRecord();p.recentAppearances=[];p.injury=original?.injury??row.injury??null;p.forcedRest=false;p.eligiblePositions=[row.position];if(original?.twoWay&&!(row.id===s.playerId&&entry.participationField))p.eligiblePositions=[...new Set([...p.eligiblePositions,original.twoWay.battingPosition,'SP','RP','CP','DH'] as Position[])];else delete p.twoWay;delete p.professional;delete p.careerMode;return p;}));
+  const rosters=ids.map((id,side)=>t.countries[id].players.map(row=>{const original=row.sourceId?s.players.find(p=>p.id===row.sourceId):undefined,p=structuredClone(original??template);if(!original){delete p.offseasonShop;p.injuryHistory=structuredClone(row.injuryHistory??[]);p.injuryWorkload=structuredClone(row.injuryWorkload??[]);p.injuryRetirement=structuredClone(row.injuryRetirement);let handDraw=0;Object.assign(p,randomPlayerHands(row.position,()=>hash(`${s.seed}:${row.id}:national-hands:${handDraw++}`)/4294967296));}p.id=row.id;p.name=row.name;p.stats={...row.stats};if(id===0&&entry.kind!=='youth'&&t.strengthVersion===2)for(const key of statKeys)p.stats[key]=clamp(p.stats[key]*.98,1);p.age=row.age;p.position=row.position;p.primaryRole=roleFor(row.position);p.trainingPolicy=defaultPolicy(p.primaryRole);p.teamId=side;p.fatigue=original?.fatigue??row.fatigue;p.lastPitched=row.lastPitched;p.seasonStats=emptyRecord();p.recentAppearances=[];p.injury=structuredClone(original?.injury??row.injury??null);p.forcedRest=false;p.eligiblePositions=[row.position];if(original?.twoWay&&!(row.id===s.playerId&&entry.participationField))p.eligiblePositions=[...new Set([...p.eligiblePositions,original.twoWay.battingPosition,'SP','RP','CP','DH'] as Position[])];else delete p.twoWay;delete p.professional;delete p.careerMode;return p;}));
   if(!t.progress){game.proPreparedLineup=rosters.map(rows=>{
     const pitchers=rows.filter(p=>['선발','중간계투','마무리'].includes(pitchingRole(p))&&available(p,s.date));
     const starters=pitchers.filter(p=>pitchingRole(p)==='선발');
@@ -188,19 +190,15 @@ function playGame(s:GameState,entry:NationalSelection,game:Game){
     return {field,order:[...field],pitchers:pitchers.map(p=>p.id),starter:starter?.id??''};
   });}
   const sandbox:GameState={...s,players:rosters.flat(),teams:ids.map((id,i)=>({id:i,name:t.countries[id].name,shortName:t.countries[id].name,wins:0,losses:0,draws:0})),careerMode:undefined,proWorld:undefined,proEvents:undefined,nationalTeams:undefined,playerId:entry.participated?s.playerId:'national-observer',careerEvent:null,careerNotice:undefined,weekProgress:undefined,matchProgress:t.progress,matchEffect:t.effect,rngStates:{...s.rngStates,match:t.rng??hash(`${s.seed}:${game.id}`)}};
-  const complete=simulateGame(sandbox,game,rosters);t.rng=sandbox.rngStates.match;t.progress=sandbox.matchProgress;t.effect=sandbox.matchEffect;
-  for(const p of sandbox.players){const row=t.countries[ids[p.teamId]].players.find(row=>row.id===p.id)!;row.fatigue=p.fatigue;row.lastPitched=p.lastPitched;if(row.sourceId){const source=s.players.find(q=>q.id===row.sourceId);if(source){source.fatigue=p.fatigue;source.lastPitched=p.lastPitched;}}}
+  const complete=simulateGame(sandbox,game,rosters);t.rng=sandbox.rngStates.match;t.progress=sandbox.matchProgress;t.effect=sandbox.matchEffect;s.rngStates.injury=sandbox.rngStates.injury;
+  for(const p of sandbox.players){const row=t.countries[ids[p.teamId]].players.find(row=>row.id===p.id)!;row.fatigue=p.fatigue;row.lastPitched=p.lastPitched;copyInjuryOutcome(row as Pick<Player,'stats'|'injury'|'injuryHistory'|'injuryWorkload'|'injuryRetirement'>,p);if(row.sourceId){const source=s.players.find(q=>q.id===row.sourceId);if(source){source.fatigue=p.fatigue;source.lastPitched=p.lastPitched;copyInjuryOutcome(source,p);}}}
   if(!complete){s.careerEvent=sandbox.careerEvent;if(s.careerEvent)s.careerEvent.nationalContext={kind:entry.kind,year:entry.year,phase:'match',gameId:game.id};return false;}
   delete t.rng;delete t.progress;delete t.effect;
+  settleInjuryRetirements(s);
   if(game.status==='forfeit'){game.score=game.forfeitTeamId===game.homeTeamId?[0,9]:[9,0];game.status='completed';}
   game.advancingTeamId=game.score[0]>game.score[1]?game.homeTeamId:game.awayTeamId;
   for(const country of t.countries)for(const row of country.players){const record=game.boxScore[row.id];if(record){mergeRecord(row.records,record);
-    // The offseason has no domestic daily player loop. Apply game exposure
-    // here there, and for foreign opponents, using a stable per-game draw.
-    if((!row.sourceId||s.phase==='ended')&&(record.batting.PA||record.pitching.BF)&&hash(s.seed+game.id+row.id+':injury')/4294967296<injuryRisk(row.fatigue,false)){
-      const severity='mild',penalty=params['injury.mild.penalty'];row.injury={severity,startDate:s.date,unavailableUntil:addDays(s.date,5),originalPenalty:penalty,penaltyRemaining:penalty,penaltyRecoverDays:params['injury.mild.recovery_days']};
-      const source=s.players.find(p=>p.id===row.sourceId);if(source&&!source.injury)source.injury={...row.injury};
-    }
+
   }}
   return true;
 }

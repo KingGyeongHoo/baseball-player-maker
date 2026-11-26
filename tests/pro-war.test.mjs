@@ -265,7 +265,7 @@ test("the UI shows annual and cumulative grades without removed formula guidance
   p.seasonByLevel.first = batting("good"); a.recordSeasonAssessment(s, p);
   const html = renderToStaticMarkup(createElement(Assessments, { state: s }));
   for (const label of ["시즌 평가", "누적 평가", "시즌별 평가"]) assert.ok(html.includes(label));
-  assert.match(html, /<th>시즌<\/th><th>팀명<\/th><th>시즌평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);
+  assert.match(html, /<th>시즌<\/th><th>팀명<\/th><th>시즌평가<\/th><th>점수<\/th><th>가용성 보정<\/th><th>연봉<\/th><th>최종 등록<\/th>/);
   assert.doesNotMatch(html,/→ 출전평가|올해 시즌 출전평가/);
 });
 

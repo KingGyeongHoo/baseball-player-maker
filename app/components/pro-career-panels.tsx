@@ -29,7 +29,7 @@ export function ProContractPanel({state,onAction,onRetire,disabled,tradeDisabled
   const tradeClosed=regularTrade&&!!tradeDeadline&&state.date>tradeDeadline;
   const tradeRequestAfter=winterTrade?pro.tradeRequestAfter:[pro.requestAfter,pro.tradeRequestAfter].filter((date):date is string=>!!date).sort().at(-1);
   const tradeWaiting=!!tradeRequestAfter&&state.date<tradeRequestAfter;
-  if(w.pendingRetirement)return <Panel title="시즌 마무리"><p>수상과 시상을 모두 확인한 뒤 스토브리그로 이동하세요.</p><button className="primary" disabled={disabled} onClick={()=>onAction({type:pendingSeasonAwards(state)?"awards":"market"})}>{seasonEndActionLabel(state)}</button></Panel>;
+  if(w.pendingRetirement)return <Panel title="시즌 마무리"><p>이번 시즌의 수상과 시상을 모두 확인한 뒤 은퇴를 마무리합니다.</p><button className="primary" disabled={disabled} onClick={()=>onAction({type:pendingSeasonAwards(state)?"awards":"market"})}>{pendingSeasonAwards(state)?seasonEndActionLabel(state):'은퇴 마무리'}</button></Panel>;
   const myClub=p.teamId>=0?clubName(state,p.teamId%10):undefined;
   const stoveNews=stove?w.news.filter(row=>{
     if(row.date<stove.openedAt||/^\d+:stove(?::\d+|-open)$/.test(row.id))return false;

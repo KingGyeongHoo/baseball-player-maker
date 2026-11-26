@@ -9,7 +9,7 @@ const {developmentCalendar}=require('../.test-build/lib/sim/pro-calendar.js');
 const {upgradeFarmSchedule}=require('../.test-build/lib/sim/pro-farm-schedule.js');
 const {threeGameSchedule}=require('../.test-build/lib/sim/pro-schedule.js');
 const {allstarBreak}=require('../.test-build/lib/sim/pro-allstar-calendar.js');
-const {reviewFarmPostseason,farmPlayoffRoster,isFarmPostseason}=require('../.test-build/lib/sim/pro-farm-postseason.js');
+const {reviewFarmPostseason,farmPlayoffRoster,isFarmPostseason,farmPostseasonOpeningDate,upgradeFarmPostseasonDates}=require('../.test-build/lib/sim/pro-farm-postseason.js');
 const {finishCompetitionDay}=require('../.test-build/lib/sim/calendar.js');
 const {archiveProfessionalSeason}=require('../.test-build/lib/sim/pro-retirement.js');
 const {playerSeasons}=require('../.test-build/lib/player-records.js');
@@ -45,10 +45,61 @@ test('117 games mean 13 against every opponent, 58/59 home dates, same opening a
   for(let year=2027;year<=2040;year++){
     const c=developmentCalendar(year,true);verify(c);assert.equal(c.events.length,1350);
     const [first,second]=c.competitions;assert.equal(first.startDate,second.startDate);assert.ok(second.endDate<first.endDate);
-    const s=fixture();s.calendar=c;s.proWorld.year=year;s.proWorld.regularEnd=first.endDate;endRegular(s);completePlayoffs(s,true);
+    const s=fixture();s.calendar=c;s.proWorld.year=year;s.proWorld.regularEnd=first.endDate;endRegular(s);
+    const opening=s.calendar.events.filter(g=>isFarmPostseason(g.competitionId));
+    assert.equal(opening.length,2);assert.ok(opening.every(g=>g.date>=`${year}-09-01`&&g.date<=`${year}-09-07`));
+    assert.ok(opening.every(g=>new Date(g.date).getUTCDay()!==4));
+    completePlayoffs(s,true);
     assert.ok(s.date<first.endDate,`${year}: farm playoffs must finish before first-team regular season`);
     assert.equal(s.calendar.events.filter(g=>isFarmPostseason(g.competitionId)).length,11);assert.ok(!c.events.some(g=>g.tiebreaker));
   }
+});
+
+test('farm playoffs respect September opening, Thursday rest and delayed regular-season completion',()=>{
+  assert.equal(farmPostseasonOpeningDate(2033),'2033-09-02');
+  assert.equal(farmPostseasonOpeningDate(2027),'2027-09-01');
+  const s=fixture(),year=s.calendar.seasonYear,c=s.calendar.competitions.find(c=>c.id==='pro-second');
+  c.endDate=`${year}-09-12`;endRegular(s);
+  const expected=farmPostseasonOpeningDate(year,`${year}-09-13`);
+  assert.ok(s.calendar.events.filter(g=>isFarmPostseason(g.competitionId)).every(g=>g.date===expected));
+});
+
+function oldFarmBracket(){
+  const s=fixture();endRegular(s);const early=e.addDays(s.date,1);
+  for(const g of s.calendar.events.filter(g=>isFarmPostseason(g.competitionId)))g.date=early;
+  for(const c of s.calendar.competitions.filter(c=>isFarmPostseason(c.id)))c.startDate=c.endDate=early;
+  for(const row of s.proWorld.farmPostseason.series)row.lastDate=early;
+  return s;
+}
+
+test('unstarted saved farm brackets move to September once and preserve teams, rosters, records and RNG',()=>{
+  const s=oldFarmBracket(),before=structuredClone(s),year=s.calendar.seasonYear;
+  const restored=life.upgradeProfessionalState(s);
+  assert.notEqual(restored,s);assert.deepEqual(s,before);
+  assert.ok(restored.calendar.events.filter(g=>isFarmPostseason(g.competitionId)).every(g=>g.date===farmPostseasonOpeningDate(year)));
+  assert.deepEqual(restored.players,s.players);assert.deepEqual(restored.rngStates,s.rngStates);
+  assert.deepEqual(restored.calendar.events.filter(g=>!isFarmPostseason(g.competitionId)),s.calendar.events.filter(g=>!isFarmPostseason(g.competitionId)).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)));
+  assert.deepEqual(restored.proWorld.farmPostseason.series.map(row=>row.rosters),s.proWorld.farmPostseason.series.map(row=>row.rosters));
+  for(const row of restored.proWorld.farmPostseason.series){
+    const c=restored.calendar.competitions.find(c=>c.id===`pro-farm-playoffs-${row.id}`);
+    assert.equal(c.startDate,row.lastDate);assert.equal(c.endDate,row.lastDate);
+  }
+  const snapshot=structuredClone(restored);assert.equal(upgradeFarmPostseasonDates(restored),false);assert.deepEqual(restored,snapshot);
+  const loaded=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(restored))).state;
+  assert.deepEqual(loaded.proWorld.farmPostseason,restored.proWorld.farmPostseason);
+  assert.equal(upgradeFarmPostseasonDates(loaded),false);
+});
+
+test('farm date migration preserves started and finished playoffs and waits for a paused day',()=>{
+  for(const status of ['inProgress','completed','forfeit']){
+    const s=oldFarmBracket();s.calendar.events.find(g=>isFarmPostseason(g.competitionId)).status=status;
+    const before=structuredClone(s);assert.equal(upgradeFarmPostseasonDates(s),false);assert.deepEqual(s,before);
+  }
+  const s=oldFarmBracket();s.proWorld.farmPostseason.champion=10;
+  const finished=structuredClone(s);assert.equal(upgradeFarmPostseasonDates(s),false);assert.deepEqual(s,finished);
+  delete s.proWorld.farmPostseason.champion;s.weekProgress={day:{phase:'games'}};
+  assert.equal(upgradeFarmPostseasonDates(s),false);delete s.weekProgress;
+  assert.equal(upgradeFarmPostseasonDates(s),true);
 });
 
 test('72-game save upgrades preserve played games and records and fill every pair to thirteen',()=>{

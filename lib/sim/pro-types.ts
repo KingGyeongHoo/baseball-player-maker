@@ -11,7 +11,7 @@ export type RetirementHonorProgress={club?:number;cumulative:number|null;clubSco
 export type ProfessionalPlayer = {
   farmVacancyPosition?:Position;
   eventSelectionBonus?: number;
-  retirementHonorStatus?:{rulesVersion?:2;year:number;debutSeasons:number;ceremony:boolean;tour:boolean;retiredNumber:boolean;progress?:RetirementHonorProgress};
+  retirementHonorStatus?:{rulesVersion?:2|3;year:number;debutSeasons:number;ceremony:boolean;tour:boolean;retiredNumber:boolean;progress?:RetirementHonorProgress};
   careerHonorBonuses?:{year:number;points:number}[];
   awardBonuses?:{year:number;category:"mvp"|"goldGlove"|"rookie"|"wildcardMvp"|"semiMvp"|"playoffMvp"|"finalMvp";points:number;level?:"second";seriesId?:string}[];
   nationalBonus?:number;
@@ -52,7 +52,8 @@ export type RetiredNumber={club:number;number:number;playerId:string;playerName:
 export type RetirementHonor={club:number;playerId:string;playerName:string;date:string;score:number|null;grade:string;seasons:number;consecutive:number;debutClubSeasons?:number;ceremony:boolean;tour:boolean};
 export type ProPostseason={format?:"kbo-v1";rosterVersion?:1;seeds:number[];series:ProSeries[];champion?:number};
 export type ProWorld = {
-  careerHonorRulesVersion?:1|2|3|4|5|6;
+  retiredInjuries?:Record<string,{name:string;history:import('./injury-system').InjuryEpisode[];retirement?:Player['injuryRetirement']}>;
+  careerHonorRulesVersion?:1|2|3|4|5|6|7;
   offseasonContinuation?:'national'|'market'|'wait'|'nextSeason';
   departedStoveMoves?:import('./stove-report').StoveMove[];
   resumeCampAfterAwards?:true;
@@ -80,7 +81,7 @@ export type ProWorld = {
 
 export type ProWarLine={batting:number;pitching:number;fielding:number;positional:number;pa:number;outs:number;bf:number;fieldingChances:number;fieldingOuts:number};
 export type ProWarAssessment={version:1|2;score:number;equivalentWins:number;first:ProWarLine;second:ProWarLine};
-export type ProSeasonEvaluation={version:1;regular:number;postseason:number;national:number;honors:number;score:number};
+export type ProSeasonEvaluation={version:1;regular:number;postseason:number;national:number;honors:number;score:number;injury?:import('./injury-system').InjurySeasonAdjustment};
 export type ProSeasonAssessment={
   noAppearances?:true;
   seasonRank?:ProSeasonRank;

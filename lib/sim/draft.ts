@@ -4,8 +4,9 @@ import {organizationMinimum} from "./pro-roster";
 import {createScoutingReport} from "./scouting-report";
 import {buildEvaluationContext,createPlayerEvaluation} from "./player-evaluation";
 import {proClubNames} from "./club-names";
+import {injuryRiskAssessment} from './injury-system';
 
-export const draftBoard = (players: Player[]) => players.filter(p => p.grade === 3)
+export const draftBoard = (players: Player[]) => players.filter(p => p.grade === 3&&!p.injuryRetirement)
   .sort((a, b) => overall(b) - overall(a) || roleScore(b) - roleScore(a) || a.id.localeCompare(b.id));
 export const draftClubs = proClubNames;
 export function draftClubOrder(s:Pick<GameState,"seed"|"calendar"|"rngStates"|"careerMode">) {
@@ -17,11 +18,11 @@ export function draftClubOrder(s:Pick<GameState,"seed"|"calendar"|"rngStates"|"c
   return order;
 }
 // Compare prospects using identical neutral club demand, without consuming RNG.
-export function draftAssessment(p: Player) {
+export function draftAssessment(p: Player,date=p.injuryHistory?.at(-1)?.updatedAt??'2027-01-01') {
   const talent = p.talent[isPitcher(p.primaryRole) ? "pitching" : "batting"];
   const fit = params["draft.fit_role_weight"] * roleScore(p) + params["draft.fit_need_weight"] * 50;
   return params["draft.reputation_weight"] * (p.reputation ?? reputationScore(p) ?? 0)
-    + params["draft.talent_weight"] * talent / 10 * 100 + params["draft.fit_weight"] * fit;
+    + params["draft.talent_weight"] * talent / 10 * 100 + params["draft.fit_weight"] * fit-injuryRiskAssessment(p,date).interestPenalty;
 }
 export type DraftClubContext={roster:Player[];order?:number[]};
 function draftSlots(s: GameState,clubOrder?:number[]) {
@@ -64,6 +65,7 @@ function selectDraft(s: GameState, limit = Infinity,clubContext?:DraftClubContex
           talent: params["draft.talent_weight"] * talent / 10 * 100,
           reputation: params["draft.reputation_weight"] * reputation,
           fit: params["draft.fit_weight"] * fit,
+          ...(p.injuryHistory?.length?{injury:-injuryRiskAssessment(p,s.date).interestPenalty}:{}),
         };
         const score = Object.values(components).reduce((sum, points) => sum + points, 0);
         return {

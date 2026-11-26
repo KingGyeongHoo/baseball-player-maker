@@ -39,7 +39,7 @@ test('compact contract estimates include the current season once, ignore unrated
  const s=fixture(),p=e.getPlayer(s);s.calendar.seasonYear=2031;p.professional.assessments=[row(2028,70),row(2029,80),row(2030,null),row(2040,100)];p.professional.employment='active';p.teamId=0;p.proContract.status='regular';p.fatigue=0;p.recentZ=0;for(const key of Object.keys(p.stats))p.stats[key]=76;p.professional.contract={...p.professional.contract,startYear:2031,endYear:2033,salary:100_000_000};
  const summary=careerContractSummary(s);assert.equal(summary.cumulative,null);assert.equal(summary.projected,null);assert.equal(summary.seasons,3);assert.equal(summary.salary,100_000_000);
  p.professional.assessments.push({...row(2031,82,'second'),salary:100_000_000});s.proWorld.seasonClosed=true;const frozen=careerContractSummary(s);assert.equal(frozen.cumulative,null);assert.equal(frozen.projected,frozen.cumulative);assert.equal(frozen.seasons,2);
- const html=renderToStaticMarkup(createElement(Assessments,{state:s}));assert.equal((html.match(/<thead><tr>/g)||[]).length,1);assert.match(html,/<th>시즌<\/th><th>팀명<\/th><th>시즌평가<\/th><th>점수<\/th><th>연봉<\/th><th>최종 등록<\/th>/);assert.ok(html.includes('2군'));assert.ok(!html.includes('1군 출전경기'));assert.ok(!html.includes('기준 연봉'));
+ const html=renderToStaticMarkup(createElement(Assessments,{state:s}));assert.equal((html.match(/<thead><tr>/g)||[]).length,1);assert.match(html,/<th>시즌<\/th><th>팀명<\/th><th>시즌평가<\/th><th>점수<\/th><th>가용성 보정<\/th><th>연봉<\/th><th>최종 등록<\/th>/);assert.ok(html.includes('2군'));assert.ok(!html.includes('1군 출전경기'));assert.ok(!html.includes('기준 연봉'));
  p.professional.employment='freeAgent';assert.equal(careerContractSummary(s).seasons,0);assert.equal(careerContractSummary(s).salary,null);
 });
 
@@ -94,13 +94,41 @@ test('retirement milestones follow actual dates through school, draft, firsts, h
  assert.equal(summary.records.batting.AB,180);assert.equal(summary.records.pitching.outs,38);assert.deepEqual(s,before);
 });
 
-test('retirement dashboard puts lifetime records first, then the timeline and four honor counters',()=>{
+test('retirement dashboard puts lifetime records first, then the timeline and six collections of honor icons',()=>{
  const s=retiredFixture(),html=renderToStaticMarkup(createElement(Retirement,{state:s,onRecords(){},onNew(){}}));
- assert(html.indexOf('야구인생 통산 기록')<html.indexOf('선수생활의 발자취'));assert(html.indexOf('선수생활의 발자취')<html.indexOf('올스타 선정</h2>'));
- for(const title of ['올스타 선정','개인 수상','시즌 MVP','국가대표 발탁','12.2','연도별·리그별 기록 보기'])assert(html.includes(title),title);
- assert.equal((html.match(/<ol class="career-timeline">/g)||[]).length,1);assert.equal((html.match(/<dd>/g)||[]).length,15);
+ assert(html.indexOf('야구인생 통산 기록')<html.indexOf('선수생활의 발자취'));assert(html.indexOf('선수생활의 발자취')<html.indexOf('올스타</h2>'));
+ for(const title of ['올스타','골든글러브','MVP','신인상','한국시리즈 우승','국가대표'])assert(html.includes(`${title}</h2>`),title);
+ for(const title of ['12.2','연도별·리그별 기록 보기'])assert(html.includes(title),title);
+ for(const [kind,count]of [['allstar',2],['gold',1],['mvp',1],['rookie',0],['championship',0],['national',2]])assert.equal((html.match(new RegExp(`class="retirement-honor-icon honor-icon-${kind}"`,'g'))||[]).length,count);
+ assert.equal((html.match(/<ol class="career-timeline">/g)||[]).length,1);assert.equal((html.match(/<dd>/g)||[]).length,16);
  assert.ok(html.includes('<dt>탈삼진</dt>'));
  for(const title of ['출발과 전환점','성장의 기록','우승과 수상'])assert(!html.includes(title));
+});
+
+test('championship rings follow the title-date club, exclude farm titles and future seasons, and count each year once',()=>{
+ const s=retiredFixture(),p=e.getPlayer(s);
+ const season=(year,champion,endDate=`${year}-10-30`)=>({year,champion,endDate,awards:[]});
+ s.proWorld.seasons=[season(2030,0),season(2030,0),season(2033,0),season(2034,1),season(2035,2,'2035-11-10'),season(2036,2),{...season(2032,null),farmChampion:0}];
+ const before=structuredClone(s);
+ assert.deepEqual(retirementSummary(s).honorCollections.championship.map(row=>row.year),[2030,2033]);
+ assert.deepEqual(s,before);
+ p.professional.movements.push({date:'2033-08-01',kind:'방출',from:0,to:null,reason:'방출'});
+ assert.deepEqual(retirementSummary(s).honorCollections.championship.map(row=>row.year),[2030]);
+ p.professional.movements=[];p.professional.service=[{club:0,from:2030,to:2033},{club:1,from:2033,to:2034}];
+ assert.deepEqual(retirementSummary(s).honorCollections.championship.map(row=>row.year),[2030,2034]);
+ p.career.push({year:2033,careerMode:'pro',schoolId:10,records:e.emptyRecord(),stats:p.stats});
+ assert.deepEqual(retirementSummary(s).honorCollections.championship.map(row=>row.year),[2030,2033,2034]);
+});
+
+test('rookie trophies and gold gloves keep published award counts distinct from MVP and other titles',()=>{
+ const s=retiredFixture(),p=e.getPlayer(s),season=s.proWorld.seasons[0];
+ season.awards.push({year:season.year,kind:'신인왕',category:'rookie',playerId:p.id,club:0});
+ season.awards.push({...season.awards.at(-1)});
+ const honors=retirementSummary(s).honorCollections;
+ assert.equal(honors.rookie.length,1);assert.equal(honors.gold.length,1);assert.equal(honors.mvp.length,1);
+ const html=renderToStaticMarkup(createElement(Retirement,{state:s,onRecords(){},onNew(){}}));
+ assert.equal((html.match(/class="retirement-honor-icon honor-icon-rookie"/g)||[]).length,1);
+ assert(html.includes('2030년 신인왕'));
 });
 
 test('direct-entry and uneventful retirements display only genuine milestones and zero counters',()=>{

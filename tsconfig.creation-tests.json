@@ -11,6 +11,8 @@
     "plugins": []
   },
   "include": [
+    "app/components/medical-report.tsx",
+    "lib/sim/injury-preview.ts",
     "app/components/hall-of-fame.tsx",
     "app/components/international-hub.tsx",
     "app/components/national-honors.tsx",

@@ -1,4 +1,5 @@
 import type { GameState } from "./sim/types";
+import {pendingMedicalReport} from './medical-report';
 
 type Schedule = (callback: () => void, delay: number) => ReturnType<typeof setTimeout>;
 type Cancel = (timer: ReturnType<typeof setTimeout>) => void;
@@ -52,7 +53,7 @@ export class AutoProgress {
 
 // Waiting for a choice suspends the next tick, not the user's auto-run intent.
 export function autoWaitingForDecision(state: GameState, pendingOutcome = false): boolean {
-  return !!(state.careerEvent || state.careerNotice || pendingOutcome || state.pendingEventOutcome || state.players.find(p => p.id === state.playerId)?.roleOffer);
+  return !!(pendingMedicalReport(state) || state.careerEvent || state.careerNotice || pendingOutcome || state.pendingEventOutcome || state.players.find(p => p.id === state.playerId)?.roleOffer);
 }
 export function acceptedNationalInvitation(previous:GameState,next:GameState):boolean {
   const event=previous.careerEvent,kind=event?.proEvent?.nationalKind;

@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js');
+// This suite isolates fatigue forecasts from stochastic injuries.
+const {injuryRules}=require('../.test-build/lib/sim/injury-rules.js');injuryRules.gameBaseRisk=injuryRules.trainingBaseRisk=injuryRules.fatigueRisk=0;
 e.params['events.weekly_chance']=0;e.params['events.focus_chance']=0;
 for(const key of ['injury.training_base_risk','injury.risk_at60','injury.risk_slope60','injury.risk_at80','injury.risk_slope80'])e.params[key]=0;
 const template=e.createGame('free-training-fatigue','피로검증','SS');

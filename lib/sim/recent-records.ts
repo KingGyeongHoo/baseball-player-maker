@@ -12,6 +12,20 @@ export function packRecentRecord(record: RecentRecord): number[] {
   return packed;
 }
 
+// Plate appearances already have before/after totals. Write their packed
+// deltas directly instead of allocating two full empty records and key arrays.
+export function packRecentBattingChange(after:RecordLine['batting'],before:RecordLine['batting']):number[]{
+  const packed=[-2,after.PA-before.PA,after.AB-before.AB,after.H-before.H,after['2B']-before['2B'],after['3B']-before['3B'],
+    after.HR-before.HR,after.BB-before.BB,after.SO-before.SO,after.R-before.R,after.RBI-before.RBI,
+    0,0,0,0,0,0,0,0];
+  if(Object.hasOwn(after,'SB')||Object.hasOwn(after,'CS'))packed.push(Object.hasOwn(after,'SB')?after.SB!-before.SB!:0,Object.hasOwn(after,'CS')?after.CS!-before.CS!:0);
+  return packed;
+}
+export function packRecentPitchingChange(after:RecordLine['pitching'],before:RecordLine['pitching']):number[]{
+  return [-2,0,0,0,0,0,0,0,0,0,0,after.BF-before.BF,after.outs-before.outs,after.H-before.H,after.BB-before.BB,
+    after.SO-before.SO,after.HR-before.HR,after.R-before.R,after.ER-before.ER];
+}
+
 export function mergeRecentRecord(target: RecordLine, record: RecentRecord) {
   const batting=target.batting,pitching=target.pitching;
   let sb:number|undefined,cs:number|undefined;

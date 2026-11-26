@@ -1,4 +1,5 @@
 import {resolveNationalContext} from "./national-tournament";
+import {beginInjury,emptyInjuryLoad} from './injury-system';
 import {abilityAdjustedEventOutcomes} from './event-ability-probability';
 import {eventRewardVersion,revisedRiskAndCampEvents} from './event-reward-policy';
 import {resolveFinalGameChoice} from './final-game-event';
@@ -251,14 +252,7 @@ export function resolveCareerEvent(input: GameState, choiceId: string): GameStat
   const fatigueChange=outcome.fatigueRange?outcome.fatigueRange.min+Math.floor(random(s,"events")*(outcome.fatigueRange.max-outcome.fatigueRange.min+1)):outcome.fatigue??0;
   p.fatigue = clamp((p.fatigue + fatigueChange) * (1 - recoveryPercent / 100));
   if(outcome.skipTraining && s.weekProgress?.day)s.weekProgress.day.skipPlayerTraining=true;
-  if (outcome.injury) {
-    const previous = p.injury, prefix = `injury.${outcome.injury.severity}`;
-    const penalty = params[`${prefix}.penalty`], until = addDays(s.date, outcome.injury.days);
-    p.injury = { severity: previous && previous.penaltyRemaining > penalty ? previous.severity : outcome.injury.severity,
-      startDate: previous&&previous.unavailableUntil>until?previous.startDate:s.date, unavailableUntil: previous && previous.unavailableUntil > until ? previous.unavailableUntil : until,
-      originalPenalty: Math.max(previous?.originalPenalty ?? 0, penalty), penaltyRemaining: Math.max(previous?.penaltyRemaining ?? 0, penalty),
-      penaltyRecoverDays: Math.max(previous?.penaltyRecoverDays ?? 0, params[`${prefix}.recovery_days`]) };
-  }
+  if (outcome.injury) beginInjury(s,p,{...emptyInjuryLoad(),key:`event:${event.id}`,date:s.date,cause:'event',fatigue:p.fatigue},Math.max(3,outcome.injury.days));
   if (outcome.match && event.scene && s.matchProgress) {
     const match = s.matchProgress;
     s.matchEffect = { ...outcome.match, gameId: match.gameId, batterId: match.sides[match.battingSide].order[match.battingIndex[match.battingSide] % 9], pitcherId: match.pitchers[1 - match.battingSide] };

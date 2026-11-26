@@ -7,13 +7,13 @@ type HonorStatus=NonNullable<ProfessionalPlayer['retirementHonorStatus']>;
 export function seasonEndHonorStatus(s:GameState,p:Player):HonorStatus{
   const year=s.calendar.seasonYear,eligibility=retirementEligibility(s,p,true);
   const debut=p.professional?.firsts.debut;
-  return {rulesVersion:2,year,debutSeasons:debut?Math.max(0,year-Number(debut.slice(0,4))+1):0,ceremony:eligibility.ceremony,tour:eligibility.tour,retiredNumber:eligibility.retiredNumber,progress:eligibility.progress};
+  return {rulesVersion:3,year,debutSeasons:debut?Math.max(0,year-Number(debut.slice(0,4))+1):0,ceremony:eligibility.ceremony,tour:eligibility.tour,retiredNumber:eligibility.retiredNumber,progress:eligibility.progress};
 }
 
 export function displayedHonorStatus(s:GameState,p:Player):HonorStatus|undefined{
   const pro=p.professional;
   if(!pro)return;
-  if(pro.retirementHonorStatus?.rulesVersion===2&&pro.retirementHonorStatus.progress)return pro.retirementHonorStatus;
+  if(pro.retirementHonorStatus?.rulesVersion===3&&pro.retirementHonorStatus.progress)return pro.retirementHonorStatus;
   // Older saves reconstruct the last completed season without counting this year's progress.
   const cutoff=Math.min(pro.retirementHonorStatus?.year??Infinity,s.calendar.seasonYear-Number(!s.proWorld?.seasonClosed));
   const year=Math.max(...(pro.assessments??[]).filter(row=>row.year<=cutoff).map(row=>row.year));

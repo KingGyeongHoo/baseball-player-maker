@@ -1,6 +1,6 @@
 "use client";
 import {useState} from 'react';
-import {allstarBallot,allstarLevels,allstarSeasonView,allstarSlots} from '../../lib/sim/pro-allstar';
+import {allstarBallot,allstarLevels,allstarSeasonView,allstarSlots,allstarVotingDates} from '../../lib/sim/pro-allstar';
 import type {AllstarCandidate,AllstarLevel,AllstarMember} from '../../lib/sim/pro-allstar-types';
 import type {GameState,Position} from '../../lib/sim/types';
 import AllstarResult from './allstar-result';
@@ -12,7 +12,7 @@ export default function ProAllstar({state,onRecords}:{state:GameState;onRecords:
   const [level,setLevel]=useState<AllstarLevel>('first');
   const season=allstarSeasonView(state),entry=season.levels[level];
   const [view,setView]=useState<'votes'|'roster'>(season.finalizedAt?'roster':'votes');
-  const beforeVoting=state.date<`${season.year}-05-01`;
+  const beforeVoting=state.date<allstarVotingDates(season.year)[0];
   const candidates=allstarLevels.flatMap(key=>(['blue','white'] as const).flatMap(side=>Object.values(season.levels[key][side].ballots).flat()));
   const highestVotes=Math.max(0,...candidates.map(row=>row.votes));
   const voteLeaders=new Set(candidates.filter(row=>highestVotes>0&&row.votes===highestVotes).map(row=>row.playerId));

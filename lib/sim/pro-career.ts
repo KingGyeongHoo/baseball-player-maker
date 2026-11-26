@@ -1,4 +1,6 @@
-import {registrationChangeMessage} from "../pro-registration-notice";
+import {advanceInjuryRecovery} from './injury-system';
+import {settleInjuryRetirements} from './injury-career';
+import {registrationChangeNotice} from "../pro-registration-notice";
 import {currentProPosition} from "./pro-positions";
 import {rosterGrade} from '../roster-grades';
 import {createProWarContext,proWarAssessment,type ProWarContext} from './pro-war';
@@ -21,8 +23,8 @@ import {pendingNationalOffseason} from './national-tournament';
 
 export type CareerChoice = "join" | "tryout" | "college" | "developmental" | "direct";
 const slots: Position[] = ["C","C","C","1B","1B","2B","2B","3B","3B","SS","SS","LF","LF","CF","CF","RF","RF","1B","SP","SP","SP","SP","SP","SP","RP","RP","RP","RP","CP","CP"];
-const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind"], title: string, message: string) => {
-  s.careerNotice = { id: `${s.date}:${s.week}:${kind}`, date: s.date, kind, title, message };
+const notice = (s: GameState, kind: NonNullable<GameState["careerNotice"]>["kind"], title: string, message: string|ReturnType<typeof registrationChangeNotice>) => {
+  s.careerNotice = { id: `${s.date}:${s.week}:${kind}`, date: s.date, kind, title, ...(typeof message==='string'?{message}:message) };
 };
 export const acknowledgeCareer = (input: GameState): GameState => {
   const s=structuredClone(input),notice=s.careerNotice;
@@ -50,8 +52,13 @@ export const acknowledgeCareer = (input: GameState): GameState => {
   delete s.careerNotice;
   const next=s.noticeQueue?.shift();
   if(next)s.careerNotice=next;
-  else if(s.proWorld?.resumeCampAfterAwards&&!s.careerEvent&&!pendingNationalOffseason(s))continueToNextProCamp(s);
-  else tryProNationalInvitation(s);
+  else {
+    settleInjuryRetirements(s);
+    if(!s.careerNotice){
+      if(s.proWorld?.resumeCampAfterAwards&&!s.careerEvent&&!pendingNationalOffseason(s))continueToNextProCamp(s);
+      else tryProNationalInvitation(s);
+    }
+  }
   return s;
 };
 function path(s: GameState) {
@@ -67,11 +74,7 @@ export function archiveCareerSeason(s: GameState, p: Player) {
 function offSeason(p: Player, from: string, to: string) {
   const days = Math.max(0, (Date.parse(to) - Date.parse(from)) / 86400000);
   p.fatigue = clamp(p.fatigue * Math.max(0, 1 - params["fatigue.recovery_policy"] * recovery(p.stats.recovery)) ** days);
-  if (p.injury && to >= p.injury.unavailableUntil) {
-    const recoveredDays = (Date.parse(to) - Date.parse(p.injury.unavailableUntil)) / 86400000;
-    p.injury.penaltyRemaining = Math.max(0, p.injury.originalPenalty * (1 - recoveredDays / Math.max(1,p.injury.penaltyRecoverDays)));
-    if (!p.injury.penaltyRemaining) p.injury = null;
-  }
+  advanceInjuryRecovery(p,to);
   p.forcedRest = p.fatigue >= params["fatigue.force_rest"]; p.seasonStats = emptyRecord(); p.recentAppearances = []; p.recentZ = 0; p.lastPitched = null;
   p.roleOffer = null; p.offerCandidate = null; p.offerWeeks = 0; delete p.transferAdaptation;
 }
@@ -90,6 +93,7 @@ function resetWorld(s: GameState, p: Player, year: number, pro: boolean) {
 export function continueCareer(input: GameState, choice: CareerChoice, developmentalClub?: string): GameState {
   if (input.phase !== "ended" || input.careerEvent || input.careerNotice) throw new Error("시즌 결과와 알림을 확인한 뒤 진로를 선택해 주세요.");
   if (input.careerMode === "pro") throw new Error("프로의 다음 시즌은 계약 화면에서 선택해 주세요.");
+  if(getPlayer(input).injuryRetirement)throw new Error('부상으로 은퇴한 커리어입니다.');
   if (!input.careerMode && !input.draftOutcome?.revealed) throw new Error("드래프트 결과를 먼저 확인해 주세요.");
   const s = structuredClone(input);syncProClubNames(s);
   const p = getPlayer(s), info = path(s);
@@ -233,7 +237,7 @@ export function reviewProRoster(s: GameState) {
   const from:ProLevel = p.teamId===first?"first":"second",to:ProLevel=from==="first"?"second":"first",old=p.teamId;
   p.teamId=exchange.teamId;exchange.teamId=old;info.level=to;
   info.transactions.push({date:s.date,from,to,reason,exchangedPlayerId:exchange.id});
-  notice(s,to==="first"?"promoted":"demoted",to==="first"?"1군 승격 통보":"2군 조정 통보",registrationChangeMessage([to==="first"?p.name:exchange.name],[to==="first"?exchange.name:p.name]));return true;
+  notice(s,to==="first"?"promoted":"demoted",to==="first"?"1군 승격 통보":"2군 조정 통보",registrationChangeNotice([to==="first"?p:exchange],[to==="first"?exchange:p]));return true;
 }
 export function finishDevelopmentSeason(s: GameState) {
   if(s.careerMode==="pro"&&s.proWorld)return finishProfessionalDay(s);

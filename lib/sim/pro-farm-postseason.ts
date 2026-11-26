@@ -8,6 +8,25 @@ import type {GameState,Game} from './types';
 import type {ProSeries} from './pro-types';
 export const isFarmPostseason=(id:string)=>id.startsWith('pro-farm-playoffs-');
 export const farmPostseasonActive=(s:GameState)=>!!s.proWorld?.farmPostseason&&s.proWorld.farmPostseason.champion===undefined;
+export const farmPostseasonOpeningDate=(year:number,earliest=`${year}-09-01`)=>nextFarmDate(earliest<`${year}-09-01`?`${year}-09-01`:earliest,year);
+export function needsFarmPostseasonDateUpgrade(s:GameState){
+  const post=s.proWorld?.farmPostseason;
+  if(s.careerMode!=='pro'||s.proWorld?.seasonClosed||!post||post.champion!==undefined||s.matchProgress||s.weekProgress?.day)return false;
+  const games=s.calendar.events.filter(g=>isFarmPostseason(g.competitionId));
+  return games.length>0&&games.every(g=>g.status==='scheduled')&&post.series.every(row=>row.stage==='semi'&&row.game===1&&row.winner===undefined)
+    &&games.some(g=>g.date<`${s.calendar.seasonYear}-09-01`);
+}
+export function upgradeFarmPostseasonDates(s:GameState){
+  if(!needsFarmPostseasonDateUpgrade(s))return false;
+  const year=s.calendar.seasonYear,regularEnd=s.calendar.competitions.find(c=>c.id==='pro-second')?.endDate??s.date;
+  const date=farmPostseasonOpeningDate(year,[s.date,addDays(regularEnd,1)].sort().at(-1)!);
+  for(const game of s.calendar.events.filter(g=>isFarmPostseason(g.competitionId)))game.date=date;
+  for(const row of s.proWorld!.farmPostseason!.series)row.lastDate=date;
+  for(const c of s.calendar.competitions.filter(c=>isFarmPostseason(c.id)))c.startDate=c.endDate=date;
+  s.calendar.events.sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
+  if(date>s.calendar.seasonEnd)s.calendar.seasonEnd=date;
+  return true;
+}
 export function farmRegularFinishNotice(s:GameState){
   const p=getPlayer(s),team=proGameTeam(p),rank=(s.proWorld?.farmPostseason?.seeds.indexOf(team)??-1)+1,name=s.teams[team]?.name??'소속 2군';
   return rank?{title:`${name} 포스트시즌 진출!`,message:`2군 정규시즌 ${rank}위로 준결승에 출전합니다. 준결승 3전 2선승·결승 5전 3선승입니다. 포스트시즌 진행중에도 엔트리 변경이 있을 수 있습니다.`}:
@@ -32,8 +51,9 @@ export function reviewFarmPostseason(s:GameState){
     if(!games.length||s.date<c.endDate||games.some(g=>!['completed','forfeit'].includes(g.status)))return;
     const seeds=careerLeagueTable(s.calendar,'pro-second').slice(0,4).map(row=>row.teamId);if(seeds.length<4)return;
     c.championTeamId=seeds[0];w.farmPostseason={seeds,series:[]};
-    series(s,'semi-a','semi',[seeds[0],seeds[3]],addDays(s.date,1));series(s,'semi-b','semi',[seeds[1],seeds[2]],addDays(s.date,1));
-    proNews(s,'2군 정규시즌 종료 · 상위 4팀 포스트시즌 시작 · 준결승 3전 2선승 / 결승 5전 3선승');
+    const opening=farmPostseasonOpeningDate(w.year,addDays(s.date,1));
+    series(s,'semi-a','semi',[seeds[0],seeds[3]],opening);series(s,'semi-b','semi',[seeds[1],seeds[2]],opening);
+    proNews(s,`2군 정규시즌 종료 · 상위 4팀 포스트시즌 ${opening} 개막 · 준결승 3전 2선승 / 결승 5전 3선승`);
     if(getPlayer(s).teamId>=10){const notice=farmRegularFinishNotice(s);proNotice(s,`farm-postseason:${w.year}`,notice.title,notice.message);}
   }
   const post=w.farmPostseason;

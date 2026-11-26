@@ -38,7 +38,7 @@ export default function ProDashboard({state,onTab,onTraining,trainingDisabled,re
   const registration=state.careerMode==="pro"?level:"대학";
   const stages={camp:"스프링캠프",regular:"정규 시즌",postseason:"포스트시즌",summary:"시즌 결산",offseason:world?.stove?.closed?"1월 계약 마무리":"스토브리그",retired:"은퇴"};
   return <div className="pro-career-dashboard"><CareerDashboard state={state}
-    onTab={tab=>onTab(tab==="team"?"roster":tab==="games"?"league":tab)} onTraining={onTraining} trainingDisabled={trainingDisabled}
+    onTab={tab=>onTab(tab==="games"?"league":tab)} onTraining={onTraining} trainingDisabled={trainingDisabled}
     profileMeta={<>{state.teams[p.teamId]?.name??"무소속"} · {p.age??19}세{year?` · 프로 ${year}년차`:""}</>}
     profileBadge={<span className={`pro-registration-badge ${registration==="1군"?"first":""}`}>{registration}{p.proContract?.status==="developmental"?" · 신고":""}</span>}
     teamActionLabel="선수·로스터 ↗" scheduleActionLabel="리그 순위 ↗" records={records} schedule={<ProWeekSchedule state={state}/>} abilities={<PlayerAbilities player={p} detailsOnly/>}

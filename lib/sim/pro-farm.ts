@@ -6,6 +6,7 @@ import { createCareerNPC } from "./pro-roster";
 import { currentProPosition, guaranteedProStarter } from "./pro-positions";
 import { syncJerseyNumbers } from "../jersey-numbers";
 import type { GameState, Player, Position } from "./types";
+import {injuryRiskAssessment} from './injury-system';
 
 // A real five-man rotation and a usable bullpen must exist in BOTH leagues.
 // A 29-man first team alone does not make the farm schedule playable.
@@ -48,7 +49,9 @@ export function fillSecondTeamVacancies(s:GameState,clubs=Array.from({length:10}
       if(move.id===s.playerId||back?.id===s.playerId){
         const mine=move.id===s.playerId?move:back!,to=proSquad(mine.teamId)!;
         if(s.postSchool?.pro)s.postSchool.pro.transactions.push({date:s.date,from:mine===move?from:'second',to,reason,exchangedPlayerId:mine===move?back?.id??'':move.id});
-        proNotice(s,`${s.date}:farm-vacancy:${mine.id}`,'2군 포지션 공백으로 등록을 조정했습니다',reason,mine===move&&from!=='first'?'promoted':'demoted');
+        proNotice(s,`${s.date}:farm-vacancy:${mine.id}`,'2군 포지션 공백으로 등록을 조정했습니다',{
+          ...registrationChangeNotice(from==='first'?[]:[move],[...(from==='first'?[move]:[]),...(back?[back]:[])]),message:reason,
+        },mine===move&&from!=='first'?'promoted':'demoted');
       }
       changed=true;
     }
@@ -95,7 +98,7 @@ export function ensurePlayableFarmRosters(s: GameState, clubs = Array.from({leng
         }
         p=s.players.filter(q=>q.id!==s.playerId&&q.professional?.employment==="freeAgent"&&!q.professional.nonRenewal
           &&q.proContract?.status!=="developmental"&&q.position===position&&(q.age??19)<=35&&healthy(q))
-          .sort((a,b)=>roleScore(b)-roleScore(a)||a.id.localeCompare(b.id))[0];
+          .sort((a,b)=>(roleScore(b)-injuryRiskAssessment(b,s.date).interestPenalty)-(roleScore(a)-injuryRiskAssessment(a,s.date).interestPenalty)||a.id.localeCompare(b.id))[0];
         if (!p) {
           let index=0,id:string;
           do {id=`farm-depth:${s.proWorld.year}:${club}:${position}:${index++}`;} while(s.players.some(q=>q.id===id));
@@ -119,3 +122,4 @@ export function ensurePlayableFarmRosters(s: GameState, clubs = Array.from({leng
   if(added)syncJerseyNumbers(s);
   return changed;
 }
+import {registrationChangeNotice} from '../pro-registration-notice';

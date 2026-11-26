@@ -27,6 +27,7 @@ export function createScoutingReport(pick:DraftPick,year:number,snapshot?:{stats
   const reasons:ScoutingReport["reasons"]=[{title:reputation,description:`지명 당시 평판 ${number(pick.reputation)}점을 기록했다. 실제 지명 평가는 평판에 성장 가능성과 보직 적합도를 함께 반영했다.`},
     {title:clubNeed!==undefined&&clubNeed>=65?"구단의 보직 보강 수요":"보직 적합성",description:clubNeed!==undefined&&clubNeed>=65?`${roleLabel(pick.role)} 자원을 보강하려던 구단의 평가에 맞는 후보로 검토됐다. 보직 적합도는 ${number(pick.fit)}점이다.`:`${roleLabel(pick.role)} 역할의 능력과 구단 수요를 함께 본 적합도는 ${number(pick.fit)}점이었다.`}];
   if(pick.talent>=8)reasons.push({title:"앞으로의 성장 가능성",description:"주 분야의 성장 가능성도 지명 평가에 힘을 보탰다. 실제 성장은 훈련과 출전, 몸 관리에 달려 있다."});
+  if(pick.components.injury!==undefined)reasons.push({title:'향후 출전 가능성',description:`최근 부상·같은 부위 재발·회복 상태를 별도로 반영해 지명 점수를 ${Math.abs(pick.components.injury).toFixed(2)}점 보정했다. 성과와 재능 평가는 유지하며 오래된 부상의 영향은 줄어든다.`});
   const records=snapshot?.records;
   if(!pitching&&records&&records.batting.PA>=40)reasons.push({title:"타석에서 쌓은 경험",description:`당해 시즌 ${records.batting.AB}타수, ${records.batting.H}안타, ${records.batting.HR}홈런을 남겼다. 이 기록과 당시 기량을 함께 살펴볼 수 있다.`});
   if(pitching&&records&&records.pitching.outs>=30)reasons.push({title:"마운드에서 쌓은 경험",description:`당해 시즌 ${Math.floor(records.pitching.outs/3)}이닝 ${records.pitching.outs%3}아웃, ${records.pitching.SO}탈삼진을 기록했다. 투구 경험과 당시 기량을 함께 살펴볼 수 있다.`});

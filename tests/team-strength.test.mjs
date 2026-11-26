@@ -10,7 +10,7 @@ const game = e.createGame('team-power', '전력검증', 'SS');
 test('position competition uses the approved hitter and starter weights while retaining both bullpen roles',()=>{
  const p=e.previewPlayer('position-weights','가중치','1B');p.throws='R';p.fatigue=0;p.recentZ=0;
  Object.assign(p.stats,{contact:20,power:80,defense:60,speed:40,arm:100,velocity:90,control:70,movement:50,stamina:30,recovery:10});
- const expected={ '1B':50,'3B':50,'2B':51,'SS':51,'CF':51,'C':52,'LF':54,'RF':54,'SP':52,'RP':66,'CP':73,'DH':50 };
+ const expected={ '1B':54,'3B':50,'2B':51,'SS':51,'CF':51,'C':52,'LF':54,'RF':54,'SP':52,'RP':66,'CP':73,'DH':50 };
  for(const [position,score]of Object.entries(expected)){
   p.position=position;p.primaryRole=e.roleFor(position);delete p.twoWay;
   close(e.roleScore(p),score);close(e.selectionScore(p),score);
@@ -27,11 +27,11 @@ test('utility players compete with the target position weights in depth charts a
   delete p.freshmanReserve;for(const key of Object.keys(p.stats))p.stats[key]=50;
   p.stats.power=index?0:60;p.stats.speed=index?100:0;return p;
  });
- assert.ok(e.gameSelectionScore(roster[0],'코너 야수','2027-04-01','1B')<e.gameSelectionScore(roster[1],'코너 야수','2027-04-01','1B'));
+ assert.ok(e.gameSelectionScore(roster[0],'코너 야수','2027-04-01','1B')>e.gameSelectionScore(roster[1],'코너 야수','2027-04-01','1B'));
  assert.ok(e.gameSelectionScore(roster[0],'코너 야수','2027-04-01','LF')>e.gameSelectionScore(roster[1],'코너 야수','2027-04-01','LF'));
  const {startingAssignments}=require('../.test-build/lib/roster-status.js'),assigned=startingAssignments(roster);
- assert.equal(assigned.get('speed'),'1B');assert.equal(assigned.get('power'),'LF');
- assert.deepEqual(e.lineup(roster,'2027-04-01').field.map(p=>p.id),['speed','power']);
+ assert.equal(assigned.get('speed'),'LF');assert.equal(assigned.get('power'),'1B');
+ assert.deepEqual(e.lineup(roster,'2027-04-01').field.map(p=>p.id),['power','speed']);
 });
 
 test('the school DH depth-chart role is awarded to a remaining hitter without fixed DH registration',()=>{

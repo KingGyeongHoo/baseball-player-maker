@@ -4,6 +4,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js'),pc=require('../.test-build/lib/sim/pro-career.js'),w=require('../.test-build/lib/sim/pro-world.js');
 const base=pc.acknowledgeCareer(pc.createProfessionalDemo('stable-registration','안정검증','SS'));
 const balance=require('../.test-build/lib/sim/pro-balance.js');
+const registration=require('../.test-build/lib/pro-registration-notice.js');
 function managedPair(position){
  const s=structuredClone(base),p=e.getPlayer(s),q=structuredClone(p);q.id='rest-backup';s.date='2028-05-01';s.proWorld.stage='regular';s.calendar.events=[];
  for(const [player,skill] of [[p,65],[q,60]]){
@@ -15,6 +16,47 @@ function managedPair(position){
  }
  s.players=[p,q];return {s,p,q};
 }
+
+test('namesakes in promotion and removal lists highlight only the player, including old notices',()=>{
+ const {createElement}=require('react'),{renderToStaticMarkup}=require('react-dom/server');
+ const {CareerNoticeDialog}=require('../.test-build/app/components/career-continuation.js');
+ for(const promoted of [true,false])for(const legacy of [true,false]){
+  const {s,p,q}=managedPair('SS');p.name=q.name='김영재';p.teamId=promoted?0:10;q.teamId=promoted?10:0;q.position='3B';
+  const up=promoted?p:q,down=promoted?q:p,details=registration.registrationChangeNotice([up],[down]);
+  delete s.careerNotice;s.noticeQueue=[];
+  w.proNotice(s,'namesake','등록 변경',legacy?details.message:details,promoted?'promoted':'demoted');
+  const before=structuredClone(s),rows=registration.registrationNoticePlayers(s,s.careerNotice);
+  assert.equal(rows.promoted[0].playerId,up.id);assert.equal(rows.removed[0].playerId,down.id);
+  const html=renderToStaticMarkup(createElement(CareerNoticeDialog,{state:s,onChange(){}}));
+  const column=label=>html.split(`aria-label="${label}"`)[1].split('</section>')[0];
+  assert.equal((html.match(/class="registration-mine"/g)??[]).length,1);
+  assert.match(column(promoted?'승격 선수':'말소 선수'),/registration-mine/);
+  assert.doesNotMatch(column(promoted?'말소 선수':'승격 선수'),/registration-mine/);
+  assert.deepEqual(s,before);
+ }
+});
+
+test('registration summaries persist actual IDs through save/load and later roster changes',()=>{
+ const {s,p,q}=managedPair('SS'),save=require('../.test-build/lib/career-save.js');p.name=q.name='김영재';
+ p.teamId=0;q.teamId=10;delete s.careerNotice;s.noticeQueue=[];
+ w.proNotice(s,'namesake-summary','등록 변경',registration.registrationChangeMessage([p.name],[q.name]),'promoted');
+ registration.summarizeRegistrationNotices(s,new Map([[p.id,10],[q.id,0]]),new Set());
+ assert.equal(s.careerNotice.registrationChanges.promoted[0].playerId,p.id);
+ assert.equal(s.careerNotice.registrationChanges.removed[0].playerId,q.id);
+ const loaded=save.decodeCareerSave(save.serializeCareerSave(save.encodeCareerSave(s))).state;
+ e.getPlayer(loaded).teamId=10;loaded.players.find(row=>row.id===q.id).teamId=0;
+ const rows=registration.registrationNoticePlayers(loaded,loaded.careerNotice);
+ assert.equal(rows.promoted[0].playerId,p.id);assert.equal(rows.removed[0].playerId,q.id);
+});
+
+test('ambiguous legacy NPC names never reuse the player ID or pick an arbitrary namesake',()=>{
+ const {s,p,q}=managedPair('SS');p.name=q.name='김영재';p.teamId=0;q.teamId=10;
+ const other=structuredClone(q);other.id='second-namesake';s.players.push(other);
+ s.careerNotice={id:'old-namesakes',date:s.date,kind:'promoted',title:'등록 변경',message:registration.registrationChangeMessage([p.name],[q.name,other.name])};
+ let rows=registration.registrationNoticePlayers(s,s.careerNotice);assert.equal(rows.promoted[0].playerId,p.id);assert(rows.removed.every(row=>row.playerId===undefined));
+ s.postSchool.pro.transactions=[{date:s.date,from:'second',to:'first',reason:'등록 변경',exchangedPlayerId:q.id}];
+ rows=registration.registrationNoticePlayers(s,s.careerNotice);assert.equal(rows.removed[0].playerId,q.id);assert.equal(rows.removed[1].playerId,other.id);
+});
 test('body management changes game selection but never the displayed evaluation and expires by date',()=>{
  const {s,p,q}=managedPair('SS'),score=e.selectionScore(p);
  assert.equal(e.lineup([p,q],s.date).field[0].id,p.id);

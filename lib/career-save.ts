@@ -29,6 +29,8 @@ import {retirementHonorRules,validHonorRegistration} from './sim/retirement-hono
 import {removeBattedBallRecords} from './record-schema';
 import {refreshCareerEvaluation} from './sim/pro-career-evaluation';
 import {validOffseasonShop} from './sim/offseason-shop';
+import {migrateInjuryHistory,validInjuryData} from './sim/injury-system';
+import {settleInjuryRetirements} from './sim/injury-career';
 
 export type CareerSave={format:"baseball-life";version:1;id:string;name:string;date:string;year:number;savedAt:string;manual:boolean;checksum:string;state:GameState};
 type PackedCareerSave=Omit<CareerSave,'version'>&{version:2;recordEncoding:'npc-single-role-v1'};
@@ -45,6 +47,7 @@ export function validateCareerState(value:unknown):asserts value is GameState {
     if(!p||typeof p.id!=="string"||ids.has(p.id)||!Number.isInteger(p.teamId)||p.teamId>=s.teams.length||p.teamId< -1||statKeys.some(k=>!Number.isFinite(p.stats?.[k])||p.stats[k]<1||p.stats[k]>100)||!p.trainingPolicy?.tickets||!Array.isArray(p.career))throw new Error("선수·소속·능력 데이터가 손상됐습니다.");ids.add(p.id);
     if(p.throws!==undefined&&!["R","L"].includes(p.throws)||p.bats!==undefined&&!["R","L","B"].includes(p.bats))throw new Error("투구·타격 손 정보를 복원할 수 없습니다.");
     const assessments=p.professional?.assessments;
+    if(!validInjuryData(p))throw new Error('부상 이력·회복 일정 데이터가 손상됐습니다.');
     if(p.offseasonShop!==undefined&&(p.id!==s.playerId||!p.professional||!validOffseasonShop(p.offseasonShop,s.calendar.seasonYear)))throw new Error('오프시즌 상점 기록을 복원할 수 없습니다.');
     const bonuses=p.professional?.awardBonuses;
     if(bonuses!==undefined&&(!Array.isArray(bonuses)||new Set(bonuses.map(awardBonusKey)).size!==bonuses.length||bonuses.some(row=>{
@@ -62,7 +65,7 @@ export function validateCareerState(value:unknown):asserts value is GameState {
     if(p.professional?.faHistorySeeded!==undefined&&p.professional.faHistorySeeded!==true)throw new Error('FA 경력 보정 기록을 복원할 수 없습니다.');
     if(p.professional?.tradeRequestAfter!==undefined&&!/^\d{4}-\d{2}-\d{2}$/.test(p.professional.tradeRequestAfter))throw new Error('트레이드 요청 대기일을 복원할 수 없습니다.');
     const honorStatus=p.professional?.retirementHonorStatus;
-    if(honorStatus&&(honorStatus.rulesVersion!==undefined&&honorStatus.rulesVersion!==2||!Number.isInteger(honorStatus.year)||!Number.isInteger(honorStatus.debutSeasons)||honorStatus.debutSeasons<0||[honorStatus.ceremony,honorStatus.tour,honorStatus.retiredNumber].some(value=>typeof value!=='boolean')))throw new Error('은퇴 예우 판정을 복원할 수 없습니다.');
+    if(honorStatus&&(honorStatus.rulesVersion!==undefined&&honorStatus.rulesVersion!==2&&honorStatus.rulesVersion!==3||!Number.isInteger(honorStatus.year)||!Number.isInteger(honorStatus.debutSeasons)||honorStatus.debutSeasons<0||[honorStatus.ceremony,honorStatus.tour,honorStatus.retiredNumber].some(value=>typeof value!=='boolean')))throw new Error('은퇴 예우 판정을 복원할 수 없습니다.');
     const honorProgress=honorStatus?.progress;
     if(honorProgress&&((honorProgress.cumulative!==null&&!Number.isFinite(honorProgress.cumulative))||![honorProgress.clubScore,honorProgress.clubWar].every(Number.isFinite)||[honorProgress.seasons,honorProgress.consecutive,honorProgress.longest,honorProgress.debutClubSeasons].some(value=>!Number.isInteger(value)||value<0)||typeof honorProgress.tradeException!=='boolean'||honorProgress.club!==undefined&&(!Number.isInteger(honorProgress.club)||honorProgress.club<0||honorProgress.club>9)))throw new Error('은퇴 예우 진행 수치를 복원할 수 없습니다.');
     if(honorBonuses!==undefined&&(!Array.isArray(honorBonuses)||new Set(honorBonuses.map(row=>row.year)).size!==honorBonuses.length||honorBonuses.some(row=>!Number.isInteger(row.year)||!Number.isFinite(row.points)||row.points<0||row.points>3)))throw new Error('커리어 수상 가산점을 복원할 수 없습니다.');
@@ -95,6 +98,7 @@ export function validateCareerState(value:unknown):asserts value is GameState {
     if(p.professional?.positionRequestYear!==undefined&&!Number.isInteger(p.professional.positionRequestYear))throw new Error("포지션 변경 요청 기록을 복원할 수 없습니다.");
   }
   const retiredNumbers=s.proWorld?.retiredNumbers;
+  if(s.proWorld?.retiredInjuries!==undefined&&(typeof s.proWorld.retiredInjuries!=='object'||s.proWorld.retiredInjuries===null||Array.isArray(s.proWorld.retiredInjuries)||Object.values(s.proWorld.retiredInjuries).some(row=>!row||typeof row.name!=='string'||!validInjuryData({injury:null,injuryHistory:row.history,injuryRetirement:row.retirement} as import('./sim/types').Player))))throw new Error('은퇴 선수의 부상 이력을 복원할 수 없습니다.');
   const retirementHonors=s.proWorld?.retirementHonors;
   if(retiredNumbers?.some(row=>row.grade!==undefined&&!['S','A','B','C','D','E','F'].includes(row.grade)))throw new Error('영구결번 누적 등급을 복원할 수 없습니다.');
   if(retiredNumbers?.some(({criteria})=>criteria!==undefined&&(!criteria||!Number.isFinite(criteria.clubWar)||!Number.isFinite(criteria.awardBonus)||criteria.awardBonus<0||!Number.isInteger(criteria.seasons)||criteria.seasons<0)))throw new Error('영구결번의 구단 WAR와 수상 가산점을 복원할 수 없습니다.');
@@ -155,6 +159,8 @@ function validateCareerSave(file:CareerSave):CareerSave {
   if(file?.format!=="baseball-life"||file.version!==1)throw new Error("지원하지 않는 저장 형식입니다. 원본 파일은 유지됩니다.");
   validateCareerState(file.state);if(saveChecksum(JSON.stringify(file.state))!==file.checksum)throw new Error("저장 파일의 무결성 확인에 실패했습니다. 원본 파일은 유지됩니다.");
   file.state=upgradeSchoolPositions(file.state);
+  for(const p of file.state.players)migrateInjuryHistory(p,file.state.date);
+  if(!file.state.matchProgress)settleInjuryRetirements(file.state);
   upgradeRawSeasonWar(file.state);
   upgradePendingCareerEvent(file.state);
   for(const p of file.state.players){hydrateAssessments(file.state,p);refreshCareerEvaluation(p);initializeAgingProfile(p);clearProfessionalReputation(p);}

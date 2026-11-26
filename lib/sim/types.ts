@@ -57,7 +57,9 @@ export type RecordLine = {
   games?: Partial<Record<"batting"|"pitching"|"wins"|"losses"|"holds"|"saves",number>>;
 };
 export type Injury = {
-  severity: "mild" | "moderate" | "severe";
+  severity: import('./injury-rules').InjuryGrade;
+  episodeId?:string;
+  effects?:Partial<Stats>;
   startDate: string;
   unavailableUntil: string;
   originalPenalty: number;
@@ -105,6 +107,9 @@ export type Player = {
   fatigue: number;
   forcedRest: boolean;
   injury: Injury | null;
+  injuryHistory?:import('./injury-system').InjuryEpisode[];
+  injuryWorkload?:import('./injury-system').InjuryWorkload;
+  injuryRetirement?:{episodeId:string;date:string;reason:string;handled:boolean};
   trainingPolicy: Policy;
   stance: Stance;
   seasonStats: RecordLine;
@@ -218,7 +223,7 @@ export type DraftPick = {
   reputation: number;
   talent: number;
   fit: number;
-  components: { reputation: number; talent: number; fit: number };
+  components: { reputation: number; talent: number; fit: number;injury?:number };
   scoutingReport?: ScoutingReport;
 };
 export type ScoutingReport = {
@@ -394,7 +399,7 @@ export type GameState = {
   trainingFocus?: { rng: number; rolledWeek: number };
   careerMode?: CareerMode;
   draftOutcome?: { revealed: boolean; offer: DevelopmentalOffer | null; rejected?: boolean };
-  careerNotice?: { id: string; date: string; kind: "entry" | "promoted" | "demoted" | "tryoutFailed" | "seasonComplete" | "registered" | "pro"; title: string; message: string; code?:string;stoveReport?:import("./stove-report").StoveReport;award?:{year:number;title:string;bonus:number;before?:number;after:number;applied?:number};individualTitles?:{year:number;level:ProLevel;field:"batting"|"pitching"} };
+  careerNotice?: { id: string; date: string; kind: "entry" | "promoted" | "demoted" | "tryoutFailed" | "seasonComplete" | "registered" | "pro"; title: string; message: string; registrationChanges?:import("../pro-registration-notice").RegistrationChangeSet; code?:string;stoveReport?:import("./stove-report").StoveReport;award?:{year:number;title:string;bonus:number;before?:number;after:number;applied?:number};individualTitles?:{year:number;level:ProLevel;field:"batting"|"pitching"} };
   noticeQueue?: NonNullable<GameState["careerNotice"]>[];
   proWorld?:ProWorld;
   pendingEventOutcome?:CareerEventOutcome;

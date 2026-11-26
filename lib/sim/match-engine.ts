@@ -1,5 +1,7 @@
 import {conditioningMultiplier} from './offseason-shop';
 import {syncTrainingDiary} from './pro-selection';
+import {advanceInjuryRecovery,assessInjuryExposure} from './injury-system';
+import {injuryRules} from './injury-rules';
 import {openNationalMatchChoice} from "./national-tournament";
 import {springRoster,springLineup,springPriority,springSelectionScore} from './pro-spring';
 import {nationalAway} from './national-teams';
@@ -14,7 +16,7 @@ import type { Game, GameState, Player, Position } from "./types";
 import {recordEvaluationEnvironment} from "./evaluation-lifecycle";
 import {openProMatchEvent,openProPreparation,openProStealEvent} from "./pro-event-runtime";
 import type {ProAppearance} from "./pro-event-types";
-import {packRecentRecord,recentSample} from "./recent-records";
+import {packRecentBattingChange,packRecentPitchingChange,recentSample} from "./recent-records";
 import {finishGameRecords,pitcherEntered,recordLeadChange} from "./game-records";
 import {proBullpenPlan,proMatchParameters,proPitcherOutLimit,proRecentTeamGames,proReliefPriority,proReliefReady} from './pro-balance';
 import {farmPlayoffRoster,isFarmPostseason} from './pro-farm-postseason';
@@ -31,12 +33,13 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   if(isFarmPostseason(game.competitionId))rosters=farmPlayoffRoster(s,game);
   if(game.exhibition==='spring')rosters=[game.homeTeamId,game.awayTeamId].map(team=>springRoster(s,team));
   rosters=rosters.map(roster=>playoffRosterFor(s,game,roster).filter(p=>!nationalAway(s,p,game.date)));
+  if(!s.matchProgress)for(const p of rosters.flat())if(p.injury)advanceInjuryRecovery(p,game.date);
   const players = new Map(rosters.flat().map(p => [p.id, p]));
   const player = (id: string) => {const p=players.get(id);if(!p)throw new Error(`경기 명단 누락: ${id} / ${game.id} / 소속 ${s.players.find(p=>p.id===id)?.teamId}`);return p;};
   if (!s.matchProgress) {
     recordEvaluationEnvironment(s,game,rosters);
     const prepared=game.proPreparedLineup;
-    const valid=prepared?.every(side=>[...side.field,...side.order,...side.pitchers,side.starter].every(id=>players.has(id))&&(!pro||pitchingRole(player(side.starter))==='선발'));
+    const valid=prepared?.every(side=>[...side.field,...side.order,...side.pitchers,side.starter].every(id=>players.has(id)&&available(player(id),game.date))&&(!pro||pitchingRole(player(side.starter))==='선발'));
     const sides = prepared&&valid?prepared.map(side=>({field:side.field.map(player),order:side.order.map(player),starter:player(side.starter),pitchers:side.pitchers.map(player)})):rosters.map(roster => game.exhibition==='spring'?springLineup(s,roster,game.date):professionalLineup(s,roster,game.date,game.evaluationPlayers));
     if (sides.some(side => side.field.length < 9 || !side.starter)) {
       game.status = "forfeit";
@@ -199,11 +202,13 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       m.sides[side].field[fieldIndex] = substitute.id; m.sides[side].order[orderIndex] = substitute.id; game.lineup[side].push(substitute.id); batter = substitute;
     }
     if(openNationalMatchChoice(s,game,batter,pitcher))return false;
-    const scene ={
-      gameId: game.id, inning: m.inning, battingSide: side, outs: m.outs, score: [...game.score], batting: batter.id === s.playerId,
-      bases: m.bases.map(runner => runner ? player(runner.playerId).name : null), batterName: batter.name, pitcherName: pitcher.name,batterId:batter.id,pitcherId:pitcher.id,
-    };
-    if ((batter.id === s.playerId || pitcher.id === s.playerId) && (openProMatchEvent(s,scene,batter,pitcher)||openScheduledEvent(s, "game",scene)))return false;
+    if (batter.id === s.playerId || pitcher.id === s.playerId) {
+      const scene ={
+        gameId: game.id, inning: m.inning, battingSide: side, outs: m.outs, score: [...game.score], batting: batter.id === s.playerId,
+        bases: m.bases.map(runner => runner ? player(runner.playerId).name : null), batterName: batter.name, pitcherName: pitcher.name,batterId:batter.id,pitcherId:pitcher.id,
+      };
+      if (openProMatchEvent(s,scene,batter,pitcher)||openScheduledEvent(s, "game",scene))return false;
+    }
     m.battingIndex[side]++;
     const bat = line(batter).batting, pit = line(pitcher).pitching, b = effective(batter), p = effective(pitcher);
     const effect = s.matchEffect?.gameId === game.id && s.matchEffect.batterId === batter.id && s.matchEffect.pitcherId === pitcher.id ? s.matchEffect : undefined;
@@ -255,10 +260,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       }
     }
     if (pit.outs === pitBefore.outs) pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.no_out_cost"] * params[`stance.${pitcher.stance.pitching}_cost`] * accumulation(pitcher.stats.stamina)*conditioningMultiplier(pitcher,s.calendar.seasonYear));
-    const batRecent = emptyRecord(), pitRecent = emptyRecord();
-    for (const key of Object.keys(bat)) (batRecent.batting as Record<string, number>)[key] = (bat as Record<string, number>)[key] - (batBefore as Record<string, number>)[key];
-    for (const key of Object.keys(pit)) (pitRecent.pitching as Record<string, number>)[key] = (pit as Record<string, number>)[key] - (pitBefore as Record<string, number>)[key];
-    m.recentEvents.push({ playerId: batter.id, record: packRecentRecord(batRecent) }, { playerId: pitcher.id, record: packRecentRecord(pitRecent) });
+    m.recentEvents.push({ playerId: batter.id, record: packRecentBattingChange(bat,batBefore) }, { playerId: pitcher.id, record: packRecentPitchingChange(pit,pitBefore) });
     m.ready = false;
     if (walkoff) { game.innings[side].push(m.runs); ended = true; }
   }
@@ -310,6 +312,10 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       if (isPitcher(p.primaryRole) ? outs >= params["coach.recent_outs"] : batting >= params["coach.recent_pa"]) break;
     }
     p.recentAppearances = p.recentAppearances.slice(keepFrom);
+    const record=game.boxScore[p.id],side=m.sides.find(row=>row.field.slice(0,8).includes(p.id));
+    if(record&&(record.batting.PA||record.pitching.BF||side))assessInjuryExposure(s,p,{key:`game:${game.id}`,date:game.date,cause:'game',fatigue:Math.max(original.fatigue,p.fatigue),training:0,
+      pitching:record.pitching.BF*injuryRules.pitchingLoadPerBatter,batting:record.batting.PA*injuryRules.battingLoadPerPA,
+      fielding:side?injuryRules.fieldingGameLoad*side.pitchers.reduce((n,id)=>n+(game.boxScore[id]?.pitching.outs??0),0)/27:0});
     syncTrainingDiary(p);
   }
   delete s.matchProgress; delete s.matchEffect; delete s.stealEffect;

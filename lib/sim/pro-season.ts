@@ -2,6 +2,8 @@ import {needsCareerHonorUpgrade,upgradeCareerHonors} from './career-honor-upgrad
 import {showStoveReport} from './stove-report';
 import {buyShopItems,settleShopItems,type OffseasonShopAction} from './offseason-shop';
 import {syncTrainingDiary} from './pro-selection';
+import {advanceInjuryRecovery} from './injury-system';
+import {settleInjuryRetirements} from './injury-career';
 import {settleFaService} from './fa-service';
 import {advanceNationalOffseason,pendingNationalOffseason} from "./national-tournament";
 import {nationalInvitation,needsNationalInvitationUpgrade,upgradeNationalInvitation} from './national-teams';
@@ -41,7 +43,7 @@ import {individualAwards} from "./pro-individual-awards";
 import {syncClubAwardCounts} from './pro-career-evaluation';
 import {seasonEndHonorStatus} from './retirement-honor-status';
 import {needsNpcFaHistoryUpgrade} from './npc-fa-history';
-import {farmPostseasonActive,reviewFarmPostseason} from './pro-farm-postseason';
+import {farmPostseasonActive,reviewFarmPostseason,needsFarmPostseasonDateUpgrade,upgradeFarmPostseasonDates} from './pro-farm-postseason';
 import {settleSeriesMvp} from './pro-series-awards';
 import {archiveProfessionalSeason,registerRetiredNumber,registerRetirementFarewell,retireProfessional,veteranRetirementReason} from "./pro-retirement";
 export {archiveProfessionalSeason,retireProfessional} from "./pro-retirement";
@@ -198,6 +200,7 @@ export function closeProfessionalSeason(s:GameState){
   if(p.professional)p.professional.retirementHonorStatus=seasonEndHonorStatus(s,p);
   settleShopItems(p,w.year);
   proNotice(s,`season:${w.year}`,notice.title,notice.message,"seasonComplete");
+  settleInjuryRetirements(s);
   if(!w.retired&&!w.pendingRetirement)freezeProNational(s);
 }
 export function addRookieClass(s:GameState,year:number){
@@ -243,6 +246,7 @@ function retireAtSeasonEnd(s:GameState){
 }
 export function prepareOffseason(s:GameState){
   const w=s.proWorld!,year=w.year+1;
+  settleInjuryRetirements(s);
   if(w.stage==="retired")return;
   if(!w.seasonClosed)throw new Error("시즌 결산 후 스토브리그를 시작할 수 있습니다.");
   if(w.pendingRetirement){
@@ -332,7 +336,7 @@ export function settleNPCFreeAgents(s:GameState,year:number){
 }
 function recoverOffseason(p:Player,from:string,to:string){
   const days=Math.max(0,(Date.parse(to)-Date.parse(from))/86400000);p.fatigue=clamp(p.fatigue*Math.max(0,1-params["fatigue.recovery_policy"]*recovery(p.stats.recovery))**days);
-  if(p.injury&&to>=p.injury.unavailableUntil){const recovered=(Date.parse(to)-Date.parse(p.injury.unavailableUntil))/86400000;p.injury.penaltyRemaining=Math.max(0,p.injury.originalPenalty*(1-recovered/Math.max(1,p.injury.penaltyRecoverDays)));if(!p.injury.penaltyRemaining)p.injury=null;}
+  advanceInjuryRecovery(p,to);
   if(p.fatigue<params["fatigue.ready_return"])p.forcedRest=false;
 }
 export function canEnterNextProCamp(s:GameState){
@@ -348,6 +352,7 @@ export function continueToNextProCamp(s:GameState){
 }
 export function startNextProSeason(s:GameState,unattached=false){
   const w=s.proWorld!,p=getPlayer(s),year=w.year+1;if(w.stage==="retired")throw new Error("은퇴한 커리어입니다.");
+  if(p.injuryRetirement||w.pendingRetirement)throw new Error('시즌 시상을 마친 뒤 은퇴를 마무리해야 합니다.');
   if(!w.seasonClosed)throw new Error("시즌 결산을 먼저 완료해야 합니다.");
   if(w.stove&&!w.stove.closed)throw new Error("스토브리그를 1월 마감까지 진행한 뒤 스프링캠프에 참가할 수 있습니다.");
   if(!unattached&&(!p.professional!.contract||p.professional!.contract!.endYear<year||p.professional!.employment!=="active"))throw new Error("다음 시즌 계약을 먼저 선택해 주세요.");
@@ -453,7 +458,7 @@ export function advanceUnattachedMonth(input:GameState,advance:(s:GameState)=>Ga
   }return s;
 }
 export function upgradeProfessionalState(input:GameState){
-  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===2&&!needsPostseasonUpgrade(input)&&!needsPostseasonRosterUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input)&&!needsNationalInvitationUpgrade(input)&&!needsCareerHonorUpgrade(input)&&!needsNpcFaHistoryUpgrade(input))return input;
+  if(input.careerMode!=="pro"||input.proWorld&&input.proClubNamesVersion===2&&!needsPostseasonUpgrade(input)&&!needsPostseasonRosterUpgrade(input)&&!needsProScheduleUpgrade(input)&&!needsProSquadUpgrade(input)&&!needsContractUpgrade(input)&&!needsAllstarScheduleUpgrade(input)&&!needsNationalInvitationUpgrade(input)&&!needsCareerHonorUpgrade(input)&&!needsNpcFaHistoryUpgrade(input)&&!needsFarmPostseasonDateUpgrade(input))return input;
   const s=structuredClone(input);ensureProWorld(s);upgradeContractRules(s);upgradeNationalInvitation(s);upgradeCareerHonors(s);
   if(getPlayer(input).professional?.employment==="freeAgent"&&getPlayer(s).professional?.employment==="active")openContractMarket(s);
   migrateActivePostseason(s);
@@ -461,6 +466,7 @@ export function upgradeProfessionalState(input:GameState){
     for(const notice of [s.careerNotice,...s.noticeQueue??[]])if(notice?.code===`PRO10:postseason:${s.proWorld!.year}`)Object.assign(notice,regularSeasonFinishNotice(s));
   }
   upgradeProSchedule(s);
+  upgradeFarmPostseasonDates(s);
   upgradeAllstarSchedule(s);ensureAllstarSeason(s);
   if(!input.proWorld&&s.phase==="ended"){s.proWorld!.stage="regular";s.phase="weekStart";finishProfessionalDay(s);s.date=addDays(s.date,1);}
   return s;

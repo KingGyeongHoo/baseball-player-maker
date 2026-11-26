@@ -22,10 +22,10 @@ export function developmentalOffer(s: GameState): DevelopmentalOffer | null {
   if (s.careerMode || s.phase !== "ended" || p.grade !== 3 || !s.draft.length || s.draft.some(d => d.playerId === p.id)) return null;
   const picked = s.draft.flatMap(pick => {
     const player = s.players.find(other => other.id === pick.playerId);
-    return player ? [{pick, score: draftAssessment(player)}] : [];
+    return player ? [{pick, score: draftAssessment(player,s.date)}] : [];
   }).sort((a,b) => a.score - b.score || b.pick.overall - a.pick.overall);
   if (!picked.length) return null;
-  const tail = picked[0], scoreGap = Math.max(0, tail.score - draftAssessment(p));
+  const tail = picked[0], scoreGap = Math.max(0, tail.score - draftAssessment(p,s.date));
   if (scoreGap <= 2 + 1e-9) return {club:tail.pick.club, reason:"nearCutoff", scoreGap};
   for (const stat of statKeys) {
     const rank = 1 + s.players.filter(other => other.id !== p.id && !other.careerMode && other.stats[stat] > p.stats[stat]).length;

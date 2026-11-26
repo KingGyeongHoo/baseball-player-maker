@@ -12,6 +12,8 @@ import { advanceWeek, refreshWeekReport } from "./week-engine";
 import { resolveCareerEvent } from "./event-system";
 import { professionalGrowth,limitPhysicalGrowth } from "./pro-growth";
 import {conditioningMultiplier,trainingItemBonus} from './offseason-shop';
+import {settleInjuryRetirements} from './injury-career';
+import {injuryTrainingPolicy,injuryView} from './injury-system';
 import {syncJerseyNumbers} from "../jersey-numbers";
 import {captureEvaluationChange,capturePlayerEvaluations} from "./evaluation-lifecycle";
 import {reputationBreakdown,updateEvaluationReputations} from "./evaluation-reputation";
@@ -20,7 +22,7 @@ import {mergeGameCounters} from "./game-records";
 import {proSelectionScore,proManagementPenalty} from "./pro-selection";
 export {proSelectionScore};
 export { simulateGame, advanceWeek, refreshWeekReport };
-export const answerCareerEvent = (...args:Parameters<typeof resolveCareerEvent>) => captureEvaluationChange(syncJerseyNumbers(resolveCareerEvent(...args)),getPlayer(args[0]));
+export const answerCareerEvent = (...args:Parameters<typeof resolveCareerEvent>) => {const s=captureEvaluationChange(syncJerseyNumbers(resolveCareerEvent(...args)),getPlayer(args[0]));settleInjuryRetirements(s);return s;};
 import balance from "../../baseball_balance_v0_4.json";
 import { statKeys, ticketKeys, type Stats, type Stat, type Ticket, type Mode, type Policy, type Position, type Role, type Player, type GameState, type Calendar, type RecordLine } from "./types";
 export const params: Record<string, number> = Object.fromEntries(balance.parameters.map(p => [p.key, p.value]));
@@ -211,18 +213,18 @@ export function fatigueForecast(player: Player, policy: Policy, date?:string) {
   for(let day=0;day<7;day++){
     if(end>=params["fatigue.force_rest"])forcedRest=true;
     if(forcedRest&&end<params["fatigue.ready_return"])forcedRest=false;
-    const injured=!!date&&!!player.injury&&addDays(date,day)<player.injury.unavailableUntil;
-    const next=trainingFatigueDay(end,player.stats.recovery,forcedRest||injured?0:policy,conditioningMultiplier(player));
+    const allowed=date?injuryTrainingPolicy(player,policy,addDays(date,day)):policy;
+    const next=trainingFatigueDay(end,player.stats.recovery,forcedRest?0:allowed,conditioningMultiplier(player));
     end=next.end;weeklyTraining+=next.training;recovered+=next.recovered;peak=Math.max(peak,end);
     if(end>=params["fatigue.force_rest"])forcedRest=true;
   }
   return {...load,weeklyTraining,recoveryCapacity:Math.max(0,-load.weeklyDelta),recovered,peak,end};
 }
-export function train(p: Player, a: number) {
-  const policy = p.trainingPolicy;
+export function train(p: Player, a: number, policy=p.trainingPolicy,rehab=false) {
   if (!ticketsUsed(policy) || a <= 0) return;
   const growthDays = a * growthMultiplier(p) * (p.transferAdaptation && p.transferAdaptation.weeksRemaining > 0 ? .9 : 1);
   for (const key of ticketKeys) {
+    if(rehab&&!policy.tickets[key])continue;
     const g = focusGrowth(policy.tickets[key]);
     if (key === "physical") {
       for (const k of ["stamina", "recovery", "arm"] as const) p.stats[k] = clamp(limitPhysicalGrowth(p,k,p.stats[k] + g / 3 * (1+trainingItemBonus(p,k)) * slowdown(p.stats[k]) * growthDays * professionalGrowth(p,k) / params["training.days"]), 1);
@@ -303,6 +305,7 @@ function makePlayer(s: Pick<GameState,'seed'|'rngStates'|'teams'>, teamId: numbe
     fatigue: 0,
     forcedRest: false,
     injury: null,
+    injuryHistory: [],
     trainingPolicy: defaultPolicy(role),
     stance: {
       batting: "level",
@@ -420,9 +423,10 @@ export function effective(p: Player, configuration:Record<string,number> = param
   const s = {
     ...p.stats
   };
-  const penalty = p.injury?.penaltyRemaining ?? 0;
+  const penalty = p.injury?.effects?0:p.injury?.penaltyRemaining ?? 0;
   const core: Stat[] = isPitcher(p.primaryRole) ? ["velocity", "control", "movement"] : ["contact", "power", "speed", "defense"];
   for (const k of core) s[k] -= penalty;
+  for(const [key,value] of Object.entries(p.injury?.effects??{}))s[key as Stat]-=value!;
   const swing = params["stance.swing"];
   if (p.stance.batting !== "level") {
     const d = p.stance.batting === "down" ? 1 : -1;
@@ -476,7 +480,7 @@ export function ops(r: RecordLine) {
   return b.PA && b.AB ? (b.H + b.BB) / b.PA + (b.H + b["2B"] + 2 * b["3B"] + 3 * b.HR) / b.AB : null;
 }
 const pitchingQ = (r: RecordLine) => r.pitching.BF ? (params["reputation.pitch_k"] * r.pitching.SO - params["reputation.pitch_bb"] * r.pitching.BB - params["reputation.pitch_hr"] * r.pitching.HR) / r.pitching.BF : 0;
-export const available = (p: Player, date: string) => p.professional?.employment!=="retired" && !p.forcedRest && p.trainingPolicy.mode !== "rest" && !(p.injury && date < p.injury.unavailableUntil);
+export const available = (p: Player, date: string) => !p.injuryRetirement&&p.professional?.employment!=="retired" && !p.forcedRest && p.trainingPolicy.mode !== "rest" && !(p.injury && date < p.injury.unavailableUntil);
 export const growthMultiplier = (p: Player) => p.proContract?.status === "developmental" ? .9 : 1;
 export const selectionScore = (p: Player, role = p.primaryRole,position?:Position) => p.careerMode === "pro" || p.professional ? proSelectionScore(p, role,position) : roleScore(p, role,position)*leftPitcherMultiplier(p,role) - params["coach.fatigue_penalty"] * p.fatigue + params["coach.recent_max"] * clamp(p.recentZ, -1, 1) - (p.proContract?.status === "developmental" ? 6 : 0);
 export const gameSelectionScore=(p:Player,role=p.primaryRole,date?:string,position?:Position)=>selectionScore(p,role,position)-proManagementPenalty(p,date);
@@ -545,6 +549,7 @@ export function advanceRunners<T>(bases: (T | null)[], batter: T, outcome: 0 | 1
   }
   if (outcome === 4) score(batter, true);else bases[outcome - 1] = batter;
 }
+/** @deprecated Legacy balance API; live play and previews use injuryRiskEstimate. */
 export function injuryRisk(f: number, trained = false) {
   const fatigueRisk = f < params["fatigue.risk_start"] ? 0 : f < params["fatigue.high_start"] ? params["injury.risk_at60"] + params["injury.risk_slope60"] * (f - params["fatigue.risk_start"]) : params["injury.risk_at80"] + params["injury.risk_slope80"] * (f - params["fatigue.high_start"]);
   return 1 - (1 - fatigueRisk) * (1 - (trained ? params["injury.training_base_risk"] : 0));
@@ -552,7 +557,7 @@ export function injuryRisk(f: number, trained = false) {
 export function npcPolicy(p: Player, date: string, hasGame: boolean) {
   const policy = defaultPolicy(p.primaryRole);
   const recovering = ["light", "rest"].includes(p.trainingPolicy.mode) && p.fatigue > params["coach.recover_target"];
-  if (p.forcedRest || (p.injury && date < p.injury.unavailableUntil)) {
+  if (p.injuryRetirement||p.forcedRest || (p.injury && date < p.injury.unavailableUntil&&injuryView(p,date).stage!=='rehab')) {
     policy.mode = "rest";
     for (const k of ticketKeys) policy.tickets[k] = 0;
   } else if (hasGame || p.fatigue >= params["coach.rest_fatigue"] || recovering) {
@@ -561,7 +566,7 @@ export function npcPolicy(p: Player, date: string, hasGame: boolean) {
     const target=trainingLoad(p.stats.recovery,0).neutralTickets*.5;
     for (const k of keys) while (policy.tickets[k] > 0 && trainingEffort(policy).equivalentTickets > target) policy.tickets[k]--;
   }
-  p.trainingPolicy = policy;
+  p.trainingPolicy = injuryTrainingPolicy(p,policy,date);
 }
 // Scoped to one synchronous advance: event resumes and edited states start fresh.
 export type RecentReputationCache=Map<Player,{source:Player["recentAppearances"];length:number;last:Player["recentAppearances"][number]|undefined;pitching:boolean;limit:number;record:RecordLine}>;

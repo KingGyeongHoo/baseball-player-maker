@@ -10,12 +10,12 @@ import type { GameState } from "../../lib/sim/types";
 import PlayerEvaluationButton from "./player-evaluation";
 import {PlayerGrade} from "./player-roster";
 
-type DashboardTab = "team" | "records" | "games";
+type DashboardTab = "roster" | "records" | "games";
 function Section({ title, eyebrow, className, action, children }: { title: ReactNode; eyebrow: string; className: string; action?: ReactNode; children: ReactNode }) {
   return <section className={`panel ${className}`}><div className="panel-heading"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2></div>{action}</div>{children}</section>;
 }
 
-export default function CareerDashboard({ state, onTab, onTraining, records, schedule, abilities, profileMeta, profileBadge, summary, teamActionLabel = "팀 전력 ↗", scheduleActionLabel = "전체 일정 ↗", trainingDisabled = false }: {
+export default function CareerDashboard({ state, onTab, onTraining, records, schedule, abilities, profileMeta, profileBadge, summary, teamActionLabel = "선수·로스터 ↗", scheduleActionLabel = "전체 일정 ↗", trainingDisabled = false }: {
   state: GameState; onTab: (tab: DashboardTab) => void; onTraining: () => void; records: ReactNode; schedule: ReactNode; abilities: ReactNode;
   profileMeta?: ReactNode; profileBadge?: ReactNode; summary?: ReactNode; teamActionLabel?: string; scheduleActionLabel?: string; trainingDisabled?: boolean;
 }) {
@@ -51,7 +51,7 @@ export default function CareerDashboard({ state, onTab, onTraining, records, sch
         <p className="overview-caption overview-ovr-split"><span>투수 <b>{scoreText(ovr(player,true))}</b></span><span>타자 <b>{scoreText(ovr(player,false))}</b></span></p>
       </div>
       <div className="overview-team">
-        <div className="overview-team-heading"><h2 className="overview-label">팀 정보</h2><button onClick={() => onTab("team")}>{teamActionLabel}</button></div><h3>{team?.name ?? "무소속"}</h3>
+        <div className="overview-team-heading"><h2 className="overview-label">팀 정보</h2><button onClick={() => onTab("roster")}>{teamActionLabel}</button></div><h3>{team?.name ?? "무소속"}</h3>
         {isPro ? <div className="overview-team-power"><span>팀 순위</span><strong>{teamStanding ? <>{teamStanding.rank}<small>/{standings.length}</small></> : "—"}</strong></div> : <div className="overview-team-power"><span>전력</span><strong>{power ? scoreText(power.overall) : "—"}</strong>{power && <small>/ 100</small>}</div>}
         <div className="overview-team-record"><span>시즌 성적</span>{team ? <b>{team.wins}<small>승</small> {team.losses}<small>패</small> {team.draws}<small>무</small></b> : <b>소속 팀 없음</b>}</div>
       </div>
