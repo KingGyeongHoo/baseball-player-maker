@@ -1,3 +1,4 @@
+import {equipmentStats} from './offseason-shop';
 import {addDays,available,hash,params,pitchingRole,roleScore,gameSelectionScore} from './engine';
 import type {Game,GameState,Player} from './types';
 import {guaranteedProStarter} from './pro-positions';
@@ -51,7 +52,7 @@ export function proPitcherOutLimit(p:Player,starter:boolean,seed:string,date:str
   if(!starter)return p.id===closerId?(roll<30?6:3):roll<3?9:roll<10?6:roll<12?1:roll<18?2:3;
   if(roll<3&&runs<=1&&p.fatigue<65)return 24;
   const variation=hash(`${seed}:${date}:${p.id}:starter-length`)%5-2;
-  return Math.max(12,Math.min(21,Math.round(18.4+(p.stats.stamina-65)*.06)+variation+(lead!==undefined&&lead<0?-1:0)));
+  return Math.max(12,Math.min(21,Math.round(18.4+(equipmentStats(p).stamina-65)*.06)+variation+(lead!==undefined&&lead<0?-1:0)));
 }
 
 export function proReliefPriority(p:Player,date:string,inning:number,lead:number,closerId?:string,longReliefId?:string,setupId?:string,bridgeId?:string,teamGames=144){

@@ -1,4 +1,4 @@
-import type {GameState,Player,Role,Stat} from './types';
+import type {GameState,Player,Role,Stat,Stats} from './types';
 import {roles} from './engine';
 import {syncTrainingDiary} from './pro-selection';
 
@@ -9,13 +9,21 @@ const hitters:readonly Stat[]=['contact','power','speed','defense'];
 const physical:readonly Stat[]=['stamina','recovery','arm'];
 
 export const offseasonItems={
+  contactBat:{name:'컨택트 배트',icon:'🏏',price:75_000_000,stats:['contact'],bonus:0,detail:'컨택 +5%'},
+  powerBat:{name:'파워 배트',icon:'🏏',price:75_000_000,stats:['power'],bonus:0,detail:'파워 +5%'},
+  speedSpikes:{name:'주력 스파이크',icon:'👟',price:75_000_000,stats:['speed'],bonus:0,detail:'스피드 +5%'},
+  defenseSpikes:{name:'수비 스파이크',icon:'👟',price:75_000_000,stats:['defense'],bonus:0,detail:'수비 +5%'},
+  velocityGlove:{name:'구속 글러브',icon:'🧤',price:75_000_000,stats:['velocity'],bonus:0,detail:'구속 +5%'},
+  controlGlove:{name:'제구 글러브',icon:'🧤',price:75_000_000,stats:['control'],bonus:0,detail:'제구 +5%'},
+  movementGlove:{name:'변화구 글러브',icon:'🧤',price:75_000_000,stats:['movement'],bonus:0,detail:'변화구 +5%'},
+  physicalBand:{name:'피지컬 밴드',icon:'💪',price:75_000_000,stats:physical,bonus:0,detail:'스태미나·회복력·어깨 +5%'},
   rosin:{name:'로진백',icon:'⚾',price:30_000_000,stats:['velocity'],bonus:.3,detail:'구속 훈련 배율 +0.3'},
   target:{name:'3X3 표적',icon:'🎯',price:30_000_000,stats:['control'],bonus:.3,detail:'제구 훈련 배율 +0.3'},
   gripper:{name:'악력기',icon:'✊',price:30_000_000,stats:['movement'],bonus:.3,detail:'변화구 훈련 배율 +0.3'},
   tee:{name:'티볼',icon:'🏏',price:30_000_000,stats:['contact'],bonus:.3,detail:'컨택 훈련 배율 +0.3'},
   barbell:{name:'바벨',icon:'🏋️',price:30_000_000,stats:['power'],bonus:.3,detail:'파워 훈련 배율 +0.3'},
   weights:{name:'모래주머니',icon:'👟',price:30_000_000,stats:['speed'],bonus:.3,detail:'주루 훈련 배율 +0.3'},
-  rebound:{name:'리바운드 체인',icon:'🧤',price:30_000_000,stats:['defense'],bonus:.3,detail:'수비 훈련 배율 +0.3'},
+  rebound:{name:'리바운드 체인',icon:'⛓️',price:30_000_000,stats:['defense'],bonus:.3,detail:'수비 훈련 배율 +0.3'},
   heating:{name:'온열찜질기',icon:'♨️',price:30_000_000,stats:physical,bonus:.3,detail:'스태미나·회복·송구 훈련 배율 +0.3'},
   pitchingCoach:{name:'투수 트레이너',icon:'🧢',price:200_000_000,stats:pitchers,bonus:.5,detail:'구속·제구·변화구 훈련 배율 +0.5'},
   battingCoach:{name:'타자 트레이너',icon:'🥎',price:200_000_000,stats:hitters,bonus:.5,detail:'컨택·파워·주루·수비 훈련 배율 +0.5'},
@@ -51,6 +59,23 @@ export function buyShopItems(s:GameState,p:Player,items:OffseasonInventory){
 export function hasShopItem(p:Player,id:OffseasonItemId,year=p.professional?.agedYear){
   const shop=p.offseasonShop;
   return (shop?.items[id]??0)>0||shop?.active?.id===id&&shop.active.year===year;
+}
+
+export const equipmentItems=['contactBat','powerBat','speedSpikes','defenseSpikes','velocityGlove','controlGlove','movementGlove','physicalBand'] as const;
+const equipmentByStat=Object.fromEntries(equipmentItems.flatMap(id=>offseasonItems[id].stats.map(stat=>[stat,id]))) as Partial<Record<Stat,OffseasonItemId>>;
+export function equipmentBonus(p:Player,stat:Stat){
+  const id=equipmentByStat[stat];
+  return p.offseasonShop && id && hasShopItem(p,id) ? .05 : 0;
+}
+export function equipmentStats(p:Player):Stats{
+  if(!p.offseasonShop)return p.stats;
+  let stats:Stats|undefined;
+  for(const id of equipmentItems){
+    if(!hasShopItem(p,id))continue;
+    stats??={...p.stats};
+    for(const stat of offseasonItems[id].stats)stats[stat]=Math.min(100,p.stats[stat]*1.05);
+  }
+  return stats??p.stats;
 }
 
 export function settleShopItems(p:Player,year:number){

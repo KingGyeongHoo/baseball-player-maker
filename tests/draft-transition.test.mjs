@@ -118,7 +118,7 @@ test('developmental status reduces selection score by six and prevents first-tea
 });
 test('only qualified farm-game performance converts once, without stat gifts, and restores full growth and selection',()=>{
   const s=developmental(),p=e.getPlayer(s),stats={...p.stats};p.seasonStats.batting.PA=200;assert.equal(pc.reviewDevelopmentContract(s),false);
-  const b=p.seasonByLevel.second.batting;Object.assign(b,{PA:80,AB:72,H:25,BB:8,HR:2,'2B':5});
+  const b=p.seasonByLevel.second.batting;Object.assign(b,{PA:105,AB:97,H:25,BB:8,HR:2,'2B':5});
   s.proWorld.seasonClosed=true;assert.equal(pc.reviewDevelopmentContract(s),true);assert.equal(p.proContract.status,'regular');assert.equal(s.careerNotice.kind,'registered');assert.deepEqual(p.stats,stats);
   assert.equal(pc.reviewDevelopmentContract(s),false);delete s.careerNotice;assert.equal(pc.reviewDevelopmentContract(s),false);
   assert.equal(e.growthMultiplier(p),1);const regular=structuredClone(p);delete regular.proContract;close(e.selectionScore(p),e.selectionScore(regular));
@@ -129,7 +129,7 @@ test('starter conversion requires 20 innings, ERA <=6 and two wins; two-way play
   r.outs=60;assert.equal(pc.developmentProgress(p).qualified,true);p.seasonByLevel.second.games.wins=1;assert.equal(pc.developmentProgress(p).qualified,false);p.seasonByLevel.second.games.wins=3;
   r.ER=14;assert.equal(pc.developmentProgress(p).qualified,false);
   p.twoWay={pitchingPosition:'SP',battingPosition:'SS',nextAssignment:'batting',reputationBonus:0};
-  Object.assign(p.seasonByLevel.second.batting,{PA:80,AB:72,H:25,BB:8,HR:2,'2B':5});assert.equal(pc.developmentProgress(p).qualified,true);
+  Object.assign(p.seasonByLevel.second.batting,{PA:105,AB:97,H:25,BB:8,HR:2,'2B':5});assert.equal(pc.developmentProgress(p).qualified,true);
 });
 
 test('relievers and closers can convert after eight one-inning appearances while quality thresholds still apply',()=>{
@@ -166,7 +166,7 @@ test('conversion uses the two-way pitching role and ignores first-team or previo
   p.twoWay.pitchingPosition='CP';assert.equal(pc.developmentProgress(p).qualified,true);
 });
 test('meeting conversion conditions during the season does not interrupt the next game or training',()=>{
-  const s=developmental(),p=e.getPlayer(s);Object.assign(p.seasonByLevel.second.batting,{PA:80,AB:72,H:25,BB:8,HR:2,'2B':5});
+  const s=developmental(),p=e.getPlayer(s);Object.assign(p.seasonByLevel.second.batting,{PA:105,AB:97,H:25,BB:8,HR:2,'2B':5});
   assert.equal(pc.reviewDevelopmentContract(s),false);
   const next=e.advanceWeek(s,p.trainingPolicy,p.stance);
   assert.equal(e.getPlayer(next).proContract.status,'developmental');assert.notEqual(next.careerNotice?.kind,'registered');assert.ok(next.week>s.week||next.date>s.date);

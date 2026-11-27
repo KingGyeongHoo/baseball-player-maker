@@ -1,6 +1,6 @@
 import { scoreText, changeText } from "../../lib/display";
 import { effective, labels, ovr, positions } from "../../lib/sim/engine";
-import { trainingItemBonus } from "../../lib/sim/offseason-shop";
+import { equipmentBonus, equipmentStats, trainingItemBonus } from "../../lib/sim/offseason-shop";
 import type { Player, Stat } from "../../lib/sim/types";
 
 const groups: { id: string; title: string; keys: Stat[] }[] = [
@@ -11,6 +11,7 @@ const groups: { id: string; title: string; keys: Stat[] }[] = [
 
 export default function PlayerAbilities({ player, compare = false, showEffective = false, detailsOnly = false }: { player: Player; compare?: boolean; showEffective?: boolean; detailsOnly?: boolean }) {
   const gameStats = showEffective ? effective(player) : null;
+  const stats=equipmentStats(player);
   const both = player.eligiblePositions.some(p => ["SP", "RP", "CP"].includes(p)) && player.eligiblePositions.some(p => !["SP", "RP", "CP"].includes(p));
   return <div className="player-abilities">
     {!detailsOnly && <div className="profile-ovrs"><span>투수 OVR <b>{scoreText(ovr(player, true))}</b></span><span>타자 OVR <b>{scoreText(ovr(player, false))}</b></span>{both && <strong>투타 겸업</strong>}</div>}
@@ -18,10 +19,11 @@ export default function PlayerAbilities({ player, compare = false, showEffective
       <h3>{group.title}</h3><div className="stat-bars">{group.keys.map(key => {
         const growth = player.stats[key] - player.initialStats[key];
         const bonus = trainingItemBonus(player, key);
-        return <div className={`stat-bar-row${bonus > 0 ? " item-boosted" : ""}`} key={key}>
+        const gear=equipmentBonus(player,key),boost=[gear>0?'장비 능력치 +5%':'',bonus>0?`아이템 훈련 배율 +${bonus.toFixed(1)}`:''].filter(Boolean).join(' · ');
+        return <div className={`stat-bar-row${bonus>0 ? " item-boosted" : ""}`} key={key}>
           <span>{labels[key]}</span>
-          <div className="stat-track"><i style={{ width: `${player.stats[key]}%` }} /></div>
-          <strong>{scoreText(player.stats[key])}{bonus > 0 && <span className="stat-boost-indicator" role="img" title={`아이템 훈련 배율 +${bonus.toFixed(1)}`} aria-label={`아이템 훈련 배율 +${bonus.toFixed(1)}`}>↑</span>}</strong>
+          <div className="stat-track"><i style={{ width: `${stats[key]}%` }} /></div>
+          <strong><span className={gear>0?"equipment-value":undefined} title={gear>0?"장비 능력치 +5%":undefined}>{scoreText(stats[key])}</span>{bonus>0 && <span className="stat-boost-indicator" role="img" title={boost} aria-label={boost}>↑</span>}</strong>
           {compare && <small className="positive">{changeText(growth)}</small>}
           {gameStats && <small className="muted">유효 {scoreText(gameStats[key])}</small>}
         </div>;

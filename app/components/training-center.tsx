@@ -4,7 +4,7 @@ import {canPlayPosition} from "../../lib/sim/position-eligibility";
 import {positionRequestBlock} from "../../lib/sim/pro-role-evaluation";
 import TwoWayRelease from './two-way-release';
 import PlayerTalents from './player-talents';
-import type {GameState,Policy,Position,Stance} from "../../lib/sim/types";
+import type {GameState,Policy,Position} from "../../lib/sim/types";
 import {scoreText} from "../../lib/display";
 import PlayerAbilities from "./player-abilities";
 import TrainingEditor from "./training-editor";
@@ -12,10 +12,6 @@ import {PlayerGrade} from "./player-roster";
 
 function Panel({title,eyebrow,children,className=""}:{title:string;eyebrow:string;children:ReactNode;className?:string}){
   return <section className={`panel ${className}`}><div className="panel-heading"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2></div></div>{children}</section>;
-}
-function StanceEditor({stance,setStance}:{stance:Stance;setStance:(s:Stance)=>void}){
-  return <div className="stance-editor"><div><span className="small muted">타격 성향</span><div className="segmented">{(["down","level","up"] as const).map((v,i)=><button key={v} className={stance.batting===v?"selected":""} onClick={()=>setStance({...stance,batting:v})}>{["다운스윙","레벨스윙","어퍼스윙"][i]}</button>)}</div><p className="micro muted">{stance.batting==="level"?"기본 능력을 유지하는 균형 잡힌 스윙":stance.batting==="down"?"컨택 +5% · 파워 −5% · 땅볼 성향":"파워 +5% · 컨택 −5% · 뜬공 성향"}</p></div>
-    <div><span className="small muted">투구 성향</span><div className="segmented">{(["full","regular","command"] as const).map((v,i)=><button key={v} className={stance.pitching===v?"selected":""} onClick={()=>setStance({...stance,pitching:v})}>{["파이어볼러","레귤러 피쳐","커맨더"][i]}</button>)}</div><p className="micro muted">{stance.pitching==="full"?"구속 +5% · 제구 −5%":stance.pitching==="command"?"구속 −5% · 제구 +5%":"구속·제구 기본"}</p></div></div>;
 }
 function GrowthChart({state}:{state:GameState}){
   const current=state.history.filter(point=>point.ovrScale===100),p=getPlayer(state);
@@ -27,8 +23,8 @@ function GrowthChart({state}:{state:GameState}){
     <polygon points={`30,120 ${points} ${history.length>1?520:30},120`} fill="url(#chartFill)"/><polyline points={points} fill="none" stroke="#0e2046" strokeWidth="2.5" strokeLinejoin="round"/>{history.length<2&&<circle cx="30" cy={115-(values[0]-min)/(max-min)*90} r="4" fill="#0e2046"/>}<text x="30" y="145" fontSize="10" fill="#8d95a3">{current.length===state.history.length?state.careerMode?"커리어 시작":"입학":"기준 변경"}</text><text x="500" y="145" fontSize="10" fill="#8d95a3">현재</text>
   </svg></div>;
 }
-export default function TrainingCenter({state,policy,setPolicy,stance,setStance,onSave,disabled=false,profile,message,onChange,onPositionRequest,positionRequestDisabled}:{
-  state:GameState;policy:Policy;setPolicy:(p:Policy)=>void;stance:Stance;setStance:(s:Stance)=>void;onSave:()=>void;disabled?:boolean;profile?:ReactNode;message?:string;onChange?:(s:GameState)=>void;onPositionRequest?:(position:Position)=>void;positionRequestDisabled?:boolean;
+export default function TrainingCenter({state,policy,setPolicy,onSave,disabled=false,profile,message,onChange,onPositionRequest,positionRequestDisabled}:{
+  state:GameState;policy:Policy;setPolicy:(p:Policy)=>void;onSave:()=>void;disabled?:boolean;profile?:ReactNode;message?:string;onChange?:(s:GameState)=>void;onPositionRequest?:(position:Position)=>void;positionRequestDisabled?:boolean;
 }){
   const player=getPlayer(state),locked=disabled||state.phase==="ended"||!!state.weekProgress;
   const [position,setPosition]=useState<Position|"">("");
@@ -38,7 +34,7 @@ export default function TrainingCenter({state,policy,setPolicy,stance,setStance,
   return <div className="training-center"><div className="section-intro"><div><span className="eyebrow">TRAINING CENTER</span><h1>훈련 센터</h1></div><button className="primary" onClick={onSave} disabled={locked||!validPolicy(policy)}>훈련 설정 저장</button></div>
     {message&&<p className="training-save-message" role="status">{message}</p>}
     <div className="training-layout"><Panel title="주간 훈련 배분" eyebrow="WEEKLY TRAINING"><fieldset className="content-lock" disabled={locked}><TrainingEditor player={player} policy={policy} setPolicy={setPolicy} date={state.date} context={state}/></fieldset></Panel>
-      <div className="side-column"><Panel title="경기 성향" eyebrow="PLAYING STYLE"><fieldset className="content-lock" disabled={locked}><StanceEditor stance={stance} setStance={setStance}/></fieldset></Panel>
+      <div className="side-column">
         {onPositionRequest&&<Panel title="포지션 변경 요청" eyebrow="POSITION REQUEST">
           <fieldset className="content-lock pro-position-request" disabled={locked||positionRequestDisabled||!!requestBlock}>
             <label htmlFor="training-position-request" className="small muted">희망 포지션</label>

@@ -4469,3 +4469,5 @@ tbody tr:last-child td {
 @media(max-width:600px){.national-rosters .national-team-heading h2{font-size:18px}.national-rosters .national-view-tabs{margin:0 14px 14px}.national-rosters .national-view-tabs button{padding:11px 10px;font-size:12px}}
 
 .national-wildcard-badge { display:inline-block; margin-left:6px; padding:3px 6px; border-radius:4px; background:#fff1ca; color:#886316; font-size:10px; font-weight:600; white-space:nowrap; }
+
+.stat-bar-row .equipment-value, .training-label>small.equipment-value { color: #dc2626; }

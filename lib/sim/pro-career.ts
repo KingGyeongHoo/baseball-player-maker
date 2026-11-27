@@ -1,3 +1,4 @@
+import {equipmentStats} from './offseason-shop';
 import {advanceInjuryRecovery} from './injury-system';
 import {settleInjuryRetirements} from './injury-career';
 import {registrationChangeNotice} from "../pro-registration-notice";
@@ -73,7 +74,7 @@ export function archiveCareerSeason(s: GameState, p: Player) {
 }
 function offSeason(p: Player, from: string, to: string) {
   const days = Math.max(0, (Date.parse(to) - Date.parse(from)) / 86400000);
-  p.fatigue = clamp(p.fatigue * Math.max(0, 1 - params["fatigue.recovery_policy"] * recovery(p.stats.recovery)) ** days);
+  p.fatigue = clamp(p.fatigue * Math.max(0, 1 - params["fatigue.recovery_policy"] * recovery(equipmentStats(p).recovery)) ** days);
   advanceInjuryRecovery(p,to);
   p.forcedRest = p.fatigue >= params["fatigue.force_rest"]; p.seasonStats = emptyRecord(); p.recentAppearances = []; p.recentZ = 0; p.lastPitched = null;
   p.roleOffer = null; p.offerCandidate = null; p.offerWeeks = 0; delete p.transferAdaptation;
@@ -163,11 +164,9 @@ export function continueCareer(input: GameState, choice: CareerChoice, developme
   return s;
 }
 export const developmentalBattingThresholds = [
-  {atBats:30,homeRuns:7,hits:20,average:.270},
-  {atBats:40,homeRuns:5,hits:17,average:.250},
-  {atBats:50,homeRuns:3,hits:15,average:.225},
+  {plateAppearances:105,homeRuns:10,hits:25,average:.275},
 ] as const;
-export const developmentalBattingAtBatsRequired = developmentalBattingThresholds[0].atBats;
+export const developmentalBattingPlateAppearancesRequired = developmentalBattingThresholds[0].plateAppearances;
 export const developmentalPitchingThresholds = {
   starter:[{innings:20,required:3,era:4},{innings:30,required:3,era:5},{innings:40,required:3,era:6}],
   relief:[{innings:8,required:5,era:4},{innings:12,required:4,era:5},{innings:16,required:4,era:6}],
@@ -180,8 +179,8 @@ export function developmentProgress(p: Player, year?:number,warContext?:ProWarCo
   const pitchingMilestone=pitchingRole(p)==='선발'?{key:'wins' as const,required:pitchingThresholds[0].required,label:'승'}:pitchingRole(p)==='마무리'?{key:'saves' as const,required:pitchingThresholds[0].required,label:'세이브'}:{key:'holds' as const,required:pitchingThresholds[0].required,label:'홀드'};
   const pitchingMilestoneCount=records.games?.[pitchingMilestone.key]??0;
   const average=b.AB>0?b.H/b.AB:null;
-  const battingMinimumMet = b.AB >= developmentalBattingAtBatsRequired;
-  const batting = developmentalBattingThresholds.some(rule=>b.AB>=rule.atBats&&(b.HR>=rule.homeRuns||b.H>=rule.hits||average!==null&&average>=rule.average));
+  const battingMinimumMet = b.PA >= developmentalBattingPlateAppearancesRequired;
+  const batting = developmentalBattingThresholds.some(rule=>b.PA>=rule.plateAppearances&&(b.HR>=rule.homeRuns||b.H>=rule.hits||average!==null&&average>=rule.average));
   const pitchingERA = pitch.outs>0?pitch.ER*27/pitch.outs:null;
   const pitching = pitch.BF>0&&pitchingThresholds.some(rule=>pitch.outs>=rule.innings*3&&pitchingERA!==null&&pitchingERA<=rule.era&&pitchingMilestoneCount>=rule.required);
   const allstar=year!==undefined&&!!p.professional?.allstarHistory?.some(row=>row.year===year&&row.level==='second');
@@ -189,7 +188,7 @@ export function developmentProgress(p: Player, year?:number,warContext?:ProWarCo
   const warWins=proWarAssessment(p,warContext).equivalentWins,war=warWins>=1.5;
   const minimumSample = isPitcher(p.primaryRole) || battingMinimumMet || !!p.twoWay && pitching;
   const qualified = minimumSample && (allstar || rating || war || (p.twoWay ? batting || pitching : isPitcher(p.primaryRole) ? pitching : batting));
-  return {qualified,minimumSample,battingAtBatsRequired:developmentalBattingAtBatsRequired,battingThresholds:developmentalBattingThresholds,allstar,rating,selectionGrade,war,warWins,batting,pitching,PA:b.PA,AB:b.AB,H:b.H,HR:b.HR,average,outs:pitch.outs,pitchingERA,pitchingThresholds,pitchingInningsRequired,pitchingMilestone,pitchingMilestoneCount};
+  return {qualified,minimumSample,battingPlateAppearancesRequired:developmentalBattingPlateAppearancesRequired,battingThresholds:developmentalBattingThresholds,allstar,rating,selectionGrade,war,warWins,batting,pitching,PA:b.PA,AB:b.AB,H:b.H,HR:b.HR,average,outs:pitch.outs,pitchingERA,pitchingThresholds,pitchingInningsRequired,pitchingMilestone,pitchingMilestoneCount};
 }
 export function reviewDevelopmentContract(s: GameState) {
   if(s.careerMode!=='pro'||(s.proWorld?!s.proWorld.seasonClosed:s.phase!=='ended'))return false;

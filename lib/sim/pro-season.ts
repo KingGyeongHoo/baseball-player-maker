@@ -1,6 +1,6 @@
 import {needsCareerHonorUpgrade,upgradeCareerHonors} from './career-honor-upgrade';
 import {showStoveReport} from './stove-report';
-import {buyShopItems,settleShopItems,type OffseasonShopAction} from './offseason-shop';
+import {buyShopItems,equipmentStats,settleShopItems,type OffseasonShopAction} from './offseason-shop';
 import {syncTrainingDiary} from './pro-selection';
 import {advanceInjuryRecovery} from './injury-system';
 import {settleInjuryRetirements} from './injury-career';
@@ -335,7 +335,7 @@ export function settleNPCFreeAgents(s:GameState,year:number){
   delete s.proWorld!.rookieCandidates;
 }
 function recoverOffseason(p:Player,from:string,to:string){
-  const days=Math.max(0,(Date.parse(to)-Date.parse(from))/86400000);p.fatigue=clamp(p.fatigue*Math.max(0,1-params["fatigue.recovery_policy"]*recovery(p.stats.recovery))**days);
+  const days=Math.max(0,(Date.parse(to)-Date.parse(from))/86400000);p.fatigue=clamp(p.fatigue*Math.max(0,1-params["fatigue.recovery_policy"]*recovery(equipmentStats(p).recovery))**days);
   advanceInjuryRecovery(p,to);
   if(p.fatigue<params["fatigue.ready_return"])p.forcedRest=false;
 }

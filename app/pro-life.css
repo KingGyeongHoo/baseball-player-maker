@@ -398,3 +398,16 @@
 .pro-league .league-level-tabs button:focus-visible{outline:2px solid #638bc1;outline-offset:2px}
 .pro-league>.postseason-view{margin-bottom:24px}.pro-league .league-individual{margin-top:30px}.pro-league .league-leaders-heading{margin:0 0 18px}.pro-league .league-leaders-heading h2{margin:0}.pro-league>.panel{overflow:hidden}
 @media(max-width:600px){.pro-league .league-level-tabs{margin-bottom:18px}.pro-league .league-level-tabs button{padding:11px 14px;font-size:12px}.pro-league .league-leaders-heading{gap:12px}.pro-league .league-leaders-heading h2{font-size:17px}}
+
+.offseason-equipment-row { margin-top: 14px; }
+
+.equipment-icon-art { position:relative; display:block; width:36px; height:36px; }
+.equipment-icon-art>svg { display:block; }
+.equipment-icon-badge { position:absolute; display:block; width:21px; height:23px; font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; font-size:20px; line-height:23px; color:#172033; text-align:center; }
+.equipment-icon-badge.bat-badge { right:-2px; bottom:-2px; }
+.offseason-shop-icon:has(.spikes-badge), .offseason-shop-icon:has(.glove-badge) { width:64px; }
+.equipment-icon-art:has(.spikes-badge), .equipment-icon-art.glove-icon-art { width:58px; }
+.equipment-icon-badge.spikes-badge { left:35px; top:12px; }
+.glove-icon-art>svg { margin-top:3px; }
+.equipment-icon-badge.glove-badge { left:32px; top:12px; }
+.equipment-icon-badge.velocity-badge { width:25px; font:700 10px/23px Arial,sans-serif; }

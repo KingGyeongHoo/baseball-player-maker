@@ -1,5 +1,5 @@
 import {playNationalDay} from "./national-tournament";
-import {conditioningMultiplier} from './offseason-shop';
+import {conditioningMultiplier,equipmentStats} from './offseason-shop';
 import {syncTrainingDiary} from './pro-selection';
 import {upgradeFarmPostseasonDates} from './pro-farm-postseason';
 import {advanceInjuryRecovery,assessInjuryExposure,injuryTrainingPolicy,injuryView,emptyInjuryLoad} from './injury-system';
@@ -90,7 +90,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
     planProEventWeek(s);
   } else { player.trainingPolicy = structuredClone(s.weekProgress.policy); player.stance = { ...s.weekProgress.stance }; }
   const progress = s.weekProgress, report = progress.report;
-  progress.fatigueRecoveryStats??=s.players.map(p=>[p.id,p.stats.recovery]);
+  progress.fatigueRecoveryStats??=s.players.map(p=>[p.id,equipmentStats(p).recovery]);
   const fatigueRecoveryStats=new Map(progress.fatigueRecoveryStats);
   let rosters: Player[][] = s.teams.map(() => []);
   for (const p of s.players) if(p.teamId>=0)rosters[p.teamId].push(p);
@@ -211,7 +211,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
           if(s.careerMode==="pro"&&!rehab)recordProRoleTraining(s,p);
         }
         const allocation=p.forcedRest||injured&&!rehab||p.trainingPolicy.mode==="rest"||!trainingCycle||allstarRest||p.id===s.playerId&&day.skipPlayerTraining?0:trainingPolicy;
-        const beforeFatigue=p.fatigue,fatigueDay=trainingFatigueDay(p.fatigue,fatigueRecoveryStats.get(p.id)??p.stats.recovery,allocation,conditioningMultiplier(p));
+        const beforeFatigue=p.fatigue,fatigueDay=trainingFatigueDay(p.fatigue,fatigueRecoveryStats.get(p.id)??equipmentStats(p).recovery,allocation,conditioningMultiplier(p));
         p.fatigue=fatigueDay.end;
         if(p.id===s.playerId){day.fatigue.training+=fatigueDay.training;day.fatigue.recovered+=fatigueDay.recovered;day.fatigue.peak=Math.max(day.fatigue.peak,beforeFatigue,p.fatigue);day.fatigue.end=p.fatigue;}
         if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;

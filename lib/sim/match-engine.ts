@@ -1,4 +1,4 @@
-import {conditioningMultiplier} from './offseason-shop';
+import {conditioningMultiplier,equipmentStats} from './offseason-shop';
 import {syncTrainingDiary} from './pro-selection';
 import {advanceInjuryRecovery,assessInjuryExposure} from './injury-system';
 import {injuryRules} from './injury-rules';
@@ -173,7 +173,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
           else {
             runnerLine.CS=(runnerLine.CS??0)+1;m.outs++;line(current).pitching.outs++;m.pitchOuts[pitchingSide]++;current.lastPitched=game.date;
             if(m.fieldingVersion===1)recordFieldingOuts(m.sides[pitchingSide].field.map(player),line);
-            current.fatigue=clamp(current.fatigue+params['fatigue.pitch_out']*params[`stance.${current.stance.pitching}_cost`]*accumulation(current.stats.stamina)*conditioningMultiplier(current,s.calendar.seasonYear));
+            current.fatigue=clamp(current.fatigue+params['fatigue.pitch_out']*accumulation(equipmentStats(current).stamina)*conditioningMultiplier(current,s.calendar.seasonYear));
           }
           m.bases[0]=null;
           if(m.outs>=3){m.ready=false;continue;}
@@ -256,10 +256,10 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
           if(fielder)recordFieldingPlay(line(fielder),true,expectedOut);
         }
         if(m.fieldingVersion===1)recordFieldingOuts(m.sides[pitchingSide].field.map(player),line);
-        pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.pitch_out"] * params[`stance.${pitcher.stance.pitching}_cost`] * accumulation(pitcher.stats.stamina)*conditioningMultiplier(pitcher,s.calendar.seasonYear));
+        pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.pitch_out"] * accumulation(equipmentStats(pitcher).stamina)*conditioningMultiplier(pitcher,s.calendar.seasonYear));
       }
     }
-    if (pit.outs === pitBefore.outs) pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.no_out_cost"] * params[`stance.${pitcher.stance.pitching}_cost`] * accumulation(pitcher.stats.stamina)*conditioningMultiplier(pitcher,s.calendar.seasonYear));
+    if (pit.outs === pitBefore.outs) pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.no_out_cost"] * accumulation(equipmentStats(pitcher).stamina)*conditioningMultiplier(pitcher,s.calendar.seasonYear));
     m.recentEvents.push({ playerId: batter.id, record: packRecentBattingChange(bat,batBefore) }, { playerId: pitcher.id, record: packRecentPitchingChange(pit,pitBefore) });
     m.ready = false;
     if (walkoff) { game.innings[side].push(m.runs); ended = true; }
@@ -270,7 +270,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   if(s.careerMode==="pro")game.proAppearanceComplete=!!m.proStarts;
   for (let side = 0; side < 2; side++) {
     const outs = m.sides[side].pitchers.reduce((sum, id) => sum + (game.boxScore[id]?.pitching.outs ?? 0), 0);
-    for (const id of m.sides[side].field.slice(0, 8)) { const p = player(id); p.fatigue = clamp(p.fatigue + params["fatigue.field_game"] * outs / 27 * accumulation(p.stats.stamina)*conditioningMultiplier(p,s.calendar.seasonYear)); }
+    for (const id of m.sides[side].field.slice(0, 8)) { const p = player(id); p.fatigue = clamp(p.fatigue + params["fatigue.field_game"] * outs / 27 * accumulation(equipmentStats(p).stamina)*conditioningMultiplier(p,s.calendar.seasonYear)); }
   }
   for (const [id, record] of Object.entries(game.boxScore)) {
     if(s.careerMode==="pro"&&(record.batting.PA||record.pitching.BF||record.pitching.outs)){const p=player(id),side=m.sides.findIndex(row=>row.field.includes(id)||row.pitchers.includes(id));(game.proAppearances??={})[id]=m.proStarts?.[id]??{teamId:side===0?game.homeTeamId:game.awayTeamId,level:game.competitionId.startsWith("pro-playoffs-")?"postseason":game.competitionId==="pro-first"?"first":"second",position:p.position,startedField:false,startedPitching:false};}

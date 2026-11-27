@@ -1,4 +1,4 @@
-import {conditioningMultiplier} from '../../lib/sim/offseason-shop';
+import {conditioningMultiplier,equipmentBonus,equipmentStats} from '../../lib/sim/offseason-shop';
 import { addDays, fatigueForecast, labels, policyForMode, ticketsUsed, validPolicy } from "../../lib/sim/engine";
 import { scoreText } from "../../lib/display";
 import PlayerTalents from './player-talents';
@@ -25,7 +25,7 @@ export default function TrainingEditor({player,policy,setPolicy,date,context,sho
     {showTalents&&<PlayerTalents player={player}/>}
     {policy.mode==="rest"&&<div className="recovery-return"><b>휴식 중</b>{previous&&<button className="secondary" onClick={()=>{const restored=policyForMode(policy,previous.mode);if(validPolicy(restored))setPolicy({...restored,mode:"normal"});}}>이전 배분 복원</button>}</div>}
     <section className="ticket-summary training-load-summary" aria-label="훈련과 회복 균형">
-      <div className="ticket-summary-main"><div className="ticket-remaining"><span>현재 배분</span><strong>{used}<small>개</small></strong></div><div className="ticket-allocation"><b>항목별 0~5</b><span>회복력 {scoreText(player.stats.recovery)}</span></div></div>
+      <div className="ticket-summary-main"><div className="ticket-remaining"><span>현재 배분</span><strong>{used}<small>개</small></strong></div><div className="ticket-allocation"><b>항목별 0~5</b><span>회복력 {scoreText(equipmentStats(player).recovery)}</span></div></div>
       <button className="ticket-reset" disabled={used===0} onClick={()=>update(Object.fromEntries(Object.keys(policy.tickets).map(k=>[k,0])) as Policy["tickets"])}>모두 0으로</button>
       <div className={"load-current "+tone} role="status" aria-live="polite" aria-atomic="true"><strong>훈련 기준 · {deltaText(load.weeklyDelta)}</strong><span>훈련·회복만 반영 · 1주 기준</span></div>
       {conditioning<1&&<div className="conditioning-coach-note" role="note"><span>컨디셔닝 코치 적용중</span><b>피로 누적 {Math.round((1-conditioning)*100)}% 감소</b></div>}
@@ -41,9 +41,10 @@ export default function TrainingEditor({player,policy,setPolicy,date,context,sho
     <div className="training-rows">{groups.map(group=><section className={"training-group "+group.id} key={group.id} aria-label={group.label}>
       <div className="training-group-heading"><h3>{group.label}</h3><span>{group.keys.reduce((sum,key)=>sum+policy.tickets[key],0)}개 투자</span></div>
       {group.keys.map(key=>{
-        const stat=key==="physical"?(player.stats.stamina+player.stats.recovery+player.stats.arm)/3:player.stats[key];
+        const stats=equipmentStats(player),gear=equipmentBonus(player,key==="physical"?"stamina":key);
+        const stat=key==="physical"?(stats.stamina+stats.recovery+stats.arm)/3:stats[key];
         return <div className="training-row" key={key}>
-          <span className="training-symbol">{symbols[key]}</span><div className="training-label"><b>{labels[key]}</b><small>{scoreText(stat)}</small><small className="training-growth-hint">{training?key==="physical"?policy.tickets.physical>0?"피지컬 집중 성장":"미배분":<>기본 성장{policy.tickets[key]>0&&<span>집중 성장</span>}</>:"회복에 집중"}</small></div>
+          <span className="training-symbol">{symbols[key]}</span><div className="training-label"><b>{labels[key]}</b><small className={gear>0?"equipment-value":undefined}>{scoreText(stat)}</small><small className="training-growth-hint">{training?key==="physical"?policy.tickets.physical>0?"피지컬 집중 성장":"미배분":<>기본 성장{policy.tickets[key]>0&&<span>집중 성장</span>}</>:"회복에 집중"}</small></div>
           <div className="ticket-dots" aria-hidden="true">{Array.from({length:5},(_,i)=><i className={i<policy.tickets[key]?"filled":""} key={i}/>)}</div>
           <div className="stepper"><button aria-label={labels[key]+" 티켓 감소"} disabled={!policy.tickets[key]} onClick={()=>update({...policy.tickets,[key]:policy.tickets[key]-1})}>−</button><output aria-label={labels[key]+" 티켓"}>{policy.tickets[key]}</output>
             <button aria-label={labels[key]+" 티켓 증가"} disabled={policy.tickets[key]>=5} onClick={()=>{if(policy.tickets[key]<5)update({...policy.tickets,[key]:policy.tickets[key]+1});}}>+</button>
