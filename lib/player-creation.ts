@@ -1,4 +1,4 @@
-import { createGame, getPlayer, hash, isPitcher, params, positions, reputationScore } from "./sim/engine";
+import { assignRole,createGame,defaultPolicy,getPlayer,hash,isPitcher,params,positions,reputationScore,roleFor } from "./sim/engine";
 import {continueCareer} from "./sim/pro-career";
 import {choosePlayerJersey} from "./jersey-numbers";
 import {choosePlayerHands} from "./player-handedness";
@@ -46,6 +46,7 @@ export function createRandomCareer(name: string, position: Position, entropy: Pi
 
 export function createRandomProCareer(name:string,position:Position,jerseyNumber?:number,entropy:Pick<Crypto,"randomUUID"|"getRandomValues">=globalThis.crypto,hands?:PlayerHands) {
   const s=createRandomCareer(name,position,entropy,undefined,hands),p=getPlayer(s);
+  if(isPitcher(roleFor(position))){assignRole(p,roleFor(position));p.trainingPolicy=defaultPolicy(p.primaryRole);}
   const main=isPitcher(p.primaryRole)?["velocity","control","movement"]:["contact","power","speed","defense"];
   const center=params["pro.second_mean"]+(hash(`${s.seed}:direct-center`)%1601)/100-8;
   for(const key of Object.keys(p.stats) as (keyof typeof p.stats)[]){

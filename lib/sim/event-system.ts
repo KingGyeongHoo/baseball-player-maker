@@ -28,7 +28,7 @@ const schoolFocuses=new Map(schoolEventCatalog.map(e=>[e.id,e.focus]));
 const schoolFields=new Map(schoolEventCatalog.map(e=>[e.id,e.rule?.field]));
 export function suggestedRole(p: Player) {
   if (p.twoWay || p.roleOffer || p.offerCooldown > 0) return undefined;
-  const best = roles.filter(role=>canPlayRole(p,role)).sort((a, b) => roleScore(p, b) - roleScore(p, a) || roles.indexOf(a) - roles.indexOf(b))[0];
+  const best = roles.filter(role=>canPlayRole(p,role)&&!(!p.careerMode&&isPitcher(p.primaryRole)&&isPitcher(role)&&role!==p.primaryRole)).sort((a, b) => roleScore(p, b) - roleScore(p, a) || roles.indexOf(a) - roles.indexOf(b))[0];
   return best !== p.primaryRole && roleScore(p, best) > roleScore(p) ? best : undefined;
 }
 export function activeTournaments(s: GameState, date: string) {

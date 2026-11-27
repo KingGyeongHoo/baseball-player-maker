@@ -1,4 +1,5 @@
 import {equipmentStats} from './offseason-shop';
+import {proDailyRecovery} from './pro-pitching-fatigue';
 import {advanceInjuryRecovery} from './injury-system';
 import {settleInjuryRetirements} from './injury-career';
 import {registrationChangeNotice} from "../pro-registration-notice";
@@ -6,7 +7,7 @@ import {currentProPosition} from "./pro-positions";
 import {rosterGrade} from '../roster-grades';
 import {createProWarContext,proWarAssessment,type ProWarContext} from './pro-war';
 import {firstTeamRetention} from "./pro-assessment";
-import { addDays, clamp, createGame, draftClubs, draftPlayers, emptyRecord, getPlayer, hash, isPitcher, params, pitchingRole, positions, random, recovery, reputationScore, roleScore, selectionScore } from "./engine";
+import { addDays,assignRole,clamp,createGame,defaultPolicy,draftClubs,draftPlayers,emptyRecord,getPlayer,hash,isPitcher,params,pitchingRole,positions,random,recovery,reputationScore,roleFor,roleScore,selectionScore } from "./engine";
 import { careerLeagueTable, developmentCalendar } from "./pro-calendar";
 import { developmentalOffer, rejectedDraftOffers, revealDraftResult } from "./draft-outcome";
 import { clubName,ensureProWorld,proNews,proNotice,reviewLeagueRegistrations,BASE_SALARY } from "./pro-world";
@@ -74,7 +75,7 @@ export function archiveCareerSeason(s: GameState, p: Player) {
 }
 function offSeason(p: Player, from: string, to: string) {
   const days = Math.max(0, (Date.parse(to) - Date.parse(from)) / 86400000);
-  p.fatigue = clamp(p.fatigue * Math.max(0, 1 - params["fatigue.recovery_policy"] * recovery(equipmentStats(p).recovery)) ** days);
+  p.fatigue = p.careerMode==='pro'||p.professional?Math.max(0,p.fatigue-days*proDailyRecovery(equipmentStats(p).recovery)):clamp(p.fatigue * Math.max(0, 1 - params["fatigue.recovery_policy"] * recovery(equipmentStats(p).recovery)) ** days);
   advanceInjuryRecovery(p,to);
   p.forcedRest = p.fatigue >= params["fatigue.force_rest"]; p.seasonStats = emptyRecord(); p.recentAppearances = []; p.recentZ = 0; p.lastPitched = null;
   p.roleOffer = null; p.offerCandidate = null; p.offerWeeks = 0; delete p.transferAdaptation;
@@ -257,6 +258,7 @@ export function finishDevelopmentSeason(s: GameState) {
 export const careerLabel = (p: Player) => p.careerMode==="pro" ? `${p.age ?? 19}세 · 프로` : p.careerMode==="college" ? `${p.age ?? 19}세 · 대학` : `고교 ${p.grade}학년`;
 export function createProfessionalDemo(seed:string,name:string,position:Position) {
   const s=createGame(seed,name,position),p=getPlayer(s);p.grade=3;
+  if(isPitcher(roleFor(position))){assignRole(p,roleFor(position));p.trainingPolicy=defaultPolicy(p.primaryRole);}
   delete p.evaluationHistory;delete p.evaluationAvailability;
   const main=isPitcher(p.primaryRole)?["velocity","control","movement"]:["contact","power","speed","defense"];
   for(const key of main)p.stats[key as keyof Player["stats"]]=76;

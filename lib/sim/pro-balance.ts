@@ -1,9 +1,9 @@
-import {equipmentStats} from './offseason-shop';
 import {addDays,available,hash,params,pitchingRole,roleScore,gameSelectionScore} from './engine';
 import type {Game,GameState,Player} from './types';
 import {guaranteedProStarter} from './pro-positions';
 import {farmSelectionTier,proGameTeam} from './pro-farm-roster';
-export const PRO_BALANCE_VERSION=4;
+import {proPitchingFatigueRules,proStarterEligible} from './pro-pitching-fatigue';
+export const PRO_BALANCE_VERSION=5;
 export const proPitchingWorkloadTargets={SP:{games:26.8,innings:146.4,perGame:5.46},RP:{games:56,innings:53.3,perGame:.95},CP:{games:59.5,innings:61.1,perGame:1.03}} as const;
 export const proPowerHomeRunTargets={plateAppearances:600,contact:77,bq:75,pitching:70,defense:70,arm:70,
   levels:[{power:80,homeRuns:[30,35]},{power:90,homeRuns:[40,45]}]} as const;
@@ -44,17 +44,6 @@ export function proBullpenPlan(pitchers:Player[],seed:string,date:string,side:nu
   return {closerId,mainCloserId,backupCloserId,setupId,bridgeId,longReliefId,earlyCloser};
 }
 
-export function proPitcherOutLimit(p:Player,starter:boolean,seed:string,date:string,closerId?:string,_bridgeId?:string,lead?:number,runs=0,batters=0,currentOuts=0){
-  const roll=hash(`${seed}:${date}:${p.id}:length`)%100;
-  // A struggling outing can end with zero or one out. A rare good day can
-  // reach eight innings or a three-inning relief stint, without record caps.
-  if(runs>=(starter?4:2)&&batters>=(starter?12:5))return currentOuts;
-  if(!starter)return p.id===closerId?(roll<30?6:3):roll<3?9:roll<10?6:roll<12?1:roll<18?2:3;
-  if(roll<3&&runs<=1&&p.fatigue<65)return 24;
-  const variation=hash(`${seed}:${date}:${p.id}:starter-length`)%5-2;
-  return Math.max(12,Math.min(21,Math.round(18.4+(equipmentStats(p).stamina-65)*.06)+variation+(lead!==undefined&&lead<0?-1:0)));
-}
-
 export function proReliefPriority(p:Player,date:string,inning:number,lead:number,closerId?:string,longReliefId?:string,setupId?:string,bridgeId?:string,teamGames=144){
   const role=pitchingRole(p),save=inning>=9&&lead>=1&&lead<=3;
   const days=p.lastPitched?(Date.parse(date)-Date.parse(p.lastPitched))/86400000:10;
@@ -70,7 +59,7 @@ export function proReliefPriority(p:Player,date:string,inning:number,lead:number
     -(days<=1?30:days<3?8:0)-outings*.65-innings*.35-excess*(closing?25:8);
 }
 export function proReliefReady(p:Player,date:string,_longReliefId?:string,recent:Game[]=[],closing=false){
-  if(pitchingRole(p)==='선발'||p.lastPitched===date)return false;
+  if(pitchingRole(p)==='선발'||p.lastPitched===date||(p.careerMode==='pro'||p.professional)&&p.fatigue+1e-9>=proPitchingFatigueRules.relieverLimit)return false;
   if(recent.length>=12){
     const record=p.seasonByLevel?.[p.teamId<10?'first':'second'],target=closing?59.5:56;
     if((record?.games?.pitching??0)>target*Math.min(1,recent.length/144)+2)return false;
@@ -86,7 +75,7 @@ export function proRecentTeamGames(s:GameState,team:number,date:string){
   return s.calendar.events.filter(g=>(g.competitionId===competition||competition==='pro-second'&&g.competitionId.startsWith('pro-farm-playoffs-'))&&!g.exhibition&&g.status==='completed'&&g.date<=date&&[g.homeTeamId,g.awayTeamId].includes(team)).sort((a,b)=>a.date.localeCompare(b.date));
 }
 export function proStarterReady(s:GameState,p:Player,date:string,team=proGameTeam(p)){
-  if(pitchingRole(p)!=='선발'||!available(p,date)||p.fatigue>=params['coach.starter_fatigue']||p.lastPitched&&date<addDays(p.lastPitched,params['coach.starter_rest']+1))return false;
+  if(pitchingRole(p)!=='선발'||!proStarterEligible(p)||!available(p,date)||p.fatigue>=params['coach.starter_fatigue']||p.lastPitched&&date<addDays(p.lastPitched,params['coach.starter_rest']+1))return false;
   return !proRecentTeamGames(s,team,date).slice(-4).some(g=>g.lineup[g.homeTeamId===team?0:1]?.[9]===p.id||(g.boxScore[p.id]?.pitching.BF??0)>0);
 }
 export function proRotationStarter(s:GameState,pitchers:Player[],date:string){

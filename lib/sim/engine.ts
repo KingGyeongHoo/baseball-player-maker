@@ -5,6 +5,9 @@ import { seededPlayerName } from "./player-names";
 import { createSchool, recruitmentProfile, updateSchoolPrestige } from "./school-recruiting";
 import {createTalentCohort,talentFromRoll} from "./talent-generation";
 import {schoolPositionIntake} from './position-generation';
+import {assignSchoolPitchingRole} from './school-pitching-roles';
+import {proDailyRecovery,proStarterEligible,proPitchingFatigueRules} from './pro-pitching-fatigue';
+import {validProTraining} from './pro-training';
 import {talentBand,talentMultiplier} from './talent';
 import { draftPlayers as selectSchoolDraft } from "./draft";
 import { simulateGame } from "./match-engine";
@@ -89,16 +92,17 @@ export const emptyRecord = (): RecordLine => ({
   }
 });
 export function policyForMode(policy: Policy, mode: Mode): Policy {
-  if (mode !== "rest") return { mode, tickets: { ...(policy.mode === "rest" ? policy.previousTraining?.tickets ?? policy.tickets : policy.tickets) } };
+  if (mode !== "rest") return { ...policy,mode, tickets: { ...(policy.mode === "rest" ? policy.previousTraining?.tickets ?? policy.tickets : policy.tickets) } };
   const previousTraining = policy.mode === "rest" ? policy.previousTraining : { mode: policy.mode, tickets: policy.tickets };
   return {
+    ...(policy.proSeason?{proSeason:{...policy.proSeason}}:{}),
     mode,
     tickets: Object.fromEntries(ticketKeys.map(key => [key, 0])) as Policy["tickets"],
     ...(previousTraining ? { previousTraining: { mode: previousTraining.mode, tickets: { ...previousTraining.tickets } } } : {}),
   };
 }
 export const ticketsUsed = (p: Policy) => Object.values(p.tickets).reduce((a, b) => a + b, 0);
-export const validPolicy = (p: Policy) => ["light", "normal", "hard", "rest"].includes(p.mode) && ticketKeys.every(k => Number.isInteger(p.tickets[k]) && p.tickets[k] >= 0 && p.tickets[k] <= params["training.max_each"]) && ticketsUsed(p) <= budget(p.mode);
+export const validPolicy = (p: Policy) => validProTraining(p.proSeason) && ["light", "normal", "hard", "rest"].includes(p.mode) && ticketKeys.every(k => Number.isInteger(p.tickets[k]) && p.tickets[k] >= 0 && p.tickets[k] <= params["training.max_each"]) && ticketsUsed(p) <= budget(p.mode);
 const defaultTicketSets: Record<Role, Partial<Record<Ticket, number>>> = {
     "코너 야수": {
       contact: 3,
@@ -202,20 +206,32 @@ export function trainingLoad(recoveryStat:number,allocation:number|Policy,accumu
   const marker=weeklyDelta<=0?50+50*weeklyDelta/maxRecovery:50+50*weeklyDelta/maxAccumulation;
   return {used,maxTickets,maxRecovery,maxAccumulation,neutralTickets,neutralRatio,weeklyDelta,marker,loadRatio:used/maxTickets,...(effort??{})};
 }
-export function trainingFatigueDay(fatigue:number,recoveryStat:number,allocation:number|Policy,accumulationMultiplier=1) {
+export function trainingFatigueDay(fatigue:number,recoveryStat:number,allocation:number|Policy,accumulationMultiplier=1,professional=false,seasonTrainingFatigue?:number) {
   const delta=trainingLoad(recoveryStat,allocation,accumulationMultiplier).weeklyDelta/7;
+  if(professional){
+    const afterTraining=clamp(fatigue+(seasonTrainingFatigue===undefined?Math.max(0,delta):Math.max(0,seasonTrainingFatigue)*accumulationMultiplier)),training=afterTraining-fatigue;
+    const recovered=Math.min(afterTraining,proDailyRecovery(recoveryStat));
+    return {end:afterTraining-recovered,training,recovered,peak:afterTraining};
+  }
   const end=clamp(fatigue+delta),applied=end-fatigue;
-  return {end,training:Math.max(0,applied),recovered:Math.max(0,-applied)};
+  return {end,training:Math.max(0,applied),recovered:Math.max(0,-applied),peak:Math.max(fatigue,end)};
 }
 export function fatigueForecast(player: Player, policy: Policy, date?:string) {
   const load=trainingLoad(equipmentStats(player).recovery,policy,conditioningMultiplier(player));
+  const professional=player.careerMode==='pro'||!!player.professional;
+  if(professional){
+    load.maxRecovery=proDailyRecovery(equipmentStats(player).recovery)*7;
+    load.weeklyDelta=Math.max(0,load.weeklyDelta)-load.maxRecovery;
+    load.maxAccumulation=Math.max(0,load.maxAccumulation-load.maxRecovery);
+    load.marker=clamp(50+50*load.weeklyDelta/(load.weeklyDelta<=0?load.maxRecovery||1:load.maxAccumulation||1));
+  }
   let end=player.fatigue,peak=end,weeklyTraining=0,recovered=0,forcedRest=player.forcedRest;
   for(let day=0;day<7;day++){
     if(end>=params["fatigue.force_rest"])forcedRest=true;
     if(forcedRest&&end<params["fatigue.ready_return"])forcedRest=false;
     const allowed=date?injuryTrainingPolicy(player,policy,addDays(date,day)):policy;
-    const next=trainingFatigueDay(end,equipmentStats(player).recovery,forcedRest?0:allowed,conditioningMultiplier(player));
-    end=next.end;weeklyTraining+=next.training;recovered+=next.recovered;peak=Math.max(peak,end);
+    const next=trainingFatigueDay(end,equipmentStats(player).recovery,forcedRest?0:allowed,conditioningMultiplier(player),professional);
+    end=next.end;weeklyTraining+=next.training;recovered+=next.recovered;peak=Math.max(peak,next.peak,end);
     if(end>=params["fatigue.force_rest"])forcedRest=true;
   }
   return {...load,weeklyTraining,recoveryCapacity:Math.max(0,-load.weeklyDelta),recovered,peak,end};
@@ -339,7 +355,12 @@ function makePlayer(s: Pick<GameState,'seed'|'rngStates'|'teams'>, teamId: numbe
   p.eligiblePositions=p.eligiblePositions.filter(position=>canPlayPosition(p,position));
   applySwitchContact(p);
   p.initialStats = { ...p.stats };
-  applySchoolTrainingHistory(p,40*(grade-1));
+  assignSchoolPitchingRole(p,true);
+  p.trainingPolicy=defaultPolicy(p.primaryRole);
+  for(let schoolYear=1;schoolYear<grade;schoolYear++){
+    applySchoolTrainingHistory(p,40);
+    assignSchoolPitchingRole(p);
+  }
   return p;
 }
 function schoolPositions(s:GameState,entryYear:number){
@@ -467,6 +488,7 @@ export function mergeRecord(target: RecordLine, add: RecordLine) {
   if(a.SB!==undefined||b.SB!==undefined)b.SB=(b.SB??0)+(a.SB??0);
   if(a.CS!==undefined||b.CS!==undefined)b.CS=(b.CS??0)+(a.CS??0);
   p.BF+=q.BF;p.outs+=q.outs;p.H+=q.H;p.BB+=q.BB;p.SO+=q.SO;p.HR+=q.HR;p.R+=q.R;p.ER+=q.ER;
+  if(q.pitches!==undefined||p.pitches!==undefined)p.pitches=(p.pitches??0)+(q.pitches??0);
 }
 export function ops(r: RecordLine) {
   const b = r.batting;
@@ -488,8 +510,9 @@ export function lineup(roster: Player[], date: string,selectedStarter?:Player) {
   const byPitchingScore=(a:Player,b:Player)=>gameSelectionScore(b,pitchingRole(b),date)-gameSelectionScore(a,pitchingRole(a),date)||a.id.localeCompare(b.id);
   const professional=roster.some(p=>p.careerMode==='pro'||!!p.professional);
   const candidates = roster.filter(p => available(p, date));
-  const pitchingPool=candidates.filter(p=>p.eligiblePositions.includes('SP')&&p.fatigue<params['coach.replace_fatigue']&&(!professional||isPitcher(pitchingRole(p))));
-  const chooseStarter=(pool:Player[])=>pool.filter(p=>pitchingRole(p)==='선발'&&p.fatigue<params['coach.starter_fatigue']&&(!p.lastPitched||date>=addDays(p.lastPitched,params['coach.starter_rest']+1))).sort(byPitchingScore)[0]??(professional?undefined:[...pool].sort((a,b)=>a.fatigue-b.fatigue||byPitchingScore(a,b))[0]);
+  const pitchingPool=candidates.filter(p=>p.eligiblePositions.includes('SP')&&p.fatigue<(professional&&pitchingRole(p)!=='선발'?proPitchingFatigueRules.relieverLimit:params['coach.replace_fatigue'])&&(!professional||isPitcher(pitchingRole(p))));
+  const chooseStarter=(pool:Player[])=>pool.filter(p=>pitchingRole(p)==='선발'&&(!professional||proStarterEligible(p))&&p.fatigue<params['coach.starter_fatigue']&&(!p.lastPitched||date>=addDays(p.lastPitched,params['coach.starter_rest']+1))).sort(byPitchingScore)[0]??(professional?undefined:[...pool].sort((a,b)=>a.fatigue-b.fatigue||byPitchingScore(a,b))[0]);
+  if(professional&&selectedStarter&&!proStarterEligible(selectedStarter))selectedStarter=undefined;
   const plannedStarter=selectedStarter??chooseStarter(pitchingPool);
   const field: Player[] = [];
   for (const pos of ["C", "SS", "CF", "2B", "1B", "3B", "LF", "RF", "DH"] as Position[]) {
@@ -612,6 +635,7 @@ export function updateReputation(s: GameState,cache?:RecentReputationCache) {
 export { draftBoard, draftPlayers, draftForecast, draftProjection, draftClubs,draftClubOrder } from "./draft";
 export function promote(s: GameState) {
   capturePlayerEvaluations(s,"season-end");
+  let pitchingReview:ReturnType<typeof assignSchoolPitchingRole>;
   // Grade 1/2 careers also have graduating NPC seniors. Evaluate their draft
   // with a private stream so recruitment does not consume the live draft RNG.
   updateSchoolPrestige(s, selectSchoolDraft({ ...s, rngStates: { ...s.rngStates } }));
@@ -627,6 +651,7 @@ export function promote(s: GameState) {
       }
     });
     p.grade++;
+    if(p.grade<=3){const review=assignSchoolPitchingRole(p);if(p.id===s.playerId)pitchingReview=review;}
     delete p.freshmanReserve;
     p.seasonStats = emptyRecord();
     p.recentAppearances = [];
@@ -642,6 +667,12 @@ export function promote(s: GameState) {
   s.calendar = calendar(year);
   syncJerseyNumbers(s);
   capturePlayerEvaluations(s,"season-start");
+  if(pitchingReview){
+    const p=getPlayer(s),{previous,position,changed}=pitchingReview;
+    const notice:NonNullable<GameState['careerNotice']>={id:`school-pitching-role:${year}:${p.id}`,date:s.date,kind:'entry',title:`${p.grade}학년 투수 보직 배치`,
+      message:changed?`감독이 성장한 능력치를 평가해 올해 보직을 ${positions[previous]}에서 ${positions[position]}로 변경했습니다. 훈련 설정은 유지됩니다.`:`감독이 현재 능력치를 평가해 올해도 ${positions[position]} 보직을 유지하기로 했습니다.`};
+    if(s.careerNotice)(s.noticeQueue??=[]).push(notice);else s.careerNotice=notice;
+  }
 }
 export function assignRole(p: Player, role: Role) {
   const pos = (["1B", p.throws==='L'?"CF":"SS", "C", "SP", "RP", "CP"] as Position[]).find(position => roleFor(position) === role)!;

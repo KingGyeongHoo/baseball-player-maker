@@ -12,7 +12,7 @@ function RandomAssignmentCard({ name, position, mode, number, onReroll, disabled
   return <aside className="random-assignment-card">
     <span className="eyebrow">YOUR FIRST CHAPTER</span><span className="unrevealed-number" aria-hidden="true">{number??"—"}</span>
     <div className="unrevealed-jersey"><svg viewBox="0 0 100 110" aria-hidden="true"><path d="m26 10 16-7q8 9 16 0l16 7 25 23-17 19-6-9v62H24V43l-6 9L1 33Z" fill="currentColor" /><text x="50" y="76" textAnchor="middle" fill="white" fontFamily="Arial, sans-serif" fontSize="30" fontWeight="700">{number??"—"}</text></svg></div>
-    <h2>{name.trim() || "나의 선수"}</h2><p className="unrevealed-position">{position ? positionName(position,mode==="pro"?"pro":undefined) : "포지션을 선택하세요"} · 투타 손은 시작 시 무작위</p>
+    <h2>{name.trim() || "나의 선수"}</h2><p className="unrevealed-position">{position ? mode==="school"&&kindForPosition(position)==="pitcher"?"투수 · 보직 자동 배치":positionName(position,mode==="pro"?"pro":undefined) : "포지션을 선택하세요"} · 투타 손은 시작 시 무작위</p>
     <div className="jersey-setting"><span>등번호 <b aria-live="polite">{number??"—"}</b></span><button type="button" className="secondary" onClick={onReroll} disabled={disabled}>등번호 설정</button><p>{mode==="school"?"11~23번에서 무작위 재배정 · 주전이 되면 포지션 번호로 변경됩니다.":"1~99번에서 무작위로 다시 배정합니다."}</p></div>
   </aside>;
 }
@@ -27,7 +27,7 @@ export default function PlayerSetup({ onStart }: { onStart: (state: GameState) =
   const [jerseyNumber,setJerseyNumber]=useState<number|null>(null);
   useEffect(()=>{const timer=setTimeout(()=>setJerseyNumber(randomJerseyNumber("school")),0);return()=>clearTimeout(timer);},[]);
   const creating = useRef(false);
-  const position = kind ? choices[kind] : null;
+  const position = kind==="pitcher"&&mode==="school"?"SP":kind ? choices[kind] : null;
   const randomizeName = () => { setName(generatePlayerName(Math.random)); setError(""); };
   const randomizePlayer = () => {
     const nextPosition = randomPlayerPosition();

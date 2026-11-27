@@ -1,4 +1,5 @@
-import {clamp,emptyRecord,hash,isPitcher,params,previewPlayer,random,reputationScore} from './engine';
+import {assignRole,clamp,defaultPolicy,emptyRecord,hash,isPitcher,params,previewPlayer,random,reputationScore,roleFor} from './engine';
+import {proPitchingFatigueRules} from './pro-pitching-fatigue';
 import {seededPlayerName} from './player-names';
 import type {GameState,Player,Position} from './types';
 import {applySwitchContact} from './handedness';
@@ -20,6 +21,9 @@ export function organizationMinimum(seed:string,club:number,position:Position){
 
 export function createCareerNPC(seed:string,teamId:number,index:number,mode:'pro'|'college',first:boolean,position:Position):Player {
   const n=hash(`${seed}:name`),p=previewPlayer(seed,seededPlayerName(`${seed}:player-name`),position);
+  // School previews auto-assign pitchers; professional recruitment must fill
+  // the explicitly requested roster slot with an eligible pitcher.
+  if(isPitcher(roleFor(position))){assignRole(p,roleFor(position));p.trainingPolicy=defaultPolicy(p.primaryRole);}
   p.id=`${mode}-npc-${teamId}-${index}`;p.teamId=teamId;p.grade=mode==='pro'?0:4;
   p.careerMode=mode;p.age=mode==='pro'?(first?24:20)+n%10:19+n%4;
   const main=isPitcher(p.primaryRole)?['velocity','control','movement']:['contact','power','speed','defense'];
@@ -30,6 +34,7 @@ export function createCareerNPC(seed:string,teamId:number,index:number,mode:'pro
     const center=core||shared?first?params['pro.first_mean']:mode==='college'?core?50.5:55.5:params['pro.second_mean']:params['pro.secondary_mean'];
     p.stats[key]=clamp(center+(core?profile:0)+(random(source,'generation')-.5)*(core&&mode==='pro'?(isPitcher(p.primaryRole)?25:28):core||shared?15:10),1);
   }
+  if(mode==='pro'&&position==='SP')p.stats.stamina=Math.max(proPitchingFatigueRules.minimumStarterStamina,p.stats.stamina);
   applySwitchContact(p);p.initialStats={...p.stats};p.performanceReputation=null;p.reputation=reputationScore(p);
   if(mode==='pro')p.seasonByLevel={first:emptyRecord(),second:emptyRecord()};
   return p;

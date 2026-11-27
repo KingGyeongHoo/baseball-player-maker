@@ -20,6 +20,7 @@ import type { CareerEventOutcome, DraftPick, GameState, Player } from "../../lib
 import CareerContinuation, { CareerNoticeDialog } from "./career-continuation";
 import CareerEventDialog from "./career-event-dialog";
 import TrainingCenter from "./training-center";
+import {isProSeasonTraining,saveProTraining} from '../../lib/sim/pro-training';
 import ProgressControls from "./progress-controls";
 import ProDashboard from "./pro-dashboard";
 import MedicalReport from './medical-report';
@@ -139,7 +140,7 @@ export default function ProLife({state,onChange,onReset}:{state:GameState;onChan
   },[auto,busy,ended,state,outcome,advance,autoProgress]);
   const openRecords=useCallback((id=state.playerId)=>{setRecordId(id);setTab("records");},[state.playerId]);
   const openTraining=()=>setTab("training");
-  const saveTraining=()=>{if(editing||!validPolicy(policy))return;const next=structuredClone(state);getPlayer(next).trainingPolicy=structuredClone(policy);getPlayer(next).stance={...stance};onChange(next);setTrainingMessage("훈련 설정을 저장했습니다.");};
+  const saveTraining=()=>{if(editing||!validPolicy(policy))return;const next=structuredClone(state),saved=isProSeasonTraining(state)?saveProTraining(getPlayer(next),policy):structuredClone(policy);getPlayer(next).trainingPolicy=saved;getPlayer(next).stance={...stance};setPolicy(structuredClone(saved));onChange(next);setTrainingMessage("훈련 설정을 저장했습니다.");};
   const saveRetirement=async()=>{if(busy)return;setBusy(true);try{await saveCareerInBackground(state,true);setRetirementSaveMessage("은퇴 커리어를 저장했습니다.");}catch(error){setError(error instanceof Error?error.message:"은퇴 커리어를 저장하지 못했습니다.");}finally{setBusy(false);}};
 
   return <><div className="utility-bar"><div><span>나만의 야구선수 만들기</span><span>CAREER LIFE · v0.7.4</span></div></div>

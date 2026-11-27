@@ -60,7 +60,7 @@ export type ProWorld = {
   tradeActivity?:{year:number;regular:number;winter:number;lastReview?:string};
   stove?:{version:1;year:number;openedAt:string;closesAt:string;nextUpdate:string;round:number;closed:boolean;movedIds:string[];reported?:true};
   allstar?:ProAllstarSeason;
-  version:1; contractRulesVersion?:1|2|3|4|5|6|7; year:number; stage:ProStage; regularEnd:string; seasonClosed:boolean;
+  version:1; contractRulesVersion?:1|2|3|4|5|6|7|8; year:number; stage:ProStage; regularEnd:string; seasonClosed:boolean;
   clubs:{id:number;direction:"contend"|"balanced"|"rebuild";budget:number;deadMoney:Record<string,number>;nextReview?:string;closerId?:string}[];
   seasons:ProSeasonArchive[]; archive:Player[]; retiredRecords?:Record<string,RecordLine>; news:{id:string;date:string;text:string}[];
   postseason?:ProPostseason;
@@ -80,7 +80,7 @@ export type ProWorld = {
 };
 
 export type ProWarLine={batting:number;pitching:number;fielding:number;positional:number;pa:number;outs:number;bf:number;fieldingChances:number;fieldingOuts:number};
-export type ProWarAssessment={version:1|2;score:number;equivalentWins:number;first:ProWarLine;second:ProWarLine};
+export type ProWarAssessment={version:1|2|3;score:number;equivalentWins:number;first:ProWarLine;second:ProWarLine};
 export type ProSeasonEvaluation={version:1;regular:number;postseason:number;national:number;honors:number;score:number;injury?:import('./injury-system').InjurySeasonAdjustment};
 export type ProSeasonAssessment={
   noAppearances?:true;

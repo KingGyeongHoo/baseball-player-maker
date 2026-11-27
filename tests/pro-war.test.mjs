@@ -77,7 +77,7 @@ test("season contribution affects selection and WAR grades independently without
   assert.deepEqual(p.stats, before.stats); assert.equal(p.fatigue, before.fatigue);
 });
 
-test("pitching uses strikeouts, walks, homers and earned runs; starter and relief workload scales are comparable", () => {
+test("season WAR uses actual workload while career relief credit keeps the multiplier", () => {
   const s = fixture(), p = e.getPlayer(s), context = war.createProWarContext(s);
   p.position = "SP"; p.primaryRole = "선발";
   p.seasonByLevel.first = pitching("good");
@@ -86,7 +86,9 @@ test("pitching uses strikeouts, walks, homers and earned runs; starter and relie
   p.seasonByLevel.first = pitching("good", 1 / 3);
   const relief = war.proWarAssessment(p, context);
   close(relief.first.pitching * 3, starter.first.pitching);
-  close(relief.score, starter.score);
+  close(relief.equivalentWins * 3, starter.equivalentWins);
+  close(war.levelWarValue(relief.first,true),war.levelWarValue(starter.first,false));
+  assert.ok(relief.score < starter.score);
   p.seasonByLevel.first = pitching("bad", 1 / 3);
   assert.ok(war.proWarAssessment(p, context).score < 71);
   p.seasonByLevel.first = e.emptyRecord();
@@ -146,15 +148,16 @@ test('old discounted season saves upgrade to raw WAR and re-rank once without ch
  const s=fixture(),p=e.getPlayer(s);p.teamId=10;p.seasonByLevel.second=batting('good');
  const row=a.recordSeasonAssessment(s,p),first=war.levelWarValue(row.war.first,false),second=war.levelWarValue(row.war.second,false);
  row.war.version=1;row.war.equivalentWins=first+Math.min(2,second*.35);row.war.score=Math.max(0,Math.min(100,71+2*row.war.equivalentWins));
- row.seasonEvaluation=require('../.test-build/lib/sim/pro-season-evaluation.js').seasonEvaluation(row.war);row.score=row.seasonEvaluation.score;
+ const regular=71+(row.war.equivalentWins>=0?3:2)*row.war.equivalentWins;
+ row.seasonEvaluation={version:1,regular,postseason:0,national:0,honors:0,score:Math.max(0,Math.min(100,regular))};row.score=row.seasonEvaluation.score;
  const records=structuredClone(p.seasonByLevel),skills={...p.stats};
  assert.equal(market.needsContractUpgrade(s),true,'an already open career must detect the old discounted WAR');
  const inMemory=life.upgradeProfessionalState(s);
- assert.notStrictEqual(inMemory,s);assert.equal(e.getPlayer(inMemory).professional.assessments[0].war.version,2);
+ assert.notStrictEqual(inMemory,s);assert.equal(e.getPlayer(inMemory).professional.assessments[0].war.version,3);
  close(e.getPlayer(inMemory).professional.assessments[0].war.equivalentWins,first+second);
  assert.equal(p.professional.assessments[0].war.version,1,'the original state remains untouched');
  const loaded=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(s))).state,q=e.getPlayer(loaded),fixed=q.professional.assessments[0];
- assert.equal(fixed.war.version,2);close(fixed.war.equivalentWins,first+second);
+ assert.equal(fixed.war.version,3);close(fixed.war.equivalentWins,first+second);
  assert.deepEqual(q.seasonByLevel,records);assert.deepEqual(q.stats,skills);
  const again=save.decodeCareerSave(JSON.stringify(save.encodeCareerSave(loaded))).state;
  assert.deepEqual(e.getPlayer(again).professional.assessments,q.professional.assessments);

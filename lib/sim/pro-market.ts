@@ -1,4 +1,5 @@
 import {showStoveReport} from './stove-report';
+import {upgradeRawSeasonWar} from './pro-war-upgrade';
 import {winterShopBenefit} from './offseason-shop';
 import {injuryRiskAssessment} from './injury-system';
 import {assessmentValue,hydrateAssessments,requiresDevelopmentalOffer,salaryUnits,seasonExit} from "./pro-assessment";
@@ -398,7 +399,7 @@ export function careerRequest(s:GameState,kind:"chance"|"position"|"manage"|"tra
     const aptitudeIssue=proRoleAptitudeIssue(p,position);
     if(!aptitudeIssue){
       beginProRoleTrial(s,position,"ROLE_REQUEST");
-      proNotice(s,`request:${s.date}`,"포지션 변경 평가 시작","14일간 현재 포지션에서 평가를 받습니다. 정상 훈련 5일 이상을 채우고 평가 기준을 충족하면 요청한 포지션으로 변경됩니다.");
+      proNotice(s,`request:${s.date}`,`${positions[position]} 전환 평가 시작`,`14일간 현재 포지션에서 평가를 받습니다. 정상 훈련 5일 이상을 채우고 평가 기준을 충족하면 ${positions[position]} 포지션으로 변경됩니다.`);
     }else{
       pro.requestAfter=addDays(s.date,28);
       proNotice(s,`request:${s.date}`,"포지션 변경 요청 결과",aptitudeIssue);
@@ -453,12 +454,13 @@ export function applySeasonExitPolicies(s:GameState){
 export function needsContractUpgrade(s:GameState){
   if(s.careerMode!=="pro"||!s.proWorld)return false;
   const pending=s.proWorld.market;
-  return s.proWorld.contractRulesVersion!==7||s.players.some(p=>p.professional&&(p.professional.assessments===undefined||p.professional.assessments.some(row=>row.war?.version===1||row.firstTeam===undefined||row.secondOnly===undefined||row.firstGames===undefined)))
+  return s.proWorld.contractRulesVersion!==8||s.players.some(p=>p.professional&&(p.professional.assessments===undefined||p.professional.assessments.some(row=>row.war&&row.war.version!==3||row.firstTeam===undefined||row.secondOnly===undefined||row.firstGames===undefined)))
     ||needsSeasonRankings(s)||s.players.some(p=>p.professional?.assessments?.some(row=>row.year===s.calendar.seasonYear&&row.war&&row.score!==null&&(!row.seasonEvaluation||row.seasonEvaluation.postseason!==0||row.seasonEvaluation.national!==0||row.seasonEvaluation.honors!==0)))
     ||!!pending&&pending.kind==="released"&&!pending.settled&&pending.offers.some(offer=>releaseRecruitmentBlocked(getPlayer(s),offer.club,clubRoster(s,offer.club)));
 }
 export function upgradeContractRules(s:GameState){
   if(!needsContractUpgrade(s))return false;
+  upgradeRawSeasonWar(s);
   for(const p of s.players){hydrateAssessments(s,p);if(p.professional?.nonRenewal&&!requiresDevelopmentalOffer(p,p.professional.nonRenewal.year))delete p.professional.nonRenewal;}
   const world=s.proWorld!;
   refreshSeasonEvaluations(s);
@@ -468,5 +470,5 @@ export function upgradeContractRules(s:GameState){
     const p=getPlayer(s);if(p.professional?.employment!=="active")world.market.kind="released";
     refreshOffers(s);
   }
-  world.contractRulesVersion=7;return true;
+  world.contractRulesVersion=8;return true;
 }

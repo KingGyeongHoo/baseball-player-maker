@@ -13,6 +13,7 @@ import { addDays, available, clamp, overall, draftPlayers, emptyRecord, emptySta
 import { openScheduledEvent, planEventWeek, tryNationalEvent,tryWinterTrainingCenter } from "./event-system";
 import { joinPendingTransfer, recordTwoWayWeek, tryCareerOpportunity, twoWayQualified } from "./career-opportunities";
 import { statKeys, type GameState, type Player, type Policy, type Stance } from "./types";
+import {isProSeasonTraining,proSeasonTrainingPlan,proTrainingSelection,proTrainingRecoveryThreshold,saveProTraining} from './pro-training';
 import { finishDevelopmentSeason, reviewProRoster } from "./pro-career";
 import { developmentalOffer } from "./draft-outcome";
 import { tryDevelopmentEvent } from "./pro-events";
@@ -81,6 +82,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
   syncJerseyNumbers(s,true);
   if(!s.evaluationSystem)capturePlayerEvaluations(s,"introduced");
   if (!s.weekProgress) {
+    if(isProSeasonTraining(s))policy=saveProTraining(player,policy);
     player.trainingPolicy = structuredClone(policy); player.stance = { ...stance };
     prepareCompetitions(s.calendar, s.date, s.seed);
     s.weekProgress = { remainingDays: 7, beforeStats: { ...player.stats }, policy: structuredClone(policy), stance: { ...stance }, opportunity: null, twoWayQualified: twoWayQualified(player) && s.date.slice(5, 7) >= "03" && s.date.slice(5, 7) <= "09",
@@ -106,6 +108,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       if (!s.careerMode && date > s.calendar.seasonEnd) {
         promote(s); rosters = s.teams.map(() => []); for (const p of s.players) rosters[p.teamId].push(p);
         report.messages.push("새 학년이 시작되었습니다. 신입생이 입학했습니다.");
+        if(s.careerNotice)return pause();
       }
       for (const p of s.players) p.reputation = reputationScore(p);
       for (const p of s.players) if (p.forcedRest && p.fatigue < params["fatigue.ready_return"]) p.forcedRest = false;
@@ -184,6 +187,7 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
       if (tryNationalEvent(s)) return pause();
     }
     if (day.phase === "players") {
+      const seasonTraining=isProSeasonTraining(s);
       const training = s.calendar.trainingDays.includes(date);
       const cycleEnd=addDays(report.from,6),trainingCycle=s.calendar.trainingDays.some(d=>d>=report.from&&d<=cycleEnd);
       const active = new Set(day.active), appearances = new Set(day.appearances);
@@ -196,28 +200,29 @@ export function advanceWeekInPlace(s: GameState, policy: Policy, stance: Stance)
         if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
         if (p.id === s.playerId && ((!nationalAway(s,p)&&openProGeneralEvent(s)) || tryTrainingFocus(s) || openScheduledEvent(s, "training"))) { day.active = [...active]; return pause(); }
         const injured = !!p.injury && date < p.injury.unavailableUntil;
-        const health=injuryView(p,date),rehab=health.stage==='rehab',trainingPolicy=injuryTrainingPolicy(p,p.trainingPolicy,date);
+        const seasonPlan=seasonTraining?proSeasonTrainingPlan(p,p.id!==s.playerId&&p.fatigue>=proTrainingRecoveryThreshold?{...p.trainingPolicy,proSeason:{...proTrainingSelection(p,p.trainingPolicy),intensity:'recovery'}}:p.trainingPolicy):undefined;
+        const health=injuryView(p,date),rehab=health.stage==='rehab',trainingPolicy=injuryTrainingPolicy(p,seasonPlan?.policy??p.trainingPolicy,date);
         let participation=0;
         let trained = false;
         if (p.id === s.playerId && injured) s.injuryDays++;
-        if (training && !p.injuryRetirement&&(available(p, date)||rehab&&!p.forcedRest&&p.trainingPolicy.mode!=='rest') && ticketsUsed(trainingPolicy) && !(p.id===s.playerId && day.skipPlayerTraining)) {
+        if (training && !(seasonTraining&&allstarRest) && !p.injuryRetirement&&(available(p, date)||rehab&&!p.forcedRest&&p.trainingPolicy.mode!=='rest') && ticketsUsed(trainingPolicy) && !(p.id===s.playerId && day.skipPlayerTraining)) {
           const hasGame = nationalAway(s,p)||playingTeams.has(s.careerMode==="pro"?proGameTeam(p):p.teamId)||evaluationPlayers.has(p.id)||exhibitionPlayers.has(p.id);
           const a = hasGame ? appearances.has(p.id) ? params["training.game_fraction"] : params["training.bench_fraction"] : 1;
           participation=a*(rehab?injuryRules.rehabLoad:1);
-          train(p, participation,trainingPolicy,rehab);
+          train(p, participation*(seasonPlan?.growth??1),trainingPolicy,rehab);
           if (p.id === s.playerId && p.transferAdaptation?.weeksRemaining) progress.adaptationTrained = true;
           active.add(p.id);
           trained = true;
           if(s.careerMode==="pro"&&!rehab)recordProRoleTraining(s,p);
         }
         const allocation=p.forcedRest||injured&&!rehab||p.trainingPolicy.mode==="rest"||!trainingCycle||allstarRest||p.id===s.playerId&&day.skipPlayerTraining?0:trainingPolicy;
-        const beforeFatigue=p.fatigue,fatigueDay=trainingFatigueDay(p.fatigue,fatigueRecoveryStats.get(p.id)??equipmentStats(p).recovery,allocation,conditioningMultiplier(p));
+        const beforeFatigue=p.fatigue,fatigueDay=trainingFatigueDay(p.fatigue,fatigueRecoveryStats.get(p.id)??equipmentStats(p).recovery,allocation,conditioningMultiplier(p),s.careerMode==='pro',seasonPlan?(trained?seasonPlan.fatigue*participation:0):undefined);
         p.fatigue=fatigueDay.end;
-        if(p.id===s.playerId){day.fatigue.training+=fatigueDay.training;day.fatigue.recovered+=fatigueDay.recovered;day.fatigue.peak=Math.max(day.fatigue.peak,beforeFatigue,p.fatigue);day.fatigue.end=p.fatigue;}
+        if(p.id===s.playerId){day.fatigue.training+=fatigueDay.training;day.fatigue.recovered+=fatigueDay.recovered;day.fatigue.peak=Math.max(day.fatigue.peak,beforeFatigue,fatigueDay.peak,p.fatigue);day.fatigue.end=p.fatigue;}
         if (p.fatigue >= params["fatigue.force_rest"]) p.forcedRest = true;
         else if(p.forcedRest&&p.fatigue<params["fatigue.ready_return"])p.forcedRest=false;
-        if(trained){const load=participation*(injuryRules.trainingBaseLoad+trainingEffort(trainingPolicy).equivalentTickets/injuryRules.trainingTicketReference)*injuryRules.trainingLoadScale;
-          const episode=assessInjuryExposure(s,p,{...emptyInjuryLoad(),key:`training:${date}`,date,cause:'training',fatigue:Math.max(beforeFatigue,p.fatigue),training:load,trainingTickets:trainingPolicy.tickets});
+        if(trained){const load=participation*(seasonPlan?.growth??1)*(injuryRules.trainingBaseLoad+trainingEffort(trainingPolicy).equivalentTickets/injuryRules.trainingTicketReference)*injuryRules.trainingLoadScale;
+          const episode=assessInjuryExposure(s,p,{...emptyInjuryLoad(),key:`training:${date}`,date,cause:'training',fatigue:Math.max(beforeFatigue,fatigueDay.peak,p.fatigue),training:load,trainingTickets:trainingPolicy.tickets});
           if(episode&&p.id===s.playerId)report.messages.push(`부상: ${injuryBodies[episode.body].name} ${injuryRules.grades[episode.severity].name} · 회복 필요 ${episode.requiredDays}일`);
         }
         advanceInjuryRecovery(p,date);

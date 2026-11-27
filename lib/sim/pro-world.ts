@@ -12,6 +12,8 @@ import {clearProfessionalReputation} from "./pro-selection";
 import {addDays,available,canBatAsDH,compareDesignatedHitters,emptyRecord,getPlayer,hash,isPitcher,lineup,ovr,pitchingRole,roleFor,roleScore,selectionScore,gameSelectionScore} from "./engine";
 import {updateEvaluationReputations} from "./evaluation-reputation";
 import {initializeProTwoWay} from "./pro-two-way";
+import {enforceProStarterStamina,reviewNpcPitchingRoles} from './pro-role-evaluation';
+import {proPitchingFatigueRules} from './pro-pitching-fatigue';
 import {initializeAgingProfile} from "./pro-growth";
 import type {GameState,Player,Position} from "./types";
 import type {SalaryContract} from "./pro-types";
@@ -58,12 +60,13 @@ export function ensureProWorld(s:GameState) {
   if(s.careerMode!=="pro")return;
   discardRetiredPlayers(s);
   const year=s.calendar.seasonYear,p=getPlayer(s),info=s.postSchool?.pro;
-  s.proWorld??={version:1,careerHonorRulesVersion:7,contractRulesVersion:7,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
+  s.proWorld??={version:1,careerHonorRulesVersion:7,contractRulesVersion:8,year,stage:s.phase==="ended"?"summary":s.date<`${year}-03-22`?"camp":"regular",regularEnd:s.calendar.competitions.find(c=>c.id==="pro-first")?.endDate??s.calendar.seasonEnd,seasonClosed:false,
     clubs:Array.from({length:10},(_,id)=>({id,direction:"balanced",budget:(220+hash(`${s.seed}:club-budget:${id}`)%81)*BASE_SALARY,deadMoney:{},nextReview:`${year}-03-15`})),
     seasons:[],archive:[],news:[],squadsVersion:s.teams.length>=40?2:undefined,goal:p.proContract?.status==="developmental"?"정식 선수 전환":"1군 정착",longGoal:"1군 데뷔와 꾸준한 출전",draftedYears:[year]};
   repairConversionRegistrations(s);
   const drafted=new Set([...s.draft,...s.postSchool?.collegeDraft??[]].map(pick=>pick.playerId));
   for(const q of s.players){initializeProfessional(s,q,q.teamId<0?-1:q.teamId%10,q.id===p.id?info?.entry??"draft":drafted.has(q.id)?"draft":"veteran");hydrateAssessments(s,q);}
+  enforceProStarterStamina(s);
   upgradeRawSeasonWar(s);
   if(info&&p.professional){p.professional.rookieYear=info.rookieYear;if(info.debutDate)p.professional.firsts.debut??=info.debutDate;}
   ensureProSquadTeams(s);
@@ -137,6 +140,7 @@ export function reviewLeagueRegistrations(s:GameState) {
   const positions:Position[]=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","RP"];
   for(const club of w.clubs){
     const regular=s.date>=(club.nextReview??`${w.year}-03-15`);if(regular)club.nextReview=addDays(s.date,14);
+    if(regular)reviewNpcPitchingRoles(s,club.id);
     for(const pos of positions){
       const fits=(p:Player)=>currentProPosition(p,pos)||pos==='RP'&&currentProPosition(p,'CP');
       const score=(p:Player)=>selectionScore(p,roleFor(pos),pos);
@@ -276,7 +280,7 @@ export function evaluationCandidates(s:GameState,roster:Player[],date:string) {
   return roster.filter(p=>p.teamId>=10&&p.teamId<40&&p.professional?.employment==="active"&&available(p,date)
     &&(!p.professional.lastEvaluation||date>=addDays(p.professional.lastEvaluation,14))
     &&(!p.professional.managedUntil||date>p.professional.managedUntil)&&(p.teamId>=20&&!p.professional.lastAppearance||date>=addDays(p.professional.lastAppearance??`${s.calendar.seasonYear}-03-01`,14)||!!p.professional.requestedEvaluationUntil&&date<=p.professional.requestedEvaluationUntil)
-    &&(farmAssignmentPosition(p)==='SP'?proStarterReady(s,p,date):isPitcher(roleFor(farmAssignmentPosition(p)))?p.fatigue<65&&(!p.lastPitched||date>=addDays(p.lastPitched,5)):true))
+    &&(farmAssignmentPosition(p)==='SP'?proStarterReady(s,p,date):isPitcher(roleFor(farmAssignmentPosition(p)))?p.fatigue<proPitchingFatigueRules.relieverLimit&&(!p.lastPitched||date>=addDays(p.lastPitched,5)):true))
     .sort((a,b)=>(a.professional!.lastAppearance??"1900").localeCompare(b.professional!.lastAppearance??"1900")||roleScore(b)-roleScore(a)||a.id.localeCompare(b.id));
 }
 export function reviewProfessionalReputation(s:GameState) {

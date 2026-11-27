@@ -1,4 +1,5 @@
 import {needsCareerHonorUpgrade,upgradeCareerHonors} from './career-honor-upgrade';
+import {proDailyRecovery} from './pro-pitching-fatigue';
 import {showStoveReport} from './stove-report';
 import {buyShopItems,equipmentStats,settleShopItems,type OffseasonShopAction} from './offseason-shop';
 import {syncTrainingDiary} from './pro-selection';
@@ -18,7 +19,7 @@ import {syncJerseyNumbers} from "../jersey-numbers";
 import {seededPlayerName} from "./player-names";
 import {captureEvaluationChange,capturePlayerEvaluations} from "./evaluation-lifecycle";
 import {discardRetiredPlayers} from "./retired-records";
-import {addDays,available,clamp,draftClubs,draftPlayers,emptyRecord,generatedTalentCohort,getPlayer,hash,params,previewPlayer,random,recovery,reputationScore,roleScore,train,updateReputation} from "./engine";
+import {addDays,available,clamp,draftClubs,draftPlayers,emptyRecord,generatedTalentCohort,getPlayer,hash,params,previewPlayer,random,reputationScore,roleScore,train,updateReputation} from "./engine";
 import {positionCohort} from './position-generation';
 import {reviewDevelopmentContract} from './pro-career';
 import {developmentCalendar,careerLeagueTable} from "./pro-calendar";
@@ -335,7 +336,7 @@ export function settleNPCFreeAgents(s:GameState,year:number){
   delete s.proWorld!.rookieCandidates;
 }
 function recoverOffseason(p:Player,from:string,to:string){
-  const days=Math.max(0,(Date.parse(to)-Date.parse(from))/86400000);p.fatigue=clamp(p.fatigue*Math.max(0,1-params["fatigue.recovery_policy"]*recovery(equipmentStats(p).recovery))**days);
+  const days=Math.max(0,(Date.parse(to)-Date.parse(from))/86400000);p.fatigue=Math.max(0,p.fatigue-days*proDailyRecovery(equipmentStats(p).recovery));
   advanceInjuryRecovery(p,to);
   if(p.fatigue<params["fatigue.ready_return"])p.forcedRest=false;
 }

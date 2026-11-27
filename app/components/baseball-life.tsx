@@ -320,7 +320,7 @@ export default function BaseballLife({initialState=null}:{initialState?:GameStat
       ...getPlayer(s).stance
     });
     setTab(s.phase === "ended" ? "draft" : "home");
-    notify(restored ? "저장한 커리어를 불러왔습니다." : s.careerMode ? "프로 커리어를 시작합니다." : `${s.teams[getPlayer(s).teamId]?.name ?? "소속 팀"} 야구부에 입학했습니다. 첫 시즌을 시작하세요!`);
+    notify(restored ? "저장한 커리어를 불러왔습니다." : s.careerMode ? "프로 커리어를 시작합니다." : `${s.teams[getPlayer(s).teamId]?.name ?? "소속 팀"} 야구부에 입학했습니다. ${isPitcher(getPlayer(s).primaryRole)?`감독이 능력치를 보고 ${positionLabel(getPlayer(s))} 보직을 배정했습니다.`:"첫 시즌을 시작하세요!"}`);
   };
   const advance = useCallback(() => {
     if (!state || autoWaitingForDecision(state,!!eventOutcome) || locked.current || !validPolicy(policy) || state.phase === "ended") return;

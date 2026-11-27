@@ -4,6 +4,7 @@ import {createRequire} from 'node:module';
 import {runSeason} from '../scripts/pro-balance.mjs';
 const require=createRequire(import.meta.url),e=require('../.test-build/lib/sim/engine.js');
 const b=require('../.test-build/lib/sim/pro-balance.js');
+const fatigue=require('../.test-build/lib/sim/pro-pitching-fatigue.js');
 const pc=require('../.test-build/lib/sim/pro-career.js');
 const w=require('../.test-build/lib/sim/pro-world.js');
 const r=require('../.test-build/lib/sim/evaluation-reference.js');
@@ -34,25 +35,24 @@ test('pitcher rest and outing limits preserve roles without manufacturing record
  assert.equal(b.proReliefReady(sp,'2028-04-04',sp.id),false);
  assert(b.proReliefPriority(cp,'2028-04-06',9,2,cp.id)>b.proReliefPriority(rp,'2028-04-06',9,2,cp.id));
  assert(b.proReliefPriority(cp,'2028-04-06',6,2,cp.id)<b.proReliefPriority(rp,'2028-04-06',6,2,cp.id));
- for(let day=0;day<100;day++){const outs=b.proPitcherOutLimit(sp,true,s.seed,e.addDays('2028-04-01',day));assert(outs>=12&&outs<=24);}
- assert.equal(b.proPitcherOutLimit(cp,false,s.seed,'2028-04-06',cp.id,undefined,1,2,5,1),1);
- assert.equal(b.proPitcherOutLimit(sp,true,s.seed,'2028-04-06',undefined,undefined,-4,4,12,4),4);
+ assert.equal(fatigue.proPitcherCollapsed(false,2,5),true);
+ assert.equal(fatigue.proPitcherCollapsed(true,4,12),true);
+ assert.equal(fatigue.proPitcherCollapsed(true,4,11),false);
  rp.lastPitched='2028-04-05';assert.equal(b.proReliefReady(rp,'2028-04-06',undefined,[{date:'2028-04-04',boxScore:{[rp.id]:{pitching:{BF:4}}}}]),false);
 });
 
 test('bullpen plans keep one closer and assign setup and long relief to middle relievers',()=>{
  const s=pc.createProfessionalDemo('bullpen-plan-check','검증','SP'),roster=s.players.filter(p=>p.teamId===0),before=structuredClone(roster),rng={...s.rngStates};
- const closers=new Set(),reliefLengths=new Set();
+ const closers=new Set();
  for(let day=0;day<60;day++){
    const date=e.addDays('2028-04-01',day),plan=b.proBullpenPlan(roster,s.seed,date,0);
    assert.deepEqual(plan,b.proBullpenPlan([...roster].reverse(),s.seed,date,0));
    assert.notEqual(plan.closerId,plan.setupId);assert.notEqual(plan.bridgeId,plan.closerId);closers.add(plan.closerId);
    const closer=roster.find(p=>p.id===plan.closerId),setup=roster.find(p=>p.id===plan.setupId);
-   assert([3,6].includes(b.proPitcherOutLimit(closer,false,s.seed,date,plan.closerId,plan.bridgeId)));
+   assert.equal(e.pitchingRole(closer),'마무리');
    assert.equal(e.pitchingRole(setup),'중간계투');assert.equal(e.pitchingRole(roster.find(p=>p.id===plan.longReliefId)),'중간계투');
-   reliefLengths.add(b.proPitcherOutLimit(setup,false,s.seed,date));
  }
- assert.equal(closers.size,1);assert(reliefLengths.has(3));assert(reliefLengths.size>1);assert.deepEqual(roster,before);assert.deepEqual(s.rngStates,rng);
+ assert.equal(closers.size,1);assert.deepEqual(roster,before);assert.deepEqual(s.rngStates,rng);
 });
 
 test('one middle reliever backs up the fixed main closer only on unavailable days, in school and pro',()=>{

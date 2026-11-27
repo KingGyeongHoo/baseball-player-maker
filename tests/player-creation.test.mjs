@@ -43,9 +43,9 @@ test('batter selection contains eight defensive positions and explains the open 
   assert.ok([p.LF, p.CF, p.RF].every(p => p.y < 40));
 });
 
-test('school and pro selection both retain starter, middle relief and closer roles', async () => {
+test('school pitchers receive automatic roles while direct pro starts retain role choices', async () => {
   const school=picker('pitcher','RP');
-  assert.equal((school.match(/type="radio"/g)||[]).length,5);for(const pos of ['SP','RP','CP'])assert.ok(school.includes(`value="${pos}"`));assert.ok(school.includes('>중간계투</b>'));assert.ok(school.includes('>마무리</b>'));assert.ok(!school.includes('>불펜</b>'));
+  assert.equal((school.match(/type="radio"/g)||[]).length,2);for(const pos of ['SP','RP','CP'])assert.ok(!school.includes(`value="${pos}"`));assert.ok(school.includes('능력치에 따라'));assert.ok(school.includes('고2·고3'));
   const html = picker('pitcher', 'SP','pro');
   assert.equal((html.match(/type="radio"/g) || []).length, 5);
   assert.ok(!html.includes('selection-ballpark'));
@@ -62,10 +62,14 @@ test('random assignment replaces the chosen school freshman slot and preserves t
   for (const [team, position] of [[0, 'C'], [37, 'SS'], [99, 'SP']]) {
     const state = createRandomCareer('  새선수  ', position, entropy(team, `new-${team}`));
     const player = e.getPlayer(state);
-    assert.equal(player.teamId, team); assert.equal(player.position, position); assert.equal(player.name, '새선수'); assert.equal(player.grade, 1);
+    assert.equal(player.teamId, team);if(kindForPosition(position)==='pitcher'){
+      assert.ok(['SP','RP','CP'].includes(player.position));
+      for(const target of ['SP','RP','CP'])assert.ok(e.roleScore(player)+1e-9>=e.roleScore(player,e.roleFor(target),target));
+    }else assert.equal(player.position,position);
+    assert.equal(player.name, '새선수'); assert.equal(player.grade, 1);
     assert.equal(state.players.length, 3000); assert.equal(state.players.filter(p => p.teamId === team).length, 30);
     assert.equal(state.players.filter(p => p.teamId === team && p.grade === 1).length, 10);
-    assert.equal(player.primaryRole, e.roleFor(position));
+    assert.equal(player.primaryRole, e.roleFor(player.position));
     const advanced = e.advanceWeek(state, player.trainingPolicy, player.stance);
     assert.equal(e.getPlayer(advanced).teamId, team); assert.equal(advanced.week, 2);
   }

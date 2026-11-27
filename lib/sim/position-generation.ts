@@ -1,7 +1,8 @@
 import type {Position} from './types';
 
 // 40 equal shares: SP 7, bullpen 13, C 4, IF 8, OF 8.
-// Closers occupy two bullpen shares so 30-player school squads retain 1–2.
+// School intake slots preserve the pitcher/batter mix. Actual school pitching
+// roles are assigned from abilities by school-pitching-roles after generation.
 const groups:{weight:number;positions:Position[]}[]=[
   {weight:7,positions:['SP']},{weight:11,positions:['RP']},{weight:2,positions:['CP']},
   {weight:4,positions:['C']},{weight:8,positions:['1B','2B','3B','SS']},{weight:8,positions:['LF','CF','RF']},

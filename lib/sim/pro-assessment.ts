@@ -4,7 +4,7 @@ import { rosterGrade } from "../roster-grades";
 import { proContractRules as rules } from "./pro-contract-rules";
 import type { GameState, Player, ProSquad, RecordLine } from "./types";
 import type { ProSeasonAssessment } from "./pro-types";
-import { createProWarContext, emptyProWarAssessment, firstTeamClubWar, proWarAssessment, type ProWarContext } from "./pro-war";
+import { createProWarContext, emptyProWarAssessment, firstTeamClubWar, proWarAssessment, rawSeasonWar, proWarRules, type ProWarContext } from "./pro-war";
 import {proSeasonForm} from "./pro-selection";
 import {farmSeasonGames} from './pro-farm-schedule';
 import {recordHonorRegistration,regularSeasonDays} from './retirement-honors';
@@ -419,9 +419,13 @@ export function firstTeamDemotionMargin(p: Player, year: number) {
     (!!b && b.PA >= 40 && b.AB > 0 && b.H / b.AB >= 0.3);
   return (established ? 8 : 3) + firstTeamRetention(p, year).bonus;
 }
-function releaseWarScale(p:Player,row:ProSeasonAssessment){
+export function releaseReviewWar(p:Player,row:ProSeasonAssessment){
   const role=row.seasonRank?.role??row.role??(p.twoWay?.pitchingPosition??p.position);
-  return ['bullpen','reliever','closer','중간계투','마무리','RP','CP'].includes(role) ? .5 : 1;
+  const wins=row.noAppearances?0:row.war?rawSeasonWar(row.war):row.seasonRank?.war;
+  const bullpen=['bullpen','reliever','closer','불펜','중간계투','마무리','RP','CP'].includes(role);
+  // Adjust each positive bullpen season before adding the review window.
+  // Negative seasons and the release thresholds are identical for every role.
+  return wins!==undefined&&wins>0&&bullpen?wins*proWarRules.relieverWinScale:wins;
 }
 
 export function seasonExit(
@@ -442,14 +446,14 @@ export function seasonExit(
     pro.developmentalRetry&&p.proContract?.status==='regular'?pro.developmentalRetry.year+1:-Infinity);
   const rows=(pro.assessments??[]).filter(row=>row.year>=start&&row.year<=year);
   if(!rows.some(row=>row.year===year))return null;
-  const war=(row:ProSeasonAssessment)=>row.noAppearances?0:row.war?.equivalentWins??row.seasonRank?.war;
+  const war=(row:ProSeasonAssessment)=>releaseReviewWar(p,row);
   const grade=(row:ProSeasonAssessment)=>row.noAppearances?'F':row.seasonRank?.grade??row.grade;
   const exit=(reason:string)=>({kind:'post-rookie-evaluation' as const,reason});
   const severe=age<=27?-2:-1,low=age<=27?0:1,total=age<=27?3:age<=32?5:3;
   if(rows.some(row=>war(row)!==undefined&&war(row)!<=severe))
     return exit(`최근 ${duration}시즌 중 WAR ${severe} 이하인 시즌이 있습니다.`);
-  if(rows.filter(row=>war(row)!==undefined&&war(row)!<=low*releaseWarScale(p,row)).length>=2)
-    return exit(`최근 ${duration}시즌 중 WAR ${low} 이하인 시즌이 2회 이상입니다. (불펜 기준 ${low*.5})`);
+  if(rows.filter(row=>war(row)!==undefined&&war(row)!<=low).length>=2)
+    return exit(`최근 ${duration}시즌 중 방출 심사 WAR ${low} 이하인 시즌이 2회 이상입니다.`);
   if(age<=27&&rows.filter(row=>grade(row)==='F').length>=3)
     return exit('최근 4시즌 중 시즌 등급 F가 3회 이상입니다.');
   if(age>=28&&rows.filter(row=>['E','F'].includes(grade(row))).length>=3)
@@ -457,9 +461,9 @@ export function seasonExit(
   // Total WAR requires every calendar season in the window, with known WAR.
   const complete=Array.from({length:duration},(_,i)=>rows.find(row=>row.year===year-i));
   if(complete.every(row=>row&&war(row)!==undefined)){
-    const totalLimit=total*complete.reduce((sum,row)=>sum+releaseWarScale(p,row!),0)/duration;
+    const totalLimit=total;
     if(complete.reduce((sum,row)=>sum+war(row!)!,0)<=totalLimit)
-      return exit(`최근 ${duration}시즌 WAR 총합이 ${totalLimit} 이하입니다. (불펜 시즌 기준 1/2 적용)`);
+      return exit(`최근 ${duration}시즌 방출 심사 WAR 총합이 ${totalLimit} 이하입니다.`);
   }
   return null;
 }
@@ -526,7 +530,7 @@ function rookieSeasonExit(p: Player, year: number): {kind:'post-rookie-evaluatio
   if(seasons<1)return null;
   const rows=pro.assessments??[],latest=rows.find(row=>row.year===year);
   if(!latest)return null;
-  const war=(row:ProSeasonAssessment)=>row.noAppearances?0:row.war?.equivalentWins;
+  const war=(row:ProSeasonAssessment)=>releaseReviewWar(p,row);
   const first=p.career.find(row=>row.year===year&&row.careerMode==='pro')?.byLevel?.first??p.seasonByLevel?.first;
   const pa=latest.war?.first.pa??first?.batting.PA??0;
   const outs=latest.war?.first.outs??first?.pitching.outs??0;
@@ -537,7 +541,7 @@ function rookieSeasonExit(p: Player, year: number): {kind:'post-rookie-evaluatio
   if(seasons===3){
     const firstThree=Array.from({length:3},(_,i)=>rows.find(row=>row.year===pro.rookieYear+i));
     if(firstThree.every(row=>row&&war(row)!==undefined)){
-      const totalLimit=firstThree.reduce((sum,row)=>sum+releaseWarScale(p,row!),0)/3;
+      const totalLimit=1;
       if(firstThree.reduce((sum,row)=>sum+war(row!)!,0)<=totalLimit)
         return {kind:'post-rookie-evaluation',reason:`프로 첫 3시즌 WAR 총합이 ${totalLimit} 이하입니다.`};
     }

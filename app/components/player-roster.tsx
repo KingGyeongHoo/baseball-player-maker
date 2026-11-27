@@ -5,11 +5,10 @@ import {
   getPlayer,
   isPitcher,
   ovr,
-  positionLabel,
   selectionScore,
 } from "../../lib/sim/engine";
 import { scoreText } from "../../lib/display";
-import { rosterAssignments } from "../../lib/roster-status";
+import { rosterPositionLabel,rosterUsageLabels,type RosterUsage } from "../../lib/roster-status";
 import {
   compareRosterPlayers,
   rosterFieldMember,
@@ -75,7 +74,7 @@ export function RosterTable({
   level?: RosterLevel;
   onSelect: (id: string) => void;
   selectedId?: string;
-  assignments?: Map<string, unknown>;
+  assignments?: Map<string, RosterUsage>;
   projections?: Map<string, DraftPick>;
   sort?: string;
   onSort?: (sort: string) => void;
@@ -83,6 +82,16 @@ export function RosterTable({
 }) {
   const pro = state.careerMode === "pro",
     metrics = rosterMetrics[field];
+  // Position-only tables (including position competition) need the same full
+  // team assignment as the table with usage badges, not a filtered rival list.
+  const usage=useMemo(()=>assignments??rosterUsageLabels(state,state.players.filter(p=>p.teamId>=0&&(!pro||p.teamId<20)&&p.professional?.employment!=='retired')),[assignments,state,pro]);
+  function usageBadge(p:Player){
+    if(!assignments)return null;
+    const status=p.teamId<0?'무소속':pro&&p.teamId>=30?'육성':pro&&p.teamId>=20?'잔류':undefined;
+    const label=status??assignments.get(p.id)?.[field];
+    if(!label||status==='육성'&&hideAffiliation&&p.proContract?.status==='developmental')return null;
+    return <small className={`roster-badge ${status?'reserve':'starter'}`}>{label}</small>;
+  }
   return (
     <div className="table-scroll roster-table roster-records-table">
       <table>
@@ -161,21 +170,7 @@ export function RosterTable({
                       forecast={state.phase !== "ended"}
                     />
                   ) : (
-                    assignments && (
-                      <small
-                        className={`roster-badge ${assignments.has(p.id) ? "starter" : "reserve"}`}
-                      >
-                        {p.teamId < 0
-                          ? "무소속"
-                          : pro && p.teamId >= 30
-                            ? "육성"
-                            : pro && p.teamId >= 20
-                              ? "잔류"
-                              : assignments.has(p.id)
-                                ? "주전"
-                                : "후보"}
-                      </small>
-                    )
+                    usageBadge(p)
                   )}
                 </button>
               </td>
@@ -187,7 +182,7 @@ export function RosterTable({
               </td>
               {!hideAffiliation&&<td>{state.teams[p.teamId]?.name ?? "무소속"}</td>}
               <td>{pro ? (p.age ?? "—") : `${p.grade}학년`}</td>
-              <td>{positionLabel(p)}</td>
+              <td>{rosterPositionLabel(p,usage.get(p.id))}</td>
               {dashboardRecordValues(
                 rosterRecords(p, level),
                 field === "pitching",
@@ -253,10 +248,10 @@ function PlayerRoster({
     );
   const assignments = useMemo(
     () =>
-      rosterAssignments(
+      rosterUsageLabels(state,
         state.players.filter((p) => p.teamId >= 0 && (!pro || p.teamId < 20)),
       ),
-    [state.players, pro],
+    [state, pro],
   );
   const rows = useMemo(() => {
     const club =

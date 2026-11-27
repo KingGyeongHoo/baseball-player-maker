@@ -2,7 +2,7 @@ import {rosterGrade} from '../roster-grades';
 import type {GameState} from './types';
 import type {ProSeasonEvaluation,ProWarAssessment} from './pro-types';
 import {refreshCareerEvaluation} from './pro-career-evaluation';
-import {emptyProWarAssessment} from './pro-war';
+import {emptyProWarAssessment,rawSeasonWar} from './pro-war';
 import {injurySeasonAdjustment,type InjurySeasonAdjustment} from './injury-system';
 import {injuryRules} from './injury-rules';
 
@@ -10,7 +10,7 @@ const clamp=(n:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,n));
 const regularScore=(wins:number)=>71+(wins>=0?3:2)*wins;
 
 export function seasonEvaluation(war:ProWarAssessment,injury?:InjurySeasonAdjustment):ProSeasonEvaluation{
-  const regular=regularScore(war.equivalentWins);
+  const regular=regularScore(rawSeasonWar(war));
   return {version:1,regular,postseason:0,national:0,honors:0,score:clamp(regular-(injury?.penalty??0),0,100),...(injury?.days?{injury}:{})};
 }
 

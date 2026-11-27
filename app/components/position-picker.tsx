@@ -29,8 +29,8 @@ export default function PositionPicker({ kind, value, onKindChange, onChange, di
       </div>
     </fieldset>
     <fieldset className="creation-step position-step" disabled={disabled || !kind}>
-      <legend><span>02</span>나의 포지션을 선택하세요.</legend>
-      {!kind ? <div className="position-awaiting"><span>먼저 타자 또는 투수를 선택해 주세요.</span><p>타자는 그라운드에서, 투수는 투구 자세 카드에서 선택합니다.</p></div> : kind === "batter" ? <>
+      <legend><span>02</span>{kind==="pitcher"&&mode==="school"?"투수 보직은 감독이 배치합니다.":"나의 포지션을 선택하세요."}</legend>
+      {!kind ? <div className="position-awaiting"><span>먼저 타자 또는 투수를 선택해 주세요.</span><p>{mode==="school"?"타자는 포지션을 선택하고, 투수는 능력치에 따라 보직을 배정받습니다.":"타자는 그라운드에서, 투수는 투구 자세 카드에서 선택합니다."}</p></div> : kind === "batter" ? <>
         <p className="position-instruction">그라운드 위에서 뛰고 싶은 자리를 눌러보세요.</p>
         <div className="ballpark-selector">
           <Ballpark />
@@ -41,7 +41,7 @@ export default function PositionPicker({ kind, value, onKindChange, onChange, di
         </div>
         <p className="micro muted">지명타자는 수비 주전을 제외한 야수 중 타격이 가장 좋은 선수가 경기마다 맡습니다.</p>
         <div className="selected-position-note" role="status"><b>{value ? positions[value] : "포지션을 골라주세요"}</b><span>{value === "DH" ? "수비 부담을 줄이고 타격에 집중하는 자리입니다." : selected?.description ?? "각 포지션의 위치를 눌러 역할을 확인할 수 있습니다."}</span></div>
-      </> : <>
+      </> : mode==="school"?<div className="selected-position-note" role="status"><b>투수</b><span>입학 시 능력치에 따라 선발·중간계투·마무리로 배치됩니다. 고2·고3 진급 때 성장한 능력치를 다시 평가하며, 프로 입단 시에는 고3 마지막 보직을 이어갑니다.</span></div> : <>
         <p className="position-instruction">나만의 마운드, 어떤 순간을 책임질까요?</p>
         <div className="pitcher-position-cards">
           {pitchingChoices.map(position => <label key={position.id} className={`pitcher-position-card ${value === position.id ? "selected" : ""}`}>

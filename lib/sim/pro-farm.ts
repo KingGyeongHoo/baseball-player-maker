@@ -1,4 +1,5 @@
 import { available, isPitcher, roleFor, roleScore, selectionScore } from "./engine";
+import {proStarterEligible} from './pro-pitching-fatigue';
 import { BASE_SALARY, contractFor, initializeProfessional, proNews, proNotice } from "./pro-world";
 import {proSquad,setProSquad} from './pro-squads';
 import { canAfford, releasePlayer } from "./pro-market";
@@ -67,8 +68,8 @@ export function ensurePlayableFarmRosters(s: GameState, clubs = Array.from({leng
     const selected = new Set<string>();
     const healthy = (p: Player) => available(p, s.date);
     const current=lower();
-    if(Object.entries(farmMinimum).every(([pos,n])=>current.filter(p=>healthy(p)&&currentProPosition(p,pos as Position)).length>=n))continue;
-    const ordered = (position: Position) => lower().filter(healthy).sort((a, b) =>
+    if(Object.entries(farmMinimum).every(([pos,n])=>current.filter(p=>healthy(p)&&currentProPosition(p,pos as Position)&&(pos!=='SP'||proStarterEligible(p))).length>=n))continue;
+    const ordered = (position: Position) => lower().filter(p=>healthy(p)&&(position!=='SP'||proStarterEligible(p))).sort((a, b) =>
       Number(guaranteedProStarter(b,position,s.date))-Number(guaranteedProStarter(a,position,s.date))
       || Number(b.teamId === club+10)-Number(a.teamId === club+10) || roleScore(b,roleFor(position),position)-roleScore(a,roleFor(position),position) || a.id.localeCompare(b.id));
     for (const position of slots) {
@@ -97,7 +98,7 @@ export function ensurePlayableFarmRosters(s: GameState, clubs = Array.from({leng
           releasePlayer(s,excess,"2군 필수 포지션·투수진 확보를 위한 잉여 인원 조정",s.proWorld.year);
         }
         p=s.players.filter(q=>q.id!==s.playerId&&q.professional?.employment==="freeAgent"&&!q.professional.nonRenewal
-          &&q.proContract?.status!=="developmental"&&q.position===position&&(q.age??19)<=35&&healthy(q))
+          &&q.proContract?.status!=="developmental"&&q.position===position&&(q.age??19)<=35&&healthy(q)&&(position!=='SP'||proStarterEligible(q)))
           .sort((a,b)=>(roleScore(b)-injuryRiskAssessment(b,s.date).interestPenalty)-(roleScore(a)-injuryRiskAssessment(a,s.date).interestPenalty)||a.id.localeCompare(b.id))[0];
         if (!p) {
           let index=0,id:string;

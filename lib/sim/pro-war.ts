@@ -109,16 +109,20 @@ export function proWarAssessment(p: Player, context: ProWarContext = {
 }): ProWarAssessment {
   const first = warLine(p.seasonByLevel?.first, context.first);
   const second = warLine(p.seasonByLevel?.second, context.second);
-  const pitchingPosition = p.twoWay?.pitchingPosition ?? p.position;
-  const relief = pitchingPosition === "RP" || pitchingPosition === "CP";
-  const equivalentWins=levelWarValue(first,relief)+levelWarValue(second,relief);
+  const equivalentWins=levelWarValue(first,false)+levelWarValue(second,false);
   const score=clamp(rules.scoreAtZero+rules.scorePerWin*equivalentWins,0,100);
-  return { version: 2, score, equivalentWins, first, second };
+  return { version: 3, score, equivalentWins, first, second };
 }
 
 export function emptyProWarAssessment():ProWarAssessment{
   const line:ProWarLine={batting:0,pitching:0,fielding:0,positional:0,pa:0,outs:0,bf:0,fieldingChances:0,fieldingOuts:0};
-  return {version:2,score:rules.scoreAtZero,equivalentWins:0,first:{...line},second:{...line}};
+  return {version:3,score:rules.scoreAtZero,equivalentWins:0,first:{...line},second:{...line}};
+}
+
+// Components are raw even in old saves. Season rankings and salary never
+// inherit the bullpen multiplier used for career credit.
+export function rawSeasonWar(war:ProWarAssessment){
+  return levelWarValue(war.first,false)+levelWarValue(war.second,false);
 }
 
 export function levelWarValue(line:ProWarLine,relief:boolean){
@@ -142,8 +146,9 @@ export function firstTeamClubWar(p:Player,context:ProWarContext){
 export function validProWarAssessment(value: unknown): value is ProWarAssessment {
   if (!value || typeof value !== "object") return false;
   const w = value as ProWarAssessment;
-  return (w.version === 1||w.version===2) && Number.isFinite(w.score) && w.score>=0 && w.score<=100 && Number.isFinite(w.equivalentWins)
+  return (w.version === 1||w.version===2||w.version===3) && Number.isFinite(w.score) && w.score>=0 && w.score<=100 && Number.isFinite(w.equivalentWins)
     && Math.abs(w.score-clamp(rules.scoreAtZero+rules.scorePerWin*w.equivalentWins,0,100))<1e-7
     && [w.first, w.second].every(r => r && [r.batting,r.pitching,r.fielding,r.positional].every(Number.isFinite)
-      && [r.pa, r.outs, r.bf,r.fieldingChances,r.fieldingOuts].every(n => Number.isInteger(n) && n >= 0));
+      && [r.pa, r.outs, r.bf,r.fieldingChances,r.fieldingOuts].every(n => Number.isInteger(n) && n >= 0))
+    && (w.version!==3||Math.abs(w.equivalentWins-rawSeasonWar(w))<1e-7);
 }

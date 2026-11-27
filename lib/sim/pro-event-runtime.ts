@@ -8,6 +8,7 @@ import {eligibleStory} from "./event-stories";
 import {eventCategoryPool,eventFieldsFor,eventFocusPool,resolveEventFocus} from './event-selection';
 import {cancelProReservation,ensureProEvents,equivalentProId,proChannelFree,proDayFree,proEventsEnabled,proIdFree,recordProChoice} from "./pro-event-ledger";
 import {proFieldTarget,recentProEvidence} from "./pro-event-evidence";
+import {proPitchingRoleTarget} from "./pro-role-evaluation";
 import type {ProEventContext} from "./pro-event-types";
 import type {EventScene,Game,GameState,Player,Position} from "./types";
 
@@ -57,15 +58,16 @@ export function proGeneralCandidates(s:GameState,date=s.date){
   const requestFree=(!pro.requestAfter||date>=pro.requestAfter)&&!pro.roleTrial&&!p.roleOffer&&(!pro.twoWayReview?.nextProposalDate||!p.twoWay);
   if(healthy&&requestFree&&!p.twoWay){
     const regular=p.proContract?.status!=="developmental",stage=s.proWorld?.stage;
+    const pitchingTarget=["camp","regular"].includes(stage??"")?proPitchingRoleTarget(p):undefined;
+    if(pitchingTarget)add("PE10",{target:pitchingTarget,field:"pitching"});
     let veteranRole=false;
-    if((p.age??19)>=33&&regular&&["camp","regular"].includes(stage??"")){
+    if(!pitchingTarget&&(p.age??19)>=33&&regular&&["camp","regular"].includes(stage??"")){
       const target:Position|undefined=p.position==="SP"?"RP":undefined;
       const sparse=stage==="regular"?evidence.tracked&&evidence.teamGames>=5&&(pitching?stats.pitching.BF<=10:stats.batting.PA<=8):s.players.some(q=>q.id!==p.id&&active(q)&&q.teamId%10===p.teamId%10&&q.primaryRole===p.primaryRole&&roleScore(q)>roleScore(p));
       if(target&&sparse&&ovr(p,pitching)>=45&&roleScore(p,roleFor(target),target)>=45){veteranRole=true;add("PE29",{target});}
     }
     if(!veteranRole){
       if(stage==="camp"&&!pitching&&ovr(p,false)>=45){const target=proFieldTarget(s,p);if(target)add("PE09",{target});}
-      if(regular&&p.position==="SP"&&["camp","regular"].includes(stage??"")&&evidence.tracked&&evidence.startsKnown&&evidence.starts===0&&ovr(p,true)>=45&&roleScore(p,roleFor("RP"))>=45)add("PE10",{target:"RP"});
       if(regular&&p.teamId<10&&!pitching&&evidence.tracked&&stats.batting.PA<=8&&evidence.teamGames>=5&&ovr(p,false)>=45)add("PE11",{field:"batting"});
     }
   }

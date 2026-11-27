@@ -8,6 +8,7 @@ import type {GameState,Policy,Position} from "../../lib/sim/types";
 import {scoreText} from "../../lib/display";
 import PlayerAbilities from "./player-abilities";
 import TrainingEditor from "./training-editor";
+import {isProSeasonTraining} from '../../lib/sim/pro-training';
 import {PlayerGrade} from "./player-roster";
 
 function Panel({title,eyebrow,children,className=""}:{title:string;eyebrow:string;children:ReactNode;className?:string}){
@@ -33,7 +34,7 @@ export default function TrainingCenter({state,policy,setPolicy,onSave,disabled=f
   const target=position&&targets.includes(position)?position:"";
   return <div className="training-center"><div className="section-intro"><div><span className="eyebrow">TRAINING CENTER</span><h1>훈련 센터</h1></div><button className="primary" onClick={onSave} disabled={locked||!validPolicy(policy)}>훈련 설정 저장</button></div>
     {message&&<p className="training-save-message" role="status">{message}</p>}
-    <div className="training-layout"><Panel title="주간 훈련 배분" eyebrow="WEEKLY TRAINING"><fieldset className="content-lock" disabled={locked}><TrainingEditor player={player} policy={policy} setPolicy={setPolicy} date={state.date} context={state}/></fieldset></Panel>
+    <div className="training-layout"><Panel title={isProSeasonTraining(state)?"시즌 중 훈련":"주간 훈련 배분"} eyebrow="WEEKLY TRAINING"><fieldset className="content-lock" disabled={locked}><TrainingEditor player={player} policy={policy} setPolicy={setPolicy} date={state.date} context={state}/></fieldset></Panel>
       <div className="side-column">
         {onPositionRequest&&<Panel title="포지션 변경 요청" eyebrow="POSITION REQUEST">
           <fieldset className="content-lock pro-position-request" disabled={locked||positionRequestDisabled||!!requestBlock}>

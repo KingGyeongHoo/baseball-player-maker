@@ -1,14 +1,81 @@
 import {addDays,assignRole,available,getPlayer,isPitcher,ovr,positions,roleFor,roleScore} from "./engine";
-import {proNotice} from "./pro-world";
+import {proNews,proNotice} from "./pro-world";
+import {guaranteedProSquad} from './pro-positions';
+import {proGameTeam} from './pro-farm-roster';
+import {proStarterEligible} from './pro-pitching-fatigue';
 import {ensureProEvents,proDayFree} from "./pro-event-ledger";
 import type {GameState,Player,Position} from "./types";
 
 import {assertPositionEligible,canPlayPosition} from './position-eligibility';
+export const pitchingRoleProposalRules={minimumAdvantage:2};
+const pitchingPositions=["SP","RP","CP"] as const;
+export function proPitchingRoleTarget(p:Player):Position|undefined{
+  if(p.twoWay||!pitchingPositions.some(position=>position===p.position))return;
+  const current=roleScore(p,roleFor(p.position),p.position);
+  const candidates=pitchingPositions.filter(position=>position!==p.position&&!proRoleAptitudeIssue(p,position))
+    .map(position=>({position,score:roleScore(p,roleFor(position),position)}))
+    .sort((a,b)=>b.score-a.score);
+  const best=candidates[0];
+  if(best&&best.score>=current+pitchingRoleProposalRules.minimumAdvantage)return best.position;
+}
 export function proRoleAptitudeIssue(p:Player,position:Position){
+  if(position==='SP'&&!proStarterEligible(p))return '선발투수는 스태미나가 50 이상이어야 합니다.';
   const role=roleFor(position);
   if(ovr(p,isPitcher(role))<45||roleScore(p,role)<45)return "목표 분야와 역할 기량이 모두 45 이상이어야 합니다.";
   if(position==='C'&&!p.eligiblePositions.includes('C'))return "포수는 기존 포수 등록 자격이 있어야 합니다.";
   if(position==='CF'&&(p.stats.defense<55||p.stats.speed<55))return "중견수는 수비와 주루 능력이 모두 55 이상이어야 합니다.";
+}
+function applyProRole(p:Player,position:Position){
+  assertPositionEligible(p,position);assignRole(p,roleFor(position));p.position=position;
+  const pitching=isPitcher(p.primaryRole);
+  p.eligiblePositions=[...new Set([...p.eligiblePositions.filter(pos=>isPitcher(roleFor(pos))===pitching),position])];
+  const review=p.professional?.twoWayReview;
+  if(review){if(pitching)review.positions.pitchingPosition=position;else review.positions.battingPosition=position;}
+}
+
+export function enforceProStarterStamina(s:GameState){
+  if(s.careerMode!=='pro'||s.matchProgress)return;
+  for(const p of s.players){
+    if(p.professional?.employment!=='active'||p.teamId<0||(p.twoWay?.pitchingPosition??p.position)!=='SP'||proStarterEligible(p))continue;
+    const target:Position=roleScore(p,'마무리','CP')>roleScore(p,'중간계투','RP')?'CP':'RP';
+    if(p.twoWay){
+      p.twoWay.pitchingPosition=target;
+      if(isPitcher(p.primaryRole))assignRole(p,roleFor(target));
+      p.eligiblePositions=[...new Set([...p.eligiblePositions.filter(pos=>pos!=='SP'),target])];
+      if(p.professional.twoWayReview)p.professional.twoWayReview.positions.pitchingPosition=target;
+    }else applyProRole(p,target);
+    const reason=`스태미나 50 미만 · 선발투수 → ${positions[target]}`;
+    p.professional.movements.push({date:s.date,from:p.teamId%10,to:p.teamId%10,kind:'투수 보직 전환',reason});
+    proNews(s,`${p.name} · ${reason}`);
+    if(p.id===s.playerId)proNotice(s,`starter-stamina:${s.date}`,'투수 보직 조정',`${reason}. 프로 선발은 스태미나 50 이상부터 가능합니다. 능력치와 기록은 유지됩니다.`);
+  }
+}
+
+export function reviewNpcPitchingRoles(s:GameState,club:number){
+  if(s.careerMode!=='pro'||!s.proWorld||s.proWorld.seasonClosed||!['camp','regular'].includes(s.proWorld.stage)||s.matchProgress)return;
+  const roster=s.players.filter(p=>p.teamId>=0&&p.teamId<40&&p.teamId%10===club&&p.professional?.employment==='active');
+  const yearPrefix=`${s.calendar.seasonYear}-`;
+  const candidates=roster.flatMap(p=>{
+    const pro=p.professional!;
+    if(p.id===s.playerId||p.twoWay||p.roleOffer||pro.roleTrial||p.injuryRetirement||!available(p,s.date)
+      ||pro.requestAfter&&s.date<pro.requestAfter||guaranteedProSquad(p,s.date)
+      ||pro.movements.some(row=>row.kind==='투수 보직 전환'&&row.date.startsWith(yearPrefix)))return [];
+    const target=proPitchingRoleTarget(p);
+    return target?[{p,target,gain:roleScore(p,roleFor(target),target)-roleScore(p)}]:[];
+  }).sort((a,b)=>Number(b.target==='SP')-Number(a.target==='SP')||b.gain-a.gain||a.p.id.localeCompare(b.p.id));
+  for(const {p,target} of candidates){
+    // Preserve the existing rotation and bullpen minimums. Reconsider deferred
+    // conversions in the next club review after reinforcements or other moves.
+    const team=proGameTeam(p),peers=roster.filter(q=>proGameTeam(q)===team);
+    if(p.position==='SP'&&peers.filter(q=>(q.twoWay?.pitchingPosition??q.position)==='SP').length<=5)continue;
+    if(target==='SP'&&peers.filter(q=>['RP','CP'].includes(q.twoWay?.pitchingPosition??q.position)).length<=(team<10?7:4))continue;
+    const previous=p.position;
+    applyProRole(p,target);
+    const reason=`능력치 적성 평가 · ${positions[previous]} → ${positions[target]}`;
+    p.professional!.requestAfter=addDays(s.date,28);
+    p.professional!.movements.push({date:s.date,from:club,to:club,kind:'투수 보직 전환',reason});
+    proNews(s,`${p.name} · ${reason}`,`npc-pitching-role:${s.calendar.seasonYear}:${p.id}`);
+  }
 }
 export function positionRequestBlock(s:GameState,p:Player){
   const pro=p.professional;
@@ -47,6 +114,6 @@ export function reviewProRoleTrial(s:GameState,defer=false){
 }
 export function decideProRoleTrial(s:GameState,accept:boolean){
   const p=getPlayer(s),trial=p.professional?.roleTrial;if(trial?.version!==1||!trial.decision?.qualified)throw new Error("완료된 보직 평가를 찾을 수 없습니다.");
-  if(accept){const position=trial.position;assertPositionEligible(p,position);assignRole(p,roleFor(position));p.position=position;const pitching=isPitcher(p.primaryRole);p.eligiblePositions=[...new Set([...p.eligiblePositions.filter(pos=>isPitcher(roleFor(pos))===pitching),position])];const review=p.professional!.twoWayReview;if(review){if(pitching)review.positions.pitchingPosition=position;else review.positions.battingPosition=position;}}
+  if(accept)applyProRole(p,trial.position);
   delete p.professional!.roleTrial;return {kind:accept?"accepted" as const:"kept" as const,target:trial.position,until:trial.until,reason:trial.decision.reason};
 }

@@ -18,7 +18,8 @@ import {openProMatchEvent,openProPreparation,openProStealEvent} from "./pro-even
 import type {ProAppearance} from "./pro-event-types";
 import {packRecentBattingChange,packRecentPitchingChange,recentSample} from "./recent-records";
 import {finishGameRecords,pitcherEntered,recordLeadChange} from "./game-records";
-import {proBullpenPlan,proMatchParameters,proPitcherOutLimit,proRecentTeamGames,proReliefPriority,proReliefReady} from './pro-balance';
+import {proBullpenPlan,proMatchParameters,proRecentTeamGames,proReliefPriority,proReliefReady} from './pro-balance';
+import {estimatedProPitches,finishProPitchingInning,proPitchFatigueRate,proPitchingFatigueRules,proPitchStint,proStarterEligible,proPitcherCollapsed} from './pro-pitching-fatigue';
 import {farmPlayoffRoster,isFarmPostseason} from './pro-farm-postseason';
 import {stolenBaseAttempt} from './base-stealing';
 import {openFinalGameEvent} from './final-game-event';
@@ -39,7 +40,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   if (!s.matchProgress) {
     recordEvaluationEnvironment(s,game,rosters);
     const prepared=game.proPreparedLineup;
-    const valid=prepared?.every(side=>[...side.field,...side.order,...side.pitchers,side.starter].every(id=>players.has(id)&&available(player(id),game.date))&&(!pro||pitchingRole(player(side.starter))==='선발'));
+    const valid=prepared?.every(side=>[...side.field,...side.order,...side.pitchers,side.starter].every(id=>players.has(id)&&available(player(id),game.date))&&(!pro||pitchingRole(player(side.starter))==='선발'&&proStarterEligible(player(side.starter))));
     const sides = prepared&&valid?prepared.map(side=>({field:side.field.map(player),order:side.order.map(player),starter:player(side.starter),pitchers:side.pitchers.map(player)})):rosters.map(roster => game.exhibition==='spring'?springLineup(s,roster,game.date):professionalLineup(s,roster,game.date,game.evaluationPlayers));
     if (sides.some(side => side.field.length < 9 || !side.starter)) {
       game.status = "forfeit";
@@ -85,6 +86,10 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   }),s.seed,game.date,index,recentTeamGames[index],new Set(side.pitchers),new Set(game.evaluationPlayers??[]),
     pro?(gameTeams[index]<10?s.proWorld?.clubs[gameTeams[index]]?.closerId??null:null):undefined));
   const line = (p: Player) => game.boxScore[p.id] ??= emptyRecord();
+  if(pro)m.proPitchWorkload??={version:1,stints:{}};
+  const pitchStint=(p:Player,starter:boolean)=>m.proPitchWorkload!.stints[p.id]??=
+    proPitchStint(p.fatigue,proPitchFatigueRate(equipmentStats(p).stamina,conditioningMultiplier(p,s.calendar.seasonYear)),starter);
+  if(pro)m.pitchers.forEach((id,side)=>pitchStint(player(id),m.usedPitchers[side].length===1));
   const forfeit = (side: number) => {
     game.status = "forfeit"; game.forfeitTeamId = side === 0 ? game.homeTeamId : game.awayTeamId;
     game.boxScore = {}; game.lineup = []; game.innings = [[], []]; game.score = [0, 0];
@@ -95,6 +100,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
   };
   let ended = false;
   const finishHalf = () => {
+    if(pro){const side=1-m.battingSide;finishProPitchingInning(pitchStint(player(m.pitchers[side]),m.usedPitchers[side].length===1),m.usedPitchers[side].length===1);}
     game.innings[m.battingSide].push(m.runs);
     if (m.battingSide === 0) {
       if (m.inning >= regulation && game.score[0] !== game.score[1]) ended = true;
@@ -116,12 +122,10 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
       const lead = game.score[pitchingSide] - game.score[side];
       const {closerId,mainCloserId,longReliefId,setupId,bridgeId,earlyCloser}=bullpenPlans[pitchingSide]??{};
       const currentLine=game.boxScore[current.id]?.pitching;
-      let limit = game.exhibition?(m.usedPitchers[pitchingSide].length<=3?3:6):pro?proPitcherOutLimit(current,starter,s.seed,game.date,closerId,bridgeId,lead,currentLine?.R??0,currentLine?.BF??0,m.pitchOuts[pitchingSide]):starter ? params["coach.starter_outs"] : pitchingRole(current) === "마무리" ? params["coach.closer_outs"] : params["coach.relief_outs"];
-      if(pro&&!game.exhibition&&!starter&&pitchingRole(current)==='중간계투'&&(currentLine?.R??0)<2){
-        const remaining=m.sides[pitchingSide].pitchers.map(player).filter(p=>!m.usedPitchers[pitchingSide].includes(p.id)&&pitchingRole(p)!=='선발'&&available(p,game.date)&&p.fatigue<params['coach.replace_fatigue']).length;
-        const outsNeeded=Math.max(1,10-m.inning)*3-m.outs;
-        limit=Math.max(limit,Math.min(9,m.pitchOuts[pitchingSide]+Math.max(0,outsNeeded-remaining*3)));
-      }
+      const limit=pro?Infinity:game.exhibition?(m.usedPitchers[pitchingSide].length<=3?3:6):starter?params['coach.starter_outs']:pitchingRole(current)==='마무리'?params['coach.closer_outs']:params['coach.relief_outs'];
+      const fatigueLimit=pro?(starter?proPitchingFatigueRules.starterLimit:proPitchingFatigueRules.relieverLimit):params['coach.replace_fatigue'];
+      const collapse=pro&&proPitcherCollapsed(starter,currentLine?.R??0,currentLine?.BF??0);
+      const proMustExit=pro&&(collapse||starter&&!proStarterEligible(current)||!starter&&pitchStint(current,false).mustExit);
       const saveEntry=!game.exhibition&&!starter&&!!closerId&&current.id!==closerId&&(m.inning>=9||pro&&earlyCloser&&m.inning===8)&&m.pa===1&&m.outs===0&&game.score[pitchingSide]>game.score[side]&&game.score[pitchingSide]-game.score[side]<=3&&proReliefReady(player(closerId),game.date,undefined,recentTeamGames[pitchingSide],true);
       // A farm evaluation must produce a real outing even without a save chance.
       // Enter at a clean inning from the sixth, preserving availability and rest.
@@ -129,11 +133,11 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
         ?m.sides[pitchingSide].pitchers.map(player).find(p=>game.evaluationPlayers?.includes(p.id)
           &&!m.usedPitchers[pitchingSide].includes(p.id)&&['중간계투','마무리'].includes(pitchingRole(p))
           &&(!m.sides[pitchingSide].field.includes(p.id)||!!p.twoWay&&m.sides[pitchingSide].field[8]===p.id)
-          &&available(p,game.date)&&p.fatigue<params['coach.replace_fatigue']
+          &&available(p,game.date)&&p.fatigue<proPitchingFatigueRules.relieverLimit
           &&(!p.professional?.managedUntil||game.date>p.professional.managedUntil)
           &&proReliefReady(p,game.date,undefined,recentTeamGames[pitchingSide],p.id===closerId)):undefined;
-      if (evaluationReliever || saveEntry || m.pitchOuts[pitchingSide] >= limit || current.fatigue >= params["coach.replace_fatigue"] || !available(current, game.date)) {
-        const unused=m.sides[pitchingSide].pitchers.map(player).filter(p=>!m.usedPitchers[pitchingSide].includes(p.id)&&(!m.sides[pitchingSide].field.includes(p.id)||!!p.twoWay&&m.sides[pitchingSide].field[8]===p.id)&&available(p,game.date)&&p.fatigue<params['coach.replace_fatigue']&&(!pro||['중간계투','마무리'].includes(pitchingRole(p)))&&(game.exhibition||p.id!==mainCloserId||closerId===mainCloserId));
+      if (evaluationReliever || saveEntry || proMustExit || m.pitchOuts[pitchingSide] >= limit || current.fatigue+1e-9 >= fatigueLimit || !available(current, game.date)) {
+        const unused=m.sides[pitchingSide].pitchers.map(player).filter(p=>!m.usedPitchers[pitchingSide].includes(p.id)&&(!m.sides[pitchingSide].field.includes(p.id)||!!p.twoWay&&m.sides[pitchingSide].field[8]===p.id)&&available(p,game.date)&&p.fatigue<(pro?proPitchingFatigueRules.relieverLimit:params['coach.replace_fatigue'])&&(!pro||['중간계투','마무리'].includes(pitchingRole(p)))&&(game.exhibition||p.id!==mainCloserId||closerId===mainCloserId));
         // Keep the designated closer out of middle innings even when he is
         // the only rested option. Other relievers cover first; an exhausted
         // bullpen can still use him in a genuine emergency.
@@ -147,10 +151,10 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
         };
         const next = evaluationReliever??(saveEntry?unused.find(p=>p.id===closerId):(rested.length?rested:pool)
           .sort((a, b) => Number(game.evaluationPlayers?.includes(b.id)??false)-Number(game.evaluationPlayers?.includes(a.id)??false)||(pro?tier(a)-tier(b):0)||priority(b)-priority(a)||a.id.localeCompare(b.id))[0]);
-        if (next) { pitcherEntered(m,game,next.id,pitchingSide);m.pitchers[pitchingSide] = next.id; m.usedPitchers[pitchingSide].push(next.id); m.pitchOuts[pitchingSide] = 0; }
-        else if(!saveEntry){
-          const canContinue=available(current,game.date)&&(!!game.national||
-            pro&&!starter&&current.fatigue<params['coach.replace_fatigue']&&m.pitchOuts[pitchingSide]<15);
+        if (next) { pitcherEntered(m,game,next.id,pitchingSide);m.pitchers[pitchingSide] = next.id; m.usedPitchers[pitchingSide].push(next.id); m.pitchOuts[pitchingSide] = 0;if(pro)pitchStint(next,false); }
+        else if(!saveEntry||proMustExit||current.fatigue+1e-9>=fatigueLimit||!available(current,game.date)){
+          const canContinue=available(current,game.date)&&(!pro&&!!game.national||
+            pro&&!starter&&!proMustExit&&current.fatigue+1e-9<fatigueLimit);
           if(!canContinue)return forfeit(pitchingSide);
         }
       }
@@ -173,7 +177,7 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
           else {
             runnerLine.CS=(runnerLine.CS??0)+1;m.outs++;line(current).pitching.outs++;m.pitchOuts[pitchingSide]++;current.lastPitched=game.date;
             if(m.fieldingVersion===1)recordFieldingOuts(m.sides[pitchingSide].field.map(player),line);
-            current.fatigue=clamp(current.fatigue+params['fatigue.pitch_out']*accumulation(equipmentStats(current).stamina)*conditioningMultiplier(current,s.calendar.seasonYear));
+            if(!pro)current.fatigue=clamp(current.fatigue+params['fatigue.pitch_out']*accumulation(equipmentStats(current).stamina)*conditioningMultiplier(current,s.calendar.seasonYear));
           }
           m.bases[0]=null;
           if(m.outs>=3){m.ready=false;continue;}
@@ -256,10 +260,16 @@ export function simulateGame(s: GameState, game: Game, rosters: Player[][]): boo
           if(fielder)recordFieldingPlay(line(fielder),true,expectedOut);
         }
         if(m.fieldingVersion===1)recordFieldingOuts(m.sides[pitchingSide].field.map(player),line);
-        pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.pitch_out"] * accumulation(equipmentStats(pitcher).stamina)*conditioningMultiplier(pitcher,s.calendar.seasonYear));
+        if(!pro)pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.pitch_out"] * accumulation(equipmentStats(pitcher).stamina)*conditioningMultiplier(pitcher,s.calendar.seasonYear));
       }
     }
-    if (pit.outs === pitBefore.outs) pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.no_out_cost"] * accumulation(equipmentStats(pitcher).stamina)*conditioningMultiplier(pitcher,s.calendar.seasonYear));
+    if(pro){
+      const result=pit.BB>pitBefore.BB?'walk':pit.SO>pitBefore.SO?'strikeout':'inPlay';
+      const roll=hash(`${s.seed}:${game.id}:${pitcher.id}:${m.battingIndex[side]}:${side}:pitches`)%1_000_000/1_000_000;
+      const pitches=estimatedProPitches(result,equipmentStats(pitcher).control,roll),stint=pitchStint(pitcher,m.usedPitchers[pitchingSide].length===1);
+      pit.pitches=(pit.pitches??0)+pitches;stint.inningPitches+=pitches;
+      pitcher.fatigue=clamp(pitcher.fatigue+pitches*stint.rate);
+    }else if (pit.outs === pitBefore.outs) pitcher.fatigue = clamp(pitcher.fatigue + params["fatigue.no_out_cost"] * accumulation(equipmentStats(pitcher).stamina)*conditioningMultiplier(pitcher,s.calendar.seasonYear));
     m.recentEvents.push({ playerId: batter.id, record: packRecentBattingChange(bat,batBefore) }, { playerId: pitcher.id, record: packRecentPitchingChange(pit,pitBefore) });
     m.ready = false;
     if (walkoff) { game.innings[side].push(m.runs); ended = true; }

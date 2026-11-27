@@ -1,4 +1,4 @@
-import {createProWarContext,proWarAssessment,type ProWarContext} from './pro-war';
+import {createProWarContext,proWarAssessment,rawSeasonWar,type ProWarContext} from './pro-war';
 import type {GameState,Player} from './types';
 import type {ProSeasonRank} from './pro-types';
 import {refreshCareerEvaluation} from './pro-career-evaluation';
@@ -25,7 +25,7 @@ export function createSeasonRankings(s:GameState,context:ProWarContext=createPro
     const frozen=s.proWorld?.seasonClosed?p.professional.assessments?.find(row=>row.year===s.calendar.seasonYear):undefined;
     const savedRole=frozen?.seasonRank?.role;
     const role=savedRole==='reliever'||savedRole==='closer'?'bullpen':savedRole??seasonRole(p);
-    const war=(frozen?.war??proWarAssessment(p,context)).equivalentWins,key=`${level}:${role}`;
+    const war=rawSeasonWar(frozen?.war??proWarAssessment(p,context)),key=`${level}:${role}`;
     const pool=pools.get(key)??[];pool.push({id:p.id,war,role,level});pools.set(key,pool);
   }
   const result=new Map<string,ProSeasonRank>();

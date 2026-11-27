@@ -96,8 +96,12 @@ test('legacy histories preserve settled rewards, consume adoption budget and car
 test('position candidates avoid new catcher/DH and require actual center-field aptitude',()=>{
  const s=fixture(),p=e.getPlayer(s);s.proWorld.stage='camp';p.eligiblePositions=['SS','DH'];assert.equal(evidence.proFieldTarget(s),'2B');assert.ok(ids(s).includes('PE09'));p.position='DH';p.eligiblePositions=['CF'];p.stats.defense=54;assert.notEqual(evidence.proFieldTarget(s),'CF');p.stats.defense=60;p.stats.speed=54;assert.notEqual(evidence.proFieldTarget(s),'CF');p.stats.speed=60;assert.equal(evidence.proFieldTarget(s),'CF');
 });
-test('absence and slump conditions use dates and current levels, never a young season or missing old starter telemetry',()=>{
- const s=fixture('SP');assert.ok(ids(s).includes('PE10'));ledger.ensureProEvents(s).introducedAt=s.date;assert.ok(!ids(s).includes('PE10'));s.proEvents.introducedAt='2028-03-01';completed(s,{BF:20,started:false,known:false});assert.ok(!ids(s).includes('PE10'));s.calendar.events=[];completed(s,{BF:20,started:true});assert.ok(!ids(s).includes('PE10'));
+test('pitching proposals compare aptitude while slump conditions use actual current-level evidence',()=>{
+ const s=fixture('SP'),p=e.getPlayer(s);assert.ok(!ids(s).includes('PE10'));p.stats.velocity=95;p.stats.movement=90;
+ assert.equal(runtime.proGeneralCandidates(s).find(c=>c.id==='PE10')?.context.target,'CP');
+ ledger.ensureProEvents(s).introducedAt=s.date;completed(s,{BF:20,started:true});assert.ok(ids(s).includes('PE10'),'a better role does not require missing starts');
+ const event=open(s,'PE10',{target:'CP'});assert.match(event.title,/마무리/);assert.equal(event.choices[0].outcomes[0].proRoleTrial,'CP');assert.match(event.choices[1].label,/선발투수/);
+ assert.ok(!ids(s).includes('PE10'),'do not repeat the proposal in the same season');
  const t=fixture(),q=e.getPlayer(t);completed(t,{PA:20,level:'pro-first'});q.recentZ=-.4;assert.ok(!ids(t).includes('PE17'));completed(t,{PA:20});assert.ok(ids(t).includes('PE17'));assert.ok(!ids(t).includes('PE03'));
 });
 test('14-day role evaluation applies the original accepted transition without creating another choice',()=>{

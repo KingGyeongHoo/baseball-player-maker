@@ -1434,6 +1434,22 @@ body:has(.week-control) .site-footer {
 .training-layout {
   align-items: start;
 }
+.pro-season-training { padding: 0 24px 24px; }
+.pro-training-section { border: 0; padding: 0; margin: 24px 0; min-width: 0; }
+.pro-training-section legend { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+.pro-training-focus { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
+.pro-training-focus button,.pro-training-intensity button { border: 1px solid var(--border,#dce2eb); background: var(--surface,#fff); border-radius: 8px; padding: 12px; text-align: left; color: inherit; }
+.pro-training-focus button { display: grid; gap: 6px; }
+.pro-training-focus span,.pro-training-intensity span { font-size: 12px; color: var(--muted,#77869d); line-height: 1.6; }
+.pro-training-focus button.selected,.pro-training-intensity button.selected { border-color: #42699c; background: #edf3fb; box-shadow: inset 0 0 0 1px #42699c; }
+.pro-training-focus button:focus-visible,.pro-training-intensity button:focus-visible { outline: 2px solid #42699c; outline-offset: 3px; }
+.pro-training-intensity { display: grid; gap: 8px; }
+.pro-training-intensity button { display: grid; gap: 5px; }
+.pro-training-summary { padding: 16px; border-radius: 8px; background: var(--surface-soft,#f5f7fa); font-size: 13px; }
+.pro-training-summary dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 16px 0; }
+.pro-training-summary dd { margin: 6px 0 0; font-weight: 700; }
+.pro-training-summary p { color: var(--muted,#77869d); font-size: 12px; line-height: 1.7; margin: 8px 0 0; }
+@media(max-width:480px) { .pro-season-training { padding: 0 16px 16px; } .pro-training-focus { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 .training-label .training-growth-hint {
   display: flex;
   flex-wrap: wrap;

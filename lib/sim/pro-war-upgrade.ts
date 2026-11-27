@@ -1,5 +1,5 @@
-import {levelWarValue,proWarRules} from './pro-war';
-import {isBullpenSeason,refreshCareerEvaluation} from './pro-career-evaluation';
+import {rawSeasonWar,proWarRules,emptyProWarAssessment} from './pro-war';
+import {refreshCareerEvaluation} from './pro-career-evaluation';
 import {seasonEvaluation} from './pro-season-evaluation';
 import {seasonRankGrade} from './pro-season-ranking';
 import {rosterGrade} from '../roster-grades';
@@ -7,14 +7,14 @@ import type {GameState} from './types';
 import type {ProSeasonAssessment} from './pro-types';
 
 // Saved component lines already contain raw league WAR. No game replay or
-// invented historical record is necessary to remove the old farm discount.
+// invented historical record is necessary to remove season-only multipliers.
 export function upgradeRawSeasonWar(s:GameState){
   const changedYears=new Set<number>();
   for(const p of s.players)for(const row of p.professional?.assessments??[]){
-    if(row.war?.version!==1)continue;
-    const wins=row.noAppearances?0:levelWarValue(row.war.first,isBullpenSeason(row))+levelWarValue(row.war.second,isBullpenSeason(row));
-    row.war={...row.war,version:2,equivalentWins:wins,score:Math.max(0,Math.min(100,proWarRules.scoreAtZero+proWarRules.scorePerWin*wins))};
-    row.seasonEvaluation=seasonEvaluation(row.war);row.score=row.seasonEvaluation.score;
+    if(!row.war||row.war.version===3)continue;
+    const wins=row.noAppearances?0:rawSeasonWar(row.war),rated=row.score!==null;
+    row.war=row.noAppearances?emptyProWarAssessment():{...row.war,version:3,equivalentWins:wins,score:Math.max(0,Math.min(100,proWarRules.scoreAtZero+proWarRules.scorePerWin*wins))};
+    row.seasonEvaluation=seasonEvaluation(row.war,row.seasonEvaluation?.injury);if(rated)row.score=row.seasonEvaluation.score;
     row.grade=row.noAppearances?'F':row.seasonRank?.grade??rosterGrade(row.score,true);
     if(row.seasonRank)row.seasonRank.war=wins;
     changedYears.add(row.year);

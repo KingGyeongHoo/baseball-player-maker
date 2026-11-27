@@ -1,4 +1,6 @@
 import {upgradeCareerHonors} from './sim/career-honor-upgrade';
+import {validProPitchWorkload} from './sim/pro-pitching-fatigue';
+import {validProTraining} from './sim/pro-training';
 import {upgradeSchoolPositions} from './sim/school-position-upgrade';
 import {validNationalTournament} from "./sim/national-tournament";
 import {upgradeNationalInvitation} from './sim/national-teams';
@@ -44,7 +46,7 @@ export function validateCareerState(value:unknown):asserts value is GameState {
   if(s.schemaVersion!==1||s.proWorld&&s.proWorld.version!==1)throw new Error("지원하지 않는 저장 버전입니다. 원본 파일은 변경하지 않았습니다.");
   if(typeof s.seed!=="string"||typeof s.playerId!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(s.date)||!["weekStart","ended"].includes(s.phase)||!Array.isArray(s.players)||!Array.isArray(s.teams)||!Array.isArray(s.calendar?.events))throw new Error("필수 커리어 데이터가 누락됐습니다.");
   const ids=new Set<string>();for(const p of s.players){
-    if(!p||typeof p.id!=="string"||ids.has(p.id)||!Number.isInteger(p.teamId)||p.teamId>=s.teams.length||p.teamId< -1||statKeys.some(k=>!Number.isFinite(p.stats?.[k])||p.stats[k]<1||p.stats[k]>100)||!p.trainingPolicy?.tickets||!Array.isArray(p.career))throw new Error("선수·소속·능력 데이터가 손상됐습니다.");ids.add(p.id);
+    if(!p||typeof p.id!=="string"||ids.has(p.id)||!Number.isInteger(p.teamId)||p.teamId>=s.teams.length||p.teamId< -1||statKeys.some(k=>!Number.isFinite(p.stats?.[k])||p.stats[k]<1||p.stats[k]>100)||!p.trainingPolicy?.tickets||!validProTraining(p.trainingPolicy.proSeason)||!Array.isArray(p.career))throw new Error("선수·소속·능력 데이터가 손상됐습니다.");ids.add(p.id);
     if(p.throws!==undefined&&!["R","L"].includes(p.throws)||p.bats!==undefined&&!["R","L","B"].includes(p.bats))throw new Error("투구·타격 손 정보를 복원할 수 없습니다.");
     const assessments=p.professional?.assessments;
     if(!validInjuryData(p))throw new Error('부상 이력·회복 일정 데이터가 손상됐습니다.');
@@ -118,6 +120,7 @@ export function validateCareerState(value:unknown):asserts value is GameState {
   if(s.proWorld?.market?.offers.some(offer=>offer.salaryBeforeMinimum!==undefined&&(!Number.isSafeInteger(offer.salaryBeforeMinimum)||offer.salaryBeforeMinimum<0||offer.salaryBeforeMinimum>=MIN_PRO_SALARY||offer.salary!==MIN_PRO_SALARY)))throw new Error('연봉 제안 기록을 복원할 수 없습니다.');
   if(s.weekProgress&&(!Number.isInteger(s.weekProgress.remainingDays)||s.weekProgress.remainingDays<0||s.weekProgress.remainingDays>7))throw new Error("주간 중단 위치가 올바르지 않습니다.");
   if(s.matchProgress&&!s.calendar.events.some(g=>g.id===s.matchProgress!.gameId))throw new Error("진행 중인 경기를 찾을 수 없습니다.");
+  if(s.matchProgress?.proPitchWorkload&&!validProPitchWorkload(s.matchProgress.proPitchWorkload))throw new Error('진행 중인 경기의 투구 피로 기록을 복원할 수 없습니다.');
   if(s.proEvents&&(s.proEvents.version!==1||!Array.isArray(s.proEvents.history)||!Array.isArray(s.proEvents.attemptedGames)||!Array.isArray(s.proEvents.cancellations)||!s.proEvents.national||Object.values(s.proEvents.national).some(row=>!Array.isArray(row.roster)||row.roster.length>30||new Set(row.roster.map(p=>p.id)).size!==row.roster.length)))throw new Error("프로 이벤트 저장 상태가 손상됐거나 지원하지 않는 버전입니다.");
   if(s.proEvents?.wbc&&Object.entries(s.proEvents.wbc).some(([year,row])=>Number(year)<2026||(Number(year)-2026)%4!==0||row.sourceYear!==Number(year)-1||typeof row.evaluatedAt!=="string"||typeof row.offered!=="boolean"||typeof row.settled!=="boolean"||!Array.isArray(row.roster)||row.roster.length>30||row.roster.some(p=>!p||typeof p.id!=="string"||!Number.isFinite(p.selectionScore??p.reputation)||!Number.isFinite(p.roleScore))||new Set(row.roster.map(p=>p.id)).size!==row.roster.length))throw new Error("WBC 국가대표 명단을 복원할 수 없습니다.");
   if(s.nationalTeams&&(!Array.isArray(s.nationalTeams)||new Set(s.nationalTeams.map(row=>`${row.year}:${row.kind}`)).size!==s.nationalTeams.length||s.nationalTeams.some(row=>!['wbc','premier12','apbc','olympics','youth'].includes(row.kind)||!Number.isInteger(row.year)||typeof row.start!=='string'||typeof row.end!=='string'||!Array.isArray(row.roster)||row.roster.length>30||row.participationField!==undefined&&!['pitching','batting'].includes(row.participationField)||new Set(row.roster.map(p=>p.id)).size!==row.roster.length||row.roster.some(p=>typeof p.id!=='string'||typeof p.name!=='string'||typeof p.team!=='string'||!['batting','pitching'].includes(p.field)||!Number.isFinite(p.roleScore)||p.wildcard!==undefined&&p.wildcard!==true))))throw new Error("국가대표 선발 기록이 손상됐습니다.");

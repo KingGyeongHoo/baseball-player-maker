@@ -1,4 +1,5 @@
-import {dateLabel,getPlayer,ticketsUsed,validPolicy} from "../../lib/sim/engine";
+import {dateLabel,getPlayer,labels,ticketsUsed,validPolicy} from "../../lib/sim/engine";
+import {isProSeasonTraining,proTrainingRules,proTrainingSelection} from '../../lib/sim/pro-training';
 import type {GameState,Policy} from "../../lib/sim/types";
 import {trainingLabel} from "./training-editor";
 import {autoWaitingForDecision} from '../../lib/auto-progress';
@@ -11,6 +12,7 @@ export default function ProgressControls({state,policy,busy,auto,autoStartWeek,o
   nationalAction?:{name:string;label:string;onClick:()=>void};
 }) {
   const player=getPlayer(state);
+  const selection=isProSeasonTraining(state)?proTrainingSelection(player,policy):undefined;
   const pendingDecision=autoWaitingForDecision(state,pendingOutcome);
   const pro=!!state.careerMode,month=player.professional?.employment==="freeAgent";
   const pauseEvents=pro?"시즌 종료":"드래프트 종료";
@@ -22,7 +24,7 @@ export default function ProgressControls({state,policy,busy,auto,autoStartWeek,o
   return <div className="week-control"><div>
     <div className="week-control-info">
       <span className="week-label">WEEK {String(state.week).padStart(2,"0")}</span>
-      <div><b>{dateLabel(state.date)}</b><span>{trainingLabel(policy)} · {ticketsUsed(policy)}개 투자{!validPolicy(policy)?" · 배분 확인":""}</span></div>
+      <div><b>{dateLabel(state.date)}</b><span>{selection?`${labels[selection.focus]} 집중 · ${proTrainingRules[selection.intensity].label}`:<>{trainingLabel(policy)} · {ticketsUsed(policy)}개 투자</>}{!validPolicy(policy)?" · 설정 확인":""}</span></div>
       {auto&&<span className="auto-running" role="status"><i className="status-dot"/>자동 진행 · {state.week-autoStartWeek}주 완료</span>}
     </div>
     <p>{auto?`설정 유지 중 · 직접 일시정지하거나 ${pauseEvents} 때 멈춥니다.`:state.weekProgress?"선택한 시점에서 남은 일정을 이어갑니다.":"훈련 설정을 유지하며 자동으로 진행할 수 있습니다."}</p>

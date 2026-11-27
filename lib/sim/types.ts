@@ -17,6 +17,7 @@ export type PlayerHands = {throws:Hand;bats:Hand|"B"};
 export type Policy = {
   mode: Mode;
   tickets: Record<Ticket, number>;
+  proSeason?: {focus:Ticket;intensity:"recovery"|"normal"|"extra"};
   previousTraining?: {
     mode: Exclude<Mode, "rest">;
     tickets: Record<Ticket, number>;
@@ -41,6 +42,7 @@ export type Batting = {
   RBI: number;
 };
 export type Pitching = {
+  pitches?:number;
   BF: number;
   outs: number;
   H: number;
@@ -344,6 +346,7 @@ export type WeekProgress = {
   };
 };
 export type MatchProgress = {
+  proPitchWorkload?:import('./pro-pitching-fatigue').ProPitchWorkload;
   fieldingVersion?:1;
   scoring?: {stints:{id:string;side:number;starter:boolean;lead:number;runners:number;exitLead?:number;blown:boolean}[];winner?:string;loser?:string};
   proStarts?:Record<string,ProAppearance>;

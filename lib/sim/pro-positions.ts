@@ -1,12 +1,13 @@
 import type { Player, Position,ProSquad } from "./types";
 import type {FaTerms} from "./pro-types";
 import {canPlayPosition} from './position-eligibility';
+import {proStarterEligible} from './pro-pitching-fatigue';
 const squadOrder:ProSquad[]=["first","second","third","developmental"];
 
 // Eligibility is a list of positions a player may request, not simultaneous
 // competition for every one of those jobs. Two-way roles are explicit jobs.
 export function currentProPosition(p: Player, position: Position) {
-  return canPlayPosition(p,position)&&(p.position === position || p.twoWay?.battingPosition === position || p.twoWay?.pitchingPosition === position);
+  return canPlayPosition(p,position)&&(position!=='SP'||proStarterEligible(p))&&(p.position === position || p.twoWay?.battingPosition === position || p.twoWay?.pitchingPosition === position);
 }
 export function guaranteedProSquad(p:Player,date:string):ProSquad|undefined {
   const contract = p.professional?.contract, terms = contract?.faTerms, year = Number(date.slice(0, 4));
